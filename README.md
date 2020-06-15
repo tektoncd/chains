@@ -10,8 +10,8 @@ Stay tuned for getting started information!
 
 We are so excited to have you!
 
-See [./CONTRIBUTING.md] for an overview of our processes
-See [./DEVELOPMENT.md] for how to get started
-See [./ROADMAP.md] for the current roadmap
+See [CONTRIBUTING.md](CONTRIBUTING.md] for an overview of our processes
+See [DEVELOPMENT.md](DEVELOPMENT.md) for how to get started
+See [ROADMAP.md](ROADMAP.md) for the current roadmap
 Look at our good first issues and our help wanted issues
 
