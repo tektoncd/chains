@@ -72,4 +72,35 @@ modules](https://github.com/golang/go/wiki/Modules#quick-start).
 
 ## Iterating
 
-Coming soon!
+## Install Chains
+
+You can stand up a version of this controller on-cluster (to your `kubectl
+config current-context`):
+
+```shell
+ko apply -f config/
+```
+
+### Redeploy controller
+
+As you make changes to the code, you can redeploy your controller with:
+
+```shell
+ko apply -f config/deployment.yaml
+```
+
+### Tear it down
+
+You can clean up everything with:
+
+```shell
+ko delete -f config/
+```
+
+## Accessing logs
+
+To look at the controller logs, run:
+
+```shell
+kubectl -n tekton-pipelines logs deployment/tekton-chains-controller
+```
