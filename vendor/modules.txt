@@ -1,0 +1,12 @@
+# github.com/GoogleCloudPlatform/cloud-builders/gcs-fetcher v0.0.0-20200610135313-39a4f207f4fe
+## explicit
+# github.com/tektoncd/plumbing v0.0.0-20200615101855-f56d60092af6
+## explicit
+github.com/tektoncd/plumbing
+github.com/tektoncd/plumbing/scripts
+# k8s.io/code-generator v0.18.3
+## explicit
+# k8s.io/kube-openapi v0.0.0-20200615155156-dffdd1682719
+## explicit
+# knative.dev/pkg v0.0.0-20200616011124-086ff4395641
+## explicit
