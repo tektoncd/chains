@@ -17,9 +17,8 @@ import (
 	"context"
 	"flag"
 
+	tkcontroller "github.com/tektoncd/chains/pkg/controller"
 	taskruninformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/taskrun"
-	"github.com/tektoncd/pipeline/pkg/reconciler"
-	"go.uber.org/zap"
 	"k8s.io/client-go/tools/cache"
 	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/controller"
@@ -46,10 +45,11 @@ func main() {
 			logger := logging.FromContext(ctx)
 			taskRunInformer := taskruninformer.Get(ctx)
 
-			c := &rec{
-				logger: logger,
+			c := &tkcontroller.Reconciler{
+				Logger:        logger,
+				TaskRunLister: taskRunInformer.Lister(),
 			}
-			impl := controller.NewImpl(c, c.logger, controllerName)
+			impl := controller.NewImpl(c, c.Logger, controllerName)
 
 			taskRunInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 				AddFunc:    impl.Enqueue,
@@ -58,14 +58,4 @@ func main() {
 
 			return impl
 		})
-}
-
-type rec struct {
-	*reconciler.Base
-	logger *zap.SugaredLogger
-}
-
-func (r *rec) Reconcile(ctx context.Context, key string) error {
-	r.logger.Infof("reconciling resource key: %s", key)
-	return nil
 }

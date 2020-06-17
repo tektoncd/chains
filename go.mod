@@ -8,6 +8,7 @@ require (
 	github.com/tektoncd/pipeline v0.13.2
 	github.com/tektoncd/plumbing v0.0.0-20200615101855-f56d60092af6
 	go.uber.org/zap v1.15.0
+	k8s.io/apimachinery v0.17.6
 	k8s.io/client-go v11.0.1-0.20190805182717-6502b5e7b1b5+incompatible
 	knative.dev/pkg v0.0.0-20200616145124-d289d2eef6cb
 )
