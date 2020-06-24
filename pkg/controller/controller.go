@@ -16,6 +16,7 @@ package controller
 import (
 	"context"
 
+	"github.com/tektoncd/chains/pkg/signing"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	informers "github.com/tektoncd/pipeline/pkg/client/listers/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/reconciler"
@@ -34,6 +35,20 @@ type Reconciler struct {
 // handleTaskRun handles a changed or created TaskRun.
 // This is the main entrypoint for chains business logic.
 func (r *Reconciler) handleTaskRun(ctx context.Context, tr *v1beta1.TaskRun) error {
+	// Check to make sure the TaskRun is finished.
+	if !tr.IsDone() {
+		r.Logger.Infof("taskrun %s/%s is still running", tr.Namespace, tr.Name)
+		return nil
+	}
+	// Check to see if it has already been signed.
+	if signing.IsSigned(tr) {
+		r.Logger.Infof("taskrun %s/%s has already been signed", tr.Namespace, tr.Name)
+		return nil
+	}
+
+	if err := signing.SignTaskRun(r.Logger, r.PipelineClientSet, tr); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -59,6 +74,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, key string) error {
 
 	r.Logger.Infof("Sending update for %s/%s (uid %s)", namespace, name, tr.UID)
 
-	// Call the actual handler with the fetched TaskRun.
-	return r.handleTaskRun(ctx, tr)
+	// Call the actual handler with a copy of the fetched TaskRun.
+	return r.handleTaskRun(ctx, tr.DeepCopy())
 }
