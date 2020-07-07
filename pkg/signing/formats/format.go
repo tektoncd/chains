@@ -23,9 +23,11 @@ type Payloader interface {
 
 const (
 	PayloadTypeTekton = "tekton"
+	PayloadTypeInToto = "in-toto"
 )
 
 // AllPayloadTypes is a list of all valid Payload types.
 var AllPayloadTypes = []Payloader{
 	&Tekton{},
+	&InToto{},
 }

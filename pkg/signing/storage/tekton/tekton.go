@@ -16,6 +16,7 @@ package tekton
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 
 	"github.com/tektoncd/chains/pkg/patch"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -26,7 +27,7 @@ import (
 
 const (
 	StorageBackendTekton = "tekton"
-	PayloadAnnotation    = "chains.tekton.dev/payload"
+	PayloadAnnotation    = "chains.tekton.dev/%s-payload"
 )
 
 // Tekton is a storage backend that stores signed payloads in the TaskRun metadata as an annotation.
@@ -55,9 +56,10 @@ func (b *Backend) StorePayload(payload interface{}, payloadType string, tr *v1be
 
 	textPayload := base64.StdEncoding.EncodeToString(jsonPayload)
 
+	formatAnnotation := fmt.Sprintf(PayloadAnnotation, payloadType)
 	// Use patch instead of update to prevent race conditions.
 	patchBytes, err := patch.GetAnnotationsPatch(map[string]string{
-		PayloadAnnotation: textPayload,
+		formatAnnotation: textPayload,
 	})
 	if err != nil {
 		return err

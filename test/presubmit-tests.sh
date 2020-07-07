@@ -32,7 +32,7 @@ source $(git rev-parse --show-toplevel)/vendor/github.com/tektoncd/plumbing/scri
 function post_build_tests() {
   header "running golangci-lint"
   # deadline of 5m, and show all the issues
-  golangci-lint --color=never run
+  golangci-lint --color=never run --timeout 10m
 }
 
 # We use the default build, unit and integration test runners.

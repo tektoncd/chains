@@ -16,6 +16,7 @@ package tekton
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -82,7 +83,7 @@ func TestBackend_StorePayload(t *testing.T) {
 			}
 
 			// Reverse all the decodings
-			payload := tr.ObjectMeta.Annotations[PayloadAnnotation]
+			payload := tr.ObjectMeta.Annotations[fmt.Sprintf(PayloadAnnotation, "mockpayload")]
 			jsonString, err := base64.StdEncoding.DecodeString(payload)
 			if err != nil {
 				t.Errorf("error base64 decoding: %v", err)
