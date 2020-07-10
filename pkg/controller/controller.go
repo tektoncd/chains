@@ -30,6 +30,7 @@ type Reconciler struct {
 	*reconciler.Base
 	Logger        *zap.SugaredLogger
 	TaskRunLister informers.TaskRunLister
+	TaskRunSigner signing.Signer
 }
 
 // handleTaskRun handles a changed or created TaskRun.
@@ -46,7 +47,7 @@ func (r *Reconciler) handleTaskRun(ctx context.Context, tr *v1beta1.TaskRun) err
 		return nil
 	}
 
-	if err := signing.SignTaskRun(r.Logger, r.PipelineClientSet, tr); err != nil {
+	if err := r.TaskRunSigner.SignTaskRun(tr); err != nil {
 		return err
 	}
 	return nil

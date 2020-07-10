@@ -14,11 +14,17 @@ limitations under the License.
 package signing
 
 import (
+	"errors"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/tektoncd/chains/pkg/signing/storage"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	versioned "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	fakepipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client/fake"
+	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	logtesting "knative.dev/pkg/logging/testing"
 	rtesting "knative.dev/pkg/reconciler/testing"
 )
 
@@ -92,4 +98,115 @@ func TestIsSigned(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestTaskRunSigner_SignTaskRun(t *testing.T) {
+	// SignTaskRun does three main things:
+	// - generates payloads
+	// - stores them in the configured systems
+	// - marks the taskrun as signed
+	tests := []struct {
+		name     string
+		backends []*mockBackend
+	}{
+		{
+			name: "single system",
+			backends: []*mockBackend{
+				&mockBackend{},
+			},
+		},
+		{
+			name: "multiple systems",
+			backends: []*mockBackend{
+				&mockBackend{},
+				&mockBackend{},
+			},
+		},
+		{
+			name: "multiple systems, multiple errors",
+			backends: []*mockBackend{
+				&mockBackend{},
+				&mockBackend{},
+				&mockBackend{shouldErr: true},
+				&mockBackend{shouldErr: true},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cleanup := setupMocks(tt.backends)
+			defer cleanup()
+
+			ctx, _ := rtesting.SetupFakeContext(t)
+			logger := logtesting.TestLogger(t)
+			ps := fakepipelineclient.Get(ctx)
+			ts := &TaskRunSigner{
+				Logger:            logger,
+				Pipelineclientset: ps,
+			}
+
+			tr := &v1beta1.TaskRun{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "foo",
+				},
+			}
+			if _, err := ps.TektonV1beta1().TaskRuns(tr.Namespace).Create(tr); err != nil {
+				t.Errorf("error creating fake taskrun: %v", err)
+			}
+			if err := ts.SignTaskRun(tr); err != nil {
+				t.Errorf("TaskRunSigner.SignTaskRun() error = %v", err)
+			}
+
+			// Check it is marked as signed
+			if !IsSigned(tr) {
+				t.Errorf("TaskRun %s/%s should be marked as signed, was not", tr.Namespace, tr.Name)
+			}
+			// Check the payloads were stored in all the backends.
+			payloads := generatePayloads(logger, tr)
+			for _, b := range tt.backends {
+				if b.shouldErr {
+					continue
+				}
+				if diff := cmp.Diff(payloads, b.storedPayloads); diff != "" {
+					t.Errorf("unexpected payload: (-want, +got): %s", diff)
+				}
+			}
+
+		})
+	}
+}
+
+func setupMocks(backends []*mockBackend) func() {
+	oldGet := getBackends
+	getBackends = func(ps versioned.Interface, logger *zap.SugaredLogger) []storage.Backend {
+		newBackends := []storage.Backend{}
+		for _, m := range backends {
+			newBackends = append(newBackends, m)
+		}
+		return newBackends
+	}
+	return func() {
+		getBackends = oldGet
+	}
+}
+
+type mockBackend struct {
+	storedPayloads map[string]interface{}
+	shouldErr      bool
+}
+
+// StorePayload implements the Payloader interface.
+func (b *mockBackend) StorePayload(payload interface{}, payloadType string, tr *v1beta1.TaskRun) error {
+	if b.shouldErr {
+		return errors.New("error storing")
+	}
+	if b.storedPayloads == nil {
+		b.storedPayloads = map[string]interface{}{}
+	}
+	b.storedPayloads[payloadType] = payload
+	return nil
+}
+
+func (b *mockBackend) Type() string {
+	return "mock"
 }
