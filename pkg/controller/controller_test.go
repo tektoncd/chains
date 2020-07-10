@@ -6,12 +6,10 @@ import (
 
 	"github.com/tektoncd/chains/pkg/signing"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	versioned "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	informers "github.com/tektoncd/pipeline/pkg/client/informers/externalversions/pipeline/v1beta1"
 	fakepipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client/fake"
 	faketaskruninformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/taskrun/fake"
 	"github.com/tektoncd/pipeline/pkg/reconciler"
-	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"knative.dev/pkg/apis"
 	duckv1beta1 "knative.dev/pkg/apis/duck/v1beta1"
@@ -122,9 +120,7 @@ func TestReconciler_handleTaskRun(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Mock out SignTaskRun
-			m, cleanup := setupMocks()
-			defer cleanup()
+			signer := &mockSigner{}
 			ctx, _ := rtesting.SetupFakeContext(t)
 			c := fakepipelineclient.Get(ctx)
 
@@ -132,24 +128,16 @@ func TestReconciler_handleTaskRun(t *testing.T) {
 				Base: &reconciler.Base{
 					PipelineClientSet: c,
 				},
-				Logger: logtesting.TestLogger(t),
+				Logger:        logtesting.TestLogger(t),
+				TaskRunSigner: signer,
 			}
 			if err := r.handleTaskRun(ctx, tt.tr); err != nil {
 				t.Errorf("Reconciler.handleTaskRun() error = %v", err)
 			}
-			if m.signed != tt.shouldSign {
-				t.Errorf("Reconciler.handleTaskRun() signed = %v, wanted %v", m.signed, tt.shouldSign)
+			if signer.signed != tt.shouldSign {
+				t.Errorf("Reconciler.handleTaskRun() signed = %v, wanted %v", signer.signed, tt.shouldSign)
 			}
 		})
-	}
-}
-
-func setupMocks() (*mockSigner, func()) {
-	m := &mockSigner{}
-	oldSigner := signing.SignTaskRun
-	signing.SignTaskRun = m.mockSignTaskRun
-	return m, func() {
-		signing.SignTaskRun = oldSigner
 	}
 }
 
@@ -157,7 +145,7 @@ type mockSigner struct {
 	signed bool
 }
 
-func (m *mockSigner) mockSignTaskRun(logger *zap.SugaredLogger, ps versioned.Interface, tr *v1beta1.TaskRun) error {
+func (m *mockSigner) SignTaskRun(tr *v1beta1.TaskRun) error {
 	m.signed = true
 	return nil
 }

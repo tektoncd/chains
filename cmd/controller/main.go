@@ -18,6 +18,7 @@ import (
 	"flag"
 
 	tkcontroller "github.com/tektoncd/chains/pkg/controller"
+	"github.com/tektoncd/chains/pkg/signing"
 	pipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client"
 	taskruninformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/taskrun"
 	"github.com/tektoncd/pipeline/pkg/reconciler"
@@ -57,6 +58,10 @@ func main() {
 				},
 				Logger:        logger,
 				TaskRunLister: taskRunInformer.Lister(),
+				TaskRunSigner: &signing.TaskRunSigner{
+					Pipelineclientset: pipelineclientset,
+					Logger:            logger,
+				},
 			}
 			impl := controller.NewImpl(c, c.Logger, controllerName)
 
