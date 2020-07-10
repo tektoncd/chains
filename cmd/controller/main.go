@@ -58,6 +58,7 @@ func main() {
 				TaskRunSigner: &signing.TaskRunSigner{
 					Pipelineclientset: pipelineclientset,
 					Logger:            logger,
+					SecretPath:        tkcontroller.SecretPath,
 				},
 			}
 			impl := controller.NewImpl(c, c.Logger, controllerName)

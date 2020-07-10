@@ -17,7 +17,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/tektoncd/chains/pkg/signing/formats"
 	"github.com/tektoncd/chains/pkg/signing/storage"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -109,6 +108,7 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 	tests := []struct {
 		name     string
 		backends []*mockBackend
+		wantErr  bool
 	}{
 		{
 			name: "single system",
@@ -131,6 +131,7 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 				&mockBackend{shouldErr: true},
 				&mockBackend{shouldErr: true},
 			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
@@ -144,6 +145,7 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 			ts := &TaskRunSigner{
 				Logger:            logger,
 				Pipelineclientset: ps,
+				SecretPath:        "./pgp/testdata/",
 			}
 
 			tr := &v1beta1.TaskRun{
@@ -154,7 +156,7 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 			if _, err := ps.TektonV1beta1().TaskRuns(tr.Namespace).Create(tr); err != nil {
 				t.Errorf("error creating fake taskrun: %v", err)
 			}
-			if err := ts.SignTaskRun(tr); err != nil {
+			if err := ts.SignTaskRun(tr); (err != nil) != tt.wantErr {
 				t.Errorf("TaskRunSigner.SignTaskRun() error = %v", err)
 			}
 
@@ -164,8 +166,9 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 				t.Errorf("error fetching fake taskrun: %v", err)
 			}
 			// Check it is marked as signed
-			if !IsSigned(tr) {
-				t.Errorf("TaskRun %s/%s should be marked as signed, was not", tr.Namespace, tr.Name)
+			shouldBeSigned := !tt.wantErr
+			if IsSigned(tr) != shouldBeSigned {
+				t.Errorf("IsSigned()=%t, wanted %t", IsSigned(tr), shouldBeSigned)
 			}
 			// Check the payloads were stored in all the backends.
 			payloads := generatePayloads(logger, tr)
@@ -173,8 +176,12 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 				if b.shouldErr {
 					continue
 				}
-				if diff := cmp.Diff(payloads, b.storedPayloads); diff != "" {
-					t.Errorf("unexpected payload: (-want, +got): %s", diff)
+				// We don't actually need to check the signature and serialized formats here, just that
+				// the payload was stored.
+				for pt := range payloads {
+					if _, ok := b.storedPayloadTypes[pt]; !ok {
+						t.Errorf("error, expected payload type to be stored %s", pt)
+					}
 				}
 			}
 
@@ -197,19 +204,19 @@ func setupMocks(backends []*mockBackend) func() {
 }
 
 type mockBackend struct {
-	storedPayloads map[formats.PayloadType]interface{}
-	shouldErr      bool
+	storedPayloadTypes map[formats.PayloadType]struct{}
+	shouldErr          bool
 }
 
 // StorePayload implements the Payloader interface.
-func (b *mockBackend) StorePayload(payload interface{}, payloadType formats.PayloadType) error {
+func (b *mockBackend) StorePayload(signed []byte, signature string, payloadType formats.PayloadType) error {
 	if b.shouldErr {
 		return errors.New("mock error storing")
 	}
-	if b.storedPayloads == nil {
-		b.storedPayloads = map[formats.PayloadType]interface{}{}
+	if b.storedPayloadTypes == nil {
+		b.storedPayloadTypes = map[formats.PayloadType]struct{}{}
 	}
-	b.storedPayloads[payloadType] = payload
+	b.storedPayloadTypes[payloadType] = struct{}{}
 	return nil
 }
 

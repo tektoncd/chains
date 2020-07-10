@@ -15,7 +15,6 @@ package tekton
 
 import (
 	"encoding/base64"
-	"encoding/json"
 
 	"github.com/tektoncd/chains/pkg/patch"
 	"github.com/tektoncd/chains/pkg/signing/formats"
@@ -28,6 +27,7 @@ import (
 const (
 	StorageBackendTekton = "tekton"
 	PayloadAnnotation    = "chains.tekton.dev/payload"
+	SignatureAnnotation  = "chains.tekton.dev/signature"
 )
 
 // Tekton is a storage backend that stores signed payloads in the TaskRun metadata as an annotation.
@@ -47,20 +47,15 @@ func NewStorageBackend(ps versioned.Interface, logger *zap.SugaredLogger, tr *v1
 	}
 }
 
-// StorePayload implements the Payloader interface
-func (b *Backend) StorePayload(payload interface{}, payloadType formats.PayloadType) error {
+// StorePayload implements the Payloader interface.
+func (b *Backend) StorePayload(signed []byte, signature string, payloadType formats.PayloadType) error {
 	b.logger.Infof("Storing payload type %s on TaskRun %s/%s", payloadType, b.tr.Namespace, b.tr.Name)
-
-	jsonPayload, err := json.Marshal(payload)
-	if err != nil {
-		return err
-	}
-
-	textPayload := base64.StdEncoding.EncodeToString(jsonPayload)
 
 	// Use patch instead of update to prevent race conditions.
 	patchBytes, err := patch.GetAnnotationsPatch(map[string]string{
-		PayloadAnnotation: textPayload,
+		// Base64 encode both the signature and the payload
+		PayloadAnnotation:   base64.StdEncoding.EncodeToString(signed),
+		SignatureAnnotation: base64.StdEncoding.EncodeToString([]byte(signature)),
 	})
 	if err != nil {
 		return err

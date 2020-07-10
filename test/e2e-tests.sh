@@ -34,5 +34,5 @@ failed=0
 header "Running Go e2e tests"
 go_test_e2e -timeout=20m ./test/... || failed=1
 
-(( failed )) && fail_test
+(( failed )) && dump_logs && fail_test
 success

@@ -19,11 +19,15 @@ limitations under the License.
 package test
 
 import (
+	"bytes"
+	"encoding/base64"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	pipelineclientset "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
+	"golang.org/x/crypto/openpgp"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -40,7 +44,7 @@ func TestInstall(t *testing.T) {
 	}
 }
 
-func TestSign(t *testing.T) {
+func TestTektonStorage(t *testing.T) {
 	c, ns, cleanup := setup(t)
 	defer cleanup()
 
@@ -56,18 +60,48 @@ func TestSign(t *testing.T) {
 	// Give it a minute to complete.
 	waitForCondition(t, c.PipelineClient, tr.Name, ns, done, 60*time.Second)
 
-	tr, err = c.PipelineClient.TektonV1beta1().TaskRuns(ns).Get(tr.Name, metav1.GetOptions{})
-	if err != nil {
-		t.Error(err)
-	}
-
 	signed := func(tr *v1beta1.TaskRun) bool {
 		_, ok := tr.Annotations["chains.tekton.dev/signed"]
 		return ok
 	}
 
-	// Now it should be signed within 10s
-	waitForCondition(t, c.PipelineClient, tr.Name, ns, signed, 10*time.Second)
+	// It can take up to a minute for the secret data to be updated!
+	tr = waitForCondition(t, c.PipelineClient, tr.Name, ns, signed, 120*time.Second)
+
+	// Let's fetch the signature and body:
+	signature, body := tr.Annotations["chains.tekton.dev/signature"], tr.Annotations["chains.tekton.dev/payload"]
+	// base64 decode them
+	sigBytes, err := base64.StdEncoding.DecodeString(signature)
+	if err != nil {
+		t.Error(err)
+	}
+	bodyBytes, err := base64.StdEncoding.DecodeString(body)
+	if err != nil {
+		t.Error(err)
+	}
+
+	// Validate them
+	pubKey, err := os.Open("./testdata/pgp.public-key")
+	if err != nil {
+		t.Error(err)
+	}
+
+	el, err := openpgp.ReadArmoredKeyRing(pubKey)
+	if err != nil {
+		t.Error(err)
+	}
+	if _, err := openpgp.CheckArmoredDetachedSignature(el, bytes.NewReader(bodyBytes), bytes.NewReader(sigBytes)); err != nil {
+		t.Errorf("bad signatures: %v", err)
+	}
+}
+
+func getTr(t *testing.T, c pipelineclientset.Interface, name, ns string) (tr *v1beta1.TaskRun) {
+	t.Helper()
+	tr, err := c.TektonV1beta1().TaskRuns(ns).Get(name, metav1.GetOptions{})
+	if err != nil {
+		t.Error(err)
+	}
+	return tr
 }
 
 type conditionFn func(*v1beta1.TaskRun) bool
@@ -76,10 +110,7 @@ func waitForCondition(t *testing.T, c pipelineclientset.Interface, name, ns stri
 	t.Helper()
 
 	// Do a first quick check before setting the watch
-	tr, err := c.TektonV1beta1().TaskRuns(ns).Get(name, metav1.GetOptions{})
-	if err != nil {
-		t.Error(err)
-	}
+	tr := getTr(t, c, name, ns)
 	if cond(tr) {
 		return tr
 	}
