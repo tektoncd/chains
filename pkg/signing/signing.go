@@ -14,8 +14,10 @@ limitations under the License.
 package signing
 
 import (
+	"github.com/hashicorp/go-multierror"
 	"github.com/tektoncd/chains/pkg/patch"
 	"github.com/tektoncd/chains/pkg/signing/formats"
+	"github.com/tektoncd/chains/pkg/signing/pgp"
 	"github.com/tektoncd/chains/pkg/signing/storage"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	versioned "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
@@ -35,6 +37,7 @@ type Signer interface {
 type TaskRunSigner struct {
 	Logger            *zap.SugaredLogger
 	Pipelineclientset versioned.Interface
+	SecretPath        string
 }
 
 // IsSigned determines whether a TaskRun has already been signed.
@@ -66,18 +69,48 @@ var getBackends = storage.InitializeBackends
 
 // SignTaskRun signs a TaskRun, and marks it as signed.
 func (ts *TaskRunSigner) SignTaskRun(tr *v1beta1.TaskRun) error {
-	// First sign the overall TaskRun with all the configured payloads
-	payloads := generatePayloads(ts.Logger, tr)
-	ts.Logger.Infof("Generated payloads: %v for %s/%s", payloads, tr.Namespace, tr.Name)
+	// First generate the raw payload objects to sign.
+	rawPayloads := generatePayloads(ts.Logger, tr)
+	ts.Logger.Infof("Generated payloads: %v for %s/%s", rawPayloads, tr.Namespace, tr.Name)
 
+	// Sign all the payloads with all the signing strategies (right now just pgp)
+	// TODO: Currently, this reads secrets from disk every time.
+	// This could be optimized to instead watch the secret for changes.
+	signer, err := pgp.NewSigner(ts.SecretPath, ts.Logger)
+	if err != nil {
+		return err
+	}
+
+	// Signing the payload objects forces them to be marshalled into bytes.
+	// Use this marshaled form from now on, instead of the object itself.
+	signedPayloads := map[formats.PayloadType][]byte{}
+	signatures := map[formats.PayloadType]string{}
+	for pt, rp := range rawPayloads {
+		ts.Logger.Infof("generating %s payload", pt)
+		signature, signed, err := signer.Sign(rp)
+		if err != nil {
+			ts.Logger.Error(err)
+			continue
+		}
+		signedPayloads[pt] = signed
+		signatures[pt] = signature
+	}
+
+	// Now store the signature and signed payloads in all the storage backends.
+	var merr *multierror.Error
 	backends := getBackends(ts.Pipelineclientset, ts.Logger, tr)
 	for _, b := range backends {
-		for payloadType, payload := range payloads {
-			if err := b.StorePayload(payload, payloadType); err != nil {
+		for payloadType, signed := range signedPayloads {
+			signature := signatures[payloadType]
+			// We have the object we signed and the signature for the same payload type. Store both!
+			if err := b.StorePayload(signed, signature, payloadType); err != nil {
 				ts.Logger.Errorf("error storing payloadType %s on storageBackend %s for taskRun %s/%s: %v", payloadType, b.Type(), tr.Namespace, tr.Name, err)
-				// continue and store others
+				merr = multierror.Append(merr, err)
 			}
 		}
+	}
+	if merr.ErrorOrNil() != nil {
+		return merr
 	}
 
 	// Now mark the TaskRun as signed

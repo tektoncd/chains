@@ -41,12 +41,6 @@ func TestBackend_StorePayload(t *testing.T) {
 				B: 3,
 			},
 		},
-		{
-			name: "json error",
-			// chans can't be marshaled
-			payload: make(chan int),
-			wantErr: true,
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -67,7 +61,11 @@ func TestBackend_StorePayload(t *testing.T) {
 				logger:            logtesting.TestLogger(t),
 				tr:                tr,
 			}
-			if err := b.StorePayload(tt.payload, "mockpayload"); (err != nil) != tt.wantErr {
+			payload, err := json.Marshal(tt.payload)
+			if err != nil {
+				t.Errorf("error marshaling json: %v", err)
+			}
+			if err := b.StorePayload(payload, "mocksignature", "mockpayload"); (err != nil) != tt.wantErr {
 				t.Errorf("Backend.StorePayload() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
@@ -77,14 +75,13 @@ func TestBackend_StorePayload(t *testing.T) {
 			}
 
 			// Now get the updated taskrun
-			tr, err := c.TektonV1beta1().TaskRuns(tr.Namespace).Get(tr.Name, metav1.GetOptions{})
+			tr, err = c.TektonV1beta1().TaskRuns(tr.Namespace).Get(tr.Name, metav1.GetOptions{})
 			if err != nil {
 				t.Errorf("error getting updated taskrun: %v", err)
 			}
 
 			// Reverse all the decodings
-			payload := tr.ObjectMeta.Annotations[PayloadAnnotation]
-			jsonString, err := base64.StdEncoding.DecodeString(payload)
+			jsonString, err := base64.StdEncoding.DecodeString(tr.ObjectMeta.Annotations[PayloadAnnotation])
 			if err != nil {
 				t.Errorf("error base64 decoding: %v", err)
 			}

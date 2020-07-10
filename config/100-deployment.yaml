@@ -10,7 +10,7 @@ metadata:
     pipeline.tekton.dev/release: "devel"
     version: "devel"
 # The data is populated at install time.
-data:
+# data:
   # This contains the private key to use for PGP signing
   # pgp.private-key:
   # This contains the passphrase to use for the pgp private key
