@@ -28,7 +28,7 @@ func TestTekton_CreatePayload(t *testing.T) {
 		{
 			name: "tr",
 			tr: &v1beta1.TaskRun{
-				Spec: v1beta1.TaskRunSpec{},
+				Status: v1beta1.TaskRunStatus{},
 			},
 		},
 	}
@@ -41,7 +41,7 @@ func TestTekton_CreatePayload(t *testing.T) {
 				return
 			}
 			// This payloader just returns the taskrun unmodified.
-			if !reflect.DeepEqual(got, tt.tr) {
+			if !reflect.DeepEqual(got, tt.tr.Status) {
 				t.Errorf("Tekton.CreatePayload() = %v, want %v", got, tt.tr)
 			}
 		})
