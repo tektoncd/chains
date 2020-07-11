@@ -15,13 +15,13 @@ package formats
 
 import "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 
-// Tekton is a formatter that just captures the TaskRun with no modifications.
+// Tekton is a formatter that just captures the TaskRun Status with no modifications.
 type Tekton struct {
 }
 
 // CreatePayload implements the Payloader interface.
 func (i *Tekton) CreatePayload(tr *v1beta1.TaskRun) (interface{}, error) {
-	return tr, nil
+	return tr.Status, nil
 }
 
 func (i *Tekton) Type() string {
