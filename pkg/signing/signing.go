@@ -14,11 +14,13 @@ limitations under the License.
 package signing
 
 import (
+	"github.com/tektoncd/chains/pkg/patch"
 	"github.com/tektoncd/chains/pkg/signing/formats"
 	"github.com/tektoncd/chains/pkg/signing/storage"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	versioned "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	"go.uber.org/zap"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
@@ -46,11 +48,14 @@ func IsSigned(tr *v1beta1.TaskRun) bool {
 
 // MarkSigned marks a TaskRun as signed.
 func MarkSigned(tr *v1beta1.TaskRun, ps versioned.Interface) error {
-	if tr.ObjectMeta.Annotations == nil {
-		tr.ObjectMeta.Annotations = map[string]string{}
+	// Use patch instead of update to help prevent race conditions.
+	patchBytes, err := patch.GetAnnotationsPatch(map[string]string{
+		ChainsAnnotation: "true",
+	})
+	if err != nil {
+		return err
 	}
-	tr.ObjectMeta.Annotations[ChainsAnnotation] = "true"
-	if _, err := ps.TektonV1beta1().TaskRuns(tr.Namespace).Update(tr); err != nil {
+	if _, err := ps.TektonV1beta1().TaskRuns(tr.Namespace).Patch(tr.Name, types.MergePatchType, patchBytes); err != nil {
 		return err
 	}
 	return nil
@@ -69,7 +74,7 @@ func (ts *TaskRunSigner) SignTaskRun(tr *v1beta1.TaskRun) error {
 	for _, b := range backends {
 		for payloadType, payload := range payloads {
 			if err := b.StorePayload(payload, payloadType, tr); err != nil {
-				ts.Logger.Errorf("error storing payloadType %s on storageBackend %s for taskRun %s/%s", payloadType, b.Type(), tr.Namespace, tr.Name)
+				ts.Logger.Errorf("error storing payloadType %s on storageBackend %s for taskRun %s/%s: %v", payloadType, b.Type(), tr.Namespace, tr.Name, err)
 				// continue and store others
 			}
 		}

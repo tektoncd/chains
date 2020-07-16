@@ -17,9 +17,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 
+	"github.com/tektoncd/chains/pkg/patch"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	versioned "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	"go.uber.org/zap"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
@@ -45,9 +47,6 @@ func NewStorageBackend(ps versioned.Interface, logger *zap.SugaredLogger) *Backe
 // StorePayload implements the Payloader interface.
 func (b *Backend) StorePayload(payload interface{}, payloadType string, tr *v1beta1.TaskRun) error {
 	b.logger.Infof("Storing payload type %s on TaskRun %s/%s", payloadType, tr.Namespace, tr.Name)
-	if tr.ObjectMeta.Annotations == nil {
-		tr.ObjectMeta.Annotations = map[string]string{}
-	}
 
 	jsonPayload, err := json.Marshal(payload)
 	if err != nil {
@@ -56,8 +55,14 @@ func (b *Backend) StorePayload(payload interface{}, payloadType string, tr *v1be
 
 	textPayload := base64.StdEncoding.EncodeToString(jsonPayload)
 
-	tr.ObjectMeta.Annotations[PayloadAnnotation] = textPayload
-	if _, err := b.pipelienclientset.TektonV1beta1().TaskRuns(tr.Namespace).Update(tr); err != nil {
+	// Use patch instead of update to prevent race conditions.
+	patchBytes, err := patch.GetAnnotationsPatch(map[string]string{
+		PayloadAnnotation: textPayload,
+	})
+	if err != nil {
+		return err
+	}
+	if _, err := b.pipelienclientset.TektonV1beta1().TaskRuns(tr.Namespace).Patch(tr.Name, types.MergePatchType, patchBytes); err != nil {
 		return err
 	}
 	return nil
