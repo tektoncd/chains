@@ -157,6 +157,11 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 				t.Errorf("TaskRunSigner.SignTaskRun() error = %v", err)
 			}
 
+			// Fetch a new TR!
+			tr, err := ps.TektonV1beta1().TaskRuns(tr.Namespace).Get(tr.Name, metav1.GetOptions{})
+			if err != nil {
+				t.Errorf("error fetching fake taskrun: %v", err)
+			}
 			// Check it is marked as signed
 			if !IsSigned(tr) {
 				t.Errorf("TaskRun %s/%s should be marked as signed, was not", tr.Namespace, tr.Name)
@@ -198,7 +203,7 @@ type mockBackend struct {
 // StorePayload implements the Payloader interface.
 func (b *mockBackend) StorePayload(payload interface{}, payloadType string, tr *v1beta1.TaskRun) error {
 	if b.shouldErr {
-		return errors.New("error storing")
+		return errors.New("mock error storing")
 	}
 	if b.storedPayloads == nil {
 		b.storedPayloads = map[string]interface{}{}
