@@ -25,6 +25,11 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
+const (
+	// SecretPath contains the path to the secrets volume that is mounted in.
+	SecretPath = "/etc/signing-secrets"
+)
+
 // Reconciler implements knative.dev/pkg/controller.Reconciler
 type Reconciler struct {
 	*reconciler.Base
