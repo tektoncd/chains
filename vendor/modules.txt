@@ -72,6 +72,8 @@ github.com/davecgh/go-spew/spew
 github.com/evanphx/json-patch
 # github.com/ghodss/yaml v1.0.0
 github.com/ghodss/yaml
+# github.com/go-logr/logr v0.1.0
+github.com/go-logr/logr
 # github.com/gogo/protobuf v1.3.1
 github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/sortkeys
@@ -128,6 +130,8 @@ github.com/matttproud/golang_protobuf_extensions/pbutil
 github.com/modern-go/concurrent
 # github.com/modern-go/reflect2 v1.0.1
 github.com/modern-go/reflect2
+# github.com/openzipkin/zipkin-go v0.2.2
+github.com/openzipkin/zipkin-go/model
 # github.com/pkg/errors v0.9.1
 github.com/pkg/errors
 # github.com/prometheus/client_golang v1.5.0
@@ -183,6 +187,7 @@ github.com/tektoncd/pipeline/pkg/client/listers/pipeline/v1alpha1
 github.com/tektoncd/pipeline/pkg/client/listers/pipeline/v1beta1
 github.com/tektoncd/pipeline/pkg/contexts
 github.com/tektoncd/pipeline/pkg/list
+github.com/tektoncd/pipeline/pkg/names
 github.com/tektoncd/pipeline/pkg/reconciler/pipeline/dag
 github.com/tektoncd/pipeline/pkg/substitution
 # github.com/tektoncd/plumbing v0.0.0-20200615101855-f56d60092af6
@@ -401,6 +406,7 @@ gopkg.in/inf.v0
 # gopkg.in/yaml.v2 v2.3.0
 gopkg.in/yaml.v2
 # k8s.io/api v0.17.6 => k8s.io/api v0.16.5
+## explicit
 k8s.io/api/admission/v1beta1
 k8s.io/api/admissionregistration/v1
 k8s.io/api/admissionregistration/v1beta1
@@ -479,6 +485,7 @@ k8s.io/apimachinery/pkg/util/json
 k8s.io/apimachinery/pkg/util/mergepatch
 k8s.io/apimachinery/pkg/util/naming
 k8s.io/apimachinery/pkg/util/net
+k8s.io/apimachinery/pkg/util/rand
 k8s.io/apimachinery/pkg/util/runtime
 k8s.io/apimachinery/pkg/util/sets
 k8s.io/apimachinery/pkg/util/strategicpatch
@@ -629,9 +636,11 @@ k8s.io/client-go/pkg/apis/clientauthentication/v1alpha1
 k8s.io/client-go/pkg/apis/clientauthentication/v1beta1
 k8s.io/client-go/pkg/version
 k8s.io/client-go/plugin/pkg/client/auth/exec
+k8s.io/client-go/plugin/pkg/client/auth/gcp
 k8s.io/client-go/rest
 k8s.io/client-go/rest/watch
 k8s.io/client-go/testing
+k8s.io/client-go/third_party/forked/golang/template
 k8s.io/client-go/tools/auth
 k8s.io/client-go/tools/cache
 k8s.io/client-go/tools/clientcmd
@@ -650,6 +659,7 @@ k8s.io/client-go/util/cert
 k8s.io/client-go/util/connrotation
 k8s.io/client-go/util/flowcontrol
 k8s.io/client-go/util/homedir
+k8s.io/client-go/util/jsonpath
 k8s.io/client-go/util/keyutil
 k8s.io/client-go/util/retry
 k8s.io/client-go/util/workqueue
@@ -690,6 +700,12 @@ knative.dev/pkg/reconciler/testing
 knative.dev/pkg/signals
 knative.dev/pkg/system
 knative.dev/pkg/system/testing
+knative.dev/pkg/test
+knative.dev/pkg/test/ingress
+knative.dev/pkg/test/logging
+knative.dev/pkg/test/monitoring
+knative.dev/pkg/test/spoof
+knative.dev/pkg/test/zipkin
 knative.dev/pkg/tracker
 knative.dev/pkg/version
 knative.dev/pkg/webhook
