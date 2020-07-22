@@ -24,6 +24,6 @@ func (i *Tekton) CreatePayload(tr *v1beta1.TaskRun) (interface{}, error) {
 	return tr.Status, nil
 }
 
-func (i *Tekton) Type() string {
+func (i *Tekton) Type() PayloadType {
 	return PayloadTypeTekton
 }
