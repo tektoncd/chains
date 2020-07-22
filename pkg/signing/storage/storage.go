@@ -23,16 +23,16 @@ import (
 
 // Backend is an interface to store a chains Payload
 type Backend interface {
-	StorePayload(payload interface{}, payloadType formats.PayloadType, tr *v1beta1.TaskRun) error
+	StorePayload(payload interface{}, payloadType formats.PayloadType) error
 	Type() string
 }
 
 // InitializeBackends creates and initializes every configured storage backend.
-func InitializeBackends(ps versioned.Interface, logger *zap.SugaredLogger) []Backend {
+func InitializeBackends(ps versioned.Interface, logger *zap.SugaredLogger, tr *v1beta1.TaskRun) []Backend {
 	backends := []Backend{}
 
 	// Add one entry here for every storage backend type.
-	backends = append(backends, tekton.NewStorageBackend(ps, logger))
+	backends = append(backends, tekton.NewStorageBackend(ps, logger, tr))
 
 	return backends
 }

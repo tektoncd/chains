@@ -184,7 +184,7 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 
 func setupMocks(backends []*mockBackend) func() {
 	oldGet := getBackends
-	getBackends = func(ps versioned.Interface, logger *zap.SugaredLogger) []storage.Backend {
+	getBackends = func(ps versioned.Interface, logger *zap.SugaredLogger, _ *v1beta1.TaskRun) []storage.Backend {
 		newBackends := []storage.Backend{}
 		for _, m := range backends {
 			newBackends = append(newBackends, m)
@@ -202,7 +202,7 @@ type mockBackend struct {
 }
 
 // StorePayload implements the Payloader interface.
-func (b *mockBackend) StorePayload(payload interface{}, payloadType formats.PayloadType, tr *v1beta1.TaskRun) error {
+func (b *mockBackend) StorePayload(payload interface{}, payloadType formats.PayloadType) error {
 	if b.shouldErr {
 		return errors.New("mock error storing")
 	}
