@@ -152,7 +152,7 @@ github.com/prometheus/statsd_exporter/pkg/mapper/fsm
 github.com/sirupsen/logrus
 # github.com/spf13/pflag v1.0.5
 github.com/spf13/pflag
-# github.com/tektoncd/pipeline v0.13.2
+# github.com/tektoncd/pipeline v0.14.2
 ## explicit
 github.com/tektoncd/pipeline/pkg/apis/config
 github.com/tektoncd/pipeline/pkg/apis/pipeline
@@ -183,7 +183,6 @@ github.com/tektoncd/pipeline/pkg/client/listers/pipeline/v1alpha1
 github.com/tektoncd/pipeline/pkg/client/listers/pipeline/v1beta1
 github.com/tektoncd/pipeline/pkg/contexts
 github.com/tektoncd/pipeline/pkg/list
-github.com/tektoncd/pipeline/pkg/reconciler
 github.com/tektoncd/pipeline/pkg/reconciler/pipeline/dag
 github.com/tektoncd/pipeline/pkg/substitution
 # github.com/tektoncd/plumbing v0.0.0-20200615101855-f56d60092af6
@@ -663,12 +662,6 @@ k8s.io/utils/buffer
 k8s.io/utils/integer
 k8s.io/utils/pointer
 k8s.io/utils/trace
-# knative.dev/caching v0.0.0-20200521155757-e78d17bc250e => knative.dev/caching v0.0.0-20200521155757-e78d17bc250e
-knative.dev/caching/pkg/apis/caching
-knative.dev/caching/pkg/apis/caching/v1alpha1
-knative.dev/caching/pkg/client/clientset/versioned
-knative.dev/caching/pkg/client/clientset/versioned/scheme
-knative.dev/caching/pkg/client/clientset/versioned/typed/caching/v1alpha1
 # knative.dev/pkg v0.0.0-20200616145124-d289d2eef6cb => knative.dev/pkg v0.0.0-20200528142800-1c6815d7e4c9
 ## explicit
 knative.dev/pkg/apis

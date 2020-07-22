@@ -21,7 +21,6 @@ import (
 	"github.com/tektoncd/chains/pkg/signing"
 	pipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client"
 	taskruninformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/taskrun"
-	"github.com/tektoncd/pipeline/pkg/reconciler"
 	"k8s.io/client-go/tools/cache"
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
 	"knative.dev/pkg/configmap"
@@ -52,12 +51,10 @@ func main() {
 			pipelineclientset := pipelineclient.Get(ctx)
 
 			c := &tkcontroller.Reconciler{
-				Base: &reconciler.Base{
-					KubeClientSet:     kubeclientset,
-					PipelineClientSet: pipelineclientset,
-				},
-				Logger:        logger,
-				TaskRunLister: taskRunInformer.Lister(),
+				KubeClientSet:     kubeclientset,
+				PipelineClientSet: pipelineclientset,
+				Logger:            logger,
+				TaskRunLister:     taskRunInformer.Lister(),
 				TaskRunSigner: &signing.TaskRunSigner{
 					Pipelineclientset: pipelineclientset,
 					Logger:            logger,
