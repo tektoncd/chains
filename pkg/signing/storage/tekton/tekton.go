@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 
 	"github.com/tektoncd/chains/pkg/patch"
+	"github.com/tektoncd/chains/pkg/signing/formats"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	versioned "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	"go.uber.org/zap"
@@ -44,8 +45,8 @@ func NewStorageBackend(ps versioned.Interface, logger *zap.SugaredLogger) *Backe
 	}
 }
 
-// StorePayload implements the Payloader interface.
-func (b *Backend) StorePayload(payload interface{}, payloadType string, tr *v1beta1.TaskRun) error {
+// StorePayload implements the Payloader interface
+func (b *Backend) StorePayload(payload interface{}, payloadType formats.PayloadType, tr *v1beta1.TaskRun) error {
 	b.logger.Infof("Storing payload type %s on TaskRun %s/%s", payloadType, tr.Namespace, tr.Name)
 
 	jsonPayload, err := json.Marshal(payload)

@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/tektoncd/chains/pkg/signing/formats"
 	"github.com/tektoncd/chains/pkg/signing/storage"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	versioned "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
@@ -196,17 +197,17 @@ func setupMocks(backends []*mockBackend) func() {
 }
 
 type mockBackend struct {
-	storedPayloads map[string]interface{}
+	storedPayloads map[formats.PayloadType]interface{}
 	shouldErr      bool
 }
 
 // StorePayload implements the Payloader interface.
-func (b *mockBackend) StorePayload(payload interface{}, payloadType string, tr *v1beta1.TaskRun) error {
+func (b *mockBackend) StorePayload(payload interface{}, payloadType formats.PayloadType, tr *v1beta1.TaskRun) error {
 	if b.shouldErr {
 		return errors.New("mock error storing")
 	}
 	if b.storedPayloads == nil {
-		b.storedPayloads = map[string]interface{}{}
+		b.storedPayloads = map[formats.PayloadType]interface{}{}
 	}
 	b.storedPayloads[payloadType] = payload
 	return nil

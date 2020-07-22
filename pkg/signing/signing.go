@@ -84,8 +84,8 @@ func (ts *TaskRunSigner) SignTaskRun(tr *v1beta1.TaskRun) error {
 	return MarkSigned(tr, ts.Pipelineclientset)
 }
 
-func generatePayloads(logger *zap.SugaredLogger, tr *v1beta1.TaskRun) map[string]interface{} {
-	payloads := map[string]interface{}{}
+func generatePayloads(logger *zap.SugaredLogger, tr *v1beta1.TaskRun) map[formats.PayloadType]interface{} {
+	payloads := map[formats.PayloadType]interface{}{}
 	for _, payloader := range formats.AllPayloadTypes {
 		payload, err := payloader.CreatePayload(tr)
 		if err != nil {

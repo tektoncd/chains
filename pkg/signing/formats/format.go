@@ -18,11 +18,13 @@ import "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 // Payloader is an interface to generate a chains Payload from a TaskRun
 type Payloader interface {
 	CreatePayload(tr *v1beta1.TaskRun) (interface{}, error)
-	Type() string
+	Type() PayloadType
 }
 
+type PayloadType string
+
 const (
-	PayloadTypeTekton = "tekton"
+	PayloadTypeTekton PayloadType = "tekton"
 )
 
 // AllPayloadTypes is a list of all valid Payload types.
