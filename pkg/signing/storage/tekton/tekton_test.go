@@ -65,8 +65,9 @@ func TestBackend_StorePayload(t *testing.T) {
 			b := &Backend{
 				pipelienclientset: c,
 				logger:            logtesting.TestLogger(t),
+				tr:                tr,
 			}
-			if err := b.StorePayload(tt.payload, "mockpayload", tr); (err != nil) != tt.wantErr {
+			if err := b.StorePayload(tt.payload, "mockpayload"); (err != nil) != tt.wantErr {
 				t.Errorf("Backend.StorePayload() error = %v, wantErr %v", err, tt.wantErr)
 			}
 

@@ -70,10 +70,10 @@ func (ts *TaskRunSigner) SignTaskRun(tr *v1beta1.TaskRun) error {
 	payloads := generatePayloads(ts.Logger, tr)
 	ts.Logger.Infof("Generated payloads: %v for %s/%s", payloads, tr.Namespace, tr.Name)
 
-	backends := getBackends(ts.Pipelineclientset, ts.Logger)
+	backends := getBackends(ts.Pipelineclientset, ts.Logger, tr)
 	for _, b := range backends {
 		for payloadType, payload := range payloads {
-			if err := b.StorePayload(payload, payloadType, tr); err != nil {
+			if err := b.StorePayload(payload, payloadType); err != nil {
 				ts.Logger.Errorf("error storing payloadType %s on storageBackend %s for taskRun %s/%s: %v", payloadType, b.Type(), tr.Namespace, tr.Name, err)
 				// continue and store others
 			}

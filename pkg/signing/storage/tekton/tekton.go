@@ -35,10 +35,11 @@ const (
 type Backend struct {
 	pipelienclientset versioned.Interface
 	logger            *zap.SugaredLogger
+	tr                *v1beta1.TaskRun
 }
 
-// NewStorageBackend returns a new Tekton StorageBackend
-func NewStorageBackend(ps versioned.Interface, logger *zap.SugaredLogger) *Backend {
+// NewStorageBackend returns a new Tekton StorageBackend that stores signatures on a TaskRun
+func NewStorageBackend(ps versioned.Interface, logger *zap.SugaredLogger, tr *v1beta1.TaskRun) *Backend {
 	return &Backend{
 		pipelienclientset: ps,
 		logger:            logger,
@@ -46,8 +47,8 @@ func NewStorageBackend(ps versioned.Interface, logger *zap.SugaredLogger) *Backe
 }
 
 // StorePayload implements the Payloader interface
-func (b *Backend) StorePayload(payload interface{}, payloadType formats.PayloadType, tr *v1beta1.TaskRun) error {
-	b.logger.Infof("Storing payload type %s on TaskRun %s/%s", payloadType, tr.Namespace, tr.Name)
+func (b *Backend) StorePayload(payload interface{}, payloadType formats.PayloadType) error {
+	b.logger.Infof("Storing payload type %s on TaskRun %s/%s", payloadType, b.tr.Namespace, b.tr.Name)
 
 	jsonPayload, err := json.Marshal(payload)
 	if err != nil {
@@ -63,7 +64,7 @@ func (b *Backend) StorePayload(payload interface{}, payloadType formats.PayloadT
 	if err != nil {
 		return err
 	}
-	if _, err := b.pipelienclientset.TektonV1beta1().TaskRuns(tr.Namespace).Patch(tr.Name, types.MergePatchType, patchBytes); err != nil {
+	if _, err := b.pipelienclientset.TektonV1beta1().TaskRuns(b.tr.Namespace).Patch(b.tr.Name, types.MergePatchType, patchBytes); err != nil {
 		return err
 	}
 	return nil
