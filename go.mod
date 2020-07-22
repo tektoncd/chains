@@ -6,7 +6,7 @@ require (
 	contrib.go.opencensus.io/exporter/ocagent v0.7.0 // indirect
 	contrib.go.opencensus.io/exporter/prometheus v0.2.0 // indirect
 	github.com/google/go-cmp v0.4.1
-	github.com/tektoncd/pipeline v0.13.2
+	github.com/tektoncd/pipeline v0.14.2
 	github.com/tektoncd/plumbing v0.0.0-20200615101855-f56d60092af6
 	go.uber.org/zap v1.15.0
 	golang.org/x/crypto v0.0.0-20200323165209-0ec3e9974c59

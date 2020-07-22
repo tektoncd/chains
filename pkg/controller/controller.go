@@ -18,10 +18,11 @@ import (
 
 	"github.com/tektoncd/chains/pkg/signing"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	"github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	informers "github.com/tektoncd/pipeline/pkg/client/listers/pipeline/v1beta1"
-	"github.com/tektoncd/pipeline/pkg/reconciler"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -32,10 +33,11 @@ const (
 
 // Reconciler implements knative.dev/pkg/controller.Reconciler
 type Reconciler struct {
-	*reconciler.Base
-	Logger        *zap.SugaredLogger
-	TaskRunLister informers.TaskRunLister
-	TaskRunSigner signing.Signer
+	Logger            *zap.SugaredLogger
+	TaskRunLister     informers.TaskRunLister
+	TaskRunSigner     signing.Signer
+	KubeClientSet     kubernetes.Interface
+	PipelineClientSet versioned.Interface
 }
 
 // handleTaskRun handles a changed or created TaskRun.

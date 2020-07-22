@@ -9,7 +9,6 @@ import (
 	informers "github.com/tektoncd/pipeline/pkg/client/informers/externalversions/pipeline/v1beta1"
 	fakepipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client/fake"
 	faketaskruninformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/taskrun/fake"
-	"github.com/tektoncd/pipeline/pkg/reconciler"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"knative.dev/pkg/apis"
 	duckv1beta1 "knative.dev/pkg/apis/duck/v1beta1"
@@ -125,11 +124,9 @@ func TestReconciler_handleTaskRun(t *testing.T) {
 			c := fakepipelineclient.Get(ctx)
 
 			r := &Reconciler{
-				Base: &reconciler.Base{
-					PipelineClientSet: c,
-				},
-				Logger:        logtesting.TestLogger(t),
-				TaskRunSigner: signer,
+				PipelineClientSet: c,
+				Logger:            logtesting.TestLogger(t),
+				TaskRunSigner:     signer,
 			}
 			if err := r.handleTaskRun(ctx, tt.tr); err != nil {
 				t.Errorf("Reconciler.handleTaskRun() error = %v", err)
