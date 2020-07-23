@@ -43,6 +43,7 @@ func NewStorageBackend(ps versioned.Interface, logger *zap.SugaredLogger, tr *v1
 	return &Backend{
 		pipelienclientset: ps,
 		logger:            logger,
+		tr:                tr,
 	}
 }
 
