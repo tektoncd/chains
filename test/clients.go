@@ -68,13 +68,20 @@ func newClients(t *testing.T, configPath, clusterName string) *clients {
 	return c
 }
 
-func setup(t *testing.T) (*clients, string) {
+func setup(t *testing.T) (*clients, string, func()) {
 	t.Helper()
 	namespace := names.SimpleNameGenerator.RestrictLengthWithRandomSuffix("earth")
 
 	c := newClients(t, knativetest.Flags.Kubeconfig, knativetest.Flags.Cluster)
 	createNamespace(t, namespace, c.KubeClient)
-	return c, namespace
+
+	var cleanup = func() {
+		t.Logf("Deleting namespace %s", namespace)
+		if err := c.KubeClient.CoreV1().Namespaces().Delete(namespace, &metav1.DeleteOptions{}); err != nil {
+			t.Fatalf("Failed to delete namespace %s for tests: %s", namespace, err)
+		}
+	}
+	return c, namespace, cleanup
 }
 
 func createNamespace(t *testing.T, namespace string, kubeClient kubernetes.Interface) {
