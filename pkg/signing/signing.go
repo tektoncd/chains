@@ -113,6 +113,8 @@ func (ts *TaskRunSigner) SignTaskRun(tr *v1beta1.TaskRun) error {
 		return merr
 	}
 
+	// TODO: sign any output resources produced (OCI Images, etc.)
+
 	// Now mark the TaskRun as signed
 	return MarkSigned(tr, ts.Pipelineclientset)
 }
