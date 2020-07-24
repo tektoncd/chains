@@ -12,22 +12,55 @@ import (
 )
 
 type Config struct {
-	EnabledFormats []string
+	Artifacts Artifacts
+}
+
+type Artifacts struct {
+	TaskRuns TaskRuns
+}
+
+type TaskRuns struct {
+	Formats         Formats
+	StorageBackends StorageBackends
+}
+
+type Formats struct {
+	EnabledFormats map[string]struct{}
+}
+
+type StorageBackends struct {
+	EnabledBackends map[string]struct{}
 }
 
 const (
-	enabledFormatsKey = "formats.enabled-formats"
+	taskrunEnabledFormatsKey  = "artifacts.taskrun.formats.enabled"
+	taskrunEnabledStoragesKey = "artifacts.taskrun.storage.enabled"
 )
 
 func parse(data map[string]string) Config {
 	cfg := Config{}
-	if formats := data[enabledFormatsKey]; formats != "" {
+
+	// Start with artifact-specific configs
+	// TaskRuns
+	cfg.Artifacts.TaskRuns.Formats.EnabledFormats = stringSet(taskrunEnabledFormatsKey, data)
+	cfg.Artifacts.TaskRuns.StorageBackends.EnabledBackends = stringSet(taskrunEnabledStoragesKey, data)
+
+	return cfg
+}
+
+func stringSet(key string, data map[string]string) map[string]struct{} {
+	var names []string
+	if val := data[key]; val != "" {
 		// We have to check if the key is set before passing to strings.Split
 		// strings.Split on an empty string results in a slice like: []string{""}, when we
 		// really want an empty slice
-		cfg.EnabledFormats = strings.Split(formats, ",")
+		names = strings.Split(val, ",")
 	}
-	return cfg
+	result := map[string]struct{}{}
+	for _, name := range names {
+		result[name] = struct{}{}
+	}
+	return result
 }
 
 type ConfigStore struct {
@@ -46,11 +79,11 @@ func (cs *ConfigStore) watch() {
 	go func() {
 		for evt := range cs.c {
 			cm := evt.Object.(*corev1.ConfigMap)
-			cs.logger.Debug("watch event %s on %s/%s", evt.Type, cm.Namespace, cm.Name)
+			cs.logger.Debugf("watch event %s on %s/%s", evt.Type, cm.Namespace, cm.Name)
 			config := parse(cm.Data)
 			// Swap the values!
 			cs.config.Store(config)
-			cs.logger.Info("config store %s updated", cs.name)
+			cs.logger.Infof("config store %s updated", cs.name)
 		}
 	}()
 }

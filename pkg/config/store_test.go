@@ -29,13 +29,13 @@ func TestNewConfigStore(t *testing.T) {
 	}
 
 	// Test that there's nothing with an empty configmap
-	if len(cs.Config().EnabledFormats) != 0 {
-		t.Errorf("unexpected data: %v", cs.Config().EnabledFormats)
+	if len(cs.Config().Artifacts.TaskRuns.Formats.EnabledFormats) != 0 {
+		t.Errorf("unexpected data: %v", cs.Config().Artifacts.TaskRuns.Formats.EnabledFormats)
 	}
 
 	// Setup some config
 	cm.Data = map[string]string{}
-	cm.Data[enabledFormatsKey] = "foo,bar"
+	cm.Data[taskrunEnabledFormatsKey] = "foo,bar"
 
 	if cm, err = fakekubeclient.CoreV1().ConfigMaps(ns).Update(cm); err != nil {
 		t.Errorf("error updating configmap: %v", err)
@@ -44,21 +44,29 @@ func TestNewConfigStore(t *testing.T) {
 	// It should be updated by then...
 	time.Sleep(100 * time.Millisecond)
 	// Test that the values are set!
-	if diff := cmp.Diff([]string{"foo", "bar"}, cs.Config().EnabledFormats); diff != "" {
+	if diff := cmp.Diff(makeStringSet("foo", "bar"), cs.Config().Artifacts.TaskRuns.Formats.EnabledFormats); diff != "" {
 		t.Error(diff)
 	}
 
 	// Change it again
-	cm.Data[enabledFormatsKey] = "foo,bar,baz"
+	cm.Data[taskrunEnabledFormatsKey] = "foo,bar,baz"
 
 	if _, err := fakekubeclient.CoreV1().ConfigMaps(ns).Update(cm); err != nil {
 		t.Errorf("error updating configmap: %v", err)
 	}
 	time.Sleep(100 * time.Millisecond)
 	// Test that the values are set!
-	if diff := cmp.Diff([]string{"foo", "bar", "baz"}, cs.Config().EnabledFormats); diff != "" {
+	if diff := cmp.Diff(makeStringSet("foo", "bar", "baz"), cs.Config().Artifacts.TaskRuns.Formats.EnabledFormats); diff != "" {
 		t.Error(diff)
 	}
+}
+
+func makeStringSet(vals ...string) map[string]struct{} {
+	result := map[string]struct{}{}
+	for _, v := range vals {
+		result[v] = struct{}{}
+	}
+	return result
 }
 
 func Test_parse(t *testing.T) {
@@ -71,28 +79,59 @@ func Test_parse(t *testing.T) {
 			name: "empty",
 			data: map[string]string{},
 			want: Config{
-				EnabledFormats: nil,
+				Artifacts: Artifacts{
+					TaskRuns: TaskRuns{
+						Formats:         Formats{EnabledFormats: map[string]struct{}{}},
+						StorageBackends: StorageBackends{EnabledBackends: map[string]struct{}{}},
+					},
+				},
 			},
 		},
 		{
 			name: "single",
-			data: map[string]string{enabledFormatsKey: "foo"},
+			data: map[string]string{taskrunEnabledFormatsKey: "foo"},
 			want: Config{
-				EnabledFormats: []string{"foo"},
+				Artifacts: Artifacts{
+					TaskRuns: TaskRuns{
+						Formats: Formats{
+							EnabledFormats: makeStringSet("foo"),
+						},
+						StorageBackends: StorageBackends{EnabledBackends: map[string]struct{}{}},
+					},
+				},
 			},
 		},
 		{
 			name: "multiple",
-			data: map[string]string{enabledFormatsKey: "foo,bar"},
+			data: map[string]string{
+				taskrunEnabledFormatsKey:  "foo,bar",
+				taskrunEnabledStoragesKey: "baz,bat",
+			},
 			want: Config{
-				EnabledFormats: []string{"foo", "bar"},
+				Artifacts: Artifacts{
+					TaskRuns: TaskRuns{
+						Formats: Formats{
+							EnabledFormats: makeStringSet("foo", "bar"),
+						},
+						StorageBackends: StorageBackends{
+							EnabledBackends: makeStringSet("baz", "bat"),
+						},
+					},
+				},
 			},
 		},
 		{
 			name: "extra",
-			data: map[string]string{enabledFormatsKey: "foo,bar", "other-key": "foo"},
+			data: map[string]string{taskrunEnabledFormatsKey: "foo,bar", "other-key": "foo"},
 			want: Config{
-				EnabledFormats: []string{"foo", "bar"},
+				Artifacts: Artifacts{
+					TaskRuns: TaskRuns{
+						Formats: Formats{
+							EnabledFormats: makeStringSet("foo", "bar"),
+						},
+						StorageBackends: StorageBackends{EnabledBackends: map[string]struct{}{}},
+					},
+				},
 			},
 		},
 	}
