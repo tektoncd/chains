@@ -48,21 +48,7 @@ You must install these tools:
 
 ## Kubernetes cluster
 
-Docker for Desktop using an edge version has been proven to work for both
-developing and running Pipelines. Your Kubernetes version must be 1.11 or later.
-
-To setup a cluster with GKE:
-
-1. [Install required tools and setup GCP project](https://github.com/knative/docs/blob/master/docs/install/Knative-with-GKE.md#before-you-begin)
-   (You may find it useful to save the ID of the project in an environment
-   variable (e.g. `PROJECT_ID`).
-1. [Create a GKE cluster](https://github.com/knative/docs/blob/master/docs/install/Knative-with-GKE.md#creating-a-kubernetes-cluster)
-
-Note that
-[the `--scopes` argument to `gcloud container cluster create`](https://cloud.google.com/sdk/gcloud/reference/container/clusters/create#--scopes)
-controls what GCP resources the cluster's default service account has access to;
-for example to give the default service account full access to your GCR
-registry, you can add `storage-full` to your `--scopes` arg.
+To setup a Kubernetes cluster for development, see the Tekton Pipelines [documentation](https://github.com/tektoncd/pipeline/blob/master/DEVELOPMENT.md#kubernetes-cluster).
 
 ## Environment Setup
 
@@ -86,7 +72,7 @@ ko apply -f config/
 As you make changes to the code, you can redeploy your controller with:
 
 ```shell
-ko apply -f config/deployment.yaml
+ko apply -f config/100-deployment.yaml
 ```
 
 ### Tear it down
