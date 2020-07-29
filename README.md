@@ -42,8 +42,24 @@ echo -n $passphrase > pgp.passphrase
 Then set all of these as fields in the Kubernetes secret `signing-secrets`:
 
 ```shell
+kubectl create secret generic signing-secrets -n tekton-pipelines --from-file=pgp.passphrase --from-file=pgp.private-key --from-file=pgp.public-key
+```
+
+---
+**NOTE**
+
+If you're signing secrets is already populated, you may get the following error:
+
+```shell
+Error from server (AlreadyExists): secrets "signing-secrets" already exists
+```
+
+Simply prepend a delete:
+
+```shell
 kubectl delete secret signing-secrets -n tekton-pipelines && kubectl create secret generic signing-secrets -n tekton-pipelines --from-file=pgp.passphrase --from-file=pgp.private-key --from-file=pgp.public-key
 ```
+---
 
 ## Usage
 
@@ -62,7 +78,7 @@ taskrun.tekton.dev/home-is-set-rwhzs created
 Then, take the name of the `TaskRun` you just created, and wait for it to finish (SUCCEEEDED should be True).
 
 ```shell
-4 kubectl get taskrun home-is-set-rwhzs
+$ kubectl get taskrun.tekton.dev/taskrun home-is-set-rwhzs
 NAME                SUCCEEDED   REASON      STARTTIME   COMPLETIONTIME
 home-is-set-rwhzs   True        Succeeded   105s        100s
 ```
@@ -74,6 +90,10 @@ $ kubectl get taskrun home-is-set-rwhzs -o=json | jq  -r '.metadata.annotations[
 $ kubectl get taskrun home-is-set-rwhzs -o=json | jq  -r '.metadata.annotations["chains.tekton.dev/signature"]' | base64 -D > signature
 ```
 
+---
+**NOTE**
+`base64` on Linux distributions is typically a lower -d flag, so `base64 -d`
+---
 Finally, we can check the signature:
 
 ```shell
