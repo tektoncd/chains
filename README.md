@@ -48,7 +48,7 @@ kubectl create secret generic signing-secrets -n tekton-pipelines --from-file=pg
 ---
 **NOTE**
 
-If you're signing secrets is already populated, you may get the following error:
+If your signing secrets is already populated, you may get the following error:
 
 ```shell
 Error from server (AlreadyExists): secrets "signing-secrets" already exists
