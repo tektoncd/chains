@@ -90,10 +90,11 @@ $ kubectl get taskrun home-is-set-rwhzs -o=json | jq  -r '.metadata.annotations[
 $ kubectl get taskrun home-is-set-rwhzs -o=json | jq  -r '.metadata.annotations["chains.tekton.dev/signature"]' | base64 -D > signature
 ```
 
----
 **NOTE**
 `base64` on Linux distributions is typically a lower -d flag, so `base64 -d`
+
 ---
+
 Finally, we can check the signature:
 
 ```shell
