@@ -16,7 +16,9 @@ package main
 import (
 	"context"
 	"flag"
+	"log"
 
+	"github.com/tektoncd/chains/pkg/config"
 	tkcontroller "github.com/tektoncd/chains/pkg/controller"
 	"github.com/tektoncd/chains/pkg/signing"
 	pipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client"
@@ -29,6 +31,7 @@ import (
 	"knative.dev/pkg/injection/sharedmain"
 	"knative.dev/pkg/logging"
 	"knative.dev/pkg/signals"
+	"knative.dev/pkg/system"
 )
 
 var (
@@ -44,11 +47,15 @@ func main() {
 
 	sharedmain.MainWithContext(injection.WithNamespaceScope(signals.NewContext(), *namespace), "watcher",
 		func(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
-			// TODO: store and use the cmw
 			logger := logging.FromContext(ctx)
 			taskRunInformer := taskruninformer.Get(ctx)
 			kubeclientset := kubeclient.Get(ctx)
 			pipelineclientset := pipelineclient.Get(ctx)
+
+			cfgStore, err := config.NewConfigStore(config.ConfigName, kubeclientset, system.Namespace(), config.ConfigName, logger)
+			if err != nil {
+				log.Fatal(err)
+			}
 
 			c := &tkcontroller.Reconciler{
 				KubeClientSet:     kubeclientset,
@@ -59,6 +66,7 @@ func main() {
 					Pipelineclientset: pipelineclientset,
 					Logger:            logger,
 					SecretPath:        tkcontroller.SecretPath,
+					ConfigStore:       cfgStore,
 				},
 			}
 			impl := controller.NewImpl(c, c.Logger, controllerName)

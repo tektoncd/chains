@@ -17,6 +17,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/chains/pkg/signing/formats"
 	"github.com/tektoncd/chains/pkg/signing/storage"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -100,6 +101,28 @@ func TestIsSigned(t *testing.T) {
 	}
 }
 
+func defaultConfig(formats []string, backends []string) config.Config {
+	cfg := config.Config{
+		Artifacts: config.Artifacts{
+			TaskRuns: config.TaskRuns{
+				StorageBackends: config.StorageBackends{
+					EnabledBackends: map[string]struct{}{},
+				},
+				Formats: config.Formats{
+					EnabledFormats: map[string]struct{}{},
+				},
+			},
+		},
+	}
+	for _, f := range formats {
+		cfg.Artifacts.TaskRuns.Formats.EnabledFormats[f] = struct{}{}
+	}
+	for _, b := range backends {
+		cfg.Artifacts.TaskRuns.StorageBackends.EnabledBackends[b] = struct{}{}
+	}
+	return cfg
+}
+
 func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 	// SignTaskRun does three main things:
 	// - generates payloads
@@ -113,23 +136,23 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 		{
 			name: "single system",
 			backends: []*mockBackend{
-				&mockBackend{},
+				{},
 			},
 		},
 		{
 			name: "multiple systems",
 			backends: []*mockBackend{
-				&mockBackend{},
-				&mockBackend{},
+				{},
+				{},
 			},
 		},
 		{
 			name: "multiple systems, multiple errors",
 			backends: []*mockBackend{
-				&mockBackend{},
-				&mockBackend{},
-				&mockBackend{shouldErr: true},
-				&mockBackend{shouldErr: true},
+				{},
+				{},
+				{shouldErr: true},
+				{shouldErr: true},
 			},
 			wantErr: true,
 		},
@@ -146,6 +169,7 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 				Logger:            logger,
 				Pipelineclientset: ps,
 				SecretPath:        "./pgp/testdata/",
+				ConfigStore:       &mockConfig{cfg: defaultConfig([]string{"tekton"}, []string{"mock"})},
 			}
 
 			tr := &v1beta1.TaskRun{
@@ -170,21 +194,16 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 			if IsSigned(tr) != shouldBeSigned {
 				t.Errorf("IsSigned()=%t, wanted %t", IsSigned(tr), shouldBeSigned)
 			}
-			// Check the payloads were stored in all the backends.
-			payloads := generatePayloads(logger, tr)
-			for _, b := range tt.backends {
-				if b.shouldErr {
-					continue
-				}
-				// We don't actually need to check the signature and serialized formats here, just that
-				// the payload was stored.
-				for pt := range payloads {
-					if _, ok := b.storedPayloadTypes[pt]; !ok {
-						t.Errorf("error, expected payload type to be stored %s", pt)
+
+			if shouldBeSigned {
+				for _, b := range tt.backends {
+					for f := range ts.ConfigStore.Config().Artifacts.TaskRuns.Formats.EnabledFormats {
+						if _, ok := b.storedPayloadTypes[formats.PayloadType(f)]; !ok {
+							t.Errorf("Expected payload %s to be stored", f)
+						}
 					}
 				}
 			}
-
 		})
 	}
 }
@@ -222,4 +241,12 @@ func (b *mockBackend) StorePayload(signed []byte, signature string, payloadType 
 
 func (b *mockBackend) Type() string {
 	return "mock"
+}
+
+type mockConfig struct {
+	cfg config.Config
+}
+
+func (m *mockConfig) Config() config.Config {
+	return m.cfg
 }

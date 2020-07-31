@@ -16,6 +16,7 @@ package controller
 import (
 	"context"
 
+	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/chains/pkg/signing"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
@@ -38,6 +39,7 @@ type Reconciler struct {
 	TaskRunSigner     signing.Signer
 	KubeClientSet     kubernetes.Interface
 	PipelineClientSet versioned.Interface
+	ConfigStore       *config.ConfigStore
 }
 
 // handleTaskRun handles a changed or created TaskRun.

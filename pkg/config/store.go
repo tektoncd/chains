@@ -11,6 +11,14 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+const (
+	ConfigName = "chains-config"
+)
+
+type ConfigGetter interface {
+	Config() Config
+}
+
 type Config struct {
 	Artifacts Artifacts
 }
@@ -72,6 +80,10 @@ type ConfigStore struct {
 }
 
 func (cs *ConfigStore) Config() Config {
+	val := cs.config.Load()
+	if val != nil {
+		return val.(Config)
+	}
 	return cs.config.Load().(Config)
 }
 
@@ -89,7 +101,7 @@ func (cs *ConfigStore) watch() {
 }
 
 // NewConfigStore returns a store that is configured to watch the configmap for changes.
-func NewConfigStore(configStore string, kc kubernetes.Interface, namespace, name string, logger *zap.SugaredLogger) (*ConfigStore, error) {
+func NewConfigStore(configStore string, kc kubernetes.Interface, namespace, name string, logger *zap.SugaredLogger) (ConfigGetter, error) {
 	opts := metav1.SingleObject(metav1.ObjectMeta{Name: name})
 	w, err := kc.CoreV1().ConfigMaps(namespace).Watch(opts)
 	if err != nil {

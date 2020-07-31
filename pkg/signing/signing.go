@@ -15,6 +15,7 @@ package signing
 
 import (
 	"github.com/hashicorp/go-multierror"
+	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/chains/pkg/patch"
 	"github.com/tektoncd/chains/pkg/signing/formats"
 	"github.com/tektoncd/chains/pkg/signing/pgp"
@@ -38,6 +39,7 @@ type TaskRunSigner struct {
 	Logger            *zap.SugaredLogger
 	Pipelineclientset versioned.Interface
 	SecretPath        string
+	ConfigStore       config.ConfigGetter
 }
 
 // IsSigned determines whether a TaskRun has already been signed.
@@ -69,8 +71,9 @@ var getBackends = storage.InitializeBackends
 
 // SignTaskRun signs a TaskRun, and marks it as signed.
 func (ts *TaskRunSigner) SignTaskRun(tr *v1beta1.TaskRun) error {
-	// First generate the raw payload objects to sign.
-	rawPayloads := generatePayloads(ts.Logger, tr)
+	cfg := ts.ConfigStore.Config()
+	// First we sign the overall Taskrun as an "artifact"
+	rawPayloads := ts.generatePayloads(tr, cfg.Artifacts.TaskRuns.Formats.EnabledFormats)
 	ts.Logger.Infof("Generated payloads: %v for %s/%s", rawPayloads, tr.Namespace, tr.Name)
 
 	// Sign all the payloads with all the signing strategies (right now just pgp)
@@ -98,8 +101,14 @@ func (ts *TaskRunSigner) SignTaskRun(tr *v1beta1.TaskRun) error {
 
 	// Now store the signature and signed payloads in all the storage backends.
 	var merr *multierror.Error
-	backends := getBackends(ts.Pipelineclientset, ts.Logger, tr)
-	for _, b := range backends {
+	allBackends := getBackends(ts.Pipelineclientset, ts.Logger, tr)
+	enabledBackends := ts.ConfigStore.Config().Artifacts.TaskRuns.StorageBackends.EnabledBackends
+
+	for _, b := range allBackends {
+		if _, ok := enabledBackends[b.Type()]; !ok {
+			ts.Logger.Debugf("skipping backend %s for taskrun %s/%s", b.Type(), tr.Namespace, tr.Name)
+			continue
+		}
 		for payloadType, signed := range signedPayloads {
 			signature := signatures[payloadType]
 			// We have the object we signed and the signature for the same payload type. Store both!
@@ -119,12 +128,15 @@ func (ts *TaskRunSigner) SignTaskRun(tr *v1beta1.TaskRun) error {
 	return MarkSigned(tr, ts.Pipelineclientset)
 }
 
-func generatePayloads(logger *zap.SugaredLogger, tr *v1beta1.TaskRun) map[formats.PayloadType]interface{} {
+func (ts *TaskRunSigner) generatePayloads(tr *v1beta1.TaskRun, enabledFormats map[string]struct{}) map[formats.PayloadType]interface{} {
 	payloads := map[formats.PayloadType]interface{}{}
 	for _, payloader := range formats.AllPayloadTypes {
+		if _, ok := enabledFormats[string(payloader.Type())]; !ok {
+			ts.Logger.Debugf("skipping format %s for taskrun %s/%s", payloader, tr.Namespace, tr.Name)
+		}
 		payload, err := payloader.CreatePayload(tr)
 		if err != nil {
-			logger.Errorf("Error creating payload of type %s for %s/%s", payloader, tr.Namespace, tr.Name)
+			ts.Logger.Errorf("Error creating payload of type %s for %s/%s", payloader, tr.Namespace, tr.Name)
 			continue
 		}
 		payloads[payloader.Type()] = payload
