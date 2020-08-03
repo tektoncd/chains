@@ -15,6 +15,7 @@ package tekton
 
 import (
 	"encoding/base64"
+	"fmt"
 
 	"github.com/tektoncd/chains/pkg/patch"
 	"github.com/tektoncd/chains/pkg/signing/formats"
@@ -25,12 +26,12 @@ import (
 )
 
 const (
-	StorageBackendTekton = "tekton"
-	PayloadAnnotation    = "chains.tekton.dev/payload"
-	SignatureAnnotation  = "chains.tekton.dev/signature"
+	StorageBackendTekton      = "tekton"
+	PayloadAnnotationFormat   = "chains.tekton.dev/payload-%s"
+	SignatureAnnotationFormat = "chains.tekton.dev/signature-%s"
 )
 
-// Tekton is a storage backend that stores signed payloads in the TaskRun metadata as an annotation.
+// Backend is a storage backend that stores signed payloads in the TaskRun metadata as an annotation.
 // It is stored as base64 encoded JSON.
 type Backend struct {
 	pipelienclientset versioned.Interface
@@ -54,8 +55,8 @@ func (b *Backend) StorePayload(signed []byte, signature string, payloadType form
 	// Use patch instead of update to prevent race conditions.
 	patchBytes, err := patch.GetAnnotationsPatch(map[string]string{
 		// Base64 encode both the signature and the payload
-		PayloadAnnotation:   base64.StdEncoding.EncodeToString(signed),
-		SignatureAnnotation: base64.StdEncoding.EncodeToString([]byte(signature)),
+		fmt.Sprintf(PayloadAnnotationFormat, payloadType):   base64.StdEncoding.EncodeToString(signed),
+		fmt.Sprintf(SignatureAnnotationFormat, payloadType): base64.StdEncoding.EncodeToString([]byte(signature)),
 	})
 	if err != nil {
 		return err

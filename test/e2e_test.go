@@ -69,7 +69,7 @@ func TestTektonStorage(t *testing.T) {
 	tr = waitForCondition(t, c.PipelineClient, tr.Name, ns, signed, 120*time.Second)
 
 	// Let's fetch the signature and body:
-	signature, body := tr.Annotations["chains.tekton.dev/signature"], tr.Annotations["chains.tekton.dev/payload"]
+	signature, body := tr.Annotations["chains.tekton.dev/signature-tekton"], tr.Annotations["chains.tekton.dev/payload-tekton"]
 	// base64 decode them
 	sigBytes, err := base64.StdEncoding.DecodeString(signature)
 	if err != nil {
