@@ -13,11 +13,9 @@ limitations under the License.
 
 package formats
 
-import "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-
 // Payloader is an interface to generate a chains Payload from a TaskRun
 type Payloader interface {
-	CreatePayload(tr *v1beta1.TaskRun) (interface{}, error)
+	CreatePayload(obj interface{}) (interface{}, error)
 	Type() PayloadType
 }
 
