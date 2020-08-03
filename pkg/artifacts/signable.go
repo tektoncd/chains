@@ -11,30 +11,25 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package formats
+package artifacts
 
 import (
-	"fmt"
-
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	"go.uber.org/zap"
 )
 
-// Tekton is a formatter that just captures the TaskRun Status with no modifications.
-type Tekton struct {
+type Signable interface {
+	ExtractObjects(tr *v1beta1.TaskRun) []interface{}
+	Type() string
 }
 
-// CreatePayload implements the Payloader interface.
-func (i *Tekton) CreatePayload(obj interface{}) (interface{}, error) {
-
-	switch v := obj.(type) {
-	case *v1beta1.TaskRun:
-		return v.Status, nil
-	default:
-		return nil, fmt.Errorf("unsupported type %s", v)
-	}
-
+type TaskRunArtifact struct {
+	Logger *zap.SugaredLogger
 }
 
-func (i *Tekton) Type() PayloadType {
-	return PayloadTypeTekton
+func (ta *TaskRunArtifact) ExtractObjects(tr *v1beta1.TaskRun) []interface{} {
+	return []interface{}{tr}
+}
+func (ta *TaskRunArtifact) Type() string {
+	return "Tekton"
 }

@@ -113,23 +113,23 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 		{
 			name: "single system",
 			backends: []*mockBackend{
-				&mockBackend{},
+				{},
 			},
 		},
 		{
 			name: "multiple systems",
 			backends: []*mockBackend{
-				&mockBackend{},
-				&mockBackend{},
+				{},
+				{},
 			},
 		},
 		{
 			name: "multiple systems, multiple errors",
 			backends: []*mockBackend{
-				&mockBackend{},
-				&mockBackend{},
-				&mockBackend{shouldErr: true},
-				&mockBackend{shouldErr: true},
+				{},
+				{},
+				{shouldErr: true},
+				{shouldErr: true},
 			},
 			wantErr: true,
 		},

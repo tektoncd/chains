@@ -15,6 +15,7 @@ package signing
 
 import (
 	"github.com/hashicorp/go-multierror"
+	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/patch"
 	"github.com/tektoncd/chains/pkg/signing/formats"
 	"github.com/tektoncd/chains/pkg/signing/pgp"
@@ -67,64 +68,59 @@ func MarkSigned(tr *v1beta1.TaskRun, ps versioned.Interface) error {
 // Set this as a var for mocking.
 var getBackends = storage.InitializeBackends
 
+// TODO: Hook this up to config.
+var enabledSignableTypes = []artifacts.Signable{&artifacts.TaskRunArtifact{}}
+
 // SignTaskRun signs a TaskRun, and marks it as signed.
 func (ts *TaskRunSigner) SignTaskRun(tr *v1beta1.TaskRun) error {
-	// First generate the raw payload objects to sign.
-	rawPayloads := generatePayloads(ts.Logger, tr)
-	ts.Logger.Infof("Generated payloads: %v for %s/%s", rawPayloads, tr.Namespace, tr.Name)
 
-	// Sign all the payloads with all the signing strategies (right now just pgp)
-	// TODO: Currently, this reads secrets from disk every time.
-	// This could be optimized to instead watch the secret for changes.
-	signer, err := pgp.NewSigner(ts.SecretPath, ts.Logger)
-	if err != nil {
-		return err
-	}
-
-	// Signing the payload objects forces them to be marshalled into bytes.
-	// Use this marshaled form from now on, instead of the object itself.
-	signedPayloads := map[formats.PayloadType][]byte{}
-	signatures := map[formats.PayloadType]string{}
-	for pt, rp := range rawPayloads {
-		ts.Logger.Infof("generating %s payload", pt)
-		signature, signed, err := signer.Sign(rp)
-		if err != nil {
-			ts.Logger.Error(err)
-			continue
-		}
-		signedPayloads[pt] = signed
-		signatures[pt] = signature
-	}
-
-	// Now store the signature and signed payloads in all the storage backends.
 	var merr *multierror.Error
-	backends := getBackends(ts.Pipelineclientset, ts.Logger, tr)
-	for _, b := range backends {
-		for payloadType, signed := range signedPayloads {
-			signature := signatures[payloadType]
-			// We have the object we signed and the signature for the same payload type. Store both!
-			if err := b.StorePayload(signed, signature, payloadType); err != nil {
-				ts.Logger.Errorf("error storing payloadType %s on storageBackend %s for taskRun %s/%s: %v", payloadType, b.Type(), tr.Namespace, tr.Name, err)
-				merr = multierror.Append(merr, err)
+	for _, signableType := range enabledSignableTypes {
+		// Extract all the "things" to be signed.
+		// We might have a few of each type (several binaries, or images)
+		objects := signableType.ExtractObjects(tr)
+
+		// Go through each object one at a time.
+		for _, obj := range objects {
+			// Convert them to the right payload formats.
+			// There can be several types of payloads
+			rawPayloadsMap := generatePayloads(ts.Logger, obj)
+
+			signer, err := pgp.NewSigner(ts.SecretPath, ts.Logger)
+			if err != nil {
+				return err
+			}
+			// Now sign and store them all.
+			for pt, rp := range rawPayloadsMap {
+				signature, signed, err := signer.Sign(rp)
+				if err != nil {
+					ts.Logger.Error(err)
+					continue
+				}
+				// Now store those!
+				for _, b := range getBackends(ts.Pipelineclientset, ts.Logger, tr) {
+					if err := b.StorePayload(signed, signature, pt); err != nil {
+						ts.Logger.Error(err)
+						merr = multierror.Append(merr, err)
+					}
+				}
 			}
 		}
+		if merr.ErrorOrNil() != nil {
+			return merr
+		}
 	}
-	if merr.ErrorOrNil() != nil {
-		return merr
-	}
-
-	// TODO: sign any output resources produced (OCI Images, etc.)
 
 	// Now mark the TaskRun as signed
 	return MarkSigned(tr, ts.Pipelineclientset)
 }
 
-func generatePayloads(logger *zap.SugaredLogger, tr *v1beta1.TaskRun) map[formats.PayloadType]interface{} {
+func generatePayloads(logger *zap.SugaredLogger, obj interface{}) map[formats.PayloadType]interface{} {
 	payloads := map[formats.PayloadType]interface{}{}
 	for _, payloader := range formats.AllPayloadTypes {
-		payload, err := payloader.CreatePayload(tr)
+		payload, err := payloader.CreatePayload(obj)
 		if err != nil {
-			logger.Errorf("Error creating payload of type %s for %s/%s", payloader, tr.Namespace, tr.Name)
+			logger.Errorf("Error creating payload of type %s", payloader)
 			continue
 		}
 		payloads[payloader.Type()] = payload
