@@ -17,6 +17,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/chains/pkg/signing/formats"
 	"github.com/tektoncd/chains/pkg/signing/storage"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -106,32 +107,34 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 	// - stores them in the configured systems
 	// - marks the taskrun as signed
 	tests := []struct {
-		name     string
-		backends []*mockBackend
-		wantErr  bool
+		name              string
+		backends          []*mockBackend
+		wantErr           bool
+		configuredBackend string
 	}{
 		{
 			name: "single system",
 			backends: []*mockBackend{
-				{},
+				{backendType: "mock"},
 			},
+			configuredBackend: "mock",
 		},
 		{
 			name: "multiple systems",
 			backends: []*mockBackend{
-				{},
-				{},
+				{backendType: "mock"},
+				{backendType: "foo"},
 			},
+			configuredBackend: "mock",
 		},
 		{
-			name: "multiple systems, multiple errors",
+			name: "multiple systems, error",
 			backends: []*mockBackend{
-				{},
-				{},
-				{shouldErr: true},
-				{shouldErr: true},
+				{backendType: "mock", shouldErr: true},
+				{backendType: "foo"},
 			},
-			wantErr: true,
+			configuredBackend: "mock",
+			wantErr:           true,
 		},
 	}
 	for _, tt := range tests {
@@ -142,10 +145,19 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 			ctx, _ := rtesting.SetupFakeContext(t)
 			logger := logtesting.TestLogger(t)
 			ps := fakepipelineclient.Get(ctx)
+
 			ts := &TaskRunSigner{
 				Logger:            logger,
 				Pipelineclientset: ps,
 				SecretPath:        "./pgp/testdata/",
+				ConfigStore: &mockConfig{cfg: config.Config{
+					Artifacts: config.Artifacts{
+						TaskRuns: config.TaskRuns{
+							Format:         "tekton",
+							StorageBackend: "mock",
+						},
+					},
+				}},
 			}
 
 			tr := &v1beta1.TaskRun{
@@ -174,6 +186,9 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 			payloads := generatePayloads(logger, tr)
 			for _, b := range tt.backends {
 				if b.shouldErr {
+					continue
+				}
+				if b.backendType != tt.configuredBackend {
 					continue
 				}
 				// We don't actually need to check the signature and serialized formats here, just that
@@ -206,6 +221,7 @@ func setupMocks(backends []*mockBackend) func() {
 type mockBackend struct {
 	storedPayloadTypes map[formats.PayloadType]struct{}
 	shouldErr          bool
+	backendType        string
 }
 
 // StorePayload implements the Payloader interface.
@@ -221,5 +237,13 @@ func (b *mockBackend) StorePayload(signed []byte, signature string, payloadType 
 }
 
 func (b *mockBackend) Type() string {
-	return "mock"
+	return b.backendType
+}
+
+type mockConfig struct {
+	cfg config.Config
+}
+
+func (m *mockConfig) Config() config.Config {
+	return m.cfg
 }

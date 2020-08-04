@@ -14,12 +14,14 @@ limitations under the License.
 package artifacts
 
 import (
+	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"go.uber.org/zap"
 )
 
 type Signable interface {
 	ExtractObjects(tr *v1beta1.TaskRun) []interface{}
+	StorageBackend(cfg config.Config) string
 	Type() string
 }
 
@@ -32,4 +34,8 @@ func (ta *TaskRunArtifact) ExtractObjects(tr *v1beta1.TaskRun) []interface{} {
 }
 func (ta *TaskRunArtifact) Type() string {
 	return "Tekton"
+}
+
+func (ta *TaskRunArtifact) StorageBackend(cfg config.Config) string {
+	return cfg.Artifacts.TaskRuns.StorageBackend
 }
