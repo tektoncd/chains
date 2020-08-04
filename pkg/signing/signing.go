@@ -90,30 +90,38 @@ func (ts *TaskRunSigner) SignTaskRun(tr *v1beta1.TaskRun) error {
 
 		// Go through each object one at a time.
 		for _, obj := range objects {
-			// Convert them to the right payload formats.
-			// There can be several types of payloads
-			rawPayloadsMap := generatePayloads(ts.Logger, obj)
+
+			var payload interface{}
+			configuredPayloadType := signableType.PayloadFormat(cfg)
+			for _, payloader := range formats.AllPayloadTypes {
+				if payloader.Type() != configuredPayloadType {
+					continue
+				}
+				var err error
+				payload, err = payloader.CreatePayload(obj)
+				if err != nil {
+					ts.Logger.Errorf("Error creating payload of type %s", payloader)
+					return err
+				}
+			}
 
 			signer, err := pgp.NewSigner(ts.SecretPath, ts.Logger)
 			if err != nil {
 				return err
 			}
-			// Now sign and store them all.
-			for pt, rp := range rawPayloadsMap {
-				signature, signed, err := signer.Sign(rp)
-				if err != nil {
-					ts.Logger.Error(err)
+			signature, signed, err := signer.Sign(payload)
+			if err != nil {
+				ts.Logger.Error(err)
+				continue
+			}
+			// Now store those!
+			for _, b := range allBackends {
+				if b.Type() != signableType.StorageBackend(cfg) {
 					continue
 				}
-				// Now store those!
-				for _, b := range allBackends {
-					if b.Type() != signableType.StorageBackend(cfg) {
-						continue
-					}
-					if err := b.StorePayload(signed, signature, pt); err != nil {
-						ts.Logger.Error(err)
-						merr = multierror.Append(merr, err)
-					}
+				if err := b.StorePayload(signed, signature, configuredPayloadType); err != nil {
+					ts.Logger.Error(err)
+					merr = multierror.Append(merr, err)
 				}
 			}
 		}
@@ -124,17 +132,4 @@ func (ts *TaskRunSigner) SignTaskRun(tr *v1beta1.TaskRun) error {
 
 	// Now mark the TaskRun as signed
 	return MarkSigned(tr, ts.Pipelineclientset)
-}
-
-func generatePayloads(logger *zap.SugaredLogger, obj interface{}) map[formats.PayloadType]interface{} {
-	payloads := map[formats.PayloadType]interface{}{}
-	for _, payloader := range formats.AllPayloadTypes {
-		payload, err := payloader.CreatePayload(obj)
-		if err != nil {
-			logger.Errorf("Error creating payload of type %s", payloader)
-			continue
-		}
-		payloads[payloader.Type()] = payload
-	}
-	return payloads
 }

@@ -15,6 +15,7 @@ package artifacts
 
 import (
 	"github.com/tektoncd/chains/pkg/config"
+	"github.com/tektoncd/chains/pkg/signing/formats"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"go.uber.org/zap"
 )
@@ -22,6 +23,7 @@ import (
 type Signable interface {
 	ExtractObjects(tr *v1beta1.TaskRun) []interface{}
 	StorageBackend(cfg config.Config) string
+	PayloadFormat(cfg config.Config) formats.PayloadType
 	Type() string
 }
 
@@ -38,4 +40,8 @@ func (ta *TaskRunArtifact) Type() string {
 
 func (ta *TaskRunArtifact) StorageBackend(cfg config.Config) string {
 	return cfg.Artifacts.TaskRuns.StorageBackend
+}
+
+func (ta *TaskRunArtifact) PayloadFormat(cfg config.Config) formats.PayloadType {
+	return formats.PayloadType(cfg.Artifacts.TaskRuns.Format)
 }
