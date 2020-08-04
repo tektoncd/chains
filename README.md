@@ -12,6 +12,14 @@ See [DEVELOPMENT.md](DEVELOPMENT.md) for a guide on how to build and deploy your
 
 ### Configuration
 
+Chains uses a `ConfigMap` called `chains-config` in the `tekton-pipelines` namespace for configuration.
+Supported keys include:
+
+| Key | Description | Supported Values |
+| --- | --- | --- |
+| `artifacts.taskrun.format` | The format to store `TaskRun` payloads in. | `tekton` |
+| `artifacts.taskrun.storage` | The storage backend to store `TaskRun` signatures in. | `tekton` |
+
 #### Signing Secrets
 
 To get started signing things with Chains, you first have to generate a GPG keypair
