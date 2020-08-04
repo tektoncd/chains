@@ -154,7 +154,7 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 					Artifacts: config.Artifacts{
 						TaskRuns: config.TaskRuns{
 							Format:         "tekton",
-							StorageBackend: "mock",
+							StorageBackend: tt.configuredBackend,
 						},
 					},
 				}},
@@ -183,7 +183,6 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 				t.Errorf("IsSigned()=%t, wanted %t", IsSigned(tr), shouldBeSigned)
 			}
 			// Check the payloads were stored in all the backends.
-			payloads := generatePayloads(logger, tr)
 			for _, b := range tt.backends {
 				if b.shouldErr {
 					continue
@@ -193,10 +192,8 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 				}
 				// We don't actually need to check the signature and serialized formats here, just that
 				// the payload was stored.
-				for pt := range payloads {
-					if _, ok := b.storedPayloadTypes[pt]; !ok {
-						t.Errorf("error, expected payload type to be stored %s", pt)
-					}
+				if b.storedPayload == nil {
+					t.Error("error, expected payload to be stored.")
 				}
 			}
 
@@ -219,9 +216,9 @@ func setupMocks(backends []*mockBackend) func() {
 }
 
 type mockBackend struct {
-	storedPayloadTypes map[formats.PayloadType]struct{}
-	shouldErr          bool
-	backendType        string
+	storedPayload []byte
+	shouldErr     bool
+	backendType   string
 }
 
 // StorePayload implements the Payloader interface.
@@ -229,10 +226,7 @@ func (b *mockBackend) StorePayload(signed []byte, signature string, payloadType 
 	if b.shouldErr {
 		return errors.New("mock error storing")
 	}
-	if b.storedPayloadTypes == nil {
-		b.storedPayloadTypes = map[formats.PayloadType]struct{}{}
-	}
-	b.storedPayloadTypes[payloadType] = struct{}{}
+	b.storedPayload = signed
 	return nil
 }
 
