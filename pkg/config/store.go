@@ -1,7 +1,6 @@
 package config
 
 import (
-	"strings"
 	"sync/atomic"
 
 	"go.uber.org/zap"
@@ -20,21 +19,13 @@ type Artifacts struct {
 }
 
 type TaskRuns struct {
-	Formats         Formats
-	StorageBackends StorageBackends
-}
-
-type Formats struct {
-	EnabledFormats map[string]struct{}
-}
-
-type StorageBackends struct {
-	EnabledBackends map[string]struct{}
+	Format         string
+	StorageBackend string
 }
 
 const (
-	taskrunEnabledFormatsKey  = "artifacts.taskrun.formats.enabled"
-	taskrunEnabledStoragesKey = "artifacts.taskrun.storage.enabled"
+	taskrunFormatKey  = "artifacts.taskrun.format"
+	taskrunStorageKey = "artifacts.taskrun.storage"
 )
 
 func parse(data map[string]string) Config {
@@ -42,25 +33,10 @@ func parse(data map[string]string) Config {
 
 	// Start with artifact-specific configs
 	// TaskRuns
-	cfg.Artifacts.TaskRuns.Formats.EnabledFormats = stringSet(taskrunEnabledFormatsKey, data)
-	cfg.Artifacts.TaskRuns.StorageBackends.EnabledBackends = stringSet(taskrunEnabledStoragesKey, data)
+	cfg.Artifacts.TaskRuns.Format = data[taskrunFormatKey]
+	cfg.Artifacts.TaskRuns.StorageBackend = data[taskrunStorageKey]
 
 	return cfg
-}
-
-func stringSet(key string, data map[string]string) map[string]struct{} {
-	var names []string
-	if val := data[key]; val != "" {
-		// We have to check if the key is set before passing to strings.Split
-		// strings.Split on an empty string results in a slice like: []string{""}, when we
-		// really want an empty slice
-		names = strings.Split(val, ",")
-	}
-	result := map[string]struct{}{}
-	for _, name := range names {
-		result[name] = struct{}{}
-	}
-	return result
 }
 
 type ConfigStore struct {
