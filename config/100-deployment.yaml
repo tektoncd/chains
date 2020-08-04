@@ -16,6 +16,22 @@ metadata:
   # This contains the passphrase to use for the pgp private key
   # pgp.passphrase:
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chains-config
+  namespace: tekton-pipelines
+  labels:
+    app.kubernetes.io/component: chains
+    app.kubernetes.io/instance: default
+    app.kubernetes.io/part-of: tekton-pipelines
+    pipeline.tekton.dev/release: "devel"
+    version: "devel"
+# The data can be tweaked at install time.
+data:
+  artifacts.taskrun.format: tekton
+  artifacts.taskrun.storage: tekton 
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:

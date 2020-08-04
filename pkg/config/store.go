@@ -26,6 +26,7 @@ type TaskRuns struct {
 const (
 	taskrunFormatKey  = "artifacts.taskrun.format"
 	taskrunStorageKey = "artifacts.taskrun.storage"
+	chainsConfig      = "chains-config"
 )
 
 func parse(data map[string]string) Config {
@@ -65,8 +66,8 @@ func (cs *ConfigStore) watch() {
 }
 
 // NewConfigStore returns a store that is configured to watch the configmap for changes.
-func NewConfigStore(configStore string, kc kubernetes.Interface, namespace, name string, logger *zap.SugaredLogger) (*ConfigStore, error) {
-	opts := metav1.SingleObject(metav1.ObjectMeta{Name: name})
+func NewConfigStore(kc kubernetes.Interface, namespace string, logger *zap.SugaredLogger) (*ConfigStore, error) {
+	opts := metav1.SingleObject(metav1.ObjectMeta{Name: chainsConfig})
 	w, err := kc.CoreV1().ConfigMaps(namespace).Watch(opts)
 	if err != nil {
 		return nil, err
@@ -74,12 +75,12 @@ func NewConfigStore(configStore string, kc kubernetes.Interface, namespace, name
 	val := atomic.Value{}
 	val.Store(Config{})
 	cs := ConfigStore{
-		name:   configStore,
+		name:   chainsConfig,
 		c:      w.ResultChan(),
 		config: val,
 		logger: logger,
 	}
-	cs.logger.Debug("staring watch on configmap: %s/%s", namespace, name)
+	cs.logger.Debug("staring watch on configmap: %s/%s", namespace, chainsConfig)
 	cs.watch()
 	return &cs, nil
 }

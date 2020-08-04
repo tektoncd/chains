@@ -17,6 +17,7 @@ import (
 	"context"
 	"flag"
 
+	"github.com/tektoncd/chains/pkg/config"
 	tkcontroller "github.com/tektoncd/chains/pkg/controller"
 	"github.com/tektoncd/chains/pkg/signing"
 	pipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client"
@@ -29,6 +30,7 @@ import (
 	"knative.dev/pkg/injection/sharedmain"
 	"knative.dev/pkg/logging"
 	"knative.dev/pkg/signals"
+	"knative.dev/pkg/system"
 )
 
 var (
@@ -49,6 +51,10 @@ func main() {
 			taskRunInformer := taskruninformer.Get(ctx)
 			kubeclientset := kubeclient.Get(ctx)
 			pipelineclientset := pipelineclient.Get(ctx)
+			cfgStore, err := config.NewConfigStore(kubeclientset, system.Namespace(), logger)
+			if err != nil {
+				logger.Fatal(err)
+			}
 
 			c := &tkcontroller.Reconciler{
 				KubeClientSet:     kubeclientset,
@@ -59,6 +65,7 @@ func main() {
 					Pipelineclientset: pipelineclientset,
 					Logger:            logger,
 					SecretPath:        tkcontroller.SecretPath,
+					ConfigStore:       cfgStore,
 				},
 			}
 			impl := controller.NewImpl(c, c.Logger, controllerName)

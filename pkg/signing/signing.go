@@ -16,6 +16,7 @@ package signing
 import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/tektoncd/chains/pkg/artifacts"
+	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/chains/pkg/patch"
 	"github.com/tektoncd/chains/pkg/signing/formats"
 	"github.com/tektoncd/chains/pkg/signing/pgp"
@@ -35,10 +36,15 @@ type Signer interface {
 	SignTaskRun(tr *v1beta1.TaskRun) error
 }
 
+type configGetter interface {
+	Config() config.Config
+}
+
 type TaskRunSigner struct {
 	Logger            *zap.SugaredLogger
 	Pipelineclientset versioned.Interface
 	SecretPath        string
+	ConfigStore       configGetter
 }
 
 // IsSigned determines whether a TaskRun has already been signed.
@@ -74,6 +80,8 @@ var enabledSignableTypes = []artifacts.Signable{&artifacts.TaskRunArtifact{}}
 // SignTaskRun signs a TaskRun, and marks it as signed.
 func (ts *TaskRunSigner) SignTaskRun(tr *v1beta1.TaskRun) error {
 
+	cfg := ts.ConfigStore.Config()
+	allBackends := getBackends(ts.Pipelineclientset, ts.Logger, tr)
 	var merr *multierror.Error
 	for _, signableType := range enabledSignableTypes {
 		// Extract all the "things" to be signed.
@@ -98,7 +106,10 @@ func (ts *TaskRunSigner) SignTaskRun(tr *v1beta1.TaskRun) error {
 					continue
 				}
 				// Now store those!
-				for _, b := range getBackends(ts.Pipelineclientset, ts.Logger, tr) {
+				for _, b := range allBackends {
+					if b.Type() != signableType.StorageBackend(cfg) {
+						continue
+					}
 					if err := b.StorePayload(signed, signature, pt); err != nil {
 						ts.Logger.Error(err)
 						merr = multierror.Append(merr, err)

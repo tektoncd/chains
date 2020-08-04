@@ -14,16 +14,15 @@ import (
 func TestNewConfigStore(t *testing.T) {
 
 	ns := "my-namespace"
-	name := "my-config"
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
+			Name:      "chains-config",
 			Namespace: ns,
 		},
 	}
 	fakekubeclient := fakek8s.NewSimpleClientset(cm)
 
-	cs, err := NewConfigStore("test-store", fakekubeclient, ns, name, logtesting.TestLogger(t))
+	cs, err := NewConfigStore(fakekubeclient, ns, logtesting.TestLogger(t))
 	if err != nil {
 		t.Errorf("error creating new config store: %v", err)
 	}
