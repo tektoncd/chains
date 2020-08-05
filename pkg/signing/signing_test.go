@@ -202,12 +202,12 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 
 func setupMocks(backends []*mockBackend) func() {
 	oldGet := getBackends
-	getBackends = func(ps versioned.Interface, logger *zap.SugaredLogger, _ *v1beta1.TaskRun) []storage.Backend {
+	getBackends = func(ps versioned.Interface, logger *zap.SugaredLogger, _ *v1beta1.TaskRun, _ config.Config) ([]storage.Backend, error) {
 		newBackends := []storage.Backend{}
 		for _, m := range backends {
 			newBackends = append(newBackends, m)
 		}
-		return newBackends
+		return newBackends, nil
 	}
 	return func() {
 		getBackends = oldGet

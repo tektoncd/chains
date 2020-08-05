@@ -14,6 +14,8 @@ limitations under the License.
 package storage
 
 import (
+	"github.com/tektoncd/chains/pkg/config"
+	"github.com/tektoncd/chains/pkg/signing/storage/gcs"
 	"github.com/tektoncd/chains/pkg/signing/storage/tekton"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
@@ -27,11 +29,24 @@ type Backend interface {
 }
 
 // InitializeBackends creates and initializes every configured storage backend.
-func InitializeBackends(ps versioned.Interface, logger *zap.SugaredLogger, tr *v1beta1.TaskRun) []Backend {
+func InitializeBackends(ps versioned.Interface, logger *zap.SugaredLogger, tr *v1beta1.TaskRun, cfg config.Config) ([]Backend, error) {
+	// Add an entry here for every configured backend
+	configuredBackends := map[string]struct{}{}
+	configuredBackends[cfg.Artifacts.TaskRuns.StorageBackend] = struct{}{}
+
+	// Now only initialize and return the configured ones.
 	backends := []Backend{}
-
-	// Add one entry here for every storage backend type.
-	backends = append(backends, tekton.NewStorageBackend(ps, logger, tr))
-
-	return backends
+	for backendType := range configuredBackends {
+		switch backendType {
+		case gcs.StorageBackendGCS:
+			gcsBackend, err := gcs.NewStorageBackend(logger, tr, cfg)
+			if err != nil {
+				return nil, err
+			}
+			backends = append(backends, gcsBackend)
+		case tekton.StorageBackendTekton:
+			backends = append(backends, tekton.NewStorageBackend(ps, logger, tr))
+		}
+	}
+	return backends, nil
 }

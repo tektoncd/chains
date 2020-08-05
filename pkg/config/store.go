@@ -12,6 +12,7 @@ import (
 
 type Config struct {
 	Artifacts Artifacts
+	Storage   Storage
 }
 
 type Artifacts struct {
@@ -23,10 +24,20 @@ type TaskRuns struct {
 	StorageBackend string
 }
 
+type Storage struct {
+	GCS GCS
+}
+
+type GCS struct {
+	Bucket string
+}
+
 const (
 	taskrunFormatKey  = "artifacts.taskrun.format"
 	taskrunStorageKey = "artifacts.taskrun.storage"
-	chainsConfig      = "chains-config"
+	gcsBucketKey      = "storage.gcs.bucket"
+
+	chainsConfig = "chains-config"
 )
 
 func parse(data map[string]string) Config {
@@ -36,6 +47,9 @@ func parse(data map[string]string) Config {
 	// TaskRuns
 	cfg.Artifacts.TaskRuns.Format = data[taskrunFormatKey]
 	cfg.Artifacts.TaskRuns.StorageBackend = data[taskrunStorageKey]
+
+	// Storage level configs
+	cfg.Storage.GCS.Bucket = data[gcsBucketKey]
 
 	return cfg
 }
@@ -60,7 +74,7 @@ func (cs *ConfigStore) watch() {
 			config := parse(cm.Data)
 			// Swap the values!
 			cs.config.Store(config)
-			cs.logger.Infof("config store %s updated", cs.name)
+			cs.logger.Infof("config store %s updated: %v", cs.name, cm.Data)
 		}
 	}()
 }

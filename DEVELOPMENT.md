@@ -9,6 +9,7 @@
 1. Set up your [shell environment](#environment-setup)
 1. Install [requirements](#requirements)
 1. [Set up a Kubernetes cluster](#kubernetes-cluster)
+1. [Running Tests](#ruunning-tests)
 
 Then you can [iterate](#iterating).
 
@@ -89,4 +90,28 @@ To look at the controller logs, run:
 
 ```shell
 kubectl -n tekton-pipelines logs deployment/tekton-chains-controller
+```
+
+## Running Tests
+
+Chains uses the standard go testing framework.
+Unit tests can be run with:
+
+```shell
+go test ./...
+```
+
+Integration tests require a running cluster and Chains to be installed.
+These are protected by a build tag "e2e".
+To run integration tests:
+
+```shell
+go test -v -count=1 -tags=e2e -timeout=20m  ./test
+```
+
+Some of these tests require access to GCP resources.
+To run those, set the name of the GCP project you are running in:
+
+```shell
+GCP_PROJECT_ID=dlorenc-vmtest2 go test -v -count=1 -tags=e2e -timeout=20m  ./test
 ```
