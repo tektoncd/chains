@@ -24,7 +24,7 @@ type Signable interface {
 	ExtractObjects(tr *v1beta1.TaskRun) []interface{}
 	StorageBackend(cfg config.Config) string
 	PayloadFormat(cfg config.Config) formats.PayloadType
-	Key(obj interface{}) string
+	Key(interface{}) string
 	Type() string
 }
 

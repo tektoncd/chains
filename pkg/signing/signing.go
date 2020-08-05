@@ -81,7 +81,10 @@ var enabledSignableTypes = []artifacts.Signable{&artifacts.TaskRunArtifact{}}
 func (ts *TaskRunSigner) SignTaskRun(tr *v1beta1.TaskRun) error {
 
 	cfg := ts.ConfigStore.Config()
-	allBackends := getBackends(ts.Pipelineclientset, ts.Logger, tr)
+	allBackends, err := getBackends(ts.Pipelineclientset, ts.Logger, tr, cfg)
+	if err != nil {
+		return err
+	}
 	var merr *multierror.Error
 	for _, signableType := range enabledSignableTypes {
 		// Extract all the "things" to be signed.
