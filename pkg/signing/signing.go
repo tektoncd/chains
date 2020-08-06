@@ -74,11 +74,13 @@ func MarkSigned(tr *v1beta1.TaskRun, ps versioned.Interface) error {
 // Set this as a var for mocking.
 var getBackends = storage.InitializeBackends
 
-// TODO: Hook this up to config.
-var enabledSignableTypes = []artifacts.Signable{&artifacts.TaskRunArtifact{}}
-
 // SignTaskRun signs a TaskRun, and marks it as signed.
 func (ts *TaskRunSigner) SignTaskRun(tr *v1beta1.TaskRun) error {
+	// TODO: Hook this up to config.
+	enabledSignableTypes := []artifacts.Signable{
+		&artifacts.TaskRunArtifact{Logger: ts.Logger},
+		&artifacts.OCIArtifact{Logger: ts.Logger},
+	}
 
 	cfg := ts.ConfigStore.Config()
 	allBackends, err := getBackends(ts.Pipelineclientset, ts.Logger, tr, cfg)
@@ -106,6 +108,11 @@ func (ts *TaskRunSigner) SignTaskRun(tr *v1beta1.TaskRun) error {
 					ts.Logger.Errorf("Error creating payload of type %s", payloader)
 					return err
 				}
+				break
+			}
+			if payload == nil {
+				ts.Logger.Warnf("No format configured for object: %v", obj)
+				continue
 			}
 
 			signer, err := pgp.NewSigner(ts.SecretPath, ts.Logger)

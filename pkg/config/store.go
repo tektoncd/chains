@@ -16,10 +16,11 @@ type Config struct {
 }
 
 type Artifacts struct {
-	TaskRuns TaskRuns
+	TaskRuns Artifact
+	OCI      Artifact
 }
 
-type TaskRuns struct {
+type Artifact struct {
 	Format         string
 	StorageBackend string
 }
@@ -37,6 +38,9 @@ const (
 	taskrunStorageKey = "artifacts.taskrun.storage"
 	gcsBucketKey      = "storage.gcs.bucket"
 
+	ociFormatKey  = "artifacts.oci.format"
+	ociStorageKey = "artifacts.oci.storage"
+
 	chainsConfig = "chains-config"
 )
 
@@ -50,6 +54,9 @@ func parse(data map[string]string) Config {
 
 	// Storage level configs
 	cfg.Storage.GCS.Bucket = data[gcsBucketKey]
+	// OCI
+	cfg.Artifacts.OCI.Format = data[ociFormatKey]
+	cfg.Artifacts.OCI.StorageBackend = data[ociStorageKey]
 
 	return cfg
 }

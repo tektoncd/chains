@@ -8,6 +8,7 @@ require (
 	contrib.go.opencensus.io/exporter/ocagent v0.7.0 // indirect
 	contrib.go.opencensus.io/exporter/prometheus v0.2.0 // indirect
 	github.com/google/go-cmp v0.5.1
+	github.com/google/go-containerregistry v0.0.0-20200331213917-3d03ed9b1ca2
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/tektoncd/pipeline v0.14.2
 	github.com/tektoncd/plumbing v0.0.0-20200615101855-f56d60092af6

@@ -151,7 +151,7 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 				SecretPath:        "./pgp/testdata/",
 				ConfigStore: &mockConfig{cfg: config.Config{
 					Artifacts: config.Artifacts{
-						TaskRuns: config.TaskRuns{
+						TaskRuns: config.Artifact{
 							Format:         "tekton",
 							StorageBackend: tt.configuredBackend,
 						},

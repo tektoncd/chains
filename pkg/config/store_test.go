@@ -71,7 +71,7 @@ func Test_parse(t *testing.T) {
 			data: map[string]string{},
 			want: Config{
 				Artifacts: Artifacts{
-					TaskRuns: TaskRuns{},
+					TaskRuns: Artifact{},
 				},
 			},
 		},
@@ -80,7 +80,7 @@ func Test_parse(t *testing.T) {
 			data: map[string]string{taskrunFormatKey: "foo"},
 			want: Config{
 				Artifacts: Artifacts{
-					TaskRuns: TaskRuns{
+					TaskRuns: Artifact{
 						Format:         "foo",
 						StorageBackend: "",
 					},
@@ -92,7 +92,7 @@ func Test_parse(t *testing.T) {
 			data: map[string]string{taskrunFormatKey: "foo", "other-key": "foo"},
 			want: Config{
 				Artifacts: Artifacts{
-					TaskRuns: TaskRuns{
+					TaskRuns: Artifact{
 						Format:         "foo",
 						StorageBackend: "",
 					},

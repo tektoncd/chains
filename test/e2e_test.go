@@ -27,7 +27,9 @@ import (
 
 	"cloud.google.com/go/compute/metadata"
 	"cloud.google.com/go/storage"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -44,14 +46,14 @@ func TestInstall(t *testing.T) {
 }
 
 func TestTektonStorage(t *testing.T) {
-	c, ns, cleanup := setup(t)
-	defer cleanup()
+	c, ns, _ := setup(t)
+	// defer cleanup()
 
 	// Setup the right config.
 	resetConfig := setConfigMap(t, c, map[string]string{"artifacts.taskrun.storage": "tekton"})
 	defer resetConfig()
 
-	tr, err := c.PipelineClient.TektonV1beta1().TaskRuns(ns).Create(&simpleTaskRun)
+	tr, err := c.PipelineClient.TektonV1beta1().TaskRuns(ns).Create(&imageTaskRun)
 	if err != nil {
 		t.Errorf("error creating taskrun: %s", err)
 	}
@@ -127,4 +129,64 @@ func TestGCSStorage(t *testing.T) {
 	bodyBytes := readObj(t, bucketName, payloadName, client)
 
 	checkPgpSignatures(t, sigBytes, bodyBytes)
+}
+
+var imageTaskSpec = v1beta1.TaskSpec{
+	Steps: []v1beta1.Step{
+		{
+			Container: corev1.Container{
+				Image: "busybox",
+			},
+			Script: `set -e
+cat <<EOF > $(outputs.resources.image.path)/index.json
+{
+	"schemaVersion": 2,
+	"manifests": [
+	{
+		"mediaType": "application/vnd.oci.image.index.v1+json",
+		"size": 314,
+		"digest": "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5"
+	}
+	]
+}
+`,
+		},
+	},
+	Resources: &v1beta1.TaskResources{
+		Outputs: []v1beta1.TaskResource{
+			{
+				ResourceDeclaration: v1alpha1.ResourceDeclaration{
+					Name: "image",
+					Type: "image",
+				},
+			},
+		},
+	},
+}
+
+var imageTaskRun = v1beta1.TaskRun{
+	ObjectMeta: metav1.ObjectMeta{
+		GenerateName: "image-task",
+	},
+	Spec: v1beta1.TaskRunSpec{
+		TaskSpec: &imageTaskSpec,
+		Resources: &v1beta1.TaskRunResources{
+			Outputs: []v1beta1.TaskResourceBinding{
+				{
+					PipelineResourceBinding: v1beta1.PipelineResourceBinding{
+						Name: "image",
+						ResourceSpec: &v1alpha1.PipelineResourceSpec{
+							Type: "image",
+							Params: []v1alpha1.ResourceParam{
+								{
+									Name:  "url",
+									Value: "gcr.io/foo/bar",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	},
 }

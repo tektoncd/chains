@@ -14,6 +14,10 @@ limitations under the License.
 package artifacts
 
 import (
+	"fmt"
+	"strings"
+
+	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/chains/pkg/signing/formats"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -51,4 +55,66 @@ func (ta *TaskRunArtifact) StorageBackend(cfg config.Config) string {
 
 func (ta *TaskRunArtifact) PayloadFormat(cfg config.Config) formats.PayloadType {
 	return formats.PayloadType(cfg.Artifacts.TaskRuns.Format)
+}
+
+type OCIArtifact struct {
+	Logger *zap.SugaredLogger
+}
+
+type image struct {
+	url    string
+	digest string
+}
+
+func (oa *OCIArtifact) ExtractObjects(tr *v1beta1.TaskRun) []interface{} {
+	imageResourceNames := map[string]*image{}
+	if tr.Status.TaskSpec != nil {
+		for _, output := range tr.Status.TaskSpec.Resources.Outputs {
+			if output.Type == v1beta1.PipelineResourceTypeImage {
+				imageResourceNames[output.Name] = &image{}
+			}
+		}
+	}
+
+	for _, rr := range tr.Status.ResourcesResult {
+		img, ok := imageResourceNames[rr.ResourceName]
+		if !ok {
+			continue
+		}
+		// We have a result for an image!
+		if rr.Key == "url" {
+			img.url = rr.Value
+		} else if rr.Key == "digest" {
+			img.digest = rr.Value
+		}
+	}
+	objs := []interface{}{}
+	for _, image := range imageResourceNames {
+		dgst, err := name.NewDigest(fmt.Sprintf("%s@%s", image.url, image.digest))
+		if err != nil {
+			oa.Logger.Error(err)
+			return nil
+		}
+		objs = append(objs, dgst)
+	}
+	return objs
+}
+
+func (oa *OCIArtifact) Type() string {
+	return "OCI"
+}
+
+func (oa *OCIArtifact) StorageBackend(cfg config.Config) string {
+	return cfg.Artifacts.OCI.StorageBackend
+}
+
+func (oa *OCIArtifact) PayloadFormat(cfg config.Config) formats.PayloadType {
+	return formats.PayloadType(cfg.Artifacts.OCI.Format)
+}
+
+func (ta *OCIArtifact) Key(obj interface{}) string {
+	// Return something unique within the scope of the TaskRun.
+	// In this case the taskrun is unique, so we don't need anything else.
+	v := obj.(name.Digest)
+	return strings.TrimPrefix(v.DigestStr(), "sha256:")[:12]
 }
