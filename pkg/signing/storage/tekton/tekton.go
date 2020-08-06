@@ -18,7 +18,6 @@ import (
 	"fmt"
 
 	"github.com/tektoncd/chains/pkg/patch"
-	"github.com/tektoncd/chains/pkg/signing/formats"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	versioned "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	"go.uber.org/zap"
@@ -49,14 +48,14 @@ func NewStorageBackend(ps versioned.Interface, logger *zap.SugaredLogger, tr *v1
 }
 
 // StorePayload implements the Payloader interface.
-func (b *Backend) StorePayload(signed []byte, signature string, payloadType formats.PayloadType) error {
-	b.logger.Infof("Storing payload type %s on TaskRun %s/%s", payloadType, b.tr.Namespace, b.tr.Name)
+func (b *Backend) StorePayload(signed []byte, signature string, key string) error {
+	b.logger.Infof("Storing payload on TaskRun %s/%s", b.tr.Namespace, b.tr.Name)
 
 	// Use patch instead of update to prevent race conditions.
 	patchBytes, err := patch.GetAnnotationsPatch(map[string]string{
 		// Base64 encode both the signature and the payload
-		fmt.Sprintf(PayloadAnnotationFormat, payloadType):   base64.StdEncoding.EncodeToString(signed),
-		fmt.Sprintf(SignatureAnnotationFormat, payloadType): base64.StdEncoding.EncodeToString([]byte(signature)),
+		fmt.Sprintf(PayloadAnnotationFormat, key):   base64.StdEncoding.EncodeToString(signed),
+		fmt.Sprintf(SignatureAnnotationFormat, key): base64.StdEncoding.EncodeToString([]byte(signature)),
 	})
 	if err != nil {
 		return err

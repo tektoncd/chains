@@ -18,7 +18,6 @@ import (
 	"testing"
 
 	"github.com/tektoncd/chains/pkg/config"
-	"github.com/tektoncd/chains/pkg/signing/formats"
 	"github.com/tektoncd/chains/pkg/signing/storage"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	versioned "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
@@ -222,7 +221,7 @@ type mockBackend struct {
 }
 
 // StorePayload implements the Payloader interface.
-func (b *mockBackend) StorePayload(signed []byte, signature string, payloadType formats.PayloadType) error {
+func (b *mockBackend) StorePayload(signed []byte, signature string, key string) error {
 	if b.shouldErr {
 		return errors.New("mock error storing")
 	}

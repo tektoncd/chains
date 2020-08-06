@@ -86,8 +86,8 @@ home-is-set-rwhzs   True        Succeeded   105s        100s
 Next, retrieve the signature and payload from the object (they are stored as base64-encoded annotations):
 
 ```shell
-$ kubectl get taskrun home-is-set-rwhzs -o=json | jq  -r '.metadata.annotations["chains.tekton.dev/payload-tekton"]' | base64 --decode > payload
-$ kubectl get taskrun home-is-set-rwhzs -o=json | jq  -r '.metadata.annotations["chains.tekton.dev/signature-tekton"]' | base64 --decode > signature
+$ kubectl get taskrun home-is-set-rwhzs -o=json | jq  -r '.metadata.annotations["chains.tekton.dev/payload-taskrun"]' | base64 --decode > payload
+$ kubectl get taskrun home-is-set-rwhzs -o=json | jq  -r '.metadata.annotations["chains.tekton.dev/signature-taskrun"]' | base64 --decode > signature
 ```
 
 Finally, we can check the signature:
