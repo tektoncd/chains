@@ -24,11 +24,18 @@ type Signable interface {
 	ExtractObjects(tr *v1beta1.TaskRun) []interface{}
 	StorageBackend(cfg config.Config) string
 	PayloadFormat(cfg config.Config) formats.PayloadType
+	Key(obj interface{}) string
 	Type() string
 }
 
 type TaskRunArtifact struct {
 	Logger *zap.SugaredLogger
+}
+
+func (ta *TaskRunArtifact) Key(obj interface{}) string {
+	// Return something unique within the scope of the TaskRun.
+	// In this case the taskrun is unique, so we don't need anything else.
+	return "taskrun"
 }
 
 func (ta *TaskRunArtifact) ExtractObjects(tr *v1beta1.TaskRun) []interface{} {

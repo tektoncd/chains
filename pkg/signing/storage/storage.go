@@ -14,7 +14,6 @@ limitations under the License.
 package storage
 
 import (
-	"github.com/tektoncd/chains/pkg/signing/formats"
 	"github.com/tektoncd/chains/pkg/signing/storage/tekton"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
@@ -23,7 +22,7 @@ import (
 
 // Backend is an interface to store a chains Payload
 type Backend interface {
-	StorePayload(signed []byte, signature string, payloadType formats.PayloadType) error
+	StorePayload(signed []byte, signature string, key string) error
 	Type() string
 }
 

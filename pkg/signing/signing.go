@@ -119,7 +119,7 @@ func (ts *TaskRunSigner) SignTaskRun(tr *v1beta1.TaskRun) error {
 				if b.Type() != signableType.StorageBackend(cfg) {
 					continue
 				}
-				if err := b.StorePayload(signed, signature, configuredPayloadType); err != nil {
+				if err := b.StorePayload(signed, signature, signableType.Key(obj)); err != nil {
 					ts.Logger.Error(err)
 					merr = multierror.Append(merr, err)
 				}
