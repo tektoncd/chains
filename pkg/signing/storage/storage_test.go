@@ -38,12 +38,12 @@ func TestInitializeBackends(t *testing.T) {
 		{
 			name: "tekton",
 			want: []string{"tekton"},
-			cfg:  config.Config{Artifacts: config.Artifacts{TaskRuns: config.TaskRuns{StorageBackend: "tekton"}}},
+			cfg:  config.Config{Artifacts: config.Artifacts{TaskRuns: config.Artifact{StorageBackend: "tekton"}}},
 		},
 		{
 			name: "gcs",
 			want: []string{"gcs"},
-			cfg:  config.Config{Artifacts: config.Artifacts{TaskRuns: config.TaskRuns{StorageBackend: "gcs"}}},
+			cfg:  config.Config{Artifacts: config.Artifacts{TaskRuns: config.Artifact{StorageBackend: "gcs"}}},
 		},
 	}
 	logger := logtesting.TestLogger(t)

@@ -22,10 +22,12 @@ type Payloader interface {
 type PayloadType string
 
 const (
-	PayloadTypeTekton PayloadType = "tekton"
+	PayloadTypeTekton        PayloadType = "tekton"
+	PayloadTypeSimpleSigning PayloadType = "simplesigning"
 )
 
 // AllPayloadTypes is a list of all valid Payload types.
 var AllPayloadTypes = []Payloader{
 	&Tekton{},
+	&SimpleSigning{},
 }
