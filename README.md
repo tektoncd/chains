@@ -71,8 +71,8 @@ To try it out, create a `TaskRun` of your choice.
 For a sample one, try this:
 
 ```shell
-$ kubectl create -f https://raw.githubusercontent.com/tektoncd/pipeline/master/examples/v1beta1/taskruns/home-is-set.yaml
-taskrun.tekton.dev/home-is-set-rwhzs created
+$ kubectl create -f examples/task-output-image.yaml
+taskrun.tekton.dev/build-push-run-output-image-abcd created
 ```
 
 Then, take the name of the `TaskRun` you just created, and wait for it to finish (SUCCEEEDED should be True).
