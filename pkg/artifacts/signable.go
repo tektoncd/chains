@@ -88,9 +88,29 @@ func (oa *OCIArtifact) ExtractObjects(tr *v1beta1.TaskRun) []interface{} {
 			img.digest = rr.Value
 		}
 	}
+
 	objs := []interface{}{}
 	for _, image := range imageResourceNames {
 		dgst, err := name.NewDigest(fmt.Sprintf("%s@%s", image.url, image.digest))
+		if err != nil {
+			oa.Logger.Error(err)
+			return nil
+		}
+		objs = append(objs, dgst)
+	}
+
+	// Now check TaskResults
+	taskResultImage := image{}
+	for _, res := range tr.Status.TaskRunResults {
+		if res.Name == "IMAGE_URL" {
+			taskResultImage.url = res.Value
+		} else if res.Name == "IMAGE_DIGEST" {
+			taskResultImage.digest = res.Value
+		}
+	}
+	// Only add it if we got both the URL and digest.
+	if taskResultImage.url != "" && taskResultImage.digest != "" {
+		dgst, err := name.NewDigest(fmt.Sprintf("%s@%s", taskResultImage.url, taskResultImage.digest))
 		if err != nil {
 			oa.Logger.Error(err)
 			return nil
