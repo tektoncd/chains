@@ -90,6 +90,11 @@ func done(tr *v1beta1.TaskRun) bool {
 	return tr.IsDone()
 }
 
+func signed(tr *v1beta1.TaskRun) bool {
+	_, ok := tr.Annotations["chains.tekton.dev/signed"]
+	return ok
+}
+
 var simpleTaskspec = v1beta1.TaskSpec{
 	Steps: []v1beta1.Step{
 		{
@@ -177,6 +182,9 @@ func setConfigMap(t *testing.T, c *clients, data map[string]string) func() {
 	}
 
 	return func() {
+		for k := range data {
+			delete(cm.Data, k)
+		}
 		for k, v := range oldData {
 			cm.Data[k] = v
 		}

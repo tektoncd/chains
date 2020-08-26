@@ -68,7 +68,7 @@ type image struct {
 
 func (oa *OCIArtifact) ExtractObjects(tr *v1beta1.TaskRun) []interface{} {
 	imageResourceNames := map[string]*image{}
-	if tr.Status.TaskSpec != nil {
+	if tr.Status.TaskSpec != nil && tr.Status.TaskSpec.Resources != nil {
 		for _, output := range tr.Status.TaskSpec.Resources.Outputs {
 			if output.Type == v1beta1.PipelineResourceTypeImage {
 				imageResourceNames[output.Name] = &image{}

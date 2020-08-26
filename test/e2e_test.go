@@ -46,8 +46,8 @@ func TestInstall(t *testing.T) {
 }
 
 func TestTektonStorage(t *testing.T) {
-	c, ns, _ := setup(t)
-	// defer cleanup()
+	c, ns, cleanup := setup(t)
+	defer cleanup()
 
 	// Setup the right config.
 	resetConfig := setConfigMap(t, c, map[string]string{"artifacts.taskrun.storage": "tekton"})
@@ -61,16 +61,48 @@ func TestTektonStorage(t *testing.T) {
 	// Give it a minute to complete.
 	waitForCondition(t, c.PipelineClient, tr.Name, ns, done, 60*time.Second)
 
-	signed := func(tr *v1beta1.TaskRun) bool {
-		_, ok := tr.Annotations["chains.tekton.dev/signed"]
-		return ok
-	}
-
 	// It can take up to a minute for the secret data to be updated!
 	tr = waitForCondition(t, c.PipelineClient, tr.Name, ns, signed, 120*time.Second)
 
 	// Let's fetch the signature and body:
 	signature, body := tr.Annotations["chains.tekton.dev/signature-taskrun"], tr.Annotations["chains.tekton.dev/payload-taskrun"]
+	// base64 decode them
+	sigBytes, err := base64.StdEncoding.DecodeString(signature)
+	if err != nil {
+		t.Error(err)
+	}
+	bodyBytes, err := base64.StdEncoding.DecodeString(body)
+	if err != nil {
+		t.Error(err)
+	}
+
+	checkPgpSignatures(t, sigBytes, bodyBytes)
+}
+
+func TestOCISigning(t *testing.T) {
+	c, ns, cleanup := setup(t)
+	defer cleanup()
+
+	// Setup the right config.
+	resetConfig := setConfigMap(t, c, map[string]string{"artifacts.oci.format": "simplesigning", "artifacts.oci.storage": "tekton"})
+	defer resetConfig()
+
+	tr, err := c.PipelineClient.TektonV1beta1().TaskRuns(ns).Create(&imageTaskRun)
+	if err != nil {
+		t.Errorf("error creating taskrun: %s", err)
+	}
+	t.Logf("Created TaskRun: %s", tr.Name)
+
+	// Give it a minute to complete.
+	waitForCondition(t, c.PipelineClient, tr.Name, ns, done, 60*time.Second)
+
+	// It can take up to a minute for the secret data to be updated!
+	tr = waitForCondition(t, c.PipelineClient, tr.Name, ns, signed, 120*time.Second)
+
+	// Let's fetch the signature and body:
+	t.Log(tr.Annotations)
+
+	signature, body := tr.Annotations["chains.tekton.dev/signature-05f95b26ed10"], tr.Annotations["chains.tekton.dev/payload-05f95b26ed10"]
 	// base64 decode them
 	sigBytes, err := base64.StdEncoding.DecodeString(signature)
 	if err != nil {
@@ -113,11 +145,6 @@ func TestGCSStorage(t *testing.T) {
 
 	// Give it a minute to complete.
 	waitForCondition(t, c.PipelineClient, tr.Name, ns, done, 60*time.Second)
-
-	signed := func(tr *v1beta1.TaskRun) bool {
-		_, ok := tr.Annotations["chains.tekton.dev/signed"]
-		return ok
-	}
 
 	// It can take up to a minute for the secret data to be updated!
 	tr = waitForCondition(t, c.PipelineClient, tr.Name, ns, signed, 120*time.Second)
