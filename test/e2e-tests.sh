@@ -28,6 +28,7 @@ header "Setting up environment"
 # Test against nightly instead of latest.
 export RELEASE_YAML="https://storage.googleapis.com/tekton-releases-nightly/pipeline/latest/release.yaml"
 install_pipeline_crd
+
 install_chains
 
 failed=0

@@ -15,6 +15,7 @@ package artifacts
 
 import (
 	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/google/go-containerregistry/pkg/name"
@@ -167,7 +168,13 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 			oa := &OCIArtifact{
 				Logger: logger,
 			}
-			if got := oa.ExtractObjects(tt.tr); !reflect.DeepEqual(got, tt.want) {
+			got := oa.ExtractObjects(tt.tr)
+			sort.Slice(got, func(i, j int) bool {
+				a := got[i].(name.Digest)
+				b := got[j].(name.Digest)
+				return a.DigestStr() < b.DigestStr()
+			})
+			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("OCIArtifact.ExtractObjects() = %v, want %v", got, tt.want)
 			}
 		})
