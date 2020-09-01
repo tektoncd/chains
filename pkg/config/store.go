@@ -27,10 +27,15 @@ type Artifact struct {
 
 type Storage struct {
 	GCS GCS
+	OCI OCI
 }
 
 type GCS struct {
 	Bucket string
+}
+
+type OCI struct {
+	Repository string
 }
 
 const (
@@ -38,8 +43,9 @@ const (
 	taskrunStorageKey = "artifacts.taskrun.storage"
 	gcsBucketKey      = "storage.gcs.bucket"
 
-	ociFormatKey  = "artifacts.oci.format"
-	ociStorageKey = "artifacts.oci.storage"
+	ociFormatKey     = "artifacts.oci.format"
+	ociStorageKey    = "artifacts.oci.storage"
+	ociRepositoryKey = "storage.oci.repository"
 
 	chainsConfig = "chains-config"
 )
@@ -51,12 +57,15 @@ func parse(data map[string]string) Config {
 	// TaskRuns
 	cfg.Artifacts.TaskRuns.Format = data[taskrunFormatKey]
 	cfg.Artifacts.TaskRuns.StorageBackend = data[taskrunStorageKey]
-
-	// Storage level configs
-	cfg.Storage.GCS.Bucket = data[gcsBucketKey]
 	// OCI
 	cfg.Artifacts.OCI.Format = data[ociFormatKey]
 	cfg.Artifacts.OCI.StorageBackend = data[ociStorageKey]
+
+	// Storage level configs
+	// GCS
+	cfg.Storage.GCS.Bucket = data[gcsBucketKey]
+	// OCI
+	cfg.Storage.OCI.Repository = data[ociRepositoryKey]
 
 	return cfg
 }
