@@ -16,6 +16,7 @@ package storage
 import (
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/chains/pkg/signing/storage/gcs"
+	"github.com/tektoncd/chains/pkg/signing/storage/oci"
 	"github.com/tektoncd/chains/pkg/signing/storage/tekton"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
@@ -33,6 +34,7 @@ func InitializeBackends(ps versioned.Interface, logger *zap.SugaredLogger, tr *v
 	// Add an entry here for every configured backend
 	configuredBackends := map[string]struct{}{}
 	configuredBackends[cfg.Artifacts.TaskRuns.StorageBackend] = struct{}{}
+	configuredBackends[cfg.Artifacts.OCI.StorageBackend] = struct{}{}
 
 	// Now only initialize and return the configured ones.
 	backends := []Backend{}
@@ -46,6 +48,12 @@ func InitializeBackends(ps versioned.Interface, logger *zap.SugaredLogger, tr *v
 			backends = append(backends, gcsBackend)
 		case tekton.StorageBackendTekton:
 			backends = append(backends, tekton.NewStorageBackend(ps, logger, tr))
+		case oci.StorageBackendOCI:
+			ociBackend, err := oci.NewStorageBackend(logger, tr, cfg)
+			if err != nil {
+				return nil, err
+			}
+			backends = append(backends, ociBackend)
 		}
 	}
 	return backends, nil
