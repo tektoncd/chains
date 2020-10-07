@@ -19,11 +19,20 @@ limitations under the License.
 package test
 
 import (
+	"archive/tar"
 	"context"
 	"encoding/base64"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
 	"testing"
 	"time"
+
+	"github.com/google/go-containerregistry/pkg/authn"
+	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/google/go-containerregistry/pkg/v1/partial"
+	"github.com/google/go-containerregistry/pkg/v1/remote"
 
 	"cloud.google.com/go/compute/metadata"
 	"cloud.google.com/go/storage"
@@ -155,6 +164,87 @@ func TestGCSStorage(t *testing.T) {
 	sigBytes := readObj(t, bucketName, sigName, client)
 	bodyBytes := readObj(t, bucketName, payloadName, client)
 
+	checkPgpSignatures(t, sigBytes, bodyBytes)
+}
+
+func TestOCIStorage(t *testing.T) {
+	if metadata.OnGCE() {
+		t.Skip("Skipping, integration tests do not support GCS secrets yet.")
+	}
+	repo := os.Getenv("OCI_REPOSITORY")
+	if repo == "" {
+		t.Skipf("Skipping, %s requires OCI_REPOSITORY to be set.", t.Name())
+	}
+	c, ns, cleanup := setup(t)
+	defer cleanup()
+
+	resetConfig := setConfigMap(t, c, map[string]string{
+		"artifacts.taskrun.storage": "oci",
+		"storage.oci.repository":    repo,
+	})
+	defer resetConfig()
+	time.Sleep(3 * time.Second)
+
+	tr, err := c.PipelineClient.TektonV1beta1().TaskRuns(ns).Create(&simpleTaskRun)
+	if err != nil {
+		t.Errorf("error creating taskrun: %s", err)
+	}
+
+	// Give it a minute to complete.
+	waitForCondition(t, c.PipelineClient, tr.Name, ns, done, 60*time.Second)
+
+	// It can take up to a minute for the secret data to be updated!
+	tr = waitForCondition(t, c.PipelineClient, tr.Name, ns, signed, 120*time.Second)
+
+	imgName := fmt.Sprintf("%s/taskrun-%s-%s-%s/taskrun", repo, tr.Namespace, tr.Name, tr.UID)
+	ref, err := name.ParseReference(imgName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	img, err := remote.Image(ref, remote.WithAuthFromKeychain(authn.DefaultKeychain))
+	if err != nil {
+		t.Fatal(err)
+	}
+	layers, err := img.Layers()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// There should only be one layer and one file in the layer.
+	if len(layers) != 1 {
+		t.Fatalf("expected only one layer, found %d", len(layers))
+	}
+	layer := layers[0]
+	rc, err := layer.Uncompressed()
+	defer rc.Close()
+	tarfile := tar.NewReader(rc)
+
+	numFiles := 0
+	d, err := partial.Descriptor(layer)
+	if err != nil {
+		t.Error(err)
+	}
+	sigBytes := []byte(d.Annotations["signature"])
+	var bodyBytes []byte
+	for {
+		hdr, err := tarfile.Next()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			t.Error(err)
+		}
+		numFiles += 1
+		if hdr.Name != "signed" {
+			t.Errorf("expected file name to be 'signed', got %s", hdr.Name)
+		}
+
+		bodyBytes, err = ioutil.ReadAll(tarfile)
+		if err != nil {
+			t.Error(err)
+		}
+	}
+	if numFiles != 1 {
+		t.Errorf("expected only one file in the tar, found %d", numFiles)
+	}
 	checkPgpSignatures(t, sigBytes, bodyBytes)
 }
 
