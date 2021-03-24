@@ -15,6 +15,7 @@ type Config struct {
 	Artifacts ArtifactConfigs
 	Storage   StorageConfigs
 	Signers   SignerConfigs
+	Builder   BuilderConfig
 }
 
 // ArtifactConfig contains the configuration for how to sign/store/format the signatures for each artifact type
@@ -43,6 +44,10 @@ type SignerConfigs struct {
 	PGP  PGPSigner
 	X509 X509Signer
 	KMS  KMSSigner
+}
+
+type BuilderConfig struct {
+	ID string
 }
 
 type PGPSigner struct {
@@ -92,6 +97,9 @@ const (
 	// KMS
 	kmsSignerKMSRef = "signers.kms.kmsref"
 
+	// Builder config
+	builderIDKey = "builder.id"
+
 	chainsConfig = "chains-config"
 )
 
@@ -105,7 +113,7 @@ var defaults = map[string]string{
 }
 
 var supportedValues = map[string][]string{
-	taskrunFormatKey:  {"tekton"},
+	taskrunFormatKey:  {"tekton", "in-toto-ite6"},
 	taskrunStorageKey: {"tekton", "oci", "gcs", "docdb"},
 	taskrunSignerKey:  {"pgp", "x509", "kms"},
 	ociFormatKey:      {"tekton", "simplesigning"},
@@ -136,6 +144,9 @@ func parse(data map[string]string) Config {
 	cfg.Storage.DocDB.URL = valueOrDefault(docDBUrlKey, data)
 
 	cfg.Signers.KMS.KMSRef = valueOrDefault(kmsSignerKMSRef, data)
+
+	// Build config
+	cfg.Builder.ID = valueOrDefault(builderIDKey, data)
 
 	return cfg
 }

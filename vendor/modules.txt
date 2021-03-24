@@ -313,6 +313,8 @@ github.com/hashicorp/vault/sdk/helper/strutil
 github.com/howeyc/gopass
 # github.com/imdario/mergo v0.3.9
 github.com/imdario/mergo
+# github.com/in-toto/in-toto-golang v0.1.1-0.20210505200736-471bd79ebd18
+github.com/in-toto/in-toto-golang/in_toto
 # github.com/inconshreveable/mousetrap v1.0.0
 github.com/inconshreveable/mousetrap
 # github.com/jedisct1/go-minisign v0.0.0-20210414164026-819d7e2534ac
@@ -399,6 +401,8 @@ github.com/sassoftware/relic/lib/signjar
 github.com/sassoftware/relic/lib/x509tools
 github.com/sassoftware/relic/lib/zipslicer
 github.com/sassoftware/relic/signers/sigerrors
+# github.com/shibumi/go-pathspec v1.2.0
+github.com/shibumi/go-pathspec
 # github.com/sigstore/cosign v0.3.2-0.20210504221908-6a2c836159a9
 github.com/sigstore/cosign/pkg/cosign
 # github.com/sigstore/rekor v0.1.2-0.20210428010952-9e3e56d52dd0

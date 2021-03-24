@@ -24,10 +24,7 @@ type PayloadType string
 const (
 	PayloadTypeTekton        PayloadType = "tekton"
 	PayloadTypeSimpleSigning PayloadType = "simplesigning"
+	PayloadTypeInTotoIte6    PayloadType = "in-toto-ite6"
 )
 
-// AllPayloadTypes is a list of all valid Payload types.
-var AllPayloadTypes = map[PayloadType]Payloader{
-	PayloadTypeTekton:        &Tekton{},
-	PayloadTypeSimpleSigning: &SimpleSigning{},
-}
+var AllFormatters = []PayloadType{PayloadTypeTekton, PayloadTypeSimpleSigning, PayloadTypeInTotoIte6}
