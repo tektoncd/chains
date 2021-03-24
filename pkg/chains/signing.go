@@ -20,6 +20,9 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/formats"
+	"github.com/tektoncd/chains/pkg/chains/formats/intotoite6"
+	"github.com/tektoncd/chains/pkg/chains/formats/simple"
+	"github.com/tektoncd/chains/pkg/chains/formats/tekton"
 	"github.com/tektoncd/chains/pkg/chains/signing"
 	"github.com/tektoncd/chains/pkg/chains/signing/kms"
 	"github.com/tektoncd/chains/pkg/chains/signing/pgp"
@@ -115,6 +118,35 @@ func allSigners(sp string, cfg config.Config, l *zap.SugaredLogger) map[string]s
 	return all
 }
 
+func allFormaters(cfg config.Config, l *zap.SugaredLogger) map[formats.PayloadType]formats.Payloader {
+	all := map[formats.PayloadType]formats.Payloader{}
+
+	for _, f := range formats.AllFormatters {
+		switch f {
+		case formats.PayloadTypeTekton:
+			formater, err := tekton.NewFormatter()
+			if err != nil {
+				l.Warnf("error configuring tekton formater: %s", err)
+			}
+			all[f] = formater
+		case formats.PayloadTypeSimpleSigning:
+			formater, err := simple.NewFormatter()
+			if err != nil {
+				l.Warnf("error configuring tekton formater: %s", err)
+			}
+			all[f] = formater
+		case formats.PayloadTypeInTotoIte6:
+			formater, err := intotoite6.NewFormatter(cfg)
+			if err != nil {
+				l.Warnf("error configuring tekton formater: %s", err)
+			}
+			all[f] = formater
+		}
+	}
+
+	return all
+}
+
 // SignTaskRun signs a TaskRun, and marks it as signed.
 func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) error {
 	// Get all the things we might need (storage backends, signers and formatters)
@@ -133,6 +165,7 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 	}
 
 	signers := allSigners(ts.SecretPath, cfg, ts.Logger)
+	allFormats := allFormaters(cfg, ts.Logger)
 
 	var merr *multierror.Error
 	for _, signableType := range enabledSignableTypes {
@@ -142,11 +175,12 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 
 		// Go through each object one at a time.
 		for _, obj := range objects {
+			payloadFormat := signableType.PayloadFormat(cfg)
 
 			// Find the right payload format and format the object
-			payloader, ok := formats.AllPayloadTypes[signableType.PayloadFormat(cfg)]
+			payloader, ok := allFormats[payloadFormat]
 			if !ok {
-				ts.Logger.Warnf("Format %s configured for object: %v %s was not found", signableType.PayloadFormat(cfg), obj, signableType.Type())
+				ts.Logger.Warnf("Format %s configured for object: %v %s was not found", payloadFormat, obj, signableType.Type())
 				continue
 			}
 			payload, err := payloader.CreatePayload(obj)
@@ -154,6 +188,7 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 				ts.Logger.Error(err)
 				continue
 			}
+			ts.Logger.Infof("Created payload of type %s for TaskRun %s/%s", string(payloadFormat), tr.Namespace, tr.Name)
 
 			// Sign it!
 			signerType := signableType.Signer(cfg)

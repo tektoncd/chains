@@ -23,7 +23,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/pkg/errors"
 	"github.com/sigstore/cosign/pkg/cosign"
-	"github.com/tektoncd/chains/pkg/chains/formats"
+	"github.com/tektoncd/chains/pkg/chains/formats/simple"
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"go.uber.org/zap"
@@ -65,7 +65,7 @@ func NewStorageBackend(logger *zap.SugaredLogger, tr *v1beta1.TaskRun, cfg confi
 func (b *Backend) StorePayload(rawPayload []byte, signature string, key string) error {
 	b.logger.Infof("Storing payload on TaskRun %s/%s", b.tr.Namespace, b.tr.Name)
 
-	format := formats.NewSimpleStruct()
+	format := simple.NewSimpleStruct()
 	if err := json.Unmarshal(rawPayload, &format); err != nil {
 		return errors.Wrap(err, "only OCI artifacts can be stored in an OCI registry")
 	}

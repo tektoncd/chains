@@ -11,11 +11,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package formats
+package simple
 
 import (
 	"fmt"
 	"path"
+
+	"github.com/tektoncd/chains/pkg/chains/formats"
 
 	"github.com/google/go-containerregistry/pkg/name"
 )
@@ -37,6 +39,10 @@ func (i *SimpleSigning) CreatePayload(obj interface{}) (interface{}, error) {
 		return nil, fmt.Errorf("unsupported type %s", v)
 	}
 
+}
+
+func NewFormatter() (formats.Payloader, error) {
+	return &SimpleSigning{}, nil
 }
 
 func NewSimpleStruct() Simple {
@@ -62,8 +68,8 @@ type Critical struct {
 	Type     string
 }
 
-func (i *SimpleSigning) Type() PayloadType {
-	return PayloadTypeSimpleSigning
+func (i *SimpleSigning) Type() formats.PayloadType {
+	return formats.PayloadTypeSimpleSigning
 }
 
 func (s *Simple) ImageName() string {
