@@ -103,7 +103,7 @@ func (fe *FieldError) ViaKey(key string) *FieldError {
 }
 
 // ViaFieldKey is the short way to chain: err.ViaKey(bar).ViaField(foo)
-func (fe *FieldError) ViaFieldKey(field string, key string) *FieldError {
+func (fe *FieldError) ViaFieldKey(field, key string) *FieldError {
 	return fe.ViaKey(key).ViaField(field)
 }
 
@@ -204,11 +204,12 @@ func flatten(path []string) string {
 	var newPath []string
 	for _, part := range path {
 		for _, p := range strings.Split(part, ".") {
-			if p == CurrentField {
+			switch {
+			case p == CurrentField:
 				continue
-			} else if len(newPath) > 0 && isIndex(p) {
+			case len(newPath) > 0 && isIndex(p):
 				newPath[len(newPath)-1] += p
-			} else {
+			default:
 				newPath = append(newPath, p)
 			}
 		}
@@ -316,7 +317,7 @@ func ErrDisallowedUpdateDeprecatedFields(fieldPaths ...string) *FieldError {
 	}
 }
 
-// ErrInvalidArrayValue constructs a FieldError for a repetetive `field`
+// ErrInvalidArrayValue constructs a FieldError for a repetitive `field`
 // at `index` that has received an invalid value.
 func ErrInvalidArrayValue(value interface{}, field string, index int) *FieldError {
 	return ErrInvalidValue(value, CurrentField).ViaFieldIndex(field, index)
@@ -326,7 +327,7 @@ func ErrInvalidArrayValue(value interface{}, field string, index int) *FieldErro
 // invalid value.
 func ErrInvalidValue(value interface{}, fieldPath string) *FieldError {
 	return &FieldError{
-		Message: fmt.Sprintf("invalid value: %v", value),
+		Message: fmt.Sprint("invalid value: ", value),
 		Paths:   []string{fieldPath},
 	}
 }
@@ -383,7 +384,7 @@ func ErrOutOfBoundsValue(value, lower, upper interface{}, fieldPath string) *Fie
 func CheckDisallowedFields(request, maskedRequest interface{}) *FieldError {
 	if disallowed, err := kmp.CompareSetFields(request, maskedRequest); err != nil {
 		return &FieldError{
-			Message: fmt.Sprintf("Internal Error"),
+			Message: "Internal Error",
 			Paths:   []string{CurrentField},
 		}
 	} else if len(disallowed) > 0 {

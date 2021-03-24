@@ -26,6 +26,8 @@ const (
 	TaskRunResultType ResultType = "TaskRunResult"
 	// PipelineResourceResultType default pipeline result value
 	PipelineResourceResultType ResultType = "PipelineResourceResult"
+	// InternalTektonResultType default internal tekton result value
+	InternalTektonResultType ResultType = "InternalTektonResult"
 	// UnknownResultType default unknown result type value
 	UnknownResultType ResultType = ""
 )
@@ -58,7 +60,7 @@ func (t *Task) TaskMetadata() metav1.ObjectMeta {
 	return t.ObjectMeta
 }
 
-func (t *Task) Copy() TaskInterface {
+func (t *Task) Copy() TaskObject {
 	return t.DeepCopy()
 }
 
@@ -121,12 +123,22 @@ type Step struct {
 
 	// Script is the contents of an executable file to execute.
 	//
+	// If Script is not empty, the Step cannot have an Command and the Args will be passed to the Script.
+	Script string `json:"script,omitempty"`
+	// Timeout is the time after which the step times out. Defaults to never.
+	// Refer to Go's ParseDuration documentation for expected format: https://golang.org/pkg/time/#ParseDuration
+	Timeout *metav1.Duration `json:"timeout,omitempty"`
+}
+
+// Sidecar has nearly the same data structure as Step, consisting of a Container and an optional Script, but does not have the ability to timeout.
+type Sidecar struct {
+	corev1.Container `json:",inline"`
+
+	// Script is the contents of an executable file to execute.
+	//
 	// If Script is not empty, the Step cannot have an Command or Args.
 	Script string `json:"script,omitempty"`
 }
-
-// A sidecar has the same data structure as a Step, consisting of a Container, and optional Script.
-type Sidecar = Step
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // TaskList contains a list of Task
@@ -147,6 +159,9 @@ type TaskRef struct {
 	// API version of the referent
 	// +optional
 	APIVersion string `json:"apiVersion,omitempty"`
+	// Bundle url reference to a Tekton Bundle.
+	// +optional
+	Bundle string `json:"bundle,omitempty"`
 }
 
 // Check that Pipeline may be validated and defaulted.

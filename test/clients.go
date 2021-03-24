@@ -25,6 +25,7 @@ that contains initialized clients for accessing:
 package test
 
 import (
+	"context"
 	"io/ioutil"
 	"path/filepath"
 	"testing"
@@ -70,37 +71,37 @@ func newClients(t *testing.T, configPath, clusterName string) *clients {
 	return c
 }
 
-func setup(t *testing.T) (*clients, string, func()) {
+func setup(ctx context.Context, t *testing.T) (*clients, string, func()) {
 	t.Helper()
 	namespace := names.SimpleNameGenerator.RestrictLengthWithRandomSuffix("earth")
 
 	c := newClients(t, knativetest.Flags.Kubeconfig, knativetest.Flags.Cluster)
-	createNamespace(t, namespace, c.KubeClient)
+	createNamespace(ctx, t, namespace, c.KubeClient)
 
-	setupSecret(t, c.KubeClient)
+	setupSecret(ctx, t, c.KubeClient)
 
 	var cleanup = func() {
 		t.Logf("Deleting namespace %s", namespace)
-		if err := c.KubeClient.CoreV1().Namespaces().Delete(namespace, &metav1.DeleteOptions{}); err != nil {
+		if err := c.KubeClient.CoreV1().Namespaces().Delete(ctx, namespace, metav1.DeleteOptions{}); err != nil {
 			t.Fatalf("Failed to delete namespace %s for tests: %s", namespace, err)
 		}
 	}
 	return c, namespace, cleanup
 }
 
-func createNamespace(t *testing.T, namespace string, kubeClient kubernetes.Interface) {
+func createNamespace(ctx context.Context, t *testing.T, namespace string, kubeClient kubernetes.Interface) {
 	t.Helper()
 	t.Logf("Create namespace %s to deploy to", namespace)
-	if _, err := kubeClient.CoreV1().Namespaces().Create(&corev1.Namespace{
+	if _, err := kubeClient.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespace,
 		},
-	}); err != nil {
+	}, metav1.CreateOptions{}); err != nil {
 		t.Fatalf("Failed to create namespace %s for tests: %s", namespace, err)
 	}
 }
 
-func setupSecret(t *testing.T, c kubernetes.Interface) {
+func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface) {
 	// Only overwrite the secret data if it isn't set.
 
 	s := corev1.Secret{
@@ -118,7 +119,7 @@ func setupSecret(t *testing.T, c kubernetes.Interface) {
 		}
 		s.StringData[p] = string(b)
 	}
-	if _, err := c.CoreV1().Secrets("tekton-pipelines").Update(&s); err != nil {
+	if _, err := c.CoreV1().Secrets("tekton-pipelines").Update(ctx, &s, metav1.UpdateOptions{}); err != nil {
 		t.Error(err)
 	}
 }

@@ -17,7 +17,7 @@ This script requires the `gcloud` command line tool and the python
 `PyYaml` library.
 
 Example usage:
-  python3 addpermissions.py --users "andrea.frittoli@gmail.com, andrew.bayer@gmail.com, dlorenc@google.com, klewandowski@google.com, vdemeest@redhat.com, dibyajyoti@google.com, sbws@google.com"
+  python3 addpermissions.py --users "foo@something.com,bar@something.com"
 """
 import argparse
 import shlex

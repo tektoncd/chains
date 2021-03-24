@@ -17,6 +17,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"context"
 	"fmt"
 	"path"
 
@@ -49,7 +50,8 @@ type Backend struct {
 
 // NewStorageBackend returns a new OCI StorageBackend that stores signatures in an OCI registry
 func NewStorageBackend(logger *zap.SugaredLogger, tr *v1beta1.TaskRun, cfg config.Config) (*Backend, error) {
-	kc, err := k8schain.NewInCluster(k8schain.Options{Namespace: system.Namespace(), ServiceAccountName: "tekton-pipelines-controller"})
+	kc, err := k8schain.NewInCluster(context.TODO(),
+		k8schain.Options{Namespace: system.Namespace(), ServiceAccountName: "tekton-pipelines-controller"})
 	if err != nil {
 		return nil, err
 	}

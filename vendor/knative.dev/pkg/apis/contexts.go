@@ -134,6 +134,12 @@ func WithinParent(ctx context.Context, om metav1.ObjectMeta) context.Context {
 	return context.WithValue(ctx, parentMetaKey{}, om)
 }
 
+// IsWithinParent returns true if we're within parent context.
+func IsWithinParent(ctx context.Context) bool {
+	_, ok := ctx.Value(parentMetaKey{}).(metav1.ObjectMeta)
+	return ok
+}
+
 // ParentMeta accesses the ObjectMeta of the enclosing parent resource
 // from the context.  See WithinParent for how to attach the parent's
 // ObjectMeta to the context.
@@ -214,7 +220,8 @@ func IsDifferentNamespaceAllowed(ctx context.Context) bool {
 	return ctx.Value(allowDifferentNamespace{}) != nil
 }
 
-// This is attached to contexts passed to webhook interfaces when the user has request DryRun mode.
+// This is attached to contexts passed to webhook interfaces when the user
+// has requested DryRun mode.
 type isDryRun struct{}
 
 // WithDryRun is used to indicate that this call is in DryRun mode.

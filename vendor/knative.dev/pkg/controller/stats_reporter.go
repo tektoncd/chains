@@ -25,10 +25,12 @@ import (
 	"go.opencensus.io/stats/view"
 	"go.opencensus.io/tag"
 	"go.uber.org/zap"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/cache"
 	kubemetrics "k8s.io/client-go/tools/metrics"
 	"k8s.io/client-go/util/workqueue"
 	"knative.dev/pkg/metrics"
+	"knative.dev/pkg/metrics/metricskey"
 )
 
 var (
@@ -46,8 +48,8 @@ var (
 	// - length between 1 and 255 inclusive
 	// - characters are printable US-ASCII
 	reconcilerTagKey = tag.MustNewKey("reconciler")
-	keyTagKey        = tag.MustNewKey("key")
 	successTagKey    = tag.MustNewKey("success")
+	NamespaceTagKey  = tag.MustNewKey(metricskey.LabelNamespaceName)
 )
 
 func init() {
@@ -156,7 +158,11 @@ func init() {
 			stats.UnitNone,
 		),
 	}
-	kubemetrics.Register(cp.NewLatencyMetric(), cp.NewResultMetric())
+	opts := kubemetrics.RegisterOpts{
+		RequestLatency: cp.NewLatencyMetric(),
+		RequestResult:  cp.NewResultMetric(),
+	}
+	kubemetrics.Register(opts)
 
 	views := []*view.View{{
 		Description: "Depth of the work queue",
@@ -167,12 +173,12 @@ func init() {
 		Description: "Number of reconcile operations",
 		Measure:     reconcileCountStat,
 		Aggregation: view.Count(),
-		TagKeys:     []tag.Key{reconcilerTagKey, keyTagKey, successTagKey},
+		TagKeys:     []tag.Key{reconcilerTagKey, successTagKey, NamespaceTagKey},
 	}, {
 		Description: "Latency of reconcile operations",
 		Measure:     reconcileLatencyStat,
 		Aggregation: reconcileDistribution,
-		TagKeys:     []tag.Key{reconcilerTagKey, keyTagKey, successTagKey},
+		TagKeys:     []tag.Key{reconcilerTagKey, successTagKey, NamespaceTagKey},
 	}}
 	views = append(views, wp.DefaultViews()...)
 	views = append(views, rp.DefaultViews()...)
@@ -192,7 +198,7 @@ type StatsReporter interface {
 	ReportQueueDepth(v int64) error
 
 	// ReportReconcile reports the count and latency metrics for a reconcile operation
-	ReportReconcile(duration time.Duration, key, success string) error
+	ReportReconcile(duration time.Duration, success string, key types.NamespacedName) error
 }
 
 // Reporter holds cached metric objects to report metrics
@@ -234,12 +240,14 @@ func (r *reporter) ReportQueueDepth(v int64) error {
 }
 
 // ReportReconcile reports the count and latency metrics for a reconcile operation
-func (r *reporter) ReportReconcile(duration time.Duration, key, success string) error {
+func (r *reporter) ReportReconcile(duration time.Duration, success string, key types.NamespacedName) error {
 	ctx, err := tag.New(
 		context.Background(),
 		tag.Insert(reconcilerTagKey, r.reconciler),
-		tag.Insert(keyTagKey, key),
-		tag.Insert(successTagKey, success))
+		tag.Insert(successTagKey, success),
+		tag.Insert(NamespaceTagKey, key.Namespace),
+	)
+
 	if err != nil {
 		return err
 	}

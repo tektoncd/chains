@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"sync/atomic"
 
 	"go.uber.org/zap"
@@ -98,7 +99,7 @@ func (cs *ConfigStore) watch() {
 // NewConfigStore returns a store that is configured to watch the configmap for changes.
 func NewConfigStore(kc kubernetes.Interface, namespace string, logger *zap.SugaredLogger) (*ConfigStore, error) {
 	opts := metav1.SingleObject(metav1.ObjectMeta{Name: chainsConfig})
-	w, err := kc.CoreV1().ConfigMaps(namespace).Watch(opts)
+	w, err := kc.CoreV1().ConfigMaps(namespace).Watch(context.TODO(), opts)
 	if err != nil {
 		return nil, err
 	}
