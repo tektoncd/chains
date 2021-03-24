@@ -24,6 +24,7 @@ import (
 
 // PodTemplate holds pod specific configuration
 // +k8s:deepcopy-gen=true
+// +k8s:openapi-gen=true
 type Template struct {
 	// NodeSelector is a selector which must be true for the pod to fit on a node.
 	// Selector which must match a node's labels for the pod to be scheduled on that node.
@@ -47,6 +48,8 @@ type Template struct {
 	// List of volumes that can be mounted by containers belonging to the pod.
 	// More info: https://kubernetes.io/docs/concepts/storage/volumes
 	// +optional
+	// +patchMergeKey=name
+	// +patchStrategy=merge,retainKeys
 	Volumes []corev1.Volume `json:"volumes,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name" protobuf:"bytes,1,rep,name=volumes"`
 
 	// RuntimeClassName refers to a RuntimeClass object in the node.k8s.io
@@ -92,14 +95,15 @@ type Template struct {
 	PriorityClassName *string `json:"priorityClassName,omitempty" protobuf:"bytes,7,opt,name=priorityClassName"`
 	// SchedulerName specifies the scheduler to be used to dispatch the Pod
 	// +optional
-	SchedulerName string `json:"schedulerName"`
+	SchedulerName string `json:"schedulerName,omitempty"`
 
 	// ImagePullSecrets gives the name of the secret used by the pod to pull the image if specified
-	ImagePullSecrets []corev1.LocalObjectReference
+	// +optional
+	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
 
 	// HostNetwork specifies whether the pod may use the node network namespace
 	// +optional
-	HostNetwork bool `json:"hostNetwork"`
+	HostNetwork bool `json:"hostNetwork,omitempty"`
 }
 
 func (tpl *Template) Equals(other *Template) bool {

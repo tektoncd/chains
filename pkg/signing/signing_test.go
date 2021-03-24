@@ -42,7 +42,7 @@ func TestMarkSigned(t *testing.T) {
 			},
 		},
 	}
-	if _, err := c.TektonV1beta1().TaskRuns(tr.Namespace).Create(tr); err != nil {
+	if _, err := c.TektonV1beta1().TaskRuns(tr.Namespace).Create(ctx, tr, metav1.CreateOptions{}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -52,7 +52,7 @@ func TestMarkSigned(t *testing.T) {
 	}
 
 	// Now check the signature.
-	signed, err := c.TektonV1beta1().TaskRuns(tr.Namespace).Get(tr.Name, metav1.GetOptions{})
+	signed, err := c.TektonV1beta1().TaskRuns(tr.Namespace).Get(ctx, tr.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Errorf("Get() error = %v", err)
 	}
@@ -164,7 +164,7 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 					Name: "foo",
 				},
 			}
-			if _, err := ps.TektonV1beta1().TaskRuns(tr.Namespace).Create(tr); err != nil {
+			if _, err := ps.TektonV1beta1().TaskRuns(tr.Namespace).Create(ctx, tr, metav1.CreateOptions{}); err != nil {
 				t.Errorf("error creating fake taskrun: %v", err)
 			}
 			if err := ts.SignTaskRun(tr); (err != nil) != tt.wantErr {
@@ -172,7 +172,7 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 			}
 
 			// Fetch a new TR!
-			tr, err := ps.TektonV1beta1().TaskRuns(tr.Namespace).Get(tr.Name, metav1.GetOptions{})
+			tr, err := ps.TektonV1beta1().TaskRuns(tr.Namespace).Get(ctx, tr.Name, metav1.GetOptions{})
 			if err != nil {
 				t.Errorf("error fetching fake taskrun: %v", err)
 			}

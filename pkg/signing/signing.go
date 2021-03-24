@@ -14,6 +14,8 @@ limitations under the License.
 package signing
 
 import (
+	"context"
+
 	"github.com/hashicorp/go-multierror"
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/config"
@@ -24,6 +26,7 @@ import (
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	versioned "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	"go.uber.org/zap"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -65,7 +68,8 @@ func MarkSigned(tr *v1beta1.TaskRun, ps versioned.Interface) error {
 	if err != nil {
 		return err
 	}
-	if _, err := ps.TektonV1beta1().TaskRuns(tr.Namespace).Patch(tr.Name, types.MergePatchType, patchBytes); err != nil {
+	if _, err := ps.TektonV1beta1().TaskRuns(tr.Namespace).Patch(
+		context.TODO(), tr.Name, types.MergePatchType, patchBytes, v1.PatchOptions{}); err != nil {
 		return err
 	}
 	return nil

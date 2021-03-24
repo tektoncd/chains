@@ -62,7 +62,7 @@ func setupData(ctx context.Context, t *testing.T, trs []*v1beta1.TaskRun) inform
 
 	for _, ta := range trs {
 		ta := ta.DeepCopy() // Avoid assumptions that the informer's copy is modified.
-		if _, err := c.TektonV1beta1().TaskRuns(ta.Namespace).Create(ta); err != nil {
+		if _, err := c.TektonV1beta1().TaskRuns(ta.Namespace).Create(ctx, ta, metav1.CreateOptions{}); err != nil {
 			t.Fatal(err)
 		}
 	}

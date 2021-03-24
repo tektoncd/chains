@@ -14,6 +14,7 @@ limitations under the License.
 package tekton
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 
@@ -21,6 +22,7 @@ import (
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	versioned "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	"go.uber.org/zap"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -60,7 +62,8 @@ func (b *Backend) StorePayload(signed []byte, signature string, key string) erro
 	if err != nil {
 		return err
 	}
-	if _, err := b.pipelienclientset.TektonV1beta1().TaskRuns(b.tr.Namespace).Patch(b.tr.Name, types.MergePatchType, patchBytes); err != nil {
+	if _, err := b.pipelienclientset.TektonV1beta1().TaskRuns(b.tr.Namespace).Patch(
+		context.TODO(), b.tr.Name, types.MergePatchType, patchBytes, v1.PatchOptions{}); err != nil {
 		return err
 	}
 	return nil

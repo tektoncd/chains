@@ -53,7 +53,7 @@ func TestBackend_StorePayload(t *testing.T) {
 					Namespace: "bar",
 				},
 			}
-			if _, err := c.TektonV1beta1().TaskRuns(tr.Namespace).Create(tr); err != nil {
+			if _, err := c.TektonV1beta1().TaskRuns(tr.Namespace).Create(ctx, tr, metav1.CreateOptions{}); err != nil {
 				t.Errorf("error setting up fake taskrun: %v", err)
 			}
 
@@ -76,7 +76,7 @@ func TestBackend_StorePayload(t *testing.T) {
 			}
 
 			// Now get the updated taskrun
-			tr, err = c.TektonV1beta1().TaskRuns(tr.Namespace).Get(tr.Name, metav1.GetOptions{})
+			tr, err = c.TektonV1beta1().TaskRuns(tr.Namespace).Get(ctx, tr.Name, metav1.GetOptions{})
 			if err != nil {
 				t.Errorf("error getting updated taskrun: %v", err)
 			}
