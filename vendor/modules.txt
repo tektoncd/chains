@@ -879,3 +879,7 @@ sigs.k8s.io/yaml
 # k8s.io/apimachinery => k8s.io/apimachinery v0.16.5
 # k8s.io/client-go => k8s.io/client-go v0.16.5
 # k8s.io/code-generator => k8s.io/code-generator v0.16.5
+## explicit
+# Copied from grafeasmirror for now, but once these occours
+# in in-toto upstream we should copy them from there
+github.com/in-toto/in-toto-golang/in_toto
