@@ -61,7 +61,7 @@ func TestSimpleSigning_CreatePayload(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			i := &SimpleSigning{}
-			got, err := i.CreatePayload(tt.obj)
+			got, err := i.CreatePayload(nil, tt.obj)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SimpleSigning.CreatePayload() error = %v, wantErr %v", err, tt.wantErr)
 				return
