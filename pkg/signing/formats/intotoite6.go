@@ -3,6 +3,8 @@ package formats
 import (
 	"fmt"
 
+	"go.uber.org/zap"
+
 	"github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 )
@@ -10,7 +12,7 @@ import (
 type InTotoIte6 struct {
 }
 
-func (i *InTotoIte6) CreatePayload(obj interface{}) (interface{}, error) {
+func (i *InTotoIte6) CreatePayload(l *zap.SugaredLogger, obj interface{}) (interface{}, error) {
 	var tr *v1beta1.TaskRun
 
 	switch v := obj.(type) {
@@ -38,7 +40,7 @@ func (i *InTotoIte6) CreatePayload(obj interface{}) (interface{}, error) {
 	att.Materials = in_toto.ArtifactCollection{}
 	if tr.Spec.Resources != nil {
 		for _, r := range tr.Spec.Resources.Inputs {
-			fmt.Printf("ITE6: resource input: %s\n", r.Name)
+			l.Infof("ITE6: resource input: %s", r.Name)
 			for _, rr := range tr.Status.ResourcesResult {
 				if r.Name == rr.ResourceName {
 					// if _, ok := l.Materials[rr.ResourceName]; !ok {
@@ -46,22 +48,22 @@ func (i *InTotoIte6) CreatePayload(obj interface{}) (interface{}, error) {
 					// }
 					// m := l.Materials[rr.ResourceName].(map[string]string)
 					// m[rr.Key] = rr.Value
-					fmt.Println("ITE6: match")
+					l.Infof("ITE6: match")
 				}
 			}
 		}
 
 		// Dummy to just loop over the status results
 		for _, rr := range tr.Status.ResourcesResult {
-			fmt.Printf("  ITE6: resource result %s\n", rr.ResourceName)
-			fmt.Printf("  ITE6: resource result key %s\n", rr.Key)
-			fmt.Printf("  ITE6: resource result value %s\n", rr.Value)
-			fmt.Printf("  ITE6: resource result type %s\n", rr.ResultType)
+			l.Infof("ITE6: resource result %s", rr.ResourceName)
+			l.Infof("ITE6: resource result key %s", rr.Key)
+			l.Infof("ITE6: resource result value %s", rr.Value)
+			l.Infof("ITE6: resource result type %s", rr.ResultType)
 		}
 
 		// Populate products with resource outputs.
 		for _, r := range tr.Spec.Resources.Outputs {
-			fmt.Printf("ITE6: resource output: %s\n", r.Name)
+			l.Infof("ITE6: resource output: %s", r.Name)
 			for _, rr := range tr.Status.ResourcesResult {
 				if r.Name == rr.ResourceName {
 					// if _, ok := l.Products[rr.ResourceName]; !ok {
@@ -69,12 +71,12 @@ func (i *InTotoIte6) CreatePayload(obj interface{}) (interface{}, error) {
 					// }
 					// m := l.Products[rr.ResourceName].(map[string]string)
 					// m[rr.Key] = rr.Value
-					fmt.Println("ITE: 6 match")
+					l.Infof("ITE: 6 match")
 				}
 			}
 		}
 	} else {
-		fmt.Println("ITE6: No resources found")
+		l.Infof("ITE6: No resources found")
 	}
 
 	return att, nil

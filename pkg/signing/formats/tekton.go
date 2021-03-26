@@ -16,6 +16,8 @@ package formats
 import (
 	"fmt"
 
+	"go.uber.org/zap"
+
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 )
 
@@ -24,7 +26,7 @@ type Tekton struct {
 }
 
 // CreatePayload implements the Payloader interface.
-func (i *Tekton) CreatePayload(obj interface{}) (interface{}, error) {
+func (i *Tekton) CreatePayload(l *zap.SugaredLogger, obj interface{}) (interface{}, error) {
 
 	switch v := obj.(type) {
 	case *v1beta1.TaskRun:
