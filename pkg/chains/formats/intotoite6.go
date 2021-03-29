@@ -79,6 +79,12 @@ func (i *InTotoIte6) CreatePayload(l *zap.SugaredLogger, obj interface{}) (inter
 		l.Infof("ITE6: No resources found")
 	}
 
+	l.Infof("ITE6: Store TaskRun body")
+	m := map[string]interface{}{}
+	m["status"] = tr.Status
+	m["spec"] = tr.Spec
+	att.Recipe.Arguments = m
+
 	return att, nil
 }
 
