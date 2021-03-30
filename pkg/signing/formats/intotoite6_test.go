@@ -16,6 +16,14 @@ var testData1 = `
       {
         "name": "IMAGE",
         "value": "test.io/test/image"
+      },
+      {
+        "name": "CHAINS-GIT_COMMIT",
+        "value": "abcd"
+      },
+      {
+        "name": "CHAINS-GIT_URL",
+        "value": "https://git.test.com"
       }
     ],
     "serviceAccountName": "default"
@@ -30,7 +38,7 @@ var testData1 = `
         "message": "All Steps have completed executing"
       }
     ],
-    "podName": "go-build-pipeline-run-tcjlv-docker-dfhs4-pod-tkkkv",
+    "podName": "test-pod-name",
     "steps": [
       {
         "name": "step1",
@@ -106,7 +114,13 @@ var expected = in_toto.Provenance{
 			"gcr.io/test3/test3": in_toto.ArtifactDigest{
 				"sha256": "hash3",
 			},
+			"git+https://git.test.com": in_toto.ArtifactDigest{
+				"git_commit": "abcd",
+			},
 		},
+	},
+	Builder: in_toto.Builder{
+		ID: "test-pod-name",
 	},
 }
 
