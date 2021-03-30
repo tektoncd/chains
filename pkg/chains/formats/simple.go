@@ -17,8 +17,6 @@ import (
 	"fmt"
 	"path"
 
-	"go.uber.org/zap"
-
 	"github.com/google/go-containerregistry/pkg/name"
 )
 
@@ -28,7 +26,7 @@ type SimpleSigning struct {
 }
 
 // CreatePayload implements the Payloader interface.
-func (i *SimpleSigning) CreatePayload(l *zap.SugaredLogger, obj interface{}) (interface{}, error) {
+func (i *SimpleSigning) CreatePayload(obj interface{}) (interface{}, error) {
 	switch v := obj.(type) {
 	case name.Digest:
 		format := newSimpleStruct()
