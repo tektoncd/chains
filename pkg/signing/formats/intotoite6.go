@@ -2,8 +2,7 @@ package formats
 
 import (
 	"fmt"
-
-	"go.uber.org/zap"
+	"strings"
 
 	"github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -12,7 +11,12 @@ import (
 type InTotoIte6 struct {
 }
 
-func (i *InTotoIte6) CreatePayload(l *zap.SugaredLogger, obj interface{}) (interface{}, error) {
+type artifactResult struct {
+	ParamName  string
+	ResultName string
+}
+
+func (i *InTotoIte6) CreatePayload(obj interface{}) (interface{}, error) {
 	var tr *v1beta1.TaskRun
 
 	switch v := obj.(type) {
@@ -25,9 +29,8 @@ func (i *InTotoIte6) CreatePayload(l *zap.SugaredLogger, obj interface{}) (inter
 
 	// Here we translate a Tekton TaskRun into an InToto ite6 attestation.
 	// At a high leevel, the  mapping looks roughly like:
-	// Input Resource Results -> Materials
-	// Output Resource Results -> Subjects
-	// The entire TaskRun body -> Recipe.Arguments
+	// Results with name *-DIGEST -> Subject
+	// Step containers -> Materials
 
 	att := in_toto.Provenance{
 		Attestation: in_toto.Attestation{
@@ -35,55 +38,76 @@ func (i *InTotoIte6) CreatePayload(l *zap.SugaredLogger, obj interface{}) (inter
 		},
 	}
 
-	// Populate materials with resource inputs.
-	att.Subject = in_toto.ArtifactCollection{}
-	att.Materials = in_toto.ArtifactCollection{}
-	if tr.Spec.Resources != nil {
-		for _, r := range tr.Spec.Resources.Inputs {
-			l.Infof("ITE6: resource input: %s", r.Name)
-			for _, rr := range tr.Status.ResourcesResult {
-				if r.Name == rr.ResourceName {
-					// if _, ok := l.Materials[rr.ResourceName]; !ok {
-					// 	l.Materials[rr.ResourceName] = map[string]string{}
-					// }
-					// m := l.Materials[rr.ResourceName].(map[string]string)
-					// m[rr.Key] = rr.Value
-					l.Infof("ITE6: match")
-				}
-			}
-		}
 
-		// Dummy to just loop over the status results
-		for _, rr := range tr.Status.ResourcesResult {
-			l.Infof("ITE6: resource result %s", rr.ResourceName)
-			l.Infof("ITE6: resource result key %s", rr.Key)
-			l.Infof("ITE6: resource result value %s", rr.Value)
-			l.Infof("ITE6: resource result type %s", rr.ResultType)
+	results := []artifactResult{}
+	// Scan for digests
+	for _, r := range tr.Status.TaskSpec.Results {
+		if strings.HasSuffix(r.Name, "-DIGEST") {
+			// 7 chars in -DIGEST
+			results = append(results, artifactResult {
+				ParamName: r.Name[:len(r.Name)-7],
+				ResultName: r.Name,
+			})
 		}
-
-		// Populate products with resource outputs.
-		for _, r := range tr.Spec.Resources.Outputs {
-			l.Infof("ITE6: resource output: %s", r.Name)
-			for _, rr := range tr.Status.ResourcesResult {
-				if r.Name == rr.ResourceName {
-					// if _, ok := l.Products[rr.ResourceName]; !ok {
-					// 	l.Products[rr.ResourceName] = map[string]string{}
-					// }
-					// m := l.Products[rr.ResourceName].(map[string]string)
-					// m[rr.Key] = rr.Value
-					l.Infof("ITE: 6 match")
-				}
-			}
-		}
-	} else {
-		l.Infof("ITE6: No resources found")
 	}
 
-	l.Infof("ITE6: Store TaskRun body")
-	m := map[string]interface{}{}
-	m["status"] = tr.Status
-	m["spec"] = tr.Spec
-	att.Recipe.Arguments = m
+	att.Subject = in_toto.ArtifactCollection{}
+	att.Materials = in_toto.ArtifactCollection{}
+	for _, ar := range results {
+		// get subject
+		sub := ""
+		for _, p := range tr.Spec.Params {
+			if ar.ParamName == p.Name {
+				if p.Value.Type != v1beta1.ParamTypeString {
+					continue
+				}
+				sub = p.Value.StringVal
+				break
+			}
+		}
+		if sub == "" {
+			// Parameter was not specifed for this task run
+			continue
+		}
+		for _, trr := range tr.Status.TaskRunResults {
+			if trr.Name == ar.ResultName {
+				// Value should be on format:
+				// hashalg:hash
+				d := strings.Split(trr.Value, ":")
+				if len(d) != 2 {
+					continue
+				}
+
+				att.Subject[sub] = in_toto.ArtifactDigest{
+					d[0]: d[1],
+				}
+			}
+		}
+	}
+
+	// Add all found step containers as materials
+	for _, trs := range tr.Status.Steps {
+		// image id formats: name@alg:digest
+		//                   schema://name@alg:hash
+		d := strings.Split(trs.ImageID, "//")
+		if len(d) == 2 {
+			// Get away with schema
+			d[0] = d[1]
+		}
+		d = strings.Split(d[0], "@")
+		if len(d) != 2 {
+			continue
+		}
+		// d[0]: image name
+		// d[1]: alg:hash
+		h := strings.Split(d[1], ":")
+		if len(h) != 2 {
+			continue
+		}
+		att.Materials[d[0]] = in_toto.ArtifactDigest{
+			h[0]: h[1],
+		}
+	}
 
 	return att, nil
 }

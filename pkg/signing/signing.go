@@ -103,7 +103,7 @@ func (ts *TaskRunSigner) SignTaskRun(tr *v1beta1.TaskRun) error {
 					continue
 				}
 				var err error
-				payload, err = payloader.CreatePayload(ts.Logger, obj)
+				payload, err = payloader.CreatePayload(obj)
 				if err != nil {
 					ts.Logger.Errorf("Error creating payload of type %s", payloader)
 					return err

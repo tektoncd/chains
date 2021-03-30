@@ -13,13 +13,9 @@ limitations under the License.
 
 package formats
 
-import (
-	"go.uber.org/zap"
-)
-
 // Payloader is an interface to generate a chains Payload from a TaskRun
 type Payloader interface {
-	CreatePayload(l *zap.SugaredLogger, obj interface{}) (interface{}, error)
+	CreatePayload(obj interface{}) (interface{}, error)
 	Type() PayloadType
 }
 
