@@ -190,7 +190,7 @@ Results:
 			// Loog amongst task results
 			for _, trr := range tr.Status.TaskRunResults {
 				if trr.Name == ar.ParamName {
-					sub = trr.Value
+					sub = ings.TrimRight(trr.Value, "\n")
 					break
 				}
 			}
