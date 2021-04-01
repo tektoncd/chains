@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -62,8 +61,8 @@ func (i *InTotoIte6) CreatePayload(obj interface{}) (interface{}, error) {
 		},
 	}
 	if tr.Status.CompletionTime != nil {
-		att.Metadata.BuildTimestamp =
-			tr.Status.CompletionTime.Format(time.RFC3339)
+		att.Metadata.BuildTimestamp.Time =
+			tr.Status.CompletionTime.Time
 	}
 
 	results := getResultDigests(tr)

@@ -3,7 +3,6 @@ package in_toto
 import (
 	"encoding/json"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
@@ -71,94 +70,155 @@ var provenance1 = Provenance{
 		EntryPoint: "build.yaml:maketgz",
 	},
 	Metadata: Metadata{
-		BuildTimestamp:    "2020-08-19T08:38:00Z",
+		BuildTimestamp:    &Time{time.Unix(1597826280, 0)},
 		MaterialsComplete: false,
 	},
 }
 
+var provenanceData2 = `
+{
+  "attestation_type": "https://in-toto.io/Provenance/v1",
+  "subject": {
+    "curl-7.72.0.tar.bz2": { "sha256": "ad91970864102a59765e20ce16216efc9d6ad381471f7accceceab7d905703ef" },
+  },
+  "materials": {
+    "git+https://github.com/curl/curl@curl-7_72_0": { "git_commit": "9d954e49bce3706a9a2efb119ecd05767f0f2a9e" },
+  },
+  "builder": { "id": "https://github.com/Attestations/GitHubHostedActions@v1" },
+  "recipe": {
+    "type": "https://github.com/Attestations/GitHubActionsWorkflow@v1",
+    "material": "git+https://github.com/curl/curl@curl-7_72_0",
+    "entry_point": "build.yaml:maketgz"
+  },
+  "metadata": {
+    "build_timestamp": "2020-08-19T08:38:00Z",
+    "materials_complete": false
+  }
+}
+`
+
+var provenance2 = Provenance{
+	Attestation: Attestation{
+		AttestationType: "https://in-toto.io/Provenance/v1",
+		Subject: ArtifactCollection{
+			"curl-7.72.0.tar.bz2": ArtifactDigest{"sha256": "ad91970864102a59765e20ce16216efc9d6ad381471f7accceceab7d905703ef"},
+		},
+		Materials: ArtifactCollection{
+			"git+https://github.com/curl/curl@curl-7_72_0": ArtifactDigest{"git_commit": "9d954e49bce3706a9a2efb119ecd05767f0f2a9e"},
+		},
+	},
+	Builder: Builder{
+		ID: "https://github.com/Attestations/GitHubHostedActions@v1",
+	},
+	Recipe: Recipe{
+		Type:       "https://github.com/Attestations/GitHubActionsWorkflow@v1",
+		Material:   "git+https://github.com/curl/curl@curl-7_72_0",
+		EntryPoint: "build.yaml:maketgz",
+	},
+	Metadata: Metadata{
+		BuildTimestamp:    &Time{time.Unix(1597826280, 0)},
+		MaterialsComplete: false,
+	},
+}
+
+// 1597826280
 func init() {
-	provenance1.Metadata.BuildTimestampInternal, _ =
-		time.Parse(time.RFC3339, "2020-08-19T08:38:00Z")
 	// Make sure all strings formatted are in tz Zulu
 	os.Setenv("TZ", "UTC")
 }
 
-func TestDecodeProvenanceString(t *testing.T) {
-	p, err := DecodeProvenanceString(provenanceData1)
-	assert.Nil(t, err, "failed decoding json")
-	assert.Equal(t, &provenance1, p, "unmarshal failed")
+func TestParseJSON(t *testing.T) {
+	var got Provenance
+
+	err := json.Unmarshal([]byte(provenanceData1), &got)
+	assert.Nil(t, err, "Failed to unmarshal JSON")
 }
 
-func TestDecodeProvenanceNoTimestamp(t *testing.T) {
-	var data = `{"attestation":"testattestation"}`
+func TestEncodeJSON(t *testing.T) {
+	var got Provenance
 
-	_, err := DecodeProvenanceString(data)
-	assert.Nil(t, err, "unexpected error")
+	enc, err := json.Marshal(&provenance2)
+	assert.Nil(t, err, "Failed to marshal JSON")
+
+	err = json.Unmarshal(enc, &got)
+	assert.Nil(t, err, "Failed to unmarshal JSON")
 }
 
-func TestDecodeProvenanceBadTimestamp(t *testing.T) {
-	var data = `{"attestation":"testattestation", "metadata":{"build_timestamp": "29/01/1904"}}`
+func TestEncodeNilTime(t *testing.T) {
+	p := Provenance{}
 
-	p, err := DecodeProvenanceString(data)
-	assert.Nil(t, p, "expected error")
-	assert.NotNil(t, err, "error expected")
+	_, err := json.Marshal(&p)
+	assert.Nil(t, err, "Failed to marhsal JSON")
+}
+
+var jsonNullTime = `
+{
+  "metadata": {"build_timestamp": null}
+}
+`
+
+var jsonNoTime = `
+{
+  "metadata": {"materials_complete": true}
+}
+`
+
+func TestDecodeNilTime(t *testing.T) {
+	var got Provenance
+	var want = Provenance{}
+
+	err := json.Unmarshal([]byte(jsonNullTime), &got)
+	assert.Nil(t, err, "failed to unmarshal JSON")
+	assert.Equal(t, &want, &got, "wrong result")
+}
+
+func TestDecodeNoTime(t *testing.T) {
+	var got Provenance
+	var want = Provenance{
+		Metadata: Metadata{
+			MaterialsComplete: true,
+		},
+	}
+
+	err := json.Unmarshal([]byte(jsonNoTime), &got)
+	assert.Nil(t, err, "failed to unmarshal JSON")
+	assert.Equal(t, &want, &got, "wrong result")
+}
+
+var jsonErrTime = `
+{
+  "metadata": {"build_timestamp": "null"}
+}
+`
+
+func TestDecodeErrTime(t *testing.T) {
+	var p Provenance
+
+	err := json.Unmarshal([]byte(jsonErrTime), &p)
 	assert.IsType(t, &time.ParseError{}, err, "wrong error")
 }
 
-func TestDecodeBadJSON(t *testing.T) {
-	p, err := DecodeProvenanceString("<xml></xml>")
-	assert.Nil(t, p, "expected error")
-	assert.NotNil(t, err, "errpr expected")
+func TestDecodeNoJson(t *testing.T) {
+	var ti Time
+	var badJSON = "notjson"
+
+	err := ti.UnmarshalJSON([]byte(badJSON))
 	assert.IsType(t, &json.SyntaxError{}, err, "wrong error")
 }
 
-func TestEncodeProvenanceTSString(t *testing.T) {
-	var p = Provenance{
-		Attestation: Attestation{
-			AttestationType: "testattestation",
-		},
-		Metadata: Metadata{
-			BuildTimestampInternal: time.Unix(1234567890, 0),
-		},
-	}
-	var expected = `
-{
-    "attestation_type": "testattestation",
-    "subject": null,
-    "materials": null,
-    "builder": {"id": ""},
-    "recipe": {"type": ""},
-    "metadata": {
-        "build_timestamp": "2009-02-13T23:31:30Z"
-    }
-}`
+func TestDecodeNullJson(t *testing.T) {
+	var ti Time
+	var nullJSON = "null"
 
-	expected = strings.Replace(expected, " ", "", -1)
-	expected = strings.Replace(expected, "\n", "", -1)
-	s, err := EncodeProvenanceString(&p)
+	err := ti.UnmarshalJSON([]byte(nullJSON))
 	assert.Nil(t, err, "unexpected error")
-	assert.Equal(t, expected, s, "wrong encoding")
+	assert.Equal(t, time.Time{}, ti.Time, "Wrong time returned")
 }
 
-func TestEncodeProvenanceNoTSString(t *testing.T) {
-	var p = Provenance{
-		Attestation: Attestation{
-			AttestationType: "testattestation",
-		},
-	}
-	var expected = `
-{
-    "attestation_type": "testattestation",
-    "subject": null,
-    "materials": null,
-    "builder": {"id": ""},
-    "recipe": {"type": ""},
-    "metadata": {}
-}`
+func TestEncodeZero(t *testing.T) {
+	var ti Time
 
-	expected = strings.Replace(expected, " ", "", -1)
-	expected = strings.Replace(expected, "\n", "", -1)
-	s, err := EncodeProvenanceString(&p)
+	b, err := ti.MarshalJSON()
 	assert.Nil(t, err, "unexpected error")
-	assert.Equal(t, expected, s, "wrong encoding")
+	assert.Equal(t, "null", string(b), "wrong result")
 }
