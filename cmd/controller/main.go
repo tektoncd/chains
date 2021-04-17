@@ -43,8 +43,10 @@ const (
 
 func main() {
 	flag.Parse()
+	ctx := injection.WithNamespaceScope(signals.NewContext(), *namespace)
+	ctx = sharedmain.WithHADisabled(ctx)
 
-	sharedmain.MainWithContext(injection.WithNamespaceScope(signals.NewContext(), *namespace), "watcher",
+	sharedmain.MainWithContext(ctx, "watcher",
 		func(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
 			// TODO: store and use the cmw
 			logger := logging.FromContext(ctx)
