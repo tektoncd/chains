@@ -11,18 +11,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package signing
+package chains
 
 import (
 	"context"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/tektoncd/chains/pkg/artifacts"
+	"github.com/tektoncd/chains/pkg/chains/formats"
+	"github.com/tektoncd/chains/pkg/chains/signing"
+	"github.com/tektoncd/chains/pkg/chains/signing/pgp"
+	"github.com/tektoncd/chains/pkg/chains/signing/x509"
+	"github.com/tektoncd/chains/pkg/chains/storage"
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/chains/pkg/patch"
-	"github.com/tektoncd/chains/pkg/signing/formats"
-	"github.com/tektoncd/chains/pkg/signing/pgp"
-	"github.com/tektoncd/chains/pkg/signing/storage"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	versioned "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	"go.uber.org/zap"
@@ -78,6 +80,32 @@ func MarkSigned(tr *v1beta1.TaskRun, ps versioned.Interface) error {
 // Set this as a var for mocking.
 var getBackends = storage.InitializeBackends
 
+func allSigners(sp string, l *zap.SugaredLogger) map[string]signing.Signer {
+	all := map[string]signing.Signer{}
+	for _, s := range signing.AllSigners {
+		switch s {
+		case signing.TypePgp:
+			signer, err := pgp.NewSigner(sp, l)
+			if err != nil {
+				l.Warnf("error configuring pgp signer: %s", err)
+				continue
+			}
+			all[s] = signer
+		case signing.TypeX509:
+			signer, err := x509.NewSigner(sp, l)
+			if err != nil {
+				l.Warnf("error configuring x509 signer: %s", err)
+				continue
+			}
+			all[s] = signer
+		default:
+			// This should never happen, so panic
+			l.Panicf("unsupported signer: %s", s)
+		}
+	}
+	return all
+}
+
 // SignTaskRun signs a TaskRun, and marks it as signed.
 func (ts *TaskRunSigner) SignTaskRun(tr *v1beta1.TaskRun) error {
 	// Get all the things we might need (storage backends, signers and formatters)
@@ -95,11 +123,7 @@ func (ts *TaskRunSigner) SignTaskRun(tr *v1beta1.TaskRun) error {
 		return err
 	}
 
-	// Signers (TODO, add more)
-	pgpSigner, err := pgp.NewSigner(ts.SecretPath, ts.Logger)
-	if err != nil {
-		return err
-	}
+	signers := allSigners(ts.SecretPath, ts.Logger)
 
 	var merr *multierror.Error
 	for _, signableType := range enabledSignableTypes {
@@ -113,7 +137,7 @@ func (ts *TaskRunSigner) SignTaskRun(tr *v1beta1.TaskRun) error {
 			// Find the right payload format and format the object
 			payloader, ok := formats.AllPayloadTypes[signableType.PayloadFormat(cfg)]
 			if !ok {
-				ts.Logger.Warnf("No format configured for object: %v", obj)
+				ts.Logger.Warnf("Format %s configured for object: %v %s was not found", signableType.PayloadFormat(cfg), obj, signableType.Type())
 				continue
 			}
 			payload, err := payloader.CreatePayload(obj)
@@ -123,7 +147,13 @@ func (ts *TaskRunSigner) SignTaskRun(tr *v1beta1.TaskRun) error {
 			}
 
 			// Sign it!
-			signature, signed, err := pgpSigner.Sign(payload)
+			signerType := signableType.Signer(cfg)
+			signer, ok := signers[signerType]
+			if !ok {
+				ts.Logger.Warnf("No signer %s configured for object: %v", signerType, obj)
+				continue
+			}
+			signature, signed, err := signer.Sign(payload)
 			if err != nil {
 				ts.Logger.Error(err)
 				continue

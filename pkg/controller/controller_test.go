@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/tektoncd/chains/pkg/signing"
+	signing "github.com/tektoncd/chains/pkg/chains"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	informers "github.com/tektoncd/pipeline/pkg/client/informers/externalversions/pipeline/v1beta1"
 	fakepipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client/fake"

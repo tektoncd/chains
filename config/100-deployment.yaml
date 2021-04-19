@@ -30,7 +30,11 @@ metadata:
 # The data can be tweaked at install time.
 data:
   artifacts.taskrun.format: tekton
-  artifacts.taskrun.storage: tekton 
+  artifacts.taskrun.storage: tekton
+  artifacts.taskrun.signer: pgp
+  artifacts.oci.storage: tekton
+  artifacts.oci.format: simplesigning
+  artifacts.oci.signer: pgp
 ---
 apiVersion: apps/v1
 kind: Deployment

@@ -16,7 +16,7 @@ package controller
 import (
 	"context"
 
-	"github.com/tektoncd/chains/pkg/signing"
+	signing "github.com/tektoncd/chains/pkg/chains"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	informers "github.com/tektoncd/pipeline/pkg/client/listers/pipeline/v1beta1"

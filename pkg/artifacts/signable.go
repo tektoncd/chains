@@ -18,8 +18,8 @@ import (
 	"strings"
 
 	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/tektoncd/chains/pkg/chains/formats"
 	"github.com/tektoncd/chains/pkg/config"
-	"github.com/tektoncd/chains/pkg/signing/formats"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"go.uber.org/zap"
 )
@@ -27,6 +27,7 @@ import (
 type Signable interface {
 	ExtractObjects(tr *v1beta1.TaskRun) []interface{}
 	StorageBackend(cfg config.Config) string
+	Signer(cfg config.Config) string
 	PayloadFormat(cfg config.Config) formats.PayloadType
 	Key(interface{}) string
 	Type() string
@@ -46,7 +47,7 @@ func (ta *TaskRunArtifact) ExtractObjects(tr *v1beta1.TaskRun) []interface{} {
 	return []interface{}{tr}
 }
 func (ta *TaskRunArtifact) Type() string {
-	return "Tekton"
+	return "tekton"
 }
 
 func (ta *TaskRunArtifact) StorageBackend(cfg config.Config) string {
@@ -55,6 +56,10 @@ func (ta *TaskRunArtifact) StorageBackend(cfg config.Config) string {
 
 func (ta *TaskRunArtifact) PayloadFormat(cfg config.Config) formats.PayloadType {
 	return formats.PayloadType(cfg.Artifacts.TaskRuns.Format)
+}
+
+func (ta *TaskRunArtifact) Signer(cfg config.Config) string {
+	return cfg.Artifacts.TaskRuns.Signer
 }
 
 type OCIArtifact struct {
@@ -121,7 +126,7 @@ func (oa *OCIArtifact) ExtractObjects(tr *v1beta1.TaskRun) []interface{} {
 }
 
 func (oa *OCIArtifact) Type() string {
-	return "OCI"
+	return "oci"
 }
 
 func (oa *OCIArtifact) StorageBackend(cfg config.Config) string {
@@ -130,6 +135,10 @@ func (oa *OCIArtifact) StorageBackend(cfg config.Config) string {
 
 func (oa *OCIArtifact) PayloadFormat(cfg config.Config) formats.PayloadType {
 	return formats.PayloadType(cfg.Artifacts.OCI.Format)
+}
+
+func (oa *OCIArtifact) Signer(cfg config.Config) string {
+	return cfg.Artifacts.OCI.Signer
 }
 
 func (ta *OCIArtifact) Key(obj interface{}) string {

@@ -61,7 +61,11 @@ func TestTektonStorage(t *testing.T) {
 	defer cleanup()
 
 	// Setup the right config.
-	resetConfig := setConfigMap(ctx, t, c, map[string]string{"artifacts.taskrun.storage": "tekton"})
+	resetConfig := setConfigMap(ctx, t, c, map[string]string{
+		"artifacts.taskrun.storage": "tekton",
+		"artifacts.taskrun.signer":  "pgp",
+		"artifacts.taskrun.format":  "tekton",
+	})
 	defer resetConfig()
 
 	tr, err := c.PipelineClient.TektonV1beta1().TaskRuns(ns).Create(ctx, &imageTaskRun, metav1.CreateOptions{})
@@ -96,7 +100,11 @@ func TestOCISigning(t *testing.T) {
 	defer cleanup()
 
 	// Setup the right config.
-	resetConfig := setConfigMap(ctx, t, c, map[string]string{"artifacts.oci.format": "simplesigning", "artifacts.oci.storage": "tekton"})
+	resetConfig := setConfigMap(ctx, t, c, map[string]string{
+		"artifacts.oci.format":  "simplesigning",
+		"artifacts.oci.storage": "tekton",
+		"artifacts.oci.signer":  "pgp"})
+
 	defer resetConfig()
 
 	tr, err := c.PipelineClient.TektonV1beta1().TaskRuns(ns).Create(ctx, &imageTaskRun, metav1.CreateOptions{})
@@ -146,6 +154,7 @@ func TestGCSStorage(t *testing.T) {
 	resetConfig := setConfigMap(ctx, t, c, map[string]string{
 		"artifacts.taskrun.storage": "gcs",
 		"storage.gcs.bucket":        bucketName,
+		"artifacts.taskrun.signer":  "pgp",
 	})
 	defer resetConfig()
 	time.Sleep(3 * time.Second)
@@ -185,6 +194,7 @@ func TestOCIStorage(t *testing.T) {
 	resetConfig := setConfigMap(ctx, t, c, map[string]string{
 		"artifacts.taskrun.storage": "oci",
 		"storage.oci.repository":    repo,
+		"artifacts.taskrun.signer":  "pgp",
 	})
 	defer resetConfig()
 	time.Sleep(3 * time.Second)

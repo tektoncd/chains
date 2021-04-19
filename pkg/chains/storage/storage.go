@@ -14,10 +14,10 @@ limitations under the License.
 package storage
 
 import (
+	"github.com/tektoncd/chains/pkg/chains/storage/gcs"
+	"github.com/tektoncd/chains/pkg/chains/storage/oci"
+	"github.com/tektoncd/chains/pkg/chains/storage/tekton"
 	"github.com/tektoncd/chains/pkg/config"
-	"github.com/tektoncd/chains/pkg/signing/storage/gcs"
-	"github.com/tektoncd/chains/pkg/signing/storage/oci"
-	"github.com/tektoncd/chains/pkg/signing/storage/tekton"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	"go.uber.org/zap"
