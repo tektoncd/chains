@@ -30,30 +30,30 @@ type Backend interface {
 }
 
 // InitializeBackends creates and initializes every configured storage backend.
-func InitializeBackends(ps versioned.Interface, logger *zap.SugaredLogger, tr *v1beta1.TaskRun, cfg config.Config) ([]Backend, error) {
+func InitializeBackends(ps versioned.Interface, logger *zap.SugaredLogger, tr *v1beta1.TaskRun, cfg config.Config) (map[string]Backend, error) {
 	// Add an entry here for every configured backend
-	configuredBackends := map[string]struct{}{}
-	configuredBackends[cfg.Artifacts.TaskRuns.StorageBackend] = struct{}{}
-	configuredBackends[cfg.Artifacts.OCI.StorageBackend] = struct{}{}
+	configuredBackends := []string{
+		cfg.Artifacts.TaskRuns.StorageBackend,
+		cfg.Artifacts.OCI.StorageBackend}
 
 	// Now only initialize and return the configured ones.
-	backends := []Backend{}
-	for backendType := range configuredBackends {
+	backends := map[string]Backend{}
+	for _, backendType := range configuredBackends {
 		switch backendType {
 		case gcs.StorageBackendGCS:
 			gcsBackend, err := gcs.NewStorageBackend(logger, tr, cfg)
 			if err != nil {
 				return nil, err
 			}
-			backends = append(backends, gcsBackend)
+			backends[backendType] = gcsBackend
 		case tekton.StorageBackendTekton:
-			backends = append(backends, tekton.NewStorageBackend(ps, logger, tr))
+			backends[backendType] = tekton.NewStorageBackend(ps, logger, tr)
 		case oci.StorageBackendOCI:
 			ociBackend, err := oci.NewStorageBackend(logger, tr, cfg)
 			if err != nil {
 				return nil, err
 			}
-			backends = append(backends, ociBackend)
+			backends[backendType] = ociBackend
 		}
 	}
 	return backends, nil

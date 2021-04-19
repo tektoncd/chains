@@ -62,7 +62,7 @@ func TestBackend_StorePayload(t *testing.T) {
 				logger: logtesting.TestLogger(t),
 				tr:     tt.args.tr,
 				writer: mockGcs,
-				cfg:    config.Config{Storage: config.Storage{GCS: config.GCS{Bucket: "foo"}}},
+				cfg:    config.Config{Storage: config.StorageConfigs{GCS: config.GCSStorageConfig{Bucket: "foo"}}},
 			}
 			if err := b.StorePayload(tt.args.signed, tt.args.signature, tt.args.key); (err != nil) != tt.wantErr {
 				t.Errorf("Backend.StorePayload() error = %v, wantErr %v", err, tt.wantErr)
