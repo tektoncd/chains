@@ -11,14 +11,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package signing
+package chains
 
 import (
 	"errors"
 	"testing"
 
+	"github.com/tektoncd/chains/pkg/chains/storage"
 	"github.com/tektoncd/chains/pkg/config"
-	"github.com/tektoncd/chains/pkg/signing/storage"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	versioned "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	fakepipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client/fake"
@@ -148,12 +148,13 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 			ts := &TaskRunSigner{
 				Logger:            logger,
 				Pipelineclientset: ps,
-				SecretPath:        "./pgp/testdata/",
+				SecretPath:        "./signing/pgp/testdata/",
 				ConfigStore: &mockConfig{cfg: config.Config{
 					Artifacts: config.ArtifactConfigs{
 						TaskRuns: config.Artifact{
 							Format:         "tekton",
 							StorageBackend: tt.configuredBackend,
+							Signer:         "pgp",
 						},
 					},
 				}},

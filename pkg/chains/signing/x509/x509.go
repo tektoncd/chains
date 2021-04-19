@@ -11,61 +11,56 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package pgp
+package x509
 
 import (
-	"bytes"
+	"crypto/ecdsa"
+	"crypto/ed25519"
+	"crypto/rand"
+	"crypto/sha256"
+	cx509 "crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
+	"github.com/tektoncd/chains/pkg/chains/signing"
 	"go.uber.org/zap"
-	"golang.org/x/crypto/openpgp"
 )
 
-// Signer exposes methods to sign payloads using PGP
+// Signer exposes methods to sign payloads using x509
 type Signer struct {
-	key    *openpgp.Entity
+	key    interface{}
 	logger *zap.SugaredLogger
 }
 
 // NewSigner returns a configured Signer
 func NewSigner(secretPath string, logger *zap.SugaredLogger) (*Signer, error) {
-	privateKeyPath := filepath.Join(secretPath, "pgp.private-key")
-	passphrasePath := filepath.Join(secretPath, "pgp.passphrase")
+	privateKeyPath := filepath.Join(secretPath, "x509.pem")
 	if _, err := os.Stat(privateKeyPath); os.IsNotExist(err) {
 		return nil, fmt.Errorf("no private key at %s", privateKeyPath)
 	}
 
 	logger.Debugf("Reading private key from path %s", privateKeyPath)
-	privateKey, err := os.Open(privateKeyPath)
+
+	b, err := ioutil.ReadFile(privateKeyPath)
+	if err != nil {
+		return nil, err
+	}
+	p, _ := pem.Decode(b)
+	if p.Type != "PRIVATE KEY" {
+		return nil, fmt.Errorf("expected private key, found object of type %s", p.Type)
+	}
+	pk, err := cx509.ParsePKCS8PrivateKey(p.Bytes)
 	if err != nil {
 		return nil, err
 	}
 
-	el, err := openpgp.ReadArmoredKeyRing(privateKey)
-	if err != nil {
-		return nil, err
-	}
 	s := &Signer{
-		key:    el[0],
+		key:    pk,
 		logger: logger,
-	}
-
-	var passphrase []byte
-	if _, err := os.Stat(passphrasePath); err == nil {
-		logger.Debugf("Found passphrase for private key at %s. Decrypting...", passphrasePath)
-		passphrase, err = ioutil.ReadFile(passphrasePath)
-		if err != nil {
-			return nil, err
-		}
-		if err := s.key.PrivateKey.Decrypt(passphrase); err != nil {
-			return nil, err
-		}
-	} else {
-		logger.Debugf("No passphrase found for private key at  %s", passphrasePath)
 	}
 
 	return s, nil
@@ -78,9 +73,22 @@ func (s *Signer) Sign(i interface{}) (string, []byte, error) {
 	if err != nil {
 		return "", nil, err
 	}
-	signature := bytes.Buffer{}
-	if err := openpgp.ArmoredDetachSignText(&signature, s.key, bytes.NewReader(b), nil); err != nil {
+
+	h := sha256.Sum256(b)
+	var signature []byte
+	switch k := s.key.(type) {
+	case *ecdsa.PrivateKey:
+		signature, err = ecdsa.SignASN1(rand.Reader, k, h[:])
+	case ed25519.PrivateKey:
+		signature = ed25519.Sign(k, b)
+	}
+	if err != nil {
 		return "", nil, err
 	}
-	return signature.String(), b, nil
+
+	return string(signature), b, nil
+}
+
+func (s *Signer) Type() string {
+	return signing.TypeX509
 }

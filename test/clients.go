@@ -29,6 +29,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/tektoncd/pipeline/pkg/names"
 
@@ -122,4 +123,5 @@ func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface) {
 	if _, err := c.CoreV1().Secrets("tekton-pipelines").Update(ctx, &s, metav1.UpdateOptions{}); err != nil {
 		t.Error(err)
 	}
+	time.Sleep(60 * time.Second)
 }
