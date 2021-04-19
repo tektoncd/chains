@@ -90,6 +90,7 @@ func (b *Backend) StorePayload(signed []byte, signature string, key string) erro
 // Set as a variable for mocking
 var writeImage = remote.Write
 
+// TODO: reuse cosign spec.
 func createImage(signed []byte, signature string) (v1.Image, error) {
 	buf := bytes.Buffer{}
 	gz := gzip.NewWriter(&buf)

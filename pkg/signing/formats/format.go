@@ -27,7 +27,7 @@ const (
 )
 
 // AllPayloadTypes is a list of all valid Payload types.
-var AllPayloadTypes = []Payloader{
-	&Tekton{},
-	&SimpleSigning{},
+var AllPayloadTypes = map[PayloadType]Payloader{
+	PayloadTypeTekton:        &Tekton{},
+	PayloadTypeSimpleSigning: &SimpleSigning{},
 }

@@ -63,7 +63,7 @@ func TestBackend_StorePayload(t *testing.T) {
 			m := &mockRepo{}
 			defer setupMocks(m)()
 
-			cfg := config.Config{Storage: config.Storage{OCI: config.OCI{Repository: "gcr.io/foo"}}}
+			cfg := config.Config{Storage: config.StorageConfigs{OCI: config.OCIStorageConfig{Repository: "gcr.io/foo"}}}
 			b := &Backend{
 				logger: logtesting.TestLogger(t),
 				tr:     tt.args.tr,

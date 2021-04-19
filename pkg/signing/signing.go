@@ -80,17 +80,27 @@ var getBackends = storage.InitializeBackends
 
 // SignTaskRun signs a TaskRun, and marks it as signed.
 func (ts *TaskRunSigner) SignTaskRun(tr *v1beta1.TaskRun) error {
+	// Get all the things we might need (storage backends, signers and formatters)
+	cfg := ts.ConfigStore.Config()
+
 	// TODO: Hook this up to config.
 	enabledSignableTypes := []artifacts.Signable{
 		&artifacts.TaskRunArtifact{Logger: ts.Logger},
 		&artifacts.OCIArtifact{Logger: ts.Logger},
 	}
 
-	cfg := ts.ConfigStore.Config()
+	// Storage
 	allBackends, err := getBackends(ts.Pipelineclientset, ts.Logger, tr, cfg)
 	if err != nil {
 		return err
 	}
+
+	// Signers (TODO, add more)
+	pgpSigner, err := pgp.NewSigner(ts.SecretPath, ts.Logger)
+	if err != nil {
+		return err
+	}
+
 	var merr *multierror.Error
 	for _, signableType := range enabledSignableTypes {
 		// Extract all the "things" to be signed.
@@ -100,43 +110,30 @@ func (ts *TaskRunSigner) SignTaskRun(tr *v1beta1.TaskRun) error {
 		// Go through each object one at a time.
 		for _, obj := range objects {
 
-			var payload interface{}
-			configuredPayloadType := signableType.PayloadFormat(cfg)
-			for _, payloader := range formats.AllPayloadTypes {
-				if payloader.Type() != configuredPayloadType {
-					continue
-				}
-				var err error
-				payload, err = payloader.CreatePayload(obj)
-				if err != nil {
-					ts.Logger.Errorf("Error creating payload of type %s", payloader)
-					return err
-				}
-				break
-			}
-			if payload == nil {
+			// Find the right payload format and format the object
+			payloader, ok := formats.AllPayloadTypes[signableType.PayloadFormat(cfg)]
+			if !ok {
 				ts.Logger.Warnf("No format configured for object: %v", obj)
 				continue
 			}
-
-			signer, err := pgp.NewSigner(ts.SecretPath, ts.Logger)
-			if err != nil {
-				return err
-			}
-			signature, signed, err := signer.Sign(payload)
+			payload, err := payloader.CreatePayload(obj)
 			if err != nil {
 				ts.Logger.Error(err)
 				continue
 			}
+
+			// Sign it!
+			signature, signed, err := pgpSigner.Sign(payload)
+			if err != nil {
+				ts.Logger.Error(err)
+				continue
+			}
+
 			// Now store those!
-			for _, b := range allBackends {
-				if b.Type() != signableType.StorageBackend(cfg) {
-					continue
-				}
-				if err := b.StorePayload(signed, signature, signableType.Key(obj)); err != nil {
-					ts.Logger.Error(err)
-					merr = multierror.Append(merr, err)
-				}
+			b := allBackends[signableType.StorageBackend(cfg)]
+			if err := b.StorePayload(signed, signature, signableType.Key(obj)); err != nil {
+				ts.Logger.Error(err)
+				merr = multierror.Append(merr, err)
 			}
 		}
 		if merr.ErrorOrNil() != nil {
