@@ -11,7 +11,7 @@ require (
 	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20210129212729-5c4818de4025
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/tektoncd/pipeline v0.23.0
-	github.com/tektoncd/plumbing v0.0.0-20201021153918-6b7e894737b5
+	github.com/tektoncd/plumbing v0.0.0-20210420200944-17170d5e7bc9
 	go.uber.org/zap v1.16.0
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	k8s.io/api v0.19.7
