@@ -20,6 +20,8 @@ package test
 
 import (
 	"archive/tar"
+	"crypto/ecdsa"
+	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
 	"io"
@@ -103,7 +105,7 @@ func TestOCISigning(t *testing.T) {
 	resetConfig := setConfigMap(ctx, t, c, map[string]string{
 		"artifacts.oci.format":  "simplesigning",
 		"artifacts.oci.storage": "tekton",
-		"artifacts.oci.signer":  "pgp"})
+		"artifacts.oci.signer":  "x509"})
 
 	defer resetConfig()
 
@@ -133,7 +135,11 @@ func TestOCISigning(t *testing.T) {
 		t.Error(err)
 	}
 
-	checkPgpSignatures(t, sigBytes, bodyBytes)
+	pub := &c.secret.x509Priv.PublicKey
+	h := sha256.Sum256(bodyBytes)
+	if !ecdsa.VerifyASN1(pub, h[:], sigBytes) {
+		t.Error("invalid signature")
+	}
 }
 
 func TestGCSStorage(t *testing.T) {
