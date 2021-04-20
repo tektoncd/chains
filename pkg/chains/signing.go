@@ -153,6 +153,7 @@ func (ts *TaskRunSigner) SignTaskRun(tr *v1beta1.TaskRun) error {
 				ts.Logger.Warnf("No signer %s configured for object: %v", signerType, obj)
 				continue
 			}
+			ts.Logger.Info("Signing object %s with %s", obj, signerType)
 			signature, signed, err := signer.Sign(payload)
 			if err != nil {
 				ts.Logger.Error(err)

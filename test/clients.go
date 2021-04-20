@@ -26,6 +26,12 @@ package test
 
 import (
 	"context"
+	"crypto"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/x509"
+	"encoding/pem"
 	"io/ioutil"
 	"path/filepath"
 	"testing"
@@ -46,6 +52,8 @@ type clients struct {
 	KubeClient kubernetes.Interface
 
 	PipelineClient pipelineclientset.Interface
+
+	secret secret
 }
 
 // newClients instantiates and returns several clientsets required for making requests to the
@@ -79,7 +87,7 @@ func setup(ctx context.Context, t *testing.T) (*clients, string, func()) {
 	c := newClients(t, knativetest.Flags.Kubeconfig, knativetest.Flags.Cluster)
 	createNamespace(ctx, t, namespace, c.KubeClient)
 
-	setupSecret(ctx, t, c.KubeClient)
+	c.secret = setupSecret(ctx, t, c.KubeClient)
 
 	var cleanup = func() {
 		t.Logf("Deleting namespace %s", namespace)
@@ -102,7 +110,11 @@ func createNamespace(ctx context.Context, t *testing.T, namespace string, kubeCl
 	}
 }
 
-func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface) {
+type secret struct {
+	x509Priv *ecdsa.PrivateKey
+}
+
+func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface) secret {
 	// Only overwrite the secret data if it isn't set.
 
 	s := corev1.Secret{
@@ -112,6 +124,7 @@ func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface) {
 		},
 		StringData: map[string]string{},
 	}
+	// pgp
 	paths := []string{"pgp.private-key", "pgp.passphrase", "pgp.public-key"}
 	for _, p := range paths {
 		b, err := ioutil.ReadFile(filepath.Join("./testdata", p))
@@ -120,8 +133,38 @@ func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface) {
 		}
 		s.StringData[p] = string(b)
 	}
+
+	// x509
+	_, priv := ecdsaKeyPair(t)
+
+	s.StringData["x509.pem"] = toPem(t, priv)
+
 	if _, err := c.CoreV1().Secrets("tekton-pipelines").Update(ctx, &s, metav1.UpdateOptions{}); err != nil {
 		t.Error(err)
 	}
 	time.Sleep(60 * time.Second)
+	return secret{
+		x509Priv: priv,
+	}
+}
+
+func ecdsaKeyPair(t *testing.T) (crypto.PublicKey, *ecdsa.PrivateKey) {
+	kp, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return kp.PublicKey, kp
+}
+
+func toPem(t *testing.T, priv *ecdsa.PrivateKey) string {
+	b, err := x509.MarshalPKCS8PrivateKey(priv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := pem.EncodeToMemory(&pem.Block{
+		Bytes: b,
+		Type:  "PRIVATE KEY",
+	})
+	return string(p)
 }

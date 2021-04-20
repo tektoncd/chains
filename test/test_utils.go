@@ -180,6 +180,7 @@ func setConfigMap(ctx context.Context, t *testing.T, c *clients, data map[string
 	if err != nil {
 		t.Fatal(err)
 	}
+	time.Sleep(30 * time.Second)
 
 	return func() {
 		for k := range data {
