@@ -41,12 +41,16 @@ type StorageConfigs struct {
 type SignerConfigs struct {
 	PGP  PGPSigner
 	X509 X509Signer
+	KMS  KMSSigner
 }
 
 type PGPSigner struct {
 }
 
 type X509Signer struct {
+}
+
+type KMSSigner struct {
 	KMSRef string
 }
 
@@ -74,8 +78,11 @@ const (
 	ociRepositoryKey = "storage.oci.repository"
 	// No config needed for Tekton object storage
 
-	x509SignerKmsRef = "signer.x509.kmsRef"
 	// No config needed for pgp signer
+	// No config needed for x509 signer
+
+	// KMS
+	kmsSignerKMSRef = "signers.kms.kmsref"
 
 	chainsConfig = "chains-config"
 )
@@ -100,7 +107,7 @@ func parse(data map[string]string) Config {
 	cfg.Storage.GCS.Bucket = data[gcsBucketKey]
 	cfg.Storage.OCI.Repository = data[ociRepositoryKey]
 
-	cfg.Signers.X509.KMSRef = data[x509SignerKmsRef]
+	cfg.Signers.KMS.KMSRef = data[kmsSignerKMSRef]
 
 	return cfg
 }

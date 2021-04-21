@@ -20,6 +20,7 @@ import (
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/formats"
 	"github.com/tektoncd/chains/pkg/chains/signing"
+	"github.com/tektoncd/chains/pkg/chains/signing/kms"
 	"github.com/tektoncd/chains/pkg/chains/signing/pgp"
 	"github.com/tektoncd/chains/pkg/chains/signing/x509"
 	"github.com/tektoncd/chains/pkg/chains/storage"
@@ -80,7 +81,7 @@ func MarkSigned(tr *v1beta1.TaskRun, ps versioned.Interface) error {
 // Set this as a var for mocking.
 var getBackends = storage.InitializeBackends
 
-func allSigners(sp string, l *zap.SugaredLogger) map[string]signing.Signer {
+func allSigners(sp string, cfg config.Config, l *zap.SugaredLogger) map[string]signing.Signer {
 	all := map[string]signing.Signer{}
 	for _, s := range signing.AllSigners {
 		switch s {
@@ -95,6 +96,13 @@ func allSigners(sp string, l *zap.SugaredLogger) map[string]signing.Signer {
 			signer, err := x509.NewSigner(sp, l)
 			if err != nil {
 				l.Warnf("error configuring x509 signer: %s", err)
+				continue
+			}
+			all[s] = signer
+		case signing.TypeKMS:
+			signer, err := kms.NewSigner(cfg.Signers.KMS, l)
+			if err != nil {
+				l.Warnf("error configuring kms signer with config %v: %s", cfg.Signers.KMS, err)
 				continue
 			}
 			all[s] = signer
@@ -123,7 +131,7 @@ func (ts *TaskRunSigner) SignTaskRun(tr *v1beta1.TaskRun) error {
 		return err
 	}
 
-	signers := allSigners(ts.SecretPath, ts.Logger)
+	signers := allSigners(ts.SecretPath, cfg, ts.Logger)
 
 	var merr *multierror.Error
 	for _, signableType := range enabledSignableTypes {
@@ -153,7 +161,7 @@ func (ts *TaskRunSigner) SignTaskRun(tr *v1beta1.TaskRun) error {
 				ts.Logger.Warnf("No signer %s configured for object: %v", signerType, obj)
 				continue
 			}
-			ts.Logger.Info("Signing object %s with %s", obj, signerType)
+			ts.Logger.Infof("Signing object %s with %s", obj, signerType)
 			signature, signed, err := signer.Sign(payload)
 			if err != nil {
 				ts.Logger.Error(err)
