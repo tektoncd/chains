@@ -21,6 +21,7 @@ type Signer interface {
 const (
 	TypePgp  = "pgp"
 	TypeX509 = "x509"
+	TypeKMS  = "kms"
 )
 
-var AllSigners = []string{TypePgp, TypeX509}
+var AllSigners = []string{TypePgp, TypeX509, TypeKMS}
