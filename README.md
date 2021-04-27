@@ -114,12 +114,14 @@ kubectl create secret generic signing-secrets -n tekton-pipelines --from-file=x5
 #### KMS
 
 Chains uses a "go-cloud" URI like scheme to refer to KMS references.
-It only supports GCP KMS today, but we would love to add support for more.
+Chains supports GCP KMS and Hashicorp Vault today, but we would love to add support for more.
 
 You can configure Chains to use a specific KMS key using the `signers.kms.kmsref` config key in `chains-config`.
 
 For GCP, this should have the structure of `gcpkms://projects/<project>/locations/<location>/keyRings/<keyring>/cryptoKeys/<key>`
 where <location>, <keyring>, and <key> are filled in appropriately.
+
+For Vault, this should have the structure of `hashivault://<keyname>`, where the `keyname` is filled out appropriately.
 
 The `chains-controller` deployment must have access to this somehow.
 For GCP/GKE, we suggest using Workload Identity.
