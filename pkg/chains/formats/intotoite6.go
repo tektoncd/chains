@@ -3,6 +3,7 @@ package formats
 import (
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/in-toto/in-toto-golang/in_toto"
@@ -71,12 +72,16 @@ func (i *InTotoIte6) CreatePayload(obj interface{}) (interface{}, error) {
 
 	att.Predicate.Materials = []in_toto.ProvenanceMaterial{}
 	vcsInfo := getVcsInfo(tr)
+	var recipeMaterialUri string
+
 	// Store git rev as Materials and Recipe.Material
 	if vcsInfo != nil {
 		att.Predicate.Materials = append(att.Predicate.Materials, in_toto.ProvenanceMaterial{
 			URI:    vcsInfo.URL,
 			Digest: map[string]string{"git_commit": vcsInfo.Commit},
 		})
+		// Remember the URI of the recipe material. We need to find it later to set the index correctly (after sorting)
+		recipeMaterialUri = vcsInfo.URL
 	}
 
 	// Add all found step containers as materials
@@ -99,9 +104,22 @@ func (i *InTotoIte6) CreatePayload(obj interface{}) (interface{}, error) {
 			continue
 		}
 		att.Predicate.Materials = append(att.Predicate.Materials, in_toto.ProvenanceMaterial{
-			URI:    h[0],
-			Digest: map[string]string{"container_digest": h[1]},
+			URI:    d[0],
+			Digest: map[string]string{h[0]: h[1]},
 		})
+	}
+
+	sort.Slice(att.Predicate.Materials, func(i, j int) bool {
+		return att.Predicate.Materials[i].URI <= att.Predicate.Materials[j].URI
+	})
+
+	if recipeMaterialUri != "" {
+		for i, m := range att.Predicate.Materials {
+			if m.URI == recipeMaterialUri {
+				att.Predicate.Recipe.DefinedInMaterial = intP(i)
+				break
+			}
+		}
 	}
 
 	return att, nil
@@ -229,7 +247,7 @@ Results:
 				}
 
 				subs = append(subs, in_toto.Subject{
-					Name: trr.Name,
+					Name: sub,
 					Digest: map[string]string{
 						alg: hash,
 					},
@@ -240,5 +258,12 @@ Results:
 		}
 	}
 
+	sort.Slice(subs, func(i, j int) bool {
+		return subs[i].Name <= subs[j].Name
+	})
 	return subs
+}
+
+func intP(i int) *int {
+	return &i
 }
