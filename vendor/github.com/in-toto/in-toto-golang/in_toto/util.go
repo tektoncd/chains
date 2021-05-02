@@ -138,7 +138,7 @@ func (s Set) IsSubSet(subset Set) bool {
 	if len(subset) > len(s) {
 		return false
 	}
-	for key, _ := range subset {
+	for key := range subset {
 		if s.Has(key) {
 			continue
 		} else {

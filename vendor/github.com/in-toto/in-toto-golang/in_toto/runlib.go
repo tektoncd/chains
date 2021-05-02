@@ -186,10 +186,10 @@ func recordArtifacts(paths []string, hashAlgorithms []string, gitignorePatterns 
 }
 
 /*
-WaitErrToExitCode converts an error returned by Cmd.wait() to an exit code.  It
+waitErrToExitCode converts an error returned by Cmd.wait() to an exit code.  It
 returns -1 if no exit code can be inferred.
 */
-func WaitErrToExitCode(err error) int {
+func waitErrToExitCode(err error) int {
 	// If there's no exit code, we return -1
 	retVal := -1
 
@@ -248,7 +248,7 @@ func RunCommand(cmdArgs []string) (map[string]interface{}, error) {
 	stdout, _ := ioutil.ReadAll(stdoutPipe)
 	stderr, _ := ioutil.ReadAll(stderrPipe)
 
-	retVal := WaitErrToExitCode(cmd.Wait())
+	retVal := waitErrToExitCode(cmd.Wait())
 
 	return map[string]interface{}{
 		"return-value": float64(retVal),

@@ -519,8 +519,8 @@ func LoadLinksForLayout(layout Layout, linkDir string) (
 	for _, step := range layout.Steps {
 		linksPerStep := make(map[string]Metablock)
 
-		for _, authorizedKeyId := range step.PubKeys {
-			linkName := fmt.Sprintf(LinkNameFormat, step.Name, authorizedKeyId)
+		for _, authorizedKeyID := range step.PubKeys {
+			linkName := fmt.Sprintf(LinkNameFormat, step.Name, authorizedKeyID)
 			linkPath := osPath.Join(linkDir, linkName)
 
 			var linkMb Metablock
@@ -528,7 +528,7 @@ func LoadLinksForLayout(layout Layout, linkDir string) (
 				continue
 			}
 
-			linksPerStep[authorizedKeyId] = linkMb
+			linksPerStep[authorizedKeyID] = linkMb
 		}
 
 		if len(linksPerStep) < step.Threshold {
@@ -553,7 +553,7 @@ func VerifyLayoutExpiration(layout Layout) error {
 	}
 	// Uses timezone of expires, i.e. UTC
 	if time.Until(expires) < 0 {
-		return fmt.Errorf("Layout has expired on '%s'.", expires)
+		return fmt.Errorf("layout has expired on '%s'", expires)
 	}
 	return nil
 }
@@ -568,7 +568,7 @@ passed keys, or a matching signature is invalid, an error is returned.
 func VerifyLayoutSignatures(layoutMb Metablock,
 	layoutKeys map[string]Key) error {
 	if len(layoutKeys) < 1 {
-		return fmt.Errorf("Layout verification requires at least one key.")
+		return fmt.Errorf("layout verification requires at least one key")
 	}
 
 	for _, key := range layoutKeys {
@@ -622,13 +622,13 @@ func VerifySublayouts(layout Layout,
 	stepsMetadataVerified map[string]map[string]Metablock,
 	superLayoutLinkPath string) (map[string]map[string]Metablock, error) {
 	for stepName, linkData := range stepsMetadataVerified {
-		for keyId, metadata := range linkData {
+		for keyID, metadata := range linkData {
 			if _, ok := metadata.Signed.(Layout); ok {
 				layoutKeys := make(map[string]Key)
-				layoutKeys[keyId] = layout.Keys[keyId]
+				layoutKeys[keyID] = layout.Keys[keyID]
 
 				sublayoutLinkDir := fmt.Sprintf(SublayoutLinkDirFormat,
-					stepName, keyId)
+					stepName, keyID)
 				sublayoutLinkPath := filepath.Join(superLayoutLinkPath,
 					sublayoutLinkDir)
 				summaryLink, err := InTotoVerify(metadata, layoutKeys,
@@ -636,7 +636,7 @@ func VerifySublayouts(layout Layout,
 				if err != nil {
 					return nil, err
 				}
-				linkData[keyId] = summaryLink
+				linkData[keyID] = summaryLink
 			}
 
 		}
@@ -808,7 +808,7 @@ func InTotoVerify(layoutMb Metablock, layoutKeys map[string]Key,
 	}
 
 	// Verify artifact rules
-	if err = VerifyArtifacts(layout.StepsAsInterfaceSlice(),
+	if err = VerifyArtifacts(layout.stepsAsInterfaceSlice(),
 		stepsMetadataReduced); err != nil {
 		return summaryLink, err
 	}
@@ -824,7 +824,7 @@ func InTotoVerify(layoutMb Metablock, layoutKeys map[string]Key,
 		inspectionMetadata[k] = v
 	}
 
-	if err = VerifyArtifacts(layout.InspectAsInterfaceSlice(),
+	if err = VerifyArtifacts(layout.inspectAsInterfaceSlice(),
 		inspectionMetadata); err != nil {
 		return summaryLink, err
 	}

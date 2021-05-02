@@ -48,34 +48,35 @@ func (i *InTotoIte6) CreatePayload(obj interface{}) (interface{}, error) {
 	// Params with name CHAINS-GIT_* -> Materials and recipe.materials
 	// tekton-chains -> Recipe.type
 	// Taskname -> Recipe.entry_point
-	att := in_toto.Provenance{
-		Attestation: in_toto.Attestation{
-			AttestationType: in_toto.ProvenanceTypeV1,
+	att := in_toto.ProvenanceStatement{
+		StatementHeader: in_toto.StatementHeader{
+			PredicateType: in_toto.PredicateProvenanceV1,
 		},
-		Builder: in_toto.Builder{
-			ID: tr.Status.PodName,
-		},
-		Recipe: in_toto.Recipe{
-			Type:       tektonID,
-			EntryPoint: tr.Spec.TaskRef.Name,
+		Predicate: in_toto.ProvenancePredicate{
+			Builder: in_toto.ProvenanceBuilder{
+				ID: tr.Status.PodName,
+			},
+			Recipe: in_toto.ProvenanceRecipe{
+				Type:       tektonID,
+				EntryPoint: tr.Spec.TaskRef.Name,
+			},
 		},
 	}
 	if tr.Status.CompletionTime != nil {
-		att.Metadata.BuildTimestamp.Time =
-			tr.Status.CompletionTime.Time
+		att.Predicate.Metadata.BuildStartedOn = &tr.Status.StartTime.Time
 	}
 
 	results := getResultDigests(tr)
-	att.Subject = getSubjectDigests(tr, results)
+	att.StatementHeader.Subject = getSubjectDigests(tr, results)
 
-	att.Materials = in_toto.ArtifactCollection{}
+	att.Predicate.Materials = []in_toto.ProvenanceMaterial{}
 	vcsInfo := getVcsInfo(tr)
 	// Store git rev as Materials and Recipe.Material
 	if vcsInfo != nil {
-		att.Materials[vcsInfo.URL] = in_toto.ArtifactDigest{
-			"git_commit": vcsInfo.Commit,
-		}
-		att.Recipe.Material = vcsInfo.URL
+		att.Predicate.Materials = append(att.Predicate.Materials, in_toto.ProvenanceMaterial{
+			URI:    vcsInfo.URL,
+			Digest: map[string]string{"git_commit": vcsInfo.Commit},
+		})
 	}
 
 	// Add all found step containers as materials
@@ -97,9 +98,10 @@ func (i *InTotoIte6) CreatePayload(obj interface{}) (interface{}, error) {
 		if len(h) != 2 {
 			continue
 		}
-		att.Materials[d[0]] = in_toto.ArtifactDigest{
-			h[0]: h[1],
-		}
+		att.Predicate.Materials = append(att.Predicate.Materials, in_toto.ProvenanceMaterial{
+			URI:    h[0],
+			Digest: map[string]string{"container_digest": h[1]},
+		})
 	}
 
 	return att, nil
@@ -167,8 +169,8 @@ func getVcsInfo(tr *v1beta1.TaskRun) *vcsInfo {
 // Digests can be on two formats: $alg:$digest (commonly used for container
 // image hashes), or $alg:$digest $path, which is used when a step is
 // calculating a hash of a previous step.
-func getSubjectDigests(tr *v1beta1.TaskRun, results []artifactResult) in_toto.ArtifactCollection {
-	subs := in_toto.ArtifactCollection{}
+func getSubjectDigests(tr *v1beta1.TaskRun, results []artifactResult) []in_toto.Subject {
+	subs := []in_toto.Subject{}
 	r := regexp.MustCompile(`(\S+)\s+(\S+)`)
 
 	// Resolve *-DIGEST variables
@@ -226,9 +228,12 @@ Results:
 					hash = ah[1]
 				}
 
-				subs[sub] = in_toto.ArtifactDigest{
-					alg: hash,
-				}
+				subs = append(subs, in_toto.Subject{
+					Name: trr.Name,
+					Digest: map[string]string{
+						alg: hash,
+					},
+				})
 				// Subject found, go after next result
 				continue Results
 			}

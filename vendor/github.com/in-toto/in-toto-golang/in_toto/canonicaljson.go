@@ -11,24 +11,24 @@ import (
 )
 
 /*
-_encodeCanonicalString is a helper function to canonicalize the passed string
+encodeCanonicalString is a helper function to canonicalize the passed string
 according to the OLPC canonical JSON specification for strings (see
 http://wiki.laptop.org/go/Canonical_JSON).  String canonicalization consists of
 escaping backslashes ("\") and double quotes (") and wrapping the resulting
 string in double quotes (").
 */
-func _encodeCanonicalString(s string) string {
+func encodeCanonicalString(s string) string {
 	re := regexp.MustCompile(`([\"\\])`)
 	return fmt.Sprintf("\"%s\"", re.ReplaceAllString(s, "\\$1"))
 }
 
 /*
-_encodeCanonical is a helper function to recursively canonicalize the passed
+encodeCanonical is a helper function to recursively canonicalize the passed
 object according to the OLPC canonical JSON specification (see
 http://wiki.laptop.org/go/Canonical_JSON) and write it to the passed
 *bytes.Buffer.  If canonicalization fails it returns an error.
 */
-func _encodeCanonical(obj interface{}, result *bytes.Buffer) (err error) {
+func encodeCanonical(obj interface{}, result *bytes.Buffer) (err error) {
 	// Since this function is called recursively, we use panic if an error occurs
 	// and recover in a deferred function, which is always called before
 	// returning. There we set the error that is returned eventually.
@@ -40,7 +40,7 @@ func _encodeCanonical(obj interface{}, result *bytes.Buffer) (err error) {
 
 	switch objAsserted := obj.(type) {
 	case string:
-		result.WriteString(_encodeCanonicalString(objAsserted))
+		result.WriteString(encodeCanonicalString(objAsserted))
 
 	case bool:
 		if objAsserted {
@@ -68,7 +68,7 @@ func _encodeCanonical(obj interface{}, result *bytes.Buffer) (err error) {
 	case []interface{}:
 		result.WriteString("[")
 		for i, val := range objAsserted {
-			if err := _encodeCanonical(val, result); err != nil {
+			if err := encodeCanonical(val, result); err != nil {
 				return err
 			}
 			if i < (len(objAsserted) - 1) {
@@ -93,10 +93,10 @@ func _encodeCanonical(obj interface{}, result *bytes.Buffer) (err error) {
 			// Note: `key` must be a `string` (see `case map[string]interface{}`) and
 			// canonicalization of strings cannot err out (see `case string`), thus
 			// no error handling is needed here.
-			_encodeCanonical(key, result)
+			encodeCanonical(key, result)
 
 			result.WriteString(":")
-			if err := _encodeCanonical(objAsserted[key], result); err != nil {
+			if err := encodeCanonical(objAsserted[key], result); err != nil {
 				return err
 			}
 			if i < (len(mapKeys) - 1) {
@@ -137,7 +137,7 @@ func EncodeCanonical(obj interface{}) ([]byte, error) {
 
 	// Create a buffer and write the canonicalized JSON bytes to it
 	var result bytes.Buffer
-	if err := _encodeCanonical(jsonMap, &result); err != nil {
+	if err := encodeCanonical(jsonMap, &result); err != nil {
 		return nil, err
 	}
 

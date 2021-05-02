@@ -31,5 +31,5 @@ const (
 var AllPayloadTypes = map[PayloadType]Payloader{
 	PayloadTypeTekton:        &Tekton{},
 	PayloadTypeSimpleSigning: &SimpleSigning{},
-	PayloadTypeSimpleSigning: &InTotoIte6{},
+	PayloadTypeInTotoIte6:    &InTotoIte6{},
 }

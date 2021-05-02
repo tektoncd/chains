@@ -3,6 +3,7 @@ package in_toto
 import (
 	"crypto"
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
@@ -15,8 +16,6 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
-
-	"golang.org/x/crypto/ed25519"
 )
 
 // ErrFailedPEMParsing gets returned when PKCS1, PKCS8 or PKIX key parsing fails
@@ -49,11 +48,11 @@ const (
 )
 
 /*
-getSupportedKeyIdHashAlgorithms returns a string slice of supported
-keyIdHashAlgorithms. We need to use this function instead of a constant,
+getSupportedKeyIDHashAlgorithms returns a string slice of supported
+KeyIDHashAlgorithms. We need to use this function instead of a constant,
 because Go does not support global constant slices.
 */
-func getSupportedKeyIdHashAlgorithms() Set {
+func getSupportedKeyIDHashAlgorithms() Set {
 	return NewSet("sha256", "sha512")
 }
 
@@ -94,14 +93,14 @@ there will be an error.
 func (k *Key) generateKeyID() error {
 	// Create partial key map used to create the keyid
 	// Unfortunately, we can't use the Key object because this also carries
-	// yet unwanted fields, such as KeyId and KeyVal.Private and therefore
-	// produces a different hash. We generate the keyId exactly as we do in
+	// yet unwanted fields, such as KeyID and KeyVal.Private and therefore
+	// produces a different hash. We generate the keyID exactly as we do in
 	// the securesystemslib  to keep interoperability between other in-toto
 	// implementations.
 	var keyToBeHashed = map[string]interface{}{
 		"keytype":               k.KeyType,
 		"scheme":                k.Scheme,
-		"keyid_hash_algorithms": k.KeyIdHashAlgorithms,
+		"keyid_hash_algorithms": k.KeyIDHashAlgorithms,
 		"keyval": map[string]string{
 			"public": k.KeyVal.Public,
 		},
@@ -110,9 +109,9 @@ func (k *Key) generateKeyID() error {
 	if err != nil {
 		return err
 	}
-	// calculate sha256 and return string representation of keyId
+	// calculate sha256 and return string representation of keyID
 	keyHashed := sha256.Sum256(keyCanonical)
-	k.KeyId = fmt.Sprintf("%x", keyHashed)
+	k.KeyID = fmt.Sprintf("%x", keyHashed)
 	err = validateKey(*k)
 	if err != nil {
 		return err
@@ -142,7 +141,7 @@ Furthermore it makes sure to remove any trailing and leading whitespaces or newl
 We treat key types differently for interoperability reasons to the in-toto python
 implementation and the securesystemslib.
 */
-func (k *Key) setKeyComponents(pubKeyBytes []byte, privateKeyBytes []byte, keyType string, scheme string, keyIdHashAlgorithms []string) error {
+func (k *Key) setKeyComponents(pubKeyBytes []byte, privateKeyBytes []byte, keyType string, scheme string, KeyIDHashAlgorithms []string) error {
 	// assume we have a privateKey if the key size is bigger than 0
 	switch keyType {
 	case rsaKeyType:
@@ -183,7 +182,7 @@ func (k *Key) setKeyComponents(pubKeyBytes []byte, privateKeyBytes []byte, keyTy
 	}
 	k.KeyType = keyType
 	k.Scheme = scheme
-	k.KeyIdHashAlgorithms = keyIdHashAlgorithms
+	k.KeyIDHashAlgorithms = KeyIDHashAlgorithms
 	if err := k.generateKeyID(); err != nil {
 		return err
 	}
@@ -277,7 +276,7 @@ On success it will return nil. The following errors can happen:
 	* errors while marshalling
 	* unsupported key types
 */
-func (k *Key) LoadKey(path string, scheme string, keyIdHashAlgorithms []string) error {
+func (k *Key) LoadKey(path string, scheme string, KeyIDHashAlgorithms []string) error {
 	pemFile, err := os.Open(path)
 	if err != nil {
 		return err
@@ -287,11 +286,11 @@ func (k *Key) LoadKey(path string, scheme string, keyIdHashAlgorithms []string) 
 			err = closeErr
 		}
 	}()
-	return k.LoadKeyReader(pemFile, scheme, keyIdHashAlgorithms)
+	return k.LoadKeyReader(pemFile, scheme, KeyIDHashAlgorithms)
 }
 
 // LoadKeyReader loads the key from a supplied reader. The logic matches LoadKey otherwise.
-func (k *Key) LoadKeyReader(r io.Reader, scheme string, keyIdHashAlgorithms []string) error {
+func (k *Key) LoadKeyReader(r io.Reader, scheme string, KeyIDHashAlgorithms []string) error {
 	if r == nil {
 		return ErrNoPEMBlock
 	}
@@ -314,7 +313,7 @@ func (k *Key) LoadKeyReader(r io.Reader, scheme string, keyIdHashAlgorithms []st
 		if err != nil {
 			return err
 		}
-		if err := k.setKeyComponents(pubKeyBytes, []byte{}, rsaKeyType, scheme, keyIdHashAlgorithms); err != nil {
+		if err := k.setKeyComponents(pubKeyBytes, []byte{}, rsaKeyType, scheme, KeyIDHashAlgorithms); err != nil {
 			return err
 		}
 	case *rsa.PrivateKey:
@@ -324,16 +323,16 @@ func (k *Key) LoadKeyReader(r io.Reader, scheme string, keyIdHashAlgorithms []st
 		if err != nil {
 			return err
 		}
-		if err := k.setKeyComponents(pubKeyBytes, pemData.Bytes, rsaKeyType, scheme, keyIdHashAlgorithms); err != nil {
+		if err := k.setKeyComponents(pubKeyBytes, pemData.Bytes, rsaKeyType, scheme, KeyIDHashAlgorithms); err != nil {
 			return err
 		}
 	case ed25519.PublicKey:
-		if err := k.setKeyComponents(key.(ed25519.PublicKey), []byte{}, ed25519KeyType, scheme, keyIdHashAlgorithms); err != nil {
+		if err := k.setKeyComponents(key.(ed25519.PublicKey), []byte{}, ed25519KeyType, scheme, KeyIDHashAlgorithms); err != nil {
 			return err
 		}
 	case ed25519.PrivateKey:
 		pubKeyBytes := key.(ed25519.PrivateKey).Public()
-		if err := k.setKeyComponents(pubKeyBytes.(ed25519.PublicKey), key.(ed25519.PrivateKey), ed25519KeyType, scheme, keyIdHashAlgorithms); err != nil {
+		if err := k.setKeyComponents(pubKeyBytes.(ed25519.PublicKey), key.(ed25519.PrivateKey), ed25519KeyType, scheme, KeyIDHashAlgorithms); err != nil {
 			return err
 		}
 	case *ecdsa.PrivateKey:
@@ -341,7 +340,7 @@ func (k *Key) LoadKeyReader(r io.Reader, scheme string, keyIdHashAlgorithms []st
 		if err != nil {
 			return err
 		}
-		if err := k.setKeyComponents(pubKeyBytes, pemData.Bytes, ecdsaKeyType, scheme, keyIdHashAlgorithms); err != nil {
+		if err := k.setKeyComponents(pubKeyBytes, pemData.Bytes, ecdsaKeyType, scheme, KeyIDHashAlgorithms); err != nil {
 			return err
 		}
 	case *ecdsa.PublicKey:
@@ -349,7 +348,7 @@ func (k *Key) LoadKeyReader(r io.Reader, scheme string, keyIdHashAlgorithms []st
 		if err != nil {
 			return err
 		}
-		if err := k.setKeyComponents(pubKeyBytes, []byte{}, ecdsaKeyType, scheme, keyIdHashAlgorithms); err != nil {
+		if err := k.setKeyComponents(pubKeyBytes, []byte{}, ecdsaKeyType, scheme, KeyIDHashAlgorithms); err != nil {
 			return err
 		}
 	default:
@@ -457,7 +456,7 @@ func GenerateSignature(signable []byte, key Key) (Signature, error) {
 		panic("unexpected Error in GenerateSignature function")
 	}
 	signature.Sig = hex.EncodeToString(signatureBuffer)
-	signature.KeyId = key.KeyId
+	signature.KeyID = key.KeyID
 	return signature, nil
 }
 
