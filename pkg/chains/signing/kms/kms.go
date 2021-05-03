@@ -15,11 +15,11 @@ package kms
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/tektoncd/chains/pkg/config"
 
 	"github.com/sigstore/sigstore/pkg/kms"
+	"github.com/sigstore/sigstore/pkg/signature"
 
 	"github.com/tektoncd/chains/pkg/chains/signing"
 	"go.uber.org/zap"
@@ -27,7 +27,7 @@ import (
 
 // Signer exposes methods to sign payloads using a KMS
 type Signer struct {
-	k      kms.KMS
+	signature.Signer
 	logger *zap.SugaredLogger
 }
 
@@ -37,28 +37,10 @@ func NewSigner(cfg config.KMSSigner, logger *zap.SugaredLogger) (*Signer, error)
 	if err != nil {
 		return nil, err
 	}
-
-	s := &Signer{
-		k:      k,
+	return &Signer{
+		Signer: k,
 		logger: logger,
-	}
-
-	return s, nil
-}
-
-// Sign signs an incoming payload.
-// It returns the signature and the marshaled payload object.
-func (s *Signer) Sign(i interface{}) (string, []byte, error) {
-	b, err := json.Marshal(i)
-	if err != nil {
-		return "", nil, err
-	}
-
-	sig, _, err := s.k.Sign(context.Background(), b)
-	if err != nil {
-		return "", nil, err
-	}
-	return string(sig), b, nil
+	}, nil
 }
 
 func (s *Signer) Type() string {

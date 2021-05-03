@@ -54,7 +54,7 @@ func (r *Reconciler) handleTaskRun(ctx context.Context, tr *v1beta1.TaskRun) err
 		return nil
 	}
 
-	if err := r.TaskRunSigner.SignTaskRun(tr); err != nil {
+	if err := r.TaskRunSigner.SignTaskRun(ctx, tr); err != nil {
 		return err
 	}
 	return nil

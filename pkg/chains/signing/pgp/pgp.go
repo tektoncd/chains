@@ -15,7 +15,8 @@ package pgp
 
 import (
 	"bytes"
-	"encoding/json"
+	"context"
+	"crypto"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -72,20 +73,20 @@ func NewSigner(secretPath string, logger *zap.SugaredLogger) (*Signer, error) {
 	return s, nil
 }
 
-// Sign signs an incoming payload.
-// It returns the signature and the marshaled payload object.
-func (s *Signer) Sign(i interface{}) (string, []byte, error) {
-	b, err := json.Marshal(i)
-	if err != nil {
-		return "", nil, err
-	}
+func (s *Signer) Sign(ctx context.Context, rawPayload []byte) ([]byte, []byte, error) {
 	signature := bytes.Buffer{}
-	if err := openpgp.ArmoredDetachSignText(&signature, s.key, bytes.NewReader(b), nil); err != nil {
-		return "", nil, err
+	if err := openpgp.ArmoredDetachSignText(&signature, s.key, bytes.NewReader(rawPayload), nil); err != nil {
+		return nil, nil, err
 	}
-	return signature.String(), b, nil
+	return signature.Bytes(), rawPayload, nil
 }
 
 func (s *Signer) Type() string {
 	return signing.TypePgp
+}
+
+// required for the signature.Signer interface
+// unimplemented, since we don't need the public key for signing
+func (s *Signer) PublicKey(ctx context.Context) (crypto.PublicKey, error) {
+	return nil, nil
 }
