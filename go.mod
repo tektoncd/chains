@@ -5,9 +5,6 @@ go 1.13
 require (
 	cloud.google.com/go v0.81.0
 	cloud.google.com/go/storage v1.12.0
-	github.com/go-openapi/analysis v0.20.1 // indirect
-	github.com/godbus/dbus/v5 v5.0.4 // indirect
-	github.com/google/certificate-transparency-go v1.1.1 // indirect
 	github.com/google/go-cmp v0.5.5
 	github.com/google/go-containerregistry v0.5.0
 	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20210129212729-5c4818de4025
@@ -20,11 +17,11 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/sigstore/cosign v0.3.2-0.20210504221908-6a2c836159a9
 	github.com/sigstore/sigstore v0.0.0-20210427115853-11e6eaab7cdc
-	github.com/spf13/afero v1.6.0 // indirect
 	github.com/tektoncd/pipeline v0.23.0
 	github.com/tektoncd/plumbing v0.0.0-20210420200944-17170d5e7bc9
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.16.0
+	gocloud.dev v0.22.0
 	golang.org/x/crypto v0.0.0-20210421170649-83a5a9bb288b
 	golang.org/x/net v0.0.0-20210423184538-5f58ad60dda6 // indirect
 	golang.org/x/oauth2 v0.0.0-20210413134643-5e61552d6c78 // indirect

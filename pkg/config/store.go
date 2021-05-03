@@ -35,6 +35,7 @@ type StorageConfigs struct {
 	GCS    GCSStorageConfig
 	OCI    OCIStorageConfig
 	Tekton TektonStorageConfig
+	DocDB  DocDBStorageConfig
 }
 
 // SigningConfig contains the configuration to instantiate different signers
@@ -66,6 +67,10 @@ type OCIStorageConfig struct {
 type TektonStorageConfig struct {
 }
 
+type DocDBStorageConfig struct {
+	URL string
+}
+
 const (
 	taskrunFormatKey  = "artifacts.taskrun.format"
 	taskrunStorageKey = "artifacts.taskrun.storage"
@@ -78,6 +83,7 @@ const (
 	gcsBucketKey             = "storage.gcs.bucket"
 	ociRepositoryKey         = "storage.oci.repository"
 	ociRepositoryInsecureKey = "storage.oci.repository.insecure"
+	docDBUrlKey              = "storage.docdb.url"
 	// No config needed for Tekton object storage
 
 	// No config needed for pgp signer
@@ -109,6 +115,7 @@ func parse(data map[string]string) Config {
 	cfg.Storage.GCS.Bucket = data[gcsBucketKey]
 	cfg.Storage.OCI.Repository = data[ociRepositoryKey]
 	cfg.Storage.OCI.Insecure = (data[ociRepositoryInsecureKey] == "true")
+	cfg.Storage.DocDB.URL = data[docDBUrlKey]
 
 	cfg.Signers.KMS.KMSRef = data[kmsSignerKMSRef]
 
