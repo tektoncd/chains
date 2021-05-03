@@ -15,6 +15,8 @@ package pgp
 
 import (
 	"bytes"
+	"context"
+	"encoding/json"
 	"os"
 	"strings"
 	"testing"
@@ -24,7 +26,7 @@ import (
 )
 
 func TestSigner_Sign(t *testing.T) {
-
+	ctx := context.Background()
 	logger := logtesting.TestLogger(t)
 	// Parse out the public key before we get started.
 	fp, err := os.Open("./testdata/pgp.public-key")
@@ -51,14 +53,18 @@ func TestSigner_Sign(t *testing.T) {
 		A: 3,
 		B: "test",
 	}
-	signature, signed, err := signer.Sign(payload)
+	rawPayload, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("error marshaling payload: %v", err)
+	}
+	signature, _, err := signer.Sign(ctx, rawPayload)
 	if err != nil {
 		t.Errorf("Signer.Sign() error = %v", err)
 		return
 	}
 
 	// Check that it is a valid signature
-	if _, err := openpgp.CheckArmoredDetachedSignature(publicKey, bytes.NewReader(signed), strings.NewReader(signature)); err != nil {
+	if _, err := openpgp.CheckArmoredDetachedSignature(publicKey, bytes.NewReader(rawPayload), strings.NewReader(string(signature))); err != nil {
 		t.Errorf("invalid signature: %v", err)
 	}
 }

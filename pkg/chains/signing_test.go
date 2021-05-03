@@ -168,7 +168,7 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 			if _, err := ps.TektonV1beta1().TaskRuns(tr.Namespace).Create(ctx, tr, metav1.CreateOptions{}); err != nil {
 				t.Errorf("error creating fake taskrun: %v", err)
 			}
-			if err := ts.SignTaskRun(tr); (err != nil) != tt.wantErr {
+			if err := ts.SignTaskRun(ctx, tr); (err != nil) != tt.wantErr {
 				t.Errorf("TaskRunSigner.SignTaskRun() error = %v", err)
 			}
 
