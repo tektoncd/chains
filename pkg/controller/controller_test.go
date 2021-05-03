@@ -142,7 +142,7 @@ type mockSigner struct {
 	signed bool
 }
 
-func (m *mockSigner) SignTaskRun(tr *v1beta1.TaskRun) error {
+func (m *mockSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) error {
 	m.signed = true
 	return nil
 }

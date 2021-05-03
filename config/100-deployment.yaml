@@ -31,11 +31,9 @@ metadata:
 data:
   artifacts.taskrun.format: tekton
   artifacts.taskrun.storage: tekton
-  artifacts.taskrun.signer: pgp
   artifacts.taskrun.signer: x509
   artifacts.oci.storage: tekton
   artifacts.oci.format: simplesigning
-  artifacts.oci.signer: pgp
   artifacts.oci.signer: x509
 ---
 apiVersion: apps/v1
