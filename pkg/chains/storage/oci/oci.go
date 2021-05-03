@@ -65,10 +65,10 @@ func NewStorageBackend(logger *zap.SugaredLogger, tr *v1beta1.TaskRun, cfg confi
 }
 
 // StorePayload implements the Payloader interface.
-func (b *Backend) StorePayload(signed []byte, signature string, key string) error {
+func (b *Backend) StorePayload(rawPayload []byte, signature string, key string) error {
 	b.logger.Infof("Storing payload on TaskRun %s/%s", b.tr.Namespace, b.tr.Name)
 
-	img, err := createImage(signed, signature)
+	img, err := createImage(rawPayload, signature)
 	if err != nil {
 		return err
 	}

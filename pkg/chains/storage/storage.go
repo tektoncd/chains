@@ -25,7 +25,7 @@ import (
 
 // Backend is an interface to store a chains Payload
 type Backend interface {
-	StorePayload(signed []byte, signature string, key string) error
+	StorePayload(rawPayload []byte, signature string, key string) error
 	Type() string
 }
 
