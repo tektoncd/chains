@@ -38,9 +38,8 @@ type TaskRunArtifact struct {
 }
 
 func (ta *TaskRunArtifact) Key(obj interface{}) string {
-	// Return something unique within the scope of the TaskRun.
-	// In this case the taskrun is unique, so we don't need anything else.
-	return "taskrun"
+	tr := obj.(*v1beta1.TaskRun)
+	return "taskrun-" + string(tr.UID)
 }
 
 func (ta *TaskRunArtifact) ExtractObjects(tr *v1beta1.TaskRun) []interface{} {
@@ -142,8 +141,6 @@ func (oa *OCIArtifact) Signer(cfg config.Config) string {
 }
 
 func (ta *OCIArtifact) Key(obj interface{}) string {
-	// Return something unique within the scope of the TaskRun.
-	// In this case the taskrun is unique, so we don't need anything else.
 	v := obj.(name.Digest)
 	return strings.TrimPrefix(v.DigestStr(), "sha256:")[:12]
 }

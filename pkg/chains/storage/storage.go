@@ -14,6 +14,7 @@ limitations under the License.
 package storage
 
 import (
+	"github.com/tektoncd/chains/pkg/chains/storage/docdb"
 	"github.com/tektoncd/chains/pkg/chains/storage/gcs"
 	"github.com/tektoncd/chains/pkg/chains/storage/oci"
 	"github.com/tektoncd/chains/pkg/chains/storage/tekton"
@@ -54,6 +55,12 @@ func InitializeBackends(ps versioned.Interface, logger *zap.SugaredLogger, tr *v
 				return nil, err
 			}
 			backends[backendType] = ociBackend
+		case docdb.StorageTypeDocDB:
+			docdbBackend, err := docdb.NewStorageBackend(logger, tr, cfg)
+			if err != nil {
+				return nil, err
+			}
+			backends[backendType] = docdbBackend
 		}
 	}
 	return backends, nil

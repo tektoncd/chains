@@ -18,12 +18,13 @@ Supported keys include:
 | Key | Description | Supported Values |
 | --- | --- | --- |
 | `artifacts.taskrun.format` | The format to store `TaskRun` payloads in. | `tekton` |
-| `artifacts.taskrun.storage` | The storage backend to store `TaskRun` signatures in. | `tekton`, `oci`, `gcs` |
+| `artifacts.taskrun.storage` | The storage backend to store `TaskRun` signatures in. | `tekton`, `oci`, `gcs`, `docdb` |
 | `artifacts.taskrun.signer` | The signature backend to sign `Taskrun` payloads with. | `pgp`, `x509`, `kms` |
 | `artifacts.oci.format` | The format to store `OCI` payloads in. | `tekton`, `simplesigning` |
-| `artifacts.oci.storage` | The storage backend to store `OCI` signatures in. | `tekton`, `oci`, `gcs` |
+| `artifacts.oci.storage` | The storage backend to store `OCI` signatures in. | `tekton`, `oci`, `gcs`, `docdb` |
 | `artifacts.oci.signer` | The signature backend to sign `OCI` payloads with. | `pgp`, `x509`, `kms` |
 | `signers.kms.kmsref` | The URI reference to a KMS service to use in `KMS` signers. | `gcpkms://projects/<project>/locations/<location>/keyRings/<keyring>/cryptoKeys/<key>`|
+| `storage.docdb.url` | The go-cloud URI reference to a docstore collection | `firestore://projects/<project>/databases/(default)/documents/<collection>?name_field=name`|
 
 ### Overview
 
@@ -87,7 +88,6 @@ And save the passphrase (if you set one) in it's own file:
 ```shell
 echo -n $passphrase > pgp.passphrase
 ```
-
 
 #### x509
 
