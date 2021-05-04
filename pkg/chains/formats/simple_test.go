@@ -39,8 +39,8 @@ func TestSimpleSigning_CreatePayload(t *testing.T) {
 		{
 			name: "digest",
 			obj:  makeDigest(t, "gcr.io/foo/bar@sha256:20ab676d319c93ef5b4bef9290ed913ed8feaa0c92c43a7cddc28a3697918b92"),
-			want: simple{
-				Critical: critical{
+			want: Simple{
+				Critical: Critical{
 					Identity: map[string]string{
 						"docker-reference": "gcr.io/foo/bar",
 					},
@@ -70,5 +70,25 @@ func TestSimpleSigning_CreatePayload(t *testing.T) {
 				t.Errorf("SimpleSigning.CreatePayload() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestImageName(t *testing.T) {
+	img := "gcr.io/foo/bar@sha256:20ab676d319c93ef5b4bef9290ed913ed8feaa0c92c43a7cddc28a3697918b92"
+	obj := makeDigest(t, img)
+
+	i := &SimpleSigning{}
+	format, err := i.CreatePayload(obj)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	s, ok := format.(Simple)
+	if !ok {
+		t.Fatal("expected type Simple")
+	}
+
+	if s.ImageName() != img {
+		t.Fatalf("expected images to match. expected %s, got %s", img, s.ImageName())
 	}
 }

@@ -1,0 +1,79 @@
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineResource
+metadata:
+  name: chains-image
+spec:
+  type: image
+  params:
+    - name: url
+      value: gcr.io/priya-wadhwa/chains-image
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tutorial-service
+secrets:
+  - name: gcr-creds
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: build-docker-image-from-git-source
+spec:
+  resources:
+    outputs:
+      - name: builtImage
+        type: image
+  results:
+    - name: IMAGE_URL
+      description: the image url of the output image
+    - name: IMAGE_DIGEST
+      description: the image digest of the output image
+  steps:
+    - name: build-and-push
+      image: gcr.io/kaniko-project/executor:v1.6.0
+      env:
+        - name: "GOOGLE_APPLICATION_CREDENTIALS"
+          value: "/tekton/home/.docker/creds.json"
+      command:
+        - /kaniko/executor
+      args:
+        - --dockerfile=/dockerfile/Dockerfile
+        - --destination=$(resources.outputs.builtImage.url)
+        - --context=/dockerfile
+        - --cache=false
+        - --digest-file=$(results.IMAGE_DIGEST.path)
+      volumeMounts: 
+      - name: gcr-creds
+        mountPath: /tekton/home/.docker
+      - name: dockerfile
+        mountPath: /dockerfile
+    - name: image-url
+      image: bash:latest
+      script: |
+        #!/usr/bin/env bash
+        echo $(resources.outputs.builtImage.url) | tee $(results.IMAGE_URL.path)
+      volumeMounts: 
+      - name: gcr-creds
+        mountPath: /tekton/home/.docker
+      - name: dockerfile
+        mountPath: /dockerfile
+  volumes:
+  - name: gcr-creds
+    secret:
+      secretName: gcr-creds
+  - name: dockerfile
+    configMap:
+      name: dockerfile
+      items:
+        - key: "Dockerfile"
+          path: "Dockerfile"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dockerfile
+data:
+  # file-like keys
+  Dockerfile: |
+    FROM alpine  

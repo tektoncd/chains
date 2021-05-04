@@ -14,20 +14,16 @@ limitations under the License.
 package oci
 
 import (
-	"archive/tar"
-	"bytes"
-	"compress/gzip"
 	"context"
-	"fmt"
-	"path"
+	"encoding/json"
 
+	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/authn/k8schain"
 	"github.com/google/go-containerregistry/pkg/name"
-	v1 "github.com/google/go-containerregistry/pkg/v1"
-	"github.com/google/go-containerregistry/pkg/v1/empty"
-	"github.com/google/go-containerregistry/pkg/v1/mutate"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
-	"github.com/google/go-containerregistry/pkg/v1/tarball"
+	"github.com/pkg/errors"
+	"github.com/sigstore/cosign/pkg/cosign"
+	"github.com/tektoncd/chains/pkg/chains/formats"
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"go.uber.org/zap"
@@ -45,6 +41,7 @@ type Backend struct {
 	logger *zap.SugaredLogger
 	tr     *v1beta1.TaskRun
 	cfg    config.Config
+	kc     authn.Keychain
 	auth   remote.Option
 }
 
@@ -60,6 +57,7 @@ func NewStorageBackend(logger *zap.SugaredLogger, tr *v1beta1.TaskRun, cfg confi
 		logger: logger,
 		tr:     tr,
 		cfg:    cfg,
+		kc:     kc,
 		auth:   remote.WithAuthFromKeychain(kc),
 	}, nil
 }
@@ -68,66 +66,30 @@ func NewStorageBackend(logger *zap.SugaredLogger, tr *v1beta1.TaskRun, cfg confi
 func (b *Backend) StorePayload(rawPayload []byte, signature string, key string) error {
 	b.logger.Infof("Storing payload on TaskRun %s/%s", b.tr.Namespace, b.tr.Name)
 
-	img, err := createImage(rawPayload, signature)
-	if err != nil {
-		return err
+	format := formats.NewSimpleStruct()
+	if err := json.Unmarshal(rawPayload, &format); err != nil {
+		return errors.Wrap(err, "only OCI artifacts can be stored in an OCI registry")
 	}
+	imageName := format.ImageName()
 
-	imageRoot := fmt.Sprintf("taskrun-%s-%s-%s", b.tr.Namespace, b.tr.Name, b.tr.UID)
-	imageName := path.Join(imageRoot, key)
-	ref, err := name.ParseReference(path.Join(b.cfg.Storage.OCI.Repository, imageName), name.WeakValidation)
+	b.logger.Infof("Uploading %s signature", imageName)
+	ref, err := name.NewDigest(imageName)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "getting digest")
 	}
-
-	b.logger.Infof("Pushing signature image to %s", ref.Name())
-	if err := writeImage(ref, img, b.auth); err != nil {
-		return err
+	get, err := remote.Get(ref, b.auth)
+	if err != nil {
+		return errors.Wrap(err, "getting remote image")
 	}
+	cosignDst, err := cosign.DestinationRef(ref, get)
+	if err != nil {
+		return errors.Wrap(err, "destination ref")
+	}
+	if _, err = cosign.Upload(context.TODO(), []byte(signature), rawPayload, cosignDst, cosign.UploadOpts{RemoteOpts: []remote.Option{b.auth}}); err != nil {
+		return errors.Wrap(err, "uploading")
+	}
+	b.logger.Infof("Successfully uploaded signatue for %s", imageName)
 	return nil
-}
-
-// Set as a variable for mocking
-var writeImage = remote.Write
-
-// TODO: reuse cosign spec.
-func createImage(signed []byte, signature string) (v1.Image, error) {
-	buf := bytes.Buffer{}
-	gz := gzip.NewWriter(&buf)
-	tw := tar.NewWriter(gz)
-	if err := tw.WriteHeader(&tar.Header{
-		Name: "signed",
-		Mode: 0600,
-		Size: int64(len(signed)),
-	}); err != nil {
-		return nil, err
-	}
-	if _, err := tw.Write(signed); err != nil {
-		return nil, err
-	}
-	if err := tw.Close(); err != nil {
-		return nil, err
-	}
-	if err := gz.Close(); err != nil {
-		return nil, err
-	}
-
-	bodyLayer, err := tarball.LayerFromReader(bytes.NewReader(buf.Bytes()))
-	if err != nil {
-		return nil, err
-	}
-
-	img, err := mutate.Append(empty.Image, mutate.Addendum{
-		Annotations: map[string]string{
-			"signature": signature,
-		},
-		MediaType: mediaType,
-		Layer:     bodyLayer,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return img, nil
 }
 
 func (b *Backend) Type() string {
