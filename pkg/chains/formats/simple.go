@@ -29,7 +29,7 @@ type SimpleSigning struct {
 func (i *SimpleSigning) CreatePayload(obj interface{}) (interface{}, error) {
 	switch v := obj.(type) {
 	case name.Digest:
-		format := newSimpleStruct()
+		format := NewSimpleStruct()
 		format.Critical.Identity["docker-reference"] = path.Join(v.RegistryStr(), v.RepositoryStr())
 		format.Critical.Image["Docker-manifest-digest"] = v.DigestStr()
 		return format, nil
@@ -39,9 +39,9 @@ func (i *SimpleSigning) CreatePayload(obj interface{}) (interface{}, error) {
 
 }
 
-func newSimpleStruct() simple {
-	s := simple{
-		Critical: critical{
+func NewSimpleStruct() Simple {
+	s := Simple{
+		Critical: Critical{
 			Identity: map[string]string{},
 			Image:    map[string]string{},
 			Type:     "Tekton container signature",
@@ -51,12 +51,12 @@ func newSimpleStruct() simple {
 	return s
 }
 
-type simple struct {
-	Critical critical
+type Simple struct {
+	Critical Critical
 	Optional map[string]interface{}
 }
 
-type critical struct {
+type Critical struct {
 	Identity map[string]string
 	Image    map[string]string
 	Type     string
@@ -64,4 +64,10 @@ type critical struct {
 
 func (i *SimpleSigning) Type() PayloadType {
 	return PayloadTypeSimpleSigning
+}
+
+func (s *Simple) ImageName() string {
+	reg := s.Critical.Identity["docker-reference"]
+	digest := s.Critical.Image["Docker-manifest-digest"]
+	return fmt.Sprintf("%s@%s", reg, digest)
 }

@@ -9,13 +9,15 @@ require (
 	github.com/godbus/dbus/v5 v5.0.4 // indirect
 	github.com/google/certificate-transparency-go v1.1.1 // indirect
 	github.com/google/go-cmp v0.5.5
-	github.com/google/go-containerregistry v0.4.1
+	github.com/google/go-containerregistry v0.5.0
 	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20210129212729-5c4818de4025
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jedisct1/go-minisign v0.0.0-20210414164026-819d7e2534ac // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/magiconair/properties v1.8.5 // indirect
 	github.com/pelletier/go-toml v1.9.0 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
+	github.com/sigstore/cosign v0.3.2-0.20210504221908-6a2c836159a9 // indirect
 	github.com/sigstore/sigstore v0.0.0-20210427115853-11e6eaab7cdc
 	github.com/spf13/afero v1.6.0 // indirect
 	github.com/tektoncd/pipeline v0.23.0

@@ -1,0 +1,13 @@
+apiVersion: tekton.dev/v1beta1
+kind: TaskRun
+metadata:
+  generateName: build-push-image-
+spec:
+  serviceAccountName: tutorial-service
+  taskRef:
+    name: build-docker-image-from-git-source
+  resources:
+    outputs:
+      - name: builtImage
+        resourceRef:
+          name: chains-image
