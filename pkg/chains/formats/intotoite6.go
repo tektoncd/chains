@@ -3,13 +3,17 @@ package formats
 import (
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 )
 
-const tektonID = "https://tekton.dev/attestations/chains@v1"
+const (
+	tektonID = "https://tekton.dev/attestations/chains@v1"
+	mediaTypeGitCommit = "application/vnd.git.commit"
+)
 
 const (
 	commitParam = "CHAINS-GIT_COMMIT"
@@ -48,34 +52,40 @@ func (i *InTotoIte6) CreatePayload(obj interface{}) (interface{}, error) {
 	// Params with name CHAINS-GIT_* -> Materials and recipe.materials
 	// tekton-chains -> Recipe.type
 	// Taskname -> Recipe.entry_point
-	att := in_toto.Provenance{
-		Attestation: in_toto.Attestation{
-			AttestationType: in_toto.ProvenanceTypeV1,
+	att := in_toto.ProvenanceStatement{
+		StatementHeader: in_toto.StatementHeader{
+			PredicateType: in_toto.PredicateProvenanceV1,
 		},
-		Builder: in_toto.Builder{
-			ID: tr.Status.PodName,
-		},
-		Recipe: in_toto.Recipe{
-			Type:       tektonID,
-			EntryPoint: tr.Spec.TaskRef.Name,
+		Predicate: in_toto.ProvenancePredicate{
+			Builder: in_toto.ProvenanceBuilder{
+				ID: tr.Status.PodName,
+			},
+			Recipe: in_toto.ProvenanceRecipe{
+				Type:       tektonID,
+				EntryPoint: tr.Spec.TaskRef.Name,
+			},
 		},
 	}
 	if tr.Status.CompletionTime != nil {
-		att.Metadata.BuildTimestamp.Time =
-			tr.Status.CompletionTime.Time
+		att.Predicate.Metadata.BuildStartedOn = &tr.Status.StartTime.Time
 	}
 
 	results := getResultDigests(tr)
-	att.Subject = getSubjectDigests(tr, results)
+	att.StatementHeader.Subject = getSubjectDigests(tr, results)
 
-	att.Materials = in_toto.ArtifactCollection{}
+	att.Predicate.Materials = []in_toto.ProvenanceMaterial{}
 	vcsInfo := getVcsInfo(tr)
+	var recipeMaterialUri string
+
 	// Store git rev as Materials and Recipe.Material
 	if vcsInfo != nil {
-		att.Materials[vcsInfo.URL] = in_toto.ArtifactDigest{
-			"git_commit": vcsInfo.Commit,
-		}
-		att.Recipe.Material = vcsInfo.URL
+		att.Predicate.Materials = append(att.Predicate.Materials, in_toto.ProvenanceMaterial{
+			URI:    vcsInfo.URL,
+			Digest: map[string]string{"git_commit": vcsInfo.Commit},
+			MediaType: mediaTypeGitCommit,
+		})
+		// Remember the URI of the recipe material. We need to find it later to set the index correctly (after sorting)
+		recipeMaterialUri = vcsInfo.URL
 	}
 
 	// Add all found step containers as materials
@@ -97,8 +107,22 @@ func (i *InTotoIte6) CreatePayload(obj interface{}) (interface{}, error) {
 		if len(h) != 2 {
 			continue
 		}
-		att.Materials[d[0]] = in_toto.ArtifactDigest{
-			h[0]: h[1],
+		att.Predicate.Materials = append(att.Predicate.Materials, in_toto.ProvenanceMaterial{
+			URI:    d[0],
+			Digest: map[string]string{h[0]: h[1]},
+		})
+	}
+
+	sort.Slice(att.Predicate.Materials, func(i, j int) bool {
+		return att.Predicate.Materials[i].URI <= att.Predicate.Materials[j].URI
+	})
+
+	if recipeMaterialUri != "" {
+		for i, m := range att.Predicate.Materials {
+			if m.URI == recipeMaterialUri {
+				att.Predicate.Recipe.DefinedInMaterial = intP(i)
+				break
+			}
 		}
 	}
 
@@ -167,8 +191,8 @@ func getVcsInfo(tr *v1beta1.TaskRun) *vcsInfo {
 // Digests can be on two formats: $alg:$digest (commonly used for container
 // image hashes), or $alg:$digest $path, which is used when a step is
 // calculating a hash of a previous step.
-func getSubjectDigests(tr *v1beta1.TaskRun, results []artifactResult) in_toto.ArtifactCollection {
-	subs := in_toto.ArtifactCollection{}
+func getSubjectDigests(tr *v1beta1.TaskRun, results []artifactResult) []in_toto.Subject {
+	subs := []in_toto.Subject{}
 	r := regexp.MustCompile(`(\S+)\s+(\S+)`)
 
 	// Resolve *-DIGEST variables
@@ -226,14 +250,24 @@ Results:
 					hash = ah[1]
 				}
 
-				subs[sub] = in_toto.ArtifactDigest{
-					alg: hash,
-				}
+				subs = append(subs, in_toto.Subject{
+					Name: sub,
+					Digest: map[string]string{
+						alg: hash,
+					},
+				})
 				// Subject found, go after next result
 				continue Results
 			}
 		}
 	}
 
+	sort.Slice(subs, func(i, j int) bool {
+		return subs[i].Name <= subs[j].Name
+	})
 	return subs
+}
+
+func intP(i int) *int {
+	return &i
 }
