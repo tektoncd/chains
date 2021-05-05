@@ -116,59 +116,39 @@ var testData1 = `
 }
 `
 
-var expected1 = in_toto.ProvenanceStatement{
-	StatementHeader: in_toto.StatementHeader{
-		PredicateType: in_toto.PredicateProvenanceV1,
-		Subject: []in_toto.Subject{
-			{
-				Name: "/bin/ls",
-				Digest: map[string]string{
-					"sha256": "hash5",
-				},
+var expected1 = in_toto.Provenance{
+	Attestation: in_toto.Attestation{
+		AttestationType: in_toto.ProvenanceTypeV1,
+		Subject: in_toto.ArtifactCollection{
+			"test.io/test/image": in_toto.ArtifactDigest{
+				"sha256": "hash4",
 			},
-			{
-				Name: "test.io/test/image",
-				Digest: map[string]string{
-					"sha256": "hash4",
-				},
+			"/bin/ls": in_toto.ArtifactDigest{
+				"sha256": "hash5",
+			},
+		},
+		Materials: in_toto.ArtifactCollection{
+			"gcr.io/test1/test1": in_toto.ArtifactDigest{
+				"sha256": "hash1",
+			},
+			"gcr.io/test2/test2": in_toto.ArtifactDigest{
+				"sha256": "hash2",
+			},
+			"gcr.io/test3/test3": in_toto.ArtifactDigest{
+				"sha256": "hash3",
+			},
+			"git+https://git.test.com": in_toto.ArtifactDigest{
+				"git_commit": "abcd",
 			},
 		},
 	},
-	Predicate: in_toto.ProvenancePredicate{
-		Materials: []in_toto.ProvenanceMaterial{
-			{
-				URI: "gcr.io/test1/test1",
-				Digest: map[string]string{
-					"sha256": "hash1",
-				},
-			},
-			{
-				URI: "gcr.io/test2/test2",
-				Digest: map[string]string{
-					"sha256": "hash2",
-				},
-			},
-			{
-				URI: "gcr.io/test3/test3",
-				Digest: map[string]string{
-					"sha256": "hash3",
-				},
-			},
-			{
-				URI: "git+https://git.test.com",
-				Digest: map[string]string{
-					"git_commit": "abcd",
-				},
-			},
-		},
-		Builder: in_toto.ProvenanceBuilder{
-			ID: "test-pod-name",
-		},
-		Recipe: in_toto.ProvenanceRecipe{
-			Type:              tektonID,
-			EntryPoint:        "test-task",
-			DefinedInMaterial: intP(3),
-		},
+	Builder: in_toto.Builder{
+		ID: "test-pod-name",
+	},
+	Recipe: in_toto.Recipe{
+		Type:       tektonID,
+		EntryPoint: "test-task",
+		Material:   "git+https://git.test.com",
 	},
 }
 
@@ -227,34 +207,26 @@ var testData2 = `
 }
 `
 
-var expected2 = in_toto.ProvenanceStatement{
-	StatementHeader: in_toto.StatementHeader{
-		PredicateType: in_toto.PredicateProvenanceV1,
-		Subject: []in_toto.Subject{
-			{
-				Name: "pkg:deb/debian/curl@7.50.3-1",
-				Digest: map[string]string{
-					"sha256": "hash123",
-				},
+var expected2 = in_toto.Provenance{
+	Attestation: in_toto.Attestation{
+		AttestationType: in_toto.ProvenanceTypeV1,
+		Subject: in_toto.ArtifactCollection{
+			"pkg:deb/debian/curl@7.50.3-1": in_toto.ArtifactDigest{
+				"sha256": "hash123",
+			},
+		},
+		Materials: in_toto.ArtifactCollection{
+			"gcr.io/test1/test1": in_toto.ArtifactDigest{
+				"sha256": "hash1",
 			},
 		},
 	},
-	Predicate: in_toto.ProvenancePredicate{
-		Materials: []in_toto.ProvenanceMaterial{
-			{
-				URI: "gcr.io/test1/test1",
-				Digest: map[string]string{
-					"sha256": "hash1",
-				},
-			},
-		},
-		Builder: in_toto.ProvenanceBuilder{
-			ID: "test-pod-name",
-		},
-		Recipe: in_toto.ProvenanceRecipe{
-			Type:       tektonID,
-			EntryPoint: "test-task",
-		},
+	Builder: in_toto.Builder{
+		ID: "test-pod-name",
+	},
+	Recipe: in_toto.Recipe{
+		Type:       tektonID,
+		EntryPoint: "test-task",
 	},
 }
 
