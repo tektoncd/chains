@@ -17,9 +17,9 @@ import (
 	"context"
 	"flag"
 
+	"github.com/tektoncd/chains/pkg/chains"
 	"github.com/tektoncd/chains/pkg/config"
 	tkcontroller "github.com/tektoncd/chains/pkg/controller"
-	"github.com/tektoncd/chains/pkg/signing"
 	pipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client"
 	taskruninformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/taskrun"
 	"k8s.io/client-go/tools/cache"
@@ -43,8 +43,10 @@ const (
 
 func main() {
 	flag.Parse()
+	ctx := injection.WithNamespaceScope(signals.NewContext(), *namespace)
+	ctx = sharedmain.WithHADisabled(ctx)
 
-	sharedmain.MainWithContext(injection.WithNamespaceScope(signals.NewContext(), *namespace), "watcher",
+	sharedmain.MainWithContext(ctx, "watcher",
 		func(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
 			// TODO: store and use the cmw
 			logger := logging.FromContext(ctx)
@@ -61,7 +63,7 @@ func main() {
 				PipelineClientSet: pipelineclientset,
 				Logger:            logger,
 				TaskRunLister:     taskRunInformer.Lister(),
-				TaskRunSigner: &signing.TaskRunSigner{
+				TaskRunSigner: &chains.TaskRunSigner{
 					Pipelineclientset: pipelineclientset,
 					Logger:            logger,
 					SecretPath:        tkcontroller.SecretPath,

@@ -37,9 +37,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func getTr(t *testing.T, c pipelineclientset.Interface, name, ns string) (tr *v1beta1.TaskRun) {
+func getTr(ctx context.Context, t *testing.T, c pipelineclientset.Interface, name, ns string) (tr *v1beta1.TaskRun) {
 	t.Helper()
-	tr, err := c.TektonV1beta1().TaskRuns(ns).Get(name, metav1.GetOptions{})
+	tr, err := c.TektonV1beta1().TaskRuns(ns).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		t.Error(err)
 	}
@@ -48,16 +48,16 @@ func getTr(t *testing.T, c pipelineclientset.Interface, name, ns string) (tr *v1
 
 type conditionFn func(*v1beta1.TaskRun) bool
 
-func waitForCondition(t *testing.T, c pipelineclientset.Interface, name, ns string, cond conditionFn, timeout time.Duration) *v1beta1.TaskRun {
+func waitForCondition(ctx context.Context, t *testing.T, c pipelineclientset.Interface, name, ns string, cond conditionFn, timeout time.Duration) *v1beta1.TaskRun {
 	t.Helper()
 
 	// Do a first quick check before setting the watch
-	tr := getTr(t, c, name, ns)
+	tr := getTr(ctx, t, c, name, ns)
 	if cond(tr) {
 		return tr
 	}
 
-	w, err := c.TektonV1beta1().TaskRuns(ns).Watch(metav1.SingleObject(metav1.ObjectMeta{
+	w, err := c.TektonV1beta1().TaskRuns(ns).Watch(ctx, metav1.SingleObject(metav1.ObjectMeta{
 		Name:      name,
 		Namespace: ns,
 	}))
@@ -160,9 +160,9 @@ func readObj(t *testing.T, bucket, name string, client *storage.Client) []byte {
 	return b
 }
 
-func setConfigMap(t *testing.T, c *clients, data map[string]string) func() {
+func setConfigMap(ctx context.Context, t *testing.T, c *clients, data map[string]string) func() {
 	// Change the config to be GCS storage with this bucket.
-	cm, err := c.KubeClient.CoreV1().ConfigMaps("tekton-pipelines").Get("chains-config", metav1.GetOptions{})
+	cm, err := c.KubeClient.CoreV1().ConfigMaps("tekton-pipelines").Get(ctx, "chains-config", metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -176,10 +176,11 @@ func setConfigMap(t *testing.T, c *clients, data map[string]string) func() {
 	for k, v := range data {
 		cm.Data[k] = v
 	}
-	cm, err = c.KubeClient.CoreV1().ConfigMaps("tekton-pipelines").Update(cm)
+	cm, err = c.KubeClient.CoreV1().ConfigMaps("tekton-pipelines").Update(ctx, cm, metav1.UpdateOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
+	time.Sleep(30 * time.Second)
 
 	return func() {
 		for k := range data {
@@ -188,7 +189,7 @@ func setConfigMap(t *testing.T, c *clients, data map[string]string) func() {
 		for k, v := range oldData {
 			cm.Data[k] = v
 		}
-		if _, err := c.KubeClient.CoreV1().ConfigMaps("tekton-pipelines").Update(cm); err != nil {
+		if _, err := c.KubeClient.CoreV1().ConfigMaps("tekton-pipelines").Update(ctx, cm, metav1.UpdateOptions{}); err != nil {
 			t.Log(err)
 		}
 	}

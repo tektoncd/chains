@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"sync/atomic"
 
 	"go.uber.org/zap"
@@ -11,41 +12,77 @@ import (
 )
 
 type Config struct {
-	Artifacts Artifacts
-	Storage   Storage
+	Artifacts ArtifactConfigs
+	Storage   StorageConfigs
+	Signers   SignerConfigs
 }
 
-type Artifacts struct {
+// ArtifactConfig contains the configuration for how to sign/store/format the signatures for each artifact type
+type ArtifactConfigs struct {
 	TaskRuns Artifact
 	OCI      Artifact
 }
 
+// Artifact contains the configuration for how to sign/store/format the signatures for a single artifact
 type Artifact struct {
 	Format         string
 	StorageBackend string
+	Signer         string
 }
 
-type Storage struct {
-	GCS GCS
-	OCI OCI
+// StorageConfig contains the configuration to instantiate different storage providers
+type StorageConfigs struct {
+	GCS    GCSStorageConfig
+	OCI    OCIStorageConfig
+	Tekton TektonStorageConfig
 }
 
-type GCS struct {
+// SigningConfig contains the configuration to instantiate different signers
+type SignerConfigs struct {
+	PGP  PGPSigner
+	X509 X509Signer
+	KMS  KMSSigner
+}
+
+type PGPSigner struct {
+}
+
+type X509Signer struct {
+}
+
+type KMSSigner struct {
+	KMSRef string
+}
+
+type GCSStorageConfig struct {
 	Bucket string
 }
 
-type OCI struct {
+type OCIStorageConfig struct {
 	Repository string
+}
+
+type TektonStorageConfig struct {
 }
 
 const (
 	taskrunFormatKey  = "artifacts.taskrun.format"
 	taskrunStorageKey = "artifacts.taskrun.storage"
-	gcsBucketKey      = "storage.gcs.bucket"
+	taskrunSignerKey  = "artifacts.taskrun.signer"
 
-	ociFormatKey     = "artifacts.oci.format"
-	ociStorageKey    = "artifacts.oci.storage"
+	ociFormatKey  = "artifacts.oci.format"
+	ociStorageKey = "artifacts.oci.storage"
+	ociSignerKey  = "artifacts.oci.signer"
+
+	gcsBucketKey     = "storage.gcs.bucket"
 	ociRepositoryKey = "storage.oci.repository"
+	// No config needed for Tekton object storage
+
+	// No config needed for pgp signer
+	// No config needed for x509 signer
+
+	// KMS
+	kmsSignerKMSRef = "signers.kms.kmsref"
 
 	chainsConfig = "chains-config"
 )
@@ -53,19 +90,24 @@ const (
 func parse(data map[string]string) Config {
 	cfg := Config{}
 
-	// Start with artifact-specific configs
+	// Artifact-specific configs
+
 	// TaskRuns
 	cfg.Artifacts.TaskRuns.Format = data[taskrunFormatKey]
 	cfg.Artifacts.TaskRuns.StorageBackend = data[taskrunStorageKey]
+	cfg.Artifacts.TaskRuns.Signer = data[taskrunSignerKey]
+
 	// OCI
 	cfg.Artifacts.OCI.Format = data[ociFormatKey]
 	cfg.Artifacts.OCI.StorageBackend = data[ociStorageKey]
+	cfg.Artifacts.OCI.Signer = data[ociSignerKey]
 
 	// Storage level configs
-	// GCS
+
 	cfg.Storage.GCS.Bucket = data[gcsBucketKey]
-	// OCI
 	cfg.Storage.OCI.Repository = data[ociRepositoryKey]
+
+	cfg.Signers.KMS.KMSRef = data[kmsSignerKMSRef]
 
 	return cfg
 }
@@ -98,7 +140,7 @@ func (cs *ConfigStore) watch() {
 // NewConfigStore returns a store that is configured to watch the configmap for changes.
 func NewConfigStore(kc kubernetes.Interface, namespace string, logger *zap.SugaredLogger) (*ConfigStore, error) {
 	opts := metav1.SingleObject(metav1.ObjectMeta{Name: chainsConfig})
-	w, err := kc.CoreV1().ConfigMaps(namespace).Watch(opts)
+	w, err := kc.CoreV1().ConfigMaps(namespace).Watch(context.TODO(), opts)
 	if err != nil {
 		return nil, err
 	}

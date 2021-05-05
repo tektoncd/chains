@@ -9,9 +9,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	fakek8s "k8s.io/client-go/kubernetes/fake"
 	logtesting "knative.dev/pkg/logging/testing"
+	rtesting "knative.dev/pkg/reconciler/testing"
 )
 
 func TestNewConfigStore(t *testing.T) {
+	ctx, _ := rtesting.SetupFakeContext(t)
 
 	ns := "my-namespace"
 	cm := &corev1.ConfigMap{
@@ -36,7 +38,7 @@ func TestNewConfigStore(t *testing.T) {
 	cm.Data = map[string]string{}
 	cm.Data[taskrunFormatKey] = "foo"
 
-	if cm, err = fakekubeclient.CoreV1().ConfigMaps(ns).Update(cm); err != nil {
+	if cm, err = fakekubeclient.CoreV1().ConfigMaps(ns).Update(ctx, cm, metav1.UpdateOptions{}); err != nil {
 		t.Errorf("error updating configmap: %v", err)
 	}
 
@@ -50,7 +52,7 @@ func TestNewConfigStore(t *testing.T) {
 	// Change it again
 	cm.Data[taskrunFormatKey] = "bar"
 
-	if _, err := fakekubeclient.CoreV1().ConfigMaps(ns).Update(cm); err != nil {
+	if _, err := fakekubeclient.CoreV1().ConfigMaps(ns).Update(ctx, cm, metav1.UpdateOptions{}); err != nil {
 		t.Errorf("error updating configmap: %v", err)
 	}
 	time.Sleep(100 * time.Millisecond)
@@ -70,7 +72,7 @@ func Test_parse(t *testing.T) {
 			name: "empty",
 			data: map[string]string{},
 			want: Config{
-				Artifacts: Artifacts{
+				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{},
 				},
 			},
@@ -79,7 +81,7 @@ func Test_parse(t *testing.T) {
 			name: "single",
 			data: map[string]string{taskrunFormatKey: "foo"},
 			want: Config{
-				Artifacts: Artifacts{
+				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
 						Format:         "foo",
 						StorageBackend: "",
@@ -91,7 +93,7 @@ func Test_parse(t *testing.T) {
 			name: "extra",
 			data: map[string]string{taskrunFormatKey: "foo", "other-key": "foo"},
 			want: Config{
-				Artifacts: Artifacts{
+				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
 						Format:         "foo",
 						StorageBackend: "",

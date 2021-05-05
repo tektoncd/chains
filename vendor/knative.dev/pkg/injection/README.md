@@ -138,6 +138,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		Client:        kubeclient.Get(ctx),
 		ServiceLister: svcInformer.Lister(),
 	}
+	logger = logger.Named("NameOfController")
 	impl := controller.NewImpl(c, logger, "NameOfController")
 
 	// Set up event handlers.
@@ -454,14 +455,14 @@ for that resource.
 
 #### Annotation based common logic
 
-**krshaped=true may become the default if omitted in the future**
+**krshapedlogic=false may be used to omit common reconciler logic**
 
 Reconcilers can handle common logic for resources that conform to the KRShaped
 interface. This allows the generated code to automatically increment
 ObservedGeneration.
 
 ```go
-// +genreconciler:krshapedlogic=true
+// +genreconciler
 ```
 
 Setting this annotation will emit the following in the generated reconciler.
@@ -471,13 +472,25 @@ reconciler.PreProcessReconcile(ctx, resource)
 
 reconcileEvent = r.reconciler.ReconcileKind(ctx, resource)
 
-reconciler.PostProcessReconcile(ctx, resource)
+reconciler.PostProcessReconcile(ctx, resource, oldResource)
 ```
 
 #### Stubs
 
-To get started, or to use as reference. It is intended to be copied out of the
-`client` dir.
+To enable stubs generation, add the stubs flag:
+
+```go
+// +genreconciler:stubs
+```
+
+Or with the class annotation:
+
+```go
+// +genreconciler:class=example.com/filter.class,stubs
+```
+
+The stubs are intended to be used to get started, or to use as reference. It is
+intended to be copied out of the `client` dir.
 
 `knative.dev/<repo>/pkg/client/injection/reconciler/<clientgroup>/<version>/<kind>/stubs/controller.go`
 

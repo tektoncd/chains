@@ -16,10 +16,14 @@ limitations under the License.
 
 package metrics
 
+const (
+	testComponent = "testComponent"
+)
+
 // InitForTesting initialize the necessary global variables for unit tests.
 func InitForTesting() {
 	setCurMetricsConfig(&metricsConfig{
-		backendDestination: Prometheus,
+		backendDestination: prometheus,
 		component:          "test",
 		domain:             "test",
 	})

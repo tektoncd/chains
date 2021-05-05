@@ -25,9 +25,17 @@ that contains initialized clients for accessing:
 package test
 
 import (
+	"context"
+	"crypto"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/x509"
+	"encoding/pem"
 	"io/ioutil"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/tektoncd/pipeline/pkg/names"
 
@@ -44,6 +52,8 @@ type clients struct {
 	KubeClient kubernetes.Interface
 
 	PipelineClient pipelineclientset.Interface
+
+	secret secret
 }
 
 // newClients instantiates and returns several clientsets required for making requests to the
@@ -70,37 +80,41 @@ func newClients(t *testing.T, configPath, clusterName string) *clients {
 	return c
 }
 
-func setup(t *testing.T) (*clients, string, func()) {
+func setup(ctx context.Context, t *testing.T) (*clients, string, func()) {
 	t.Helper()
 	namespace := names.SimpleNameGenerator.RestrictLengthWithRandomSuffix("earth")
 
 	c := newClients(t, knativetest.Flags.Kubeconfig, knativetest.Flags.Cluster)
-	createNamespace(t, namespace, c.KubeClient)
+	createNamespace(ctx, t, namespace, c.KubeClient)
 
-	setupSecret(t, c.KubeClient)
+	c.secret = setupSecret(ctx, t, c.KubeClient)
 
 	var cleanup = func() {
 		t.Logf("Deleting namespace %s", namespace)
-		if err := c.KubeClient.CoreV1().Namespaces().Delete(namespace, &metav1.DeleteOptions{}); err != nil {
+		if err := c.KubeClient.CoreV1().Namespaces().Delete(ctx, namespace, metav1.DeleteOptions{}); err != nil {
 			t.Fatalf("Failed to delete namespace %s for tests: %s", namespace, err)
 		}
 	}
 	return c, namespace, cleanup
 }
 
-func createNamespace(t *testing.T, namespace string, kubeClient kubernetes.Interface) {
+func createNamespace(ctx context.Context, t *testing.T, namespace string, kubeClient kubernetes.Interface) {
 	t.Helper()
 	t.Logf("Create namespace %s to deploy to", namespace)
-	if _, err := kubeClient.CoreV1().Namespaces().Create(&corev1.Namespace{
+	if _, err := kubeClient.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespace,
 		},
-	}); err != nil {
+	}, metav1.CreateOptions{}); err != nil {
 		t.Fatalf("Failed to create namespace %s for tests: %s", namespace, err)
 	}
 }
 
-func setupSecret(t *testing.T, c kubernetes.Interface) {
+type secret struct {
+	x509Priv *ecdsa.PrivateKey
+}
+
+func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface) secret {
 	// Only overwrite the secret data if it isn't set.
 
 	s := corev1.Secret{
@@ -110,6 +124,7 @@ func setupSecret(t *testing.T, c kubernetes.Interface) {
 		},
 		StringData: map[string]string{},
 	}
+	// pgp
 	paths := []string{"pgp.private-key", "pgp.passphrase", "pgp.public-key"}
 	for _, p := range paths {
 		b, err := ioutil.ReadFile(filepath.Join("./testdata", p))
@@ -118,7 +133,38 @@ func setupSecret(t *testing.T, c kubernetes.Interface) {
 		}
 		s.StringData[p] = string(b)
 	}
-	if _, err := c.CoreV1().Secrets("tekton-pipelines").Update(&s); err != nil {
+
+	// x509
+	_, priv := ecdsaKeyPair(t)
+
+	s.StringData["x509.pem"] = toPem(t, priv)
+
+	if _, err := c.CoreV1().Secrets("tekton-pipelines").Update(ctx, &s, metav1.UpdateOptions{}); err != nil {
 		t.Error(err)
 	}
+	time.Sleep(60 * time.Second)
+	return secret{
+		x509Priv: priv,
+	}
+}
+
+func ecdsaKeyPair(t *testing.T) (crypto.PublicKey, *ecdsa.PrivateKey) {
+	kp, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return kp.PublicKey, kp
+}
+
+func toPem(t *testing.T, priv *ecdsa.PrivateKey) string {
+	b, err := x509.MarshalPKCS8PrivateKey(priv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := pem.EncodeToMemory(&pem.Block{
+		Bytes: b,
+		Type:  "PRIVATE KEY",
+	})
+	return string(p)
 }

@@ -19,8 +19,11 @@ Supported keys include:
 | --- | --- | --- |
 | `artifacts.taskrun.format` | The format to store `TaskRun` payloads in. | `tekton` |
 | `artifacts.taskrun.storage` | The storage backend to store `TaskRun` signatures in. | `tekton`, `oci`, `gcs` |
+| `artifacts.taskrun.signer` | The signature backend to sign `Taskrun` payloads with. | `pgp`, `x509`, `kms` |
 | `artifacts.oci.format` | The format to store `OCI` payloads in. | `tekton`, `simplesigning` |
 | `artifacts.oci.storage` | The storage backend to store `OCI` signatures in. | `tekton`, `oci`, `gcs` |
+| `artifacts.oci.signer` | The signature backend to sign `OCI` payloads with. | `pgp`, `x509`, `kms` |
+| `signers.kms.kmsref` | The URI reference to a KMS service to use in `KMS` signers. | `gcpkms://projects/<project>/locations/<location>/keyRings/<keyring>/cryptoKeys/<key>`|
 
 ### Overview
 
@@ -38,11 +41,31 @@ When outputing an OCI image without using a `PipelineResource`, `Chains` will lo
 
 Note that these are provided automatically when using `PipelineResources`.
 
-#### Signing Secrets
+### Signing Secrets
 
-To get started signing things with Chains, you first have to generate a GPG keypair
-to be used by your Tekton Chains system.
-There are many ways to go about this, but you can usually use something like this:
+To get started signing things with Chains, you first have to instruct Chains on how to sign things.
+Chains supports a few different signature schemes, including PGP/GPG, x509 and KMS systems.
+The private key material (or access to it) is required by Chains in order to create signatures.
+
+This section explains how to configure this for each type.
+
+
+#### GPG/PGP
+
+Chains expects the private key and passphrase to be in a secret called `signing-secrets` with the following structure:
+
+* pgp.private-key (the private key)
+* pgp.passphrase (the optional passphrase)
+
+You can set all of these as fields in the Kubernetes secret `signing-secrets`:
+
+```shell
+kubectl create secret generic signing-secrets -n tekton-pipelines --from-file=pgp.passphrase --from-file=pgp.private-key --from-file=pgp.public-key
+```
+
+##### Setup
+You'll need to create or upload an existing private key as Kubernetes secret.
+If you don't have one already, but you can usually use something like this:
 
 ```shell
 gpg --gen-key
@@ -65,11 +88,44 @@ And save the passphrase (if you set one) in it's own file:
 echo -n $passphrase > pgp.passphrase
 ```
 
-Then set all of these as fields in the Kubernetes secret `signing-secrets`:
+
+#### x509
+
+Chains expects the private key to be stored as an unencrpyted PKCS8 PEM file (`BEGIN PRIVATE KEY`).
+Chains only supports `ed25519` and `ecdsa` keys today.
+
+The private key is expected to be stored in a secret named `signing-secrets` under the key `x509.pem`.
+
+##### Setup
+
+To create an ecdsa keypair, you can do something like:
 
 ```shell
-kubectl create secret generic signing-secrets -n tekton-pipelines --from-file=pgp.passphrase --from-file=pgp.private-key --from-file=pgp.public-key
+openssl ecparam -genkey -name prime256v1 > ec_private.pem
+openssl pkcs8 -topk8 -in ec_private.pem  -nocrypt
 ```
+
+You can add this to the secret with something like:
+
+```shell
+kubectl create secret generic signing-secrets -n tekton-pipelines --from-file=x509.pem
+```
+
+#### KMS
+
+Chains uses a "go-cloud" URI like scheme to refer to KMS references.
+Chains supports GCP KMS and Hashicorp Vault today, but we would love to add support for more.
+
+You can configure Chains to use a specific KMS key using the `signers.kms.kmsref` config key in `chains-config`.
+
+For GCP, this should have the structure of `gcpkms://projects/<project>/locations/<location>/keyRings/<keyring>/cryptoKeys/<key>`
+where <location>, <keyring>, and <key> are filled in appropriately.
+
+For Vault, this should have the structure of `hashivault://<keyname>`, where the `keyname` is filled out appropriately.
+
+The `chains-controller` deployment must have access to this somehow.
+For GCP/GKE, we suggest using Workload Identity.
+Other Service Account techniques would work as well.
 
 ---
 **NOTE**
