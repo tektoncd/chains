@@ -16,8 +16,8 @@ require (
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/magiconair/properties v1.8.5 // indirect
 	github.com/pelletier/go-toml v1.9.0 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
-	github.com/sigstore/cosign v0.3.2-0.20210504221908-6a2c836159a9 // indirect
+	github.com/pkg/errors v0.9.1
+	github.com/sigstore/cosign v0.3.2-0.20210504221908-6a2c836159a9
 	github.com/sigstore/sigstore v0.0.0-20210427115853-11e6eaab7cdc
 	github.com/spf13/afero v1.6.0 // indirect
 	github.com/tektoncd/pipeline v0.23.0
