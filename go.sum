@@ -824,6 +824,8 @@ github.com/in-toto/in-toto-golang v0.1.0 h1:B+FqChhuADE0jDSd2qFeuVj5FagaGVYQH7/g
 github.com/in-toto/in-toto-golang v0.1.0/go.mod h1:YJxRMhV6z+dGvAMxq/7TzWL6LIm92c35cYjJ1S5ccFw=
 github.com/in-toto/in-toto-golang v0.1.1-0.20210429211657-b8845f588cf1 h1:uzaycv83YZyB3gIs5Fnb4Vp3GQxuPU7Mxr9pOVKzE/M=
 github.com/in-toto/in-toto-golang v0.1.1-0.20210429211657-b8845f588cf1/go.mod h1:CV6wDPIrRheCXNQXxrr+x6Ued1MLKbe2z7wU56SlVQc=
+github.com/in-toto/in-toto-golang v0.1.1-0.20210505200736-471bd79ebd18 h1:eof0G7NssBxSPzUZstI8ofmf1sOZ44dZy7rmEnSF+GM=
+github.com/in-toto/in-toto-golang v0.1.1-0.20210505200736-471bd79ebd18/go.mod h1:CV6wDPIrRheCXNQXxrr+x6Ued1MLKbe2z7wU56SlVQc=
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
 github.com/influxdata/influxdb1-client v0.0.0-20191209144304-8bf82d3c094d/go.mod h1:qj24IKcXYK6Iy9ceXlo3Tc+vtHo9lIhSX5JddghvEPo=
 github.com/influxdata/tdigest v0.0.0-20180711151920-a7d76c6f093a/go.mod h1:9GkyshztGufsdPQWjH+ifgnIr3xNUL5syI70g2dzU1o=
