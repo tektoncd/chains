@@ -19,21 +19,17 @@ limitations under the License.
 package test
 
 import (
-	"archive/tar"
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
-	"io"
-	"io/ioutil"
-	"os"
 	"testing"
 	"time"
 
-	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
-	"github.com/google/go-containerregistry/pkg/v1/partial"
-	"github.com/google/go-containerregistry/pkg/v1/remote"
+	"github.com/sigstore/cosign/pkg/cosign"
+	"github.com/sigstore/sigstore/pkg/signature"
 
 	"cloud.google.com/go/compute/metadata"
 	"cloud.google.com/go/storage"
@@ -187,25 +183,28 @@ func TestGCSStorage(t *testing.T) {
 
 func TestOCIStorage(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
-	if metadata.OnGCE() {
-		t.Skip("Skipping, integration tests do not support GCS secrets yet.")
-	}
-	repo := os.Getenv("OCI_REPOSITORY")
-	if repo == "" {
-		t.Skipf("Skipping, %s requires OCI_REPOSITORY to be set.", t.Name())
-	}
 	c, ns, cleanup := setup(ctx, t)
 	defer cleanup()
 
 	resetConfig := setConfigMap(ctx, t, c, map[string]string{
-		"artifacts.taskrun.storage": "oci",
-		"storage.oci.repository":    repo,
-		"artifacts.taskrun.signer":  "pgp",
+		"artifacts.taskrun.storage":       "oci",
+		"artifacts.taskrun.signer":        "x509",
+		"artifacts.taskrun.format":        "simplesigning",
+		"storage.oci.repository.insecure": "true",
 	})
 	defer resetConfig()
 	time.Sleep(3 * time.Second)
 
-	tr, err := c.PipelineClient.TektonV1beta1().TaskRuns(ns).Create(ctx, &simpleTaskRun, metav1.CreateOptions{})
+	// create necessary resources
+	image := fmt.Sprintf("%s/%s", c.registry, "chains-test-oci-storage")
+	task := kanikoTask(t, ns, image)
+
+	if _, err := c.PipelineClient.TektonV1beta1().Tasks(ns).Create(ctx, task, metav1.CreateOptions{}); err != nil {
+		t.Fatalf("error creating task: %s", err)
+	}
+
+	taskRun := kanikoTaskRun(ns)
+	tr, err := c.PipelineClient.TektonV1beta1().TaskRuns(ns).Create(ctx, taskRun, metav1.CreateOptions{})
 	if err != nil {
 		t.Errorf("error creating taskrun: %s", err)
 	}
@@ -213,59 +212,20 @@ func TestOCIStorage(t *testing.T) {
 	// Give it a minute to complete.
 	waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, done, 60*time.Second)
 
-	// It can take up to a minute for the secret data to be updated!
-	tr = waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, signed, 120*time.Second)
+	pubKey := signature.ECDSAVerifier{Key: &c.secret.x509Priv.PublicKey, HashAlg: crypto.SHA256}
+	ref, err := name.ParseReference(image, name.Insecure)
+	if err != nil {
+		t.Errorf("parsing ref: %v", err)
+	}
 
-	imgName := fmt.Sprintf("%s/taskrun-%s-%s-%s/taskrun", repo, tr.Namespace, tr.Name, tr.UID)
-	ref, err := name.ParseReference(imgName)
+	// give the controller some time for signing
+	time.Sleep(30 * time.Second)
+	_, err = cosign.Verify(ctx, ref, &cosign.CheckOpts{
+		PubKey: pubKey,
+	})
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("error verifying: %v", err)
 	}
-	img, err := remote.Image(ref, remote.WithAuthFromKeychain(authn.DefaultKeychain))
-	if err != nil {
-		t.Fatal(err)
-	}
-	layers, err := img.Layers()
-	if err != nil {
-		t.Fatal(err)
-	}
-	// There should only be one layer and one file in the layer.
-	if len(layers) != 1 {
-		t.Fatalf("expected only one layer, found %d", len(layers))
-	}
-	layer := layers[0]
-	rc, err := layer.Uncompressed()
-	defer rc.Close()
-	tarfile := tar.NewReader(rc)
-
-	numFiles := 0
-	d, err := partial.Descriptor(layer)
-	if err != nil {
-		t.Error(err)
-	}
-	sigBytes := []byte(d.Annotations["signature"])
-	var bodyBytes []byte
-	for {
-		hdr, err := tarfile.Next()
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			t.Error(err)
-		}
-		numFiles += 1
-		if hdr.Name != "signed" {
-			t.Errorf("expected file name to be 'signed', got %s", hdr.Name)
-		}
-
-		bodyBytes, err = ioutil.ReadAll(tarfile)
-		if err != nil {
-			t.Error(err)
-		}
-	}
-	if numFiles != 1 {
-		t.Errorf("expected only one file in the tar, found %d", numFiles)
-	}
-	checkPgpSignatures(t, sigBytes, bodyBytes)
 }
 
 var imageTaskSpec = v1beta1.TaskSpec{
