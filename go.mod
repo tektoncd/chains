@@ -9,7 +9,7 @@ require (
 	github.com/google/go-containerregistry v0.4.1
 	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20210129212729-5c4818de4025
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/in-toto/in-toto-golang v0.1.1-0.20210429211657-b8845f588cf1
+	github.com/in-toto/in-toto-golang v0.1.1-0.20210505200736-471bd79ebd18
 	github.com/sigstore/sigstore v0.0.0-20210427115853-11e6eaab7cdc
 	github.com/tektoncd/pipeline v0.23.0
 	github.com/tektoncd/plumbing v0.0.0-20210420200944-17170d5e7bc9

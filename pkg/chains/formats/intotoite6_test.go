@@ -118,7 +118,8 @@ var testData1 = `
 
 var expected1 = in_toto.ProvenanceStatement{
 	StatementHeader: in_toto.StatementHeader{
-		PredicateType: in_toto.PredicateProvenanceV1,
+		Type:          in_toto.StatementInTotoV01,
+		PredicateType: in_toto.PredicateProvenanceV01,
 		Subject: []in_toto.Subject{
 			{
 				Name: "/bin/ls",
@@ -229,7 +230,8 @@ var testData2 = `
 
 var expected2 = in_toto.ProvenanceStatement{
 	StatementHeader: in_toto.StatementHeader{
-		PredicateType: in_toto.PredicateProvenanceV1,
+		Type:          in_toto.StatementInTotoV01,
+		PredicateType: in_toto.PredicateProvenanceV01,
 		Subject: []in_toto.Subject{
 			{
 				Name: "pkg:deb/debian/curl@7.50.3-1",

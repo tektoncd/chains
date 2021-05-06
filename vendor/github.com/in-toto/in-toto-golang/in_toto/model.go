@@ -62,17 +62,17 @@ var ErrNoPublicKey = errors.New("the given key is not a public key")
 var ErrCurveSizeSchemeMismatch = errors.New("the scheme does not match the curve size")
 
 const (
-	// StatementInTotoV1 is the payload type for the generalized link format
-	// containing statements.
-	StatementInTotoV1 = "https://in-toto.io/Statement/v1-json"
+	// StatementInTotoV01 is the statement type for the generalized link format
+	// containing statements. This is constant for all predicate types.
+	StatementInTotoV01 = "https://in-toto.io/Statement/v0.1"
 	// PredicateSPDX represents a SBOM using the SPDX standard.
 	// The SPDX mandates 'spdxVersion' field, so predicate type can omit
 	// version.
 	PredicateSPDX = "https://spdx.dev/Document"
 	// PredicateLinkV1 represents an in-toto 0.9 link.
 	PredicateLinkV1 = "https://in-toto.io/Link/v1"
-	// PredicateProvenanceV1 represents a build provenance for an artifact.
-	PredicateProvenanceV1 = "https://in-toto.io/Provenance/v1"
+	// PredicateProvenanceV01 represents a build provenance for an artifact.
+	PredicateProvenanceV01 = "https://in-toto.io/Provenance/v0.1"
 )
 
 /*
@@ -872,6 +872,7 @@ type Subject struct {
 
 // StatementHeader defines the common fields for all statements
 type StatementHeader struct {
+	Type          string    `json:"_type"`
 	PredicateType string    `json:"predicateType"`
 	Subject       []Subject `json:"subject"`
 }
@@ -899,23 +900,32 @@ type ProvenanceRecipe struct {
 	DefinedInMaterial *int        `json:"definedInMaterial,omitempty"`
 	EntryPoint        string      `json:"entryPoint"`
 	Arguments         interface{} `json:"arguments,omitempty"`
-	Reproducibility   interface{} `json:"reproducibility,omitempty"`
+	Environment       interface{} `json:"environment,omitempty"`
+}
+
+// ProvenanceComplete indicates wheter the claims in build/recipe are complete.
+// For in depth information refer to the specifictaion:
+// https://github.com/in-toto/attestation/blob/v0.1.0/spec/predicates/provenance.md
+type ProvenanceComplete struct {
+	Arguments   bool `json:"arguments"`
+	Environment bool `json:"environment"`
+	Materials   bool `json:"materials"`
 }
 
 // ProvenanceMetadata contains metadata for the built artifact.
 type ProvenanceMetadata struct {
 	// Use pointer to make sure that the abscense of a time is not
 	// encoded as the Epoch time.
-	BuildStartedOn    *time.Time `json:"buildStartedOn,omitempty"`
-	MaterialsComplete bool       `json:"materialsComplete"`
+	BuildStartedOn  *time.Time         `json:"buildStartedOn,omitempty"`
+	BuildFinishedOn *time.Time         `json:"buildFinishedOn,omitempty"`
+	Completeness    ProvenanceComplete `json:"completeness"`
+	Reproducible    bool               `json:"reproducible"`
 }
 
 // ProvenanceMaterial defines the materials used to build an artifact.
 type ProvenanceMaterial struct {
-	URI       string    `json:"uri"`
-	Digest    DigestSet `json:"digest,omitempty"`
-	MediaType string    `json:"mediaType"`
-	Tags      []string  `json:"tags,omitempty"`
+	URI    string    `json:"uri"`
+	Digest DigestSet `json:"digest,omitempty"`
 }
 
 // ProvenancePredicate is the provenance predicate definition.

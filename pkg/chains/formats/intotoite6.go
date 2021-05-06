@@ -12,7 +12,6 @@ import (
 
 const (
 	tektonID = "https://tekton.dev/attestations/chains@v1"
-	mediaTypeGitCommit = "application/vnd.git.commit"
 )
 
 const (
@@ -54,7 +53,8 @@ func (i *InTotoIte6) CreatePayload(obj interface{}) (interface{}, error) {
 	// Taskname -> Recipe.entry_point
 	att := in_toto.ProvenanceStatement{
 		StatementHeader: in_toto.StatementHeader{
-			PredicateType: in_toto.PredicateProvenanceV1,
+			Type:          in_toto.StatementInTotoV01,
+			PredicateType: in_toto.PredicateProvenanceV01,
 		},
 		Predicate: in_toto.ProvenancePredicate{
 			Builder: in_toto.ProvenanceBuilder{
@@ -66,8 +66,11 @@ func (i *InTotoIte6) CreatePayload(obj interface{}) (interface{}, error) {
 			},
 		},
 	}
-	if tr.Status.CompletionTime != nil {
+	if tr.Status.StartTime != nil {
 		att.Predicate.Metadata.BuildStartedOn = &tr.Status.StartTime.Time
+	}
+	if tr.Status.CompletionTime != nil {
+		att.Predicate.Metadata.BuildFinishedOn = &tr.Status.CompletionTime.Time
 	}
 
 	results := getResultDigests(tr)
@@ -82,7 +85,6 @@ func (i *InTotoIte6) CreatePayload(obj interface{}) (interface{}, error) {
 		att.Predicate.Materials = append(att.Predicate.Materials, in_toto.ProvenanceMaterial{
 			URI:    vcsInfo.URL,
 			Digest: map[string]string{"git_commit": vcsInfo.Commit},
-			MediaType: mediaTypeGitCommit,
 		})
 		// Remember the URI of the recipe material. We need to find it later to set the index correctly (after sorting)
 		recipeMaterialUri = vcsInfo.URL
@@ -109,7 +111,7 @@ func (i *InTotoIte6) CreatePayload(obj interface{}) (interface{}, error) {
 		}
 		att.Predicate.Materials = append(att.Predicate.Materials, in_toto.ProvenanceMaterial{
 			URI:    d[0],
-			Digest: map[string]string{h[0]: h[1]},
+			Digest: in_toto.DigestSet{h[0]: h[1]},
 		})
 	}
 
@@ -151,7 +153,7 @@ func getResultDigests(tr *v1beta1.TaskRun) []artifactResult {
 	return results
 }
 
-// getVcsInfo scans over the input parameters and loogs for parameters
+// getVcsInfo scans over the input parameters and looks for parameters
 // with specified names.
 func getVcsInfo(tr *v1beta1.TaskRun) *vcsInfo {
 	var v vcsInfo
