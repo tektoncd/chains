@@ -32,6 +32,7 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"encoding/pem"
+	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"testing"
@@ -40,8 +41,10 @@ import (
 	"github.com/tektoncd/pipeline/pkg/names"
 
 	pipelineclientset "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
+	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	knativetest "knative.dev/pkg/test"
@@ -49,11 +52,10 @@ import (
 
 // clients holds instances of interfaces for making requests to the Pipeline controllers.
 type clients struct {
-	KubeClient kubernetes.Interface
-
+	KubeClient     kubernetes.Interface
 	PipelineClient pipelineclientset.Interface
-
-	secret secret
+	secret         secret
+	registry       string
 }
 
 // newClients instantiates and returns several clientsets required for making requests to the
@@ -88,6 +90,7 @@ func setup(ctx context.Context, t *testing.T) (*clients, string, func()) {
 	createNamespace(ctx, t, namespace, c.KubeClient)
 
 	c.secret = setupSecret(ctx, t, c.KubeClient)
+	c.registry = createRegistry(ctx, t, namespace, c.KubeClient)
 
 	var cleanup = func() {
 		t.Logf("Deleting namespace %s", namespace)
@@ -112,6 +115,95 @@ func createNamespace(ctx context.Context, t *testing.T, namespace string, kubeCl
 
 type secret struct {
 	x509Priv *ecdsa.PrivateKey
+}
+
+func createRegistry(ctx context.Context, t *testing.T, namespace string, kubeClient kubernetes.Interface) string {
+	t.Helper()
+	t.Logf("Creating insecure registry to deploy in ns %s", namespace)
+	replicas := int32(1)
+	label := map[string]string{"app": "registry"}
+	meta := metav1.ObjectMeta{
+		Name:      "registry",
+		Namespace: namespace,
+		Labels:    label,
+	}
+	deployment := &v1.Deployment{
+		ObjectMeta: meta,
+		Spec: v1.DeploymentSpec{
+			Replicas: &replicas,
+			Selector: &metav1.LabelSelector{MatchLabels: label},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: meta,
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  "registry",
+							Image: "registry:2.7.1@sha256:d5459fcb27aecc752520df4b492b08358a1912fcdfa454f7d2101d4b09991daa",
+							Ports: []corev1.ContainerPort{
+								{
+									ContainerPort: 5000,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	if _, err := kubeClient.AppsV1().Deployments(namespace).Create(ctx, deployment, metav1.CreateOptions{}); err != nil {
+		t.Fatalf("Failed to create deployment registry for tests: %s", err)
+	}
+	t.Logf("Exposing registry service")
+
+	service := &corev1.Service{
+		ObjectMeta: meta,
+		Spec: corev1.ServiceSpec{
+			Selector:              label,
+			ExternalTrafficPolicy: corev1.ServiceExternalTrafficPolicyTypeCluster,
+			Type:                  corev1.ServiceTypeLoadBalancer,
+			Ports:                 []corev1.ServicePort{{Port: int32(5000), Protocol: corev1.ProtocolTCP, TargetPort: intstr.IntOrString{IntVal: int32(5000)}}},
+		},
+	}
+
+	service, err := kubeClient.CoreV1().Services(namespace).Create(ctx, service, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("Failed to create service for tests: %s", err)
+	}
+
+	t.Logf("Waiting for external service IP to be exposed...")
+	return waitForExternalIP(ctx, t, service, 2*time.Minute, kubeClient)
+}
+
+func waitForExternalIP(ctx context.Context, t *testing.T, service *corev1.Service, timeout time.Duration, c kubernetes.Interface) string {
+	t.Helper()
+	w, err := c.CoreV1().Services(service.Namespace).Watch(ctx, metav1.SingleObject(metav1.ObjectMeta{
+		Name:      service.Name,
+		Namespace: service.Namespace,
+	}))
+	if err != nil {
+		t.Errorf("error watching taskrun: %s", err)
+	}
+	// Setup a timeout channel
+	timeoutChan := make(chan struct{})
+	go func() {
+		time.Sleep(timeout)
+		timeoutChan <- struct{}{}
+	}()
+
+	// Wait for the condition to be true or a timeout
+	for {
+		select {
+		case ev := <-w.ResultChan():
+			tr := ev.Object.(*corev1.Service)
+			if ingress := tr.Status.LoadBalancer.Ingress; ingress != nil {
+				if ingress[0].IP != "" {
+					return fmt.Sprintf("%s:5000", ingress[0].IP)
+				}
+			}
+		case <-timeoutChan:
+			t.Error("time out")
+		}
+	}
 }
 
 func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface) secret {
@@ -142,7 +234,7 @@ func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface) secr
 	if _, err := c.CoreV1().Secrets("tekton-pipelines").Update(ctx, &s, metav1.UpdateOptions{}); err != nil {
 		t.Error(err)
 	}
-	time.Sleep(60 * time.Second)
+	time.Sleep(6 * time.Second)
 	return secret{
 		x509Priv: priv,
 	}

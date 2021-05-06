@@ -60,6 +60,7 @@ type GCSStorageConfig struct {
 
 type OCIStorageConfig struct {
 	Repository string
+	Insecure   bool
 }
 
 type TektonStorageConfig struct {
@@ -74,8 +75,9 @@ const (
 	ociStorageKey = "artifacts.oci.storage"
 	ociSignerKey  = "artifacts.oci.signer"
 
-	gcsBucketKey     = "storage.gcs.bucket"
-	ociRepositoryKey = "storage.oci.repository"
+	gcsBucketKey             = "storage.gcs.bucket"
+	ociRepositoryKey         = "storage.oci.repository"
+	ociRepositoryInsecureKey = "storage.oci.repository.insecure"
 	// No config needed for Tekton object storage
 
 	// No config needed for pgp signer
@@ -106,6 +108,7 @@ func parse(data map[string]string) Config {
 
 	cfg.Storage.GCS.Bucket = data[gcsBucketKey]
 	cfg.Storage.OCI.Repository = data[ociRepositoryKey]
+	cfg.Storage.OCI.Insecure = (data[ociRepositoryInsecureKey] == "true")
 
 	cfg.Signers.KMS.KMSRef = data[kmsSignerKMSRef]
 

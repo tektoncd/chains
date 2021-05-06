@@ -73,7 +73,11 @@ func (b *Backend) StorePayload(rawPayload []byte, signature string, key string) 
 	imageName := format.ImageName()
 
 	b.logger.Infof("Uploading %s signature", imageName)
-	ref, err := name.NewDigest(imageName)
+	var opts []name.Option
+	if b.cfg.Storage.OCI.Insecure {
+		opts = append(opts, name.Insecure)
+	}
+	ref, err := name.NewDigest(imageName, opts...)
 	if err != nil {
 		return errors.Wrap(err, "getting digest")
 	}
