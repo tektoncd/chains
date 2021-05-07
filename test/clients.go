@@ -34,6 +34,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
+	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
@@ -82,7 +83,7 @@ func newClients(t *testing.T, configPath, clusterName string) *clients {
 	return c
 }
 
-func setup(ctx context.Context, t *testing.T) (*clients, string, func()) {
+func setup(ctx context.Context, t *testing.T, setupRegistry bool) (*clients, string, func()) {
 	t.Helper()
 	namespace := names.SimpleNameGenerator.RestrictLengthWithRandomSuffix("earth")
 
@@ -90,7 +91,9 @@ func setup(ctx context.Context, t *testing.T) (*clients, string, func()) {
 	createNamespace(ctx, t, namespace, c.KubeClient)
 
 	c.secret = setupSecret(ctx, t, c.KubeClient)
-	c.registry = createRegistry(ctx, t, namespace, c.KubeClient)
+	if setupRegistry {
+		c.registry = createRegistry(ctx, t, namespace, c.KubeClient)
+	}
 
 	var cleanup = func() {
 		t.Logf("Deleting namespace %s", namespace)
@@ -201,7 +204,9 @@ func waitForExternalIP(ctx context.Context, t *testing.T, service *corev1.Servic
 				}
 			}
 		case <-timeoutChan:
-			t.Error("time out")
+			output, err := exec.Command("kubectl", "get", "svc", "-A").CombinedOutput()
+			t.Logf("ERROR creating registry, time out:%v\n%s", err, string(output))
+			return ""
 		}
 	}
 }
