@@ -43,6 +43,10 @@ func (i *InTotoIte6) CreatePayload(obj interface{}) (interface{}, error) {
 
 	}
 
+	if tr.Spec.TaskRef == nil {
+		return nil, fmt.Errorf("TaskRef is nil for %s", tr.Status.PodName)
+	}
+
 	// Here we translate a Tekton TaskRun into an InToto ite6 attestation.
 	// At a high leevel, the  mapping looks roughly like:
 	// Podname -> Builder.Id
