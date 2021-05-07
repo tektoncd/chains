@@ -42,7 +42,7 @@ import (
 
 func TestInstall(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
-	c, _, cleanup := setup(ctx, t)
+	c, _, cleanup := setup(ctx, t, false)
 	defer cleanup()
 	dep, err := c.KubeClient.AppsV1().Deployments("tekton-pipelines").Get(ctx, "tekton-chains-controller", metav1.GetOptions{})
 	if err != nil {
@@ -55,7 +55,7 @@ func TestInstall(t *testing.T) {
 
 func TestTektonStorage(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
-	c, ns, cleanup := setup(ctx, t)
+	c, ns, cleanup := setup(ctx, t, false)
 	defer cleanup()
 
 	// Setup the right config.
@@ -94,7 +94,7 @@ func TestTektonStorage(t *testing.T) {
 
 func TestOCISigning(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
-	c, ns, cleanup := setup(ctx, t)
+	c, ns, cleanup := setup(ctx, t, false)
 	defer cleanup()
 
 	// Setup the right config.
@@ -143,7 +143,7 @@ func TestGCSStorage(t *testing.T) {
 	if metadata.OnGCE() {
 		t.Skip("Skipping, integration tests do not support GCS secrets yet.")
 	}
-	c, ns, cleanup := setup(ctx, t)
+	c, ns, cleanup := setup(ctx, t, false)
 	defer cleanup()
 
 	client, err := storage.NewClient(ctx)
@@ -183,7 +183,7 @@ func TestGCSStorage(t *testing.T) {
 
 func TestOCIStorage(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
-	c, ns, cleanup := setup(ctx, t)
+	c, ns, cleanup := setup(ctx, t, true)
 	defer cleanup()
 
 	resetConfig := setConfigMap(ctx, t, c, map[string]string{
