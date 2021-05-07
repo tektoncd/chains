@@ -186,6 +186,9 @@ func TestGCSStorage(t *testing.T) {
 
 func TestOCIStorage(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
+	if metadata.OnGCE() {
+		t.Skip("Skipping, LoadBalancer not supported on GCE. Replace this with calling the service name itself once https://github.com/sigstore/cosign/issues/311 has been done.")
+	}
 	c, ns, cleanup := setup(ctx, t)
 	defer cleanup()
 
