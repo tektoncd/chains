@@ -32,7 +32,6 @@ import (
 
 const (
 	StorageBackendOCI = "oci"
-	mediaType         = "application/vnd.tekton.chains.signature.v1+json"
 )
 
 // Backend is a storage backend that stores signed payloads in the TaskRun metadata as an annotation.
