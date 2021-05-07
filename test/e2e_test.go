@@ -42,7 +42,7 @@ import (
 
 func TestInstall(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
-	c, _, cleanup := setup(ctx, t, false)
+	c, _, cleanup := setup(ctx, t)
 	defer cleanup()
 	dep, err := c.KubeClient.AppsV1().Deployments("tekton-pipelines").Get(ctx, "tekton-chains-controller", metav1.GetOptions{})
 	if err != nil {
@@ -55,10 +55,10 @@ func TestInstall(t *testing.T) {
 
 func TestTektonStorage(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
-	c, ns, cleanup := setup(ctx, t, false)
+	c, ns, cleanup := setup(ctx, t)
 	defer cleanup()
 
-	// Setup the right config.
+	// Setup the right coßnfig.
 	resetConfig := setConfigMap(ctx, t, c, map[string]string{
 		"artifacts.taskrun.storage": "tekton",
 		"artifacts.taskrun.signer":  "pgp",
@@ -94,7 +94,7 @@ func TestTektonStorage(t *testing.T) {
 
 func TestOCISigning(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
-	c, ns, cleanup := setup(ctx, t, false)
+	c, ns, cleanup := setup(ctx, t)
 	defer cleanup()
 
 	// Setup the right config.
@@ -143,7 +143,7 @@ func TestGCSStorage(t *testing.T) {
 	if metadata.OnGCE() {
 		t.Skip("Skipping, integration tests do not support GCS secrets yet.")
 	}
-	c, ns, cleanup := setup(ctx, t, false)
+	c, ns, cleanup := setup(ctx, t)
 	defer cleanup()
 
 	client, err := storage.NewClient(ctx)
@@ -183,7 +183,7 @@ func TestGCSStorage(t *testing.T) {
 
 func TestOCIStorage(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
-	c, ns, cleanup := setup(ctx, t, true)
+	c, ns, cleanup := setup(ctx, t)
 	defer cleanup()
 
 	resetConfig := setConfigMap(ctx, t, c, map[string]string{
@@ -218,13 +218,26 @@ func TestOCIStorage(t *testing.T) {
 		t.Errorf("parsing ref: %v", err)
 	}
 
-	// give the controller some time for signing
-	time.Sleep(30 * time.Second)
-	_, err = cosign.Verify(ctx, ref, &cosign.CheckOpts{
-		PubKey: pubKey,
-	})
-	if err != nil {
-		t.Fatalf("error verifying: %v", err)
+	// wait two minutes for the controller to sign
+	// setup a timeout channel
+	timeoutChan := make(chan struct{})
+	go func() {
+		time.Sleep(2 * time.Minute)
+		timeoutChan <- struct{}{}
+	}()
+	for {
+		select {
+		default:
+			if _, err = cosign.Verify(ctx, ref, &cosign.CheckOpts{
+				PubKey: pubKey,
+			}); err != nil {
+				t.Log(err)
+			} else {
+				return
+			}
+		case <-timeoutChan:
+			t.Error("time out")
+		}
 	}
 }
 

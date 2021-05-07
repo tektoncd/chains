@@ -83,7 +83,7 @@ func newClients(t *testing.T, configPath, clusterName string) *clients {
 	return c
 }
 
-func setup(ctx context.Context, t *testing.T, setupRegistry bool) (*clients, string, func()) {
+func setup(ctx context.Context, t *testing.T) (*clients, string, func()) {
 	t.Helper()
 	namespace := names.SimpleNameGenerator.RestrictLengthWithRandomSuffix("earth")
 
@@ -91,9 +91,7 @@ func setup(ctx context.Context, t *testing.T, setupRegistry bool) (*clients, str
 	createNamespace(ctx, t, namespace, c.KubeClient)
 
 	c.secret = setupSecret(ctx, t, c.KubeClient)
-	if setupRegistry {
-		c.registry = createRegistry(ctx, t, namespace, c.KubeClient)
-	}
+	c.registry = createRegistry(ctx, t, c.KubeClient)
 
 	var cleanup = func() {
 		t.Logf("Deleting namespace %s", namespace)
@@ -120,9 +118,9 @@ type secret struct {
 	x509Priv *ecdsa.PrivateKey
 }
 
-func createRegistry(ctx context.Context, t *testing.T, namespace string, kubeClient kubernetes.Interface) string {
+func createRegistry(ctx context.Context, t *testing.T, kubeClient kubernetes.Interface) string {
 	t.Helper()
-	t.Logf("Creating insecure registry to deploy in ns %s", namespace)
+	namespace := "tekton-pipelines"
 	replicas := int32(1)
 	label := map[string]string{"app": "registry"}
 	meta := metav1.ObjectMeta{
@@ -153,11 +151,6 @@ func createRegistry(ctx context.Context, t *testing.T, namespace string, kubeCli
 			},
 		},
 	}
-	if _, err := kubeClient.AppsV1().Deployments(namespace).Create(ctx, deployment, metav1.CreateOptions{}); err != nil {
-		t.Fatalf("Failed to create deployment registry for tests: %s", err)
-	}
-	t.Logf("Exposing registry service")
-
 	service := &corev1.Service{
 		ObjectMeta: meta,
 		Spec: corev1.ServiceSpec{
@@ -167,6 +160,20 @@ func createRegistry(ctx context.Context, t *testing.T, namespace string, kubeCli
 			Ports:                 []corev1.ServicePort{{Port: int32(5000), Protocol: corev1.ProtocolTCP, TargetPort: intstr.IntOrString{IntVal: int32(5000)}}},
 		},
 	}
+	t.Logf("Creating insecure registry to deploy in ns %s", namespace)
+	// first, check if the svc already exists
+	if svc, err := kubeClient.CoreV1().Services(namespace).Get(ctx, service.Name, metav1.GetOptions{}); err == nil {
+		if ingress := svc.Status.LoadBalancer.Ingress; ingress != nil {
+			if ingress[0].IP != "" {
+				return fmt.Sprintf("%s:5000", ingress[0].IP)
+			}
+		}
+	}
+
+	if _, err := kubeClient.AppsV1().Deployments(namespace).Create(ctx, deployment, metav1.CreateOptions{}); err != nil {
+		t.Fatalf("Failed to create deployment registry for tests: %s", err)
+	}
+	t.Logf("Exposing registry service")
 
 	service, err := kubeClient.CoreV1().Services(namespace).Create(ctx, service, metav1.CreateOptions{})
 	if err != nil {
@@ -239,7 +246,7 @@ func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface) secr
 	if _, err := c.CoreV1().Secrets("tekton-pipelines").Update(ctx, &s, metav1.UpdateOptions{}); err != nil {
 		t.Error(err)
 	}
-	time.Sleep(6 * time.Second)
+	time.Sleep(60 * time.Second)
 	return secret{
 		x509Priv: priv,
 	}
