@@ -39,6 +39,7 @@ import (
 	"testing"
 	"time"
 
+	"cloud.google.com/go/compute/metadata"
 	"github.com/tektoncd/pipeline/pkg/names"
 
 	pipelineclientset "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
@@ -120,6 +121,10 @@ type secret struct {
 
 func createRegistry(ctx context.Context, t *testing.T, kubeClient kubernetes.Interface) string {
 	t.Helper()
+	if metadata.OnGCE() {
+		t.Log("LoadBalancer not supported on GCE, skipping creating registry")
+		return ""
+	}
 	namespace := "tekton-pipelines"
 	replicas := int32(1)
 	label := map[string]string{"app": "registry"}
@@ -180,7 +185,7 @@ func createRegistry(ctx context.Context, t *testing.T, kubeClient kubernetes.Int
 	}
 
 	t.Logf("Waiting for external service IP to be exposed...")
-	return waitForExternalIP(ctx, t, service, 5*time.Minute, kubeClient)
+	return waitForExternalIP(ctx, t, service, 2*time.Minute, kubeClient)
 }
 
 func waitForExternalIP(ctx context.Context, t *testing.T, service *corev1.Service, timeout time.Duration, c kubernetes.Interface) string {
@@ -211,7 +216,7 @@ func waitForExternalIP(ctx context.Context, t *testing.T, service *corev1.Servic
 			}
 		case <-timeoutChan:
 			output, err := exec.Command("kubectl", "get", "svc", "-A").CombinedOutput()
-			t.Fatalf("ERROR creating registry, time out:%v\n%s", err, string(output))
+			t.Fatalf("Error creating registry, time out:%v\n%s", err, string(output))
 		}
 	}
 }
