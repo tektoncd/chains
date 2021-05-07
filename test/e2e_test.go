@@ -58,11 +58,14 @@ func TestTektonStorage(t *testing.T) {
 	c, ns, cleanup := setup(ctx, t)
 	defer cleanup()
 
-	// Setup the right coßnfig.
+	// Setup the right config.
 	resetConfig := setConfigMap(ctx, t, c, map[string]string{
 		"artifacts.taskrun.storage": "tekton",
 		"artifacts.taskrun.signer":  "pgp",
 		"artifacts.taskrun.format":  "tekton",
+		"artifacts.oci.format":      "tekton",
+		"artifacts.oci.storage":     "tekton",
+		"artifacts.oci.signer":      "pgp",
 	})
 	defer resetConfig()
 

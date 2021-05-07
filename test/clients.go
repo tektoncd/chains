@@ -160,7 +160,6 @@ func createRegistry(ctx context.Context, t *testing.T, kubeClient kubernetes.Int
 			Ports:                 []corev1.ServicePort{{Port: int32(5000), Protocol: corev1.ProtocolTCP, TargetPort: intstr.IntOrString{IntVal: int32(5000)}}},
 		},
 	}
-	t.Logf("Creating insecure registry to deploy in ns %s", namespace)
 	// first, check if the svc already exists
 	if svc, err := kubeClient.CoreV1().Services(namespace).Get(ctx, service.Name, metav1.GetOptions{}); err == nil {
 		if ingress := svc.Status.LoadBalancer.Ingress; ingress != nil {
@@ -169,7 +168,7 @@ func createRegistry(ctx context.Context, t *testing.T, kubeClient kubernetes.Int
 			}
 		}
 	}
-
+	t.Logf("Creating insecure registry to deploy in ns %s", namespace)
 	if _, err := kubeClient.AppsV1().Deployments(namespace).Create(ctx, deployment, metav1.CreateOptions{}); err != nil {
 		t.Fatalf("Failed to create deployment registry for tests: %s", err)
 	}
