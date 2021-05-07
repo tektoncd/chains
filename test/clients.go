@@ -180,7 +180,7 @@ func createRegistry(ctx context.Context, t *testing.T, kubeClient kubernetes.Int
 	}
 
 	t.Logf("Waiting for external service IP to be exposed...")
-	return waitForExternalIP(ctx, t, service, 2*time.Minute, kubeClient)
+	return waitForExternalIP(ctx, t, service, 5*time.Minute, kubeClient)
 }
 
 func waitForExternalIP(ctx context.Context, t *testing.T, service *corev1.Service, timeout time.Duration, c kubernetes.Interface) string {
@@ -211,8 +211,7 @@ func waitForExternalIP(ctx context.Context, t *testing.T, service *corev1.Servic
 			}
 		case <-timeoutChan:
 			output, err := exec.Command("kubectl", "get", "svc", "-A").CombinedOutput()
-			t.Logf("ERROR creating registry, time out:%v\n%s", err, string(output))
-			return ""
+			t.Fatalf("ERROR creating registry, time out:%v\n%s", err, string(output))
 		}
 	}
 }
