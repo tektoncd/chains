@@ -1,8 +1,16 @@
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: tekton-chains
+  labels:
+    app.kubernetes.io/component: chains
+    app.kubernetes.io/part-of: tekton-pipelines
+---
 apiVersion: v1
 kind: Secret
 metadata:
   name: signing-secrets
-  namespace: tekton-pipelines
+  namespace: tekton-chains
   labels:
     app.kubernetes.io/component: chains
     app.kubernetes.io/instance: default
@@ -20,7 +28,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: chains-config
-  namespace: tekton-pipelines
+  namespace: tekton-chains
   labels:
     app.kubernetes.io/component: chains
     app.kubernetes.io/instance: default
@@ -40,7 +48,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: tekton-chains-controller
-  namespace: tekton-pipelines
+  namespace: tekton-chains
   labels:
     app.kubernetes.io/name: tekton-pipelines
     app.kubernetes.io/component: chains
@@ -63,7 +71,7 @@ spec:
         # pipeline.tekton.dev/release: "devel"
         version: "devel"
     spec:
-      serviceAccountName: tekton-pipelines-controller
+      serviceAccountName: tekton-chains-controller
       containers:
       - name: tekton-chains-controller
         image: ko://github.com/tektoncd/chains/cmd/controller

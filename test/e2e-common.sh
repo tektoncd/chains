@@ -55,10 +55,10 @@ function install_chains() {
   ko apply -f config/ || fail_test "Tekton Chains installation failed"
 
   # Wait for pods to be running in the namespaces we are deploying to
-  wait_until_pods_running tekton-pipelines || fail_test "Tekton Chains did not come up"
+  wait_until_pods_running tekton-chains || fail_test "Tekton Chains did not come up"
 }
 
 function dump_logs() {
   echo ">> Tekton Chains Logs"
-  kubectl logs deployment/tekton-chains-controller -n tekton-pipelines
+  kubectl logs deployment/tekton-chains-controller -n tekton-chains
 }

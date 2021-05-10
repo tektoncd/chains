@@ -162,7 +162,7 @@ func readObj(t *testing.T, bucket, name string, client *storage.Client) []byte {
 
 func setConfigMap(ctx context.Context, t *testing.T, c *clients, data map[string]string) func() {
 	// Change the config to be GCS storage with this bucket.
-	cm, err := c.KubeClient.CoreV1().ConfigMaps("tekton-pipelines").Get(ctx, "chains-config", metav1.GetOptions{})
+	cm, err := c.KubeClient.CoreV1().ConfigMaps("tekton-chains").Get(ctx, "chains-config", metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -176,7 +176,7 @@ func setConfigMap(ctx context.Context, t *testing.T, c *clients, data map[string
 	for k, v := range data {
 		cm.Data[k] = v
 	}
-	cm, err = c.KubeClient.CoreV1().ConfigMaps("tekton-pipelines").Update(ctx, cm, metav1.UpdateOptions{})
+	cm, err = c.KubeClient.CoreV1().ConfigMaps("tekton-chains").Update(ctx, cm, metav1.UpdateOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -189,7 +189,7 @@ func setConfigMap(ctx context.Context, t *testing.T, c *clients, data map[string
 		for k, v := range oldData {
 			cm.Data[k] = v
 		}
-		if _, err := c.KubeClient.CoreV1().ConfigMaps("tekton-pipelines").Update(ctx, cm, metav1.UpdateOptions{}); err != nil {
+		if _, err := c.KubeClient.CoreV1().ConfigMaps("tekton-chains").Update(ctx, cm, metav1.UpdateOptions{}); err != nil {
 			t.Log(err)
 		}
 	}
