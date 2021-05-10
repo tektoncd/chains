@@ -44,7 +44,7 @@ func NewFormater(cfg config.Config) (formats.Payloader, error) {
 		return nil, ErrNoBuilderID
 	}
 
-	return &InTotoIte6{}, nil
+	return &InTotoIte6{builderID: cfg.Builder.ID}, nil
 }
 
 func (i *InTotoIte6) CreatePayload(obj interface{}) (interface{}, error) {
@@ -77,7 +77,7 @@ func (i *InTotoIte6) CreatePayload(obj interface{}) (interface{}, error) {
 		},
 		Predicate: in_toto.ProvenancePredicate{
 			Builder: in_toto.ProvenanceBuilder{
-				ID: tr.Status.PodName,
+				ID: i.builderID,
 			},
 			Recipe: in_toto.ProvenanceRecipe{
 				Type:       tektonID,
