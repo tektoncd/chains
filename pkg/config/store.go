@@ -15,6 +15,7 @@ type Config struct {
 	Artifacts ArtifactConfigs
 	Storage   StorageConfigs
 	Signers   SignerConfigs
+	Builder   BuilderConfig
 }
 
 // ArtifactConfig contains the configuration for how to sign/store/format the signatures for each artifact type
@@ -42,6 +43,10 @@ type SignerConfigs struct {
 	PGP  PGPSigner
 	X509 X509Signer
 	KMS  KMSSigner
+}
+
+type BuilderConfig struct {
+	ID string
 }
 
 type PGPSigner struct {
@@ -84,6 +89,9 @@ const (
 	// KMS
 	kmsSignerKMSRef = "signers.kms.kmsref"
 
+	// Builder config
+	builderIDKey = "builder.id"
+
 	chainsConfig = "chains-config"
 )
 
@@ -108,6 +116,9 @@ func parse(data map[string]string) Config {
 	cfg.Storage.OCI.Repository = data[ociRepositoryKey]
 
 	cfg.Signers.KMS.KMSRef = data[kmsSignerKMSRef]
+
+	// Build config
+	cfg.Builder.ID = data[builderIDKey]
 
 	return cfg
 }

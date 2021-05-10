@@ -1,8 +1,10 @@
-package formats
+package intotoite6
 
 import (
 	"encoding/json"
 	"testing"
+
+	"github.com/tektoncd/chains/pkg/config"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/in-toto/in-toto-golang/in_toto"
@@ -292,4 +294,31 @@ func TestInTotoIte6_CreatePayload2(t *testing.T) {
 	if diff := cmp.Diff(expected2, got); diff != "" {
 		t.Errorf("InTotoIte6.CreatePayload(): -want +got: %s", diff)
 	}
+}
+
+func TestNewFormater(t *testing.T) {
+	t.Run("Ok", func(t *testing.T) {
+		cfg := config.Config{
+			Builder: config.BuilderConfig{
+				ID: "testid",
+			},
+		}
+		f, err := NewFormater(cfg)
+		if f == nil {
+			t.Error("Failed to create formater")
+		}
+		if err != nil {
+			t.Errorf("Error creating formater: %s", err)
+		}
+	})
+	t.Run("Fail", func(t *testing.T) {
+		cfg := config.Config{}
+		f, err := NewFormater(cfg)
+		if f != nil {
+			t.Error("Expected to create to fail")
+		}
+		if err != ErrNoBuilderID {
+			t.Errorf("Unexpected error : %s", err)
+		}
+	})
 }

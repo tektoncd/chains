@@ -11,16 +11,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package formats
+package tekton
 
 import (
 	"fmt"
+
+	"github.com/tektoncd/chains/pkg/chains/formats"
 
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 )
 
 // Tekton is a formatter that just captures the TaskRun Status with no modifications.
 type Tekton struct {
+}
+
+func NewFormater() (formats.Payloader, error) {
+	return &Tekton{}, nil
 }
 
 // CreatePayload implements the Payloader interface.
@@ -35,6 +41,6 @@ func (i *Tekton) CreatePayload(obj interface{}) (interface{}, error) {
 
 }
 
-func (i *Tekton) Type() PayloadType {
-	return PayloadTypeTekton
+func (i *Tekton) Type() formats.PayloadType {
+	return formats.PayloadTypeTekton
 }

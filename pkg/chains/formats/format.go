@@ -27,9 +27,4 @@ const (
 	PayloadTypeInTotoIte6    PayloadType = "in-toto-ite6"
 )
 
-// AllPayloadTypes is a list of all valid Payload types.
-var AllPayloadTypes = map[PayloadType]Payloader{
-	PayloadTypeTekton:        &Tekton{},
-	PayloadTypeSimpleSigning: &SimpleSigning{},
-	PayloadTypeInTotoIte6:    &InTotoIte6{},
-}
+var AllFormaters = []PayloadType{PayloadTypeTekton, PayloadTypeSimpleSigning, PayloadTypeInTotoIte6}

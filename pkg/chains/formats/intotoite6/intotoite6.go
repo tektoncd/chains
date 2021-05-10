@@ -1,10 +1,14 @@
-package formats
+package intotoite6
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/tektoncd/chains/pkg/chains/formats"
+	"github.com/tektoncd/chains/pkg/config"
 
 	"github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -14,12 +18,15 @@ const (
 	tektonID = "https://tekton.dev/attestations/chains@v1"
 )
 
+var ErrNoBuilderID = errors.New("no builder id configured")
+
 const (
 	commitParam = "CHAINS-GIT_COMMIT"
 	urlParam    = "CHAINS-GIT_URL"
 )
 
 type InTotoIte6 struct {
+	builderID string
 }
 
 type artifactResult struct {
@@ -30,6 +37,14 @@ type artifactResult struct {
 type vcsInfo struct {
 	Commit string
 	URL    string
+}
+
+func NewFormater(cfg config.Config) (formats.Payloader, error) {
+	if cfg.Builder.ID == "" {
+		return nil, ErrNoBuilderID
+	}
+
+	return &InTotoIte6{}, nil
 }
 
 func (i *InTotoIte6) CreatePayload(obj interface{}) (interface{}, error) {
@@ -135,8 +150,8 @@ func (i *InTotoIte6) CreatePayload(obj interface{}) (interface{}, error) {
 	return att, nil
 }
 
-func (i *InTotoIte6) Type() PayloadType {
-	return PayloadTypeInTotoIte6
+func (i *InTotoIte6) Type() formats.PayloadType {
+	return formats.PayloadTypeInTotoIte6
 }
 
 // getResultDigests scans over the task.Status.TaskSpec.Results to find any

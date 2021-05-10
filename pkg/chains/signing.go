@@ -19,6 +19,9 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/formats"
+	"github.com/tektoncd/chains/pkg/chains/formats/intotoite6"
+	"github.com/tektoncd/chains/pkg/chains/formats/simple"
+	"github.com/tektoncd/chains/pkg/chains/formats/tekton"
 	"github.com/tektoncd/chains/pkg/chains/signing"
 	"github.com/tektoncd/chains/pkg/chains/signing/kms"
 	"github.com/tektoncd/chains/pkg/chains/signing/pgp"
@@ -113,6 +116,34 @@ func allSigners(sp string, cfg config.Config, l *zap.SugaredLogger) map[string]s
 	}
 	return all
 }
+func allFormaters(cfg config.Config, l *zap.SugaredLogger) map[formats.PayloadType]formats.Payloader {
+	all := map[formats.PayloadType]formats.Payloader{}
+
+	for _, f := range formats.AllFormaters {
+		switch f {
+		case formats.PayloadTypeTekton:
+			formater, err := tekton.NewFormater()
+			if err != nil {
+				l.Warnf("error configuring tekton formater: %s", err)
+			}
+			all[f] = formater
+		case formats.PayloadTypeSimpleSigning:
+			formater, err := simple.NewFormater()
+			if err != nil {
+				l.Warnf("error configuring tekton formater: %s", err)
+			}
+			all[f] = formater
+		case formats.PayloadTypeInTotoIte6:
+			formater, err := intotoite6.NewFormater(cfg)
+			if err != nil {
+				l.Warnf("error configuring tekton formater: %s", err)
+			}
+			all[f] = formater
+		}
+	}
+
+	return all
+}
 
 // SignTaskRun signs a TaskRun, and marks it as signed.
 func (ts *TaskRunSigner) SignTaskRun(tr *v1beta1.TaskRun) error {
@@ -132,6 +163,7 @@ func (ts *TaskRunSigner) SignTaskRun(tr *v1beta1.TaskRun) error {
 	}
 
 	signers := allSigners(ts.SecretPath, cfg, ts.Logger)
+	allFormats := allFormaters(cfg, ts.Logger)
 
 	var merr *multierror.Error
 	for _, signableType := range enabledSignableTypes {
@@ -143,7 +175,7 @@ func (ts *TaskRunSigner) SignTaskRun(tr *v1beta1.TaskRun) error {
 		for _, obj := range objects {
 
 			// Find the right payload format and format the object
-			payloader, ok := formats.AllPayloadTypes[signableType.PayloadFormat(cfg)]
+			payloader, ok := allFormats[signableType.PayloadFormat(cfg)]
 			if !ok {
 				ts.Logger.Warnf("Format %s configured for object: %v %s was not found", signableType.PayloadFormat(cfg), obj, signableType.Type())
 				continue
