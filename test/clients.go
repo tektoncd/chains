@@ -125,7 +125,7 @@ func createRegistry(ctx context.Context, t *testing.T, kubeClient kubernetes.Int
 		t.Log("LoadBalancer not supported on GCE, skipping creating registry")
 		return ""
 	}
-	namespace := "tekton-pipelines"
+	namespace := "tekton-chains"
 	replicas := int32(1)
 	label := map[string]string{"app": "registry"}
 	meta := metav1.ObjectMeta{
@@ -223,11 +223,11 @@ func waitForExternalIP(ctx context.Context, t *testing.T, service *corev1.Servic
 
 func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface) secret {
 	// Only overwrite the secret data if it isn't set.
-
+	namespace := "tekton-chains"
 	s := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "signing-secrets",
-			Namespace: "tekton-pipelines",
+			Namespace: namespace,
 		},
 		StringData: map[string]string{},
 	}
@@ -246,7 +246,7 @@ func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface) secr
 
 	s.StringData["x509.pem"] = toPem(t, priv)
 
-	if _, err := c.CoreV1().Secrets("tekton-pipelines").Update(ctx, &s, metav1.UpdateOptions{}); err != nil {
+	if _, err := c.CoreV1().Secrets(namespace).Update(ctx, &s, metav1.UpdateOptions{}); err != nil {
 		t.Error(err)
 	}
 	time.Sleep(60 * time.Second)

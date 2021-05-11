@@ -44,7 +44,7 @@ func TestInstall(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
 	c, _, cleanup := setup(ctx, t)
 	defer cleanup()
-	dep, err := c.KubeClient.AppsV1().Deployments("tekton-pipelines").Get(ctx, "tekton-chains-controller", metav1.GetOptions{})
+	dep, err := c.KubeClient.AppsV1().Deployments("tekton-chains").Get(ctx, "tekton-chains-controller", metav1.GetOptions{})
 	if err != nil {
 		t.Errorf("Error getting chains deployment: %v", err)
 	}
