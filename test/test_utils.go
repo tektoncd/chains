@@ -81,7 +81,7 @@ func waitForCondition(ctx context.Context, t *testing.T, c pipelineclientset.Int
 				return tr
 			}
 		case <-timeoutChan:
-			t.Error("time out")
+			t.Fatal("time out")
 		}
 	}
 }
