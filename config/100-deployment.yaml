@@ -35,14 +35,15 @@ metadata:
     app.kubernetes.io/part-of: tekton-pipelines
     pipeline.tekton.dev/release: "devel"
     version: "devel"
-# The data can be tweaked at install time.
-data:
-  artifacts.taskrun.format: tekton
-  artifacts.taskrun.storage: tekton
-  artifacts.taskrun.signer: x509
-  artifacts.oci.storage: oci
-  artifacts.oci.format: simplesigning
-  artifacts.oci.signer: x509
+# The data can be tweaked at install time, it is commented out
+# because these are the default settings.
+# data:
+#   artifacts.taskrun.format: tekton
+#   artifacts.taskrun.storage: tekton
+#   artifacts.taskrun.signer: x509
+#   artifacts.oci.storage: oci
+#   artifacts.oci.format: simplesigning
+#   artifacts.oci.signer: x509
 ---
 apiVersion: apps/v1
 kind: Deployment
