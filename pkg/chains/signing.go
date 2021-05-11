@@ -162,6 +162,10 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 				ts.Logger.Warnf("No signer %s configured for object: %v", signerType, obj)
 				continue
 			}
+			if signer == nil {
+				ts.Logger.Error("signer is nil")
+				continue
+			}
 			ts.Logger.Infof("Signing object %s with %s", obj, signerType)
 			rawPayload, err := json.Marshal(payload)
 			if err != nil {

@@ -144,6 +144,56 @@ func TestOCISigning(t *testing.T) {
 	}
 }
 
+func TestOCISigningCosign(t *testing.T) {
+	ctx := logtesting.TestContextWithLogger(t)
+	c, ns, cleanup := setup(ctx, t, useCosign)
+	defer cleanup()
+
+	if c.secret.cosignPriv == nil {
+		t.Fatal("unable to extract cosign private key")
+	}
+
+	// Setup the right config.
+	resetConfig := setConfigMap(ctx, t, c, map[string]string{
+		"artifacts.oci.format":  "simplesigning",
+		"artifacts.oci.storage": "tekton",
+		"artifacts.oci.signer":  "x509"})
+
+	defer resetConfig()
+
+	tr, err := c.PipelineClient.TektonV1beta1().TaskRuns(ns).Create(ctx, &imageTaskRun, metav1.CreateOptions{})
+	if err != nil {
+		t.Errorf("error creating taskrun: %s", err)
+	}
+	t.Logf("Created TaskRun: %s", tr.Name)
+
+	// Give it a minute to complete.
+	waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, done, 60*time.Second)
+
+	// It can take up to a minute for the secret data to be updated!
+	tr = waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, signed, 120*time.Second)
+
+	// Let's fetch the signature and body:
+	t.Log(tr.Annotations)
+
+	signature, body := tr.Annotations["chains.tekton.dev/signature-05f95b26ed10"], tr.Annotations["chains.tekton.dev/payload-05f95b26ed10"]
+	// base64 decode them
+	sigBytes, err := base64.StdEncoding.DecodeString(signature)
+	if err != nil {
+		t.Error(err)
+	}
+	bodyBytes, err := base64.StdEncoding.DecodeString(body)
+	if err != nil {
+		t.Error(err)
+	}
+
+	pub := &c.secret.cosignPriv.PublicKey
+	h := sha256.Sum256(bodyBytes)
+	if !ecdsa.VerifyASN1(pub, h[:], sigBytes) {
+		t.Error("invalid signature")
+	}
+}
+
 func TestGCSStorage(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
 	if metadata.OnGCE() {
@@ -245,7 +295,7 @@ func TestOCIStorage(t *testing.T) {
 				return
 			}
 		case <-timeoutChan:
-			t.Error("time out")
+			t.Fatal("time out")
 		}
 	}
 }

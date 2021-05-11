@@ -40,6 +40,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/compute/metadata"
+	"github.com/sigstore/cosign/pkg/cosign"
 	"github.com/tektoncd/pipeline/pkg/names"
 
 	pipelineclientset "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
@@ -84,14 +85,14 @@ func newClients(t *testing.T, configPath, clusterName string) *clients {
 	return c
 }
 
-func setup(ctx context.Context, t *testing.T) (*clients, string, func()) {
+func setup(ctx context.Context, t *testing.T, so ...secretOpts) (*clients, string, func()) {
 	t.Helper()
 	namespace := names.SimpleNameGenerator.RestrictLengthWithRandomSuffix("earth")
 
 	c := newClients(t, knativetest.Flags.Kubeconfig, knativetest.Flags.Cluster)
 	createNamespace(ctx, t, namespace, c.KubeClient)
 
-	c.secret = setupSecret(ctx, t, c.KubeClient)
+	c.secret = setupSecret(ctx, t, c.KubeClient, so...)
 	c.registry = createRegistry(ctx, t, c.KubeClient)
 
 	var cleanup = func() {
@@ -116,7 +117,8 @@ func createNamespace(ctx context.Context, t *testing.T, namespace string, kubeCl
 }
 
 type secret struct {
-	x509Priv *ecdsa.PrivateKey
+	x509Priv   *ecdsa.PrivateKey
+	cosignPriv *ecdsa.PrivateKey
 }
 
 func createRegistry(ctx context.Context, t *testing.T, kubeClient kubernetes.Interface) string {
@@ -221,7 +223,13 @@ func waitForExternalIP(ctx context.Context, t *testing.T, service *corev1.Servic
 	}
 }
 
-func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface) secret {
+type secretOpts func(map[string]string)
+
+func useCosign(data map[string]string) {
+	delete(data, "x509.pem")
+}
+
+func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface, so ...secretOpts) secret {
 	// Only overwrite the secret data if it isn't set.
 	namespace := "tekton-chains"
 	s := corev1.Secret{
@@ -243,15 +251,33 @@ func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface) secr
 
 	// x509
 	_, priv := ecdsaKeyPair(t)
-
 	s.StringData["x509.pem"] = toPem(t, priv)
+
+	// cosign
+	paths = []string{"cosign.key", "cosign.pub", "cosign.password"}
+	for _, p := range paths {
+		b, err := ioutil.ReadFile(filepath.Join("./testdata", p))
+		if err != nil {
+			t.Error(err)
+		}
+		s.StringData[p] = string(b)
+	}
+	cosignPriv, err := cosign.LoadECDSAPrivateKey([]byte(s.StringData["cosign.key"]), []byte(s.StringData["cosign.password"]))
+	if err != nil {
+		t.Error(err)
+	}
+
+	for _, opt := range so {
+		opt(s.StringData)
+	}
 
 	if _, err := c.CoreV1().Secrets(namespace).Update(ctx, &s, metav1.UpdateOptions{}); err != nil {
 		t.Error(err)
 	}
 	time.Sleep(60 * time.Second)
 	return secret{
-		x509Priv: priv,
+		x509Priv:   priv,
+		cosignPriv: cosignPriv.Key,
 	}
 }
 
