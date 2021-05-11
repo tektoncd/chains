@@ -8,8 +8,8 @@ spec:
     description: package to release (e.g. github.com/<org>/<project>)
     default: github.com/tektoncd/chains
   - name: images
-    description: List of cmd/* paths to be published as images  in release manifest release.yaml
-    default: "controller eventlistenersink webhook"
+    description: List of cmd/* paths to be published as images in release manifest release.yaml
+    default: "controller"
   - name: versionTag
     description: The vX.Y.Z version that the artifacts should be tagged with (including `v`)
   - name: imageRegistry

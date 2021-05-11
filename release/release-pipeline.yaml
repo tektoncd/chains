@@ -15,12 +15,12 @@ spec:
     default: gcr.io
   - name: imageRegistryPath
     description: The path (project) in the image registry
-    default: priya-wadhwa
+    default: tekton-releases
   - name: versionTag
     description: The X.Y.Z version that the artifacts should be tagged with
   - name: releaseBucket
     description: bucket where the release is stored. The bucket must be project specific.
-    default: gs://priya-chains/chains
+    default: gs://tekton-releases/chains
   - name: releaseAsLatest
     description: Whether to tag and publish this release as chains' latest
     default: "true"
@@ -57,23 +57,23 @@ spec:
       value: https://$(params.package)
     - name: revision
       value: $(params.gitRevision)
-  # - name: precheck
-  #   runAfter: [git-clone]
-  #   taskRef:
-  #     name: prerelease-checks
-  #   params:
-  #   - name: package
-  #     value: $(params.package)
-  #   - name: versionTag
-  #     value: $(params.versionTag)
-  #   - name: releaseBucket
-  #     value: $(params.releaseBucket)
-  #   workspaces:
-  #   - name: source-to-release
-  #     workspace: workarea
-  #     subpath: git
-  - name: unit-tests
+  - name: precheck
     runAfter: [git-clone]
+    taskRef:
+      name: prerelease-checks
+    params:
+    - name: package
+      value: $(params.package)
+    - name: versionTag
+      value: $(params.versionTag)
+    - name: releaseBucket
+      value: $(params.releaseBucket)
+    workspaces:
+    - name: source-to-release
+      workspace: workarea
+      subpath: git
+  - name: unit-tests
+    runAfter: [precheck]
     taskRef:
       name: golang-test
     params:
@@ -86,7 +86,7 @@ spec:
       workspace: workarea
       subpath: git
   - name: build
-    runAfter: [git-clone]
+    runAfter: [precheck]
     taskRef:
       name: golang-build
     params:
