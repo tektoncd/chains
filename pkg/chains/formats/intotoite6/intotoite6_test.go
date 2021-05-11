@@ -130,7 +130,7 @@ var expected1 = in_toto.ProvenanceStatement{
 				},
 			},
 			{
-				Name: "test.io/test/image",
+				Name: "pkg:docker/test/image@sha256:hash4?repository_url=test.io",
 				Digest: map[string]string{
 					"sha256": "hash4",
 				},
@@ -140,37 +140,37 @@ var expected1 = in_toto.ProvenanceStatement{
 	Predicate: in_toto.ProvenancePredicate{
 		Materials: []in_toto.ProvenanceMaterial{
 			{
-				URI: "gcr.io/test1/test1",
-				Digest: map[string]string{
-					"sha256": "hash1",
-				},
-			},
-			{
-				URI: "gcr.io/test2/test2",
-				Digest: map[string]string{
-					"sha256": "hash2",
-				},
-			},
-			{
-				URI: "gcr.io/test3/test3",
-				Digest: map[string]string{
-					"sha256": "hash3",
-				},
-			},
-			{
 				URI: "git+https://git.test.com",
 				Digest: map[string]string{
 					"git_commit": "abcd",
 				},
 			},
+			{
+				URI: "pkg:docker/test1/test1@sha256:hash1?repository_url=gcr.io",
+				Digest: map[string]string{
+					"sha256": "hash1",
+				},
+			},
+			{
+				URI: "pkg:docker/test2/test2@sha256:hash2?repository_url=gcr.io",
+				Digest: map[string]string{
+					"sha256": "hash2",
+				},
+			},
+			{
+				URI: "pkg:docker/test3/test3@sha256:hash3?repository_url=gcr.io",
+				Digest: map[string]string{
+					"sha256": "hash3",
+				},
+			},
 		},
 		Builder: in_toto.ProvenanceBuilder{
-			ID: "test-pod-name",
+			ID: "test_builder-1",
 		},
 		Recipe: in_toto.ProvenanceRecipe{
 			Type:              tektonID,
 			EntryPoint:        "test-task",
-			DefinedInMaterial: intP(3),
+			DefinedInMaterial: intP(0),
 		},
 	},
 }
@@ -246,14 +246,14 @@ var expected2 = in_toto.ProvenanceStatement{
 	Predicate: in_toto.ProvenancePredicate{
 		Materials: []in_toto.ProvenanceMaterial{
 			{
-				URI: "gcr.io/test1/test1",
+				URI: "pkg:docker/test1/test1@sha256:hash1?repository_url=gcr.io",
 				Digest: map[string]string{
 					"sha256": "hash1",
 				},
 			},
 		},
 		Builder: in_toto.ProvenanceBuilder{
-			ID: "test-pod-name",
+			ID: "test_builder-2",
 		},
 		Recipe: in_toto.ProvenanceRecipe{
 			Type:       tektonID,
@@ -271,7 +271,13 @@ func TestInTotoIte6_CreatePayload1(t *testing.T) {
 		return
 	}
 
-	i := &InTotoIte6{}
+	cfg := config.Config{
+		Builder: config.BuilderConfig{
+			ID: "test_builder-1",
+		},
+	}
+	i, _ := NewFormater(cfg)
+
 	got, err := i.CreatePayload(&tr)
 
 	if diff := cmp.Diff(expected1, got); diff != "" {
@@ -288,7 +294,12 @@ func TestInTotoIte6_CreatePayload2(t *testing.T) {
 		return
 	}
 
-	i := &InTotoIte6{}
+	cfg := config.Config{
+		Builder: config.BuilderConfig{
+			ID: "test_builder-2",
+		},
+	}
+	i, _ := NewFormater(cfg)
 	got, err := i.CreatePayload(&tr)
 
 	if diff := cmp.Diff(expected2, got); diff != "" {
@@ -321,4 +332,73 @@ func TestNewFormater(t *testing.T) {
 			t.Errorf("Unexpected error : %s", err)
 		}
 	})
+}
+
+func TestPurlDocker(t *testing.T) {
+	tests := []struct {
+		imageID string
+		purl    string
+		alg     string
+		digest  string
+	}{
+		{
+			imageID: "name@alg:digest",
+			purl:    "pkg:docker/name@alg:digest",
+			alg:     "alg",
+			digest:  "digest",
+		},
+		{
+			imageID: "docker://name@alg:digest",
+			purl:    "pkg:docker/name@alg:digest",
+			alg:     "alg",
+			digest:  "digest",
+		},
+		{
+			imageID: "docker://org/name@alg:digest",
+			purl:    "pkg:docker/org/name@alg:digest",
+			alg:     "alg",
+			digest:  "digest",
+		},
+		{
+			imageID: "docker://gcr.io/org/name@alg:digest",
+			purl:    "pkg:docker/org/name@alg:digest?repository_url=gcr.io",
+			alg:     "alg",
+			digest:  "digest",
+		},
+	}
+
+	for _, test := range tests {
+		purl, alg, digest := getPackageURLDocker(test.imageID)
+		if purl != test.purl {
+			t.Errorf("Invalid package url, got '%s' want '%s'", purl, test.purl)
+		}
+		if alg != test.alg {
+			t.Errorf("Invalid alg, got '%s' want '%s'", alg, test.alg)
+		}
+		if digest != test.digest {
+			t.Errorf("Invalid digest, got '%s' want '%s'", digest, test.digest)
+		}
+	}
+}
+
+func TestGetOCIImageID(t *testing.T) {
+	tests := []struct {
+		imageID string
+		name    string
+		alg     string
+		digest  string
+	}{
+		{
+			imageID: "docker://name@alg:digest",
+			name:    "name",
+			alg:     "alg",
+			digest:  "digest",
+		},
+	}
+	for _, test := range tests {
+		imageID := getOCIImageID(test.name, test.alg, test.digest)
+		if imageID != test.imageID {
+			t.Errorf("Invalid image ID, got '%s' want '%s'", imageID, test.imageID)
+		}
+	}
 }

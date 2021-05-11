@@ -21,8 +21,16 @@ const (
 var ErrNoBuilderID = errors.New("no builder id configured")
 
 const (
-	commitParam = "CHAINS-GIT_COMMIT"
-	urlParam    = "CHAINS-GIT_URL"
+	commitParam     = "CHAINS-GIT_COMMIT"
+	urlParam        = "CHAINS-GIT_URL"
+	ociDigestResult = "IMAGE-DIGEST"
+)
+
+type artifactType int
+
+const (
+	artifactTypeUnknown artifactType = iota
+	artifactTypeOCI
 )
 
 type InTotoIte6 struct {
@@ -32,6 +40,7 @@ type InTotoIte6 struct {
 type artifactResult struct {
 	ParamName  string
 	ResultName string
+	Type       artifactType
 }
 
 type vcsInfo struct {
@@ -111,26 +120,14 @@ func (i *InTotoIte6) CreatePayload(obj interface{}) (interface{}, error) {
 
 	// Add all found step containers as materials
 	for _, trs := range tr.Status.Steps {
-		// image id formats: name@alg:digest
-		//                   schema://name@alg:hash
-		d := strings.Split(trs.ImageID, "//")
-		if len(d) == 2 {
-			// Get away with schema
-			d[0] = d[1]
-		}
-		d = strings.Split(d[0], "@")
-		if len(d) != 2 {
+		uri, alg, digest := getPackageURLDocker(trs.ImageID)
+		if uri == "" {
 			continue
 		}
-		// d[0]: image name
-		// d[1]: alg:hash
-		h := strings.Split(d[1], ":")
-		if len(h) != 2 {
-			continue
-		}
+
 		att.Predicate.Materials = append(att.Predicate.Materials, in_toto.ProvenanceMaterial{
-			URI:    d[0],
-			Digest: in_toto.DigestSet{h[0]: h[1]},
+			URI:    uri,
+			Digest: in_toto.DigestSet{alg: digest},
 		})
 	}
 
@@ -162,9 +159,17 @@ func getResultDigests(tr *v1beta1.TaskRun) []artifactResult {
 	for _, r := range tr.Status.TaskSpec.Results {
 		if strings.HasSuffix(r.Name, "-DIGEST") {
 			// 7 chars in -DIGEST
+			at := artifactTypeUnknown
+
+			// IMAGE-DIGEST always refers to an OCI image
+			if r.Name == ociDigestResult {
+				at = artifactTypeOCI
+			}
+
 			results = append(results, artifactResult{
 				ParamName:  r.Name[:len(r.Name)-7],
 				ResultName: r.Name,
+				Type:       at,
 			})
 		}
 	}
@@ -262,13 +267,15 @@ Results:
 				groups := r.FindStringSubmatch(ah[1])
 				var hash string
 				if len(groups) == 3 {
-					// Verify filename is equal to sbuject
-					// if groups[2] != sub {
-					// 	continue
-					// }
 					hash = groups[1]
 				} else {
 					hash = ah[1]
+				}
+
+				// OCI image shall use pacakge url format for subjects
+				if ar.Type == artifactTypeOCI {
+					imageID := getOCIImageID(sub, alg, hash)
+					sub, _, _ = getPackageURLDocker(imageID)
 				}
 
 				subs = append(subs, in_toto.Subject{
@@ -291,4 +298,55 @@ Results:
 
 func intP(i int) *int {
 	return &i
+}
+
+// getPackageURLDocker takes an image id and creates a package URL string based from it.
+// https://github.com/package-url/purl-spec
+func getPackageURLDocker(image string) (string, string, string) {
+	// image id formats: name@alg:digest
+	//                   schema://name@alg:digest
+	d := strings.Split(image, "//")
+	if len(d) == 2 {
+		// Get away with schema
+		d[0] = d[1]
+	}
+
+	d = strings.Split(d[0], "@")
+	if len(d) != 2 {
+		return "", "", ""
+	}
+	// d[0]: image name
+	// d[1]: alg:hash
+
+	// name can be in the formats: image
+	//                             path/image
+	//                             repo/path/image
+	// This way of ectracting the repository url seems a little fragile,
+	// but probably the best option we have right now.
+	segments := strings.Split(d[0], "/")
+	repoURL := ""
+	if len(segments) > 2 {
+		repoURL = segments[0]
+		segments = segments[1:]
+	}
+	path := strings.Join(segments, "/")
+
+	h := strings.Split(d[1], ":")
+	if len(h) != 2 {
+		return "", "", ""
+	}
+
+	uri := fmt.Sprintf("pkg:docker/%s@%s:%s", path, h[0], h[1])
+	if repoURL != "" {
+		uri = fmt.Sprintf("%s?repository_url=%s", uri, repoURL)
+	}
+
+	return uri, h[0], h[1]
+}
+
+// getOCIImageID generates an imageID that is compatible imageID field in
+// the task result's status field.
+func getOCIImageID(name, alg, digest string) string {
+	// image id is: docker://name@alg:digest
+	return fmt.Sprintf("docker://%s@%s:%s", name, alg, digest)
 }
