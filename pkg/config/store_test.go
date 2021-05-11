@@ -111,3 +111,42 @@ func Test_parse(t *testing.T) {
 		})
 	}
 }
+
+func TestValueOrDefault(t *testing.T) {
+	tests := []struct {
+		description string
+		key         string
+		value       string
+		expected    string
+	}{
+		{
+			description: "valid key set to default",
+			key:         ociFormatKey,
+			value:       "simplesigning",
+			expected:    "simplesigning",
+		}, {
+			description: "valid key not set to default",
+			key:         ociFormatKey,
+			value:       "tekton",
+			expected:    "tekton",
+		}, {
+			description: "invalid value with default",
+			key:         ociFormatKey,
+			value:       "invalid",
+			expected:    "simplesigning",
+		}, {
+			description: "key with no default",
+			key:         gcsBucketKey,
+			value:       "bucket",
+			expected:    "bucket",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.description, func(t *testing.T) {
+			got := valueOrDefault(test.key, map[string]string{test.key: test.value})
+			if got != test.expected {
+				t.Fatalf("got (%s) is not expected (%s)", got, test.expected)
+			}
+		})
+	}
+}

@@ -60,12 +60,10 @@ func TestTektonStorage(t *testing.T) {
 
 	// Setup the right config.
 	resetConfig := setConfigMap(ctx, t, c, map[string]string{
-		"artifacts.taskrun.storage": "tekton",
-		"artifacts.taskrun.signer":  "pgp",
-		"artifacts.taskrun.format":  "tekton",
-		"artifacts.oci.format":      "tekton",
-		"artifacts.oci.storage":     "tekton",
-		"artifacts.oci.signer":      "pgp",
+		"artifacts.taskrun.signer": "pgp",
+		"artifacts.oci.format":     "tekton",
+		"artifacts.oci.storage":    "tekton",
+		"artifacts.oci.signer":     "pgp",
 	})
 	defer resetConfig()
 
@@ -119,10 +117,7 @@ func TestOCISigning(t *testing.T) {
 			defer cleanup()
 
 			// Setup the right config.
-			resetConfig := setConfigMap(ctx, t, c, map[string]string{
-				"artifacts.oci.format":  "simplesigning",
-				"artifacts.oci.storage": "tekton",
-				"artifacts.oci.signer":  "x509"})
+			resetConfig := setConfigMap(ctx, t, c, map[string]string{"artifacts.oci.storage": "tekton"})
 
 			defer resetConfig()
 
@@ -213,9 +208,6 @@ func TestOCIStorage(t *testing.T) {
 	defer cleanup()
 
 	resetConfig := setConfigMap(ctx, t, c, map[string]string{
-		"artifacts.taskrun.storage":       "oci",
-		"artifacts.taskrun.signer":        "x509",
-		"artifacts.taskrun.format":        "simplesigning",
 		"storage.oci.repository.insecure": "true",
 	})
 	defer resetConfig()

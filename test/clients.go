@@ -121,7 +121,8 @@ func createNamespace(ctx context.Context, t *testing.T, namespace string, kubeCl
 	t.Logf("Create namespace %s to deploy to", namespace)
 	if _, err := kubeClient.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: namespace,
+			Name:   namespace,
+			Labels: map[string]string{"chains": "integration-testing"},
 		},
 	}, metav1.CreateOptions{}); err != nil {
 		t.Fatalf("Failed to create namespace %s for tests: %s", namespace, err)
