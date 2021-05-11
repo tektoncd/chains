@@ -31,7 +31,7 @@ To follow these steps you'll need a checkout of the chains repo, a terminal wind
 1. Confirm commit SHA matches what you want to release.
 
     ```bash
-    git show $TEKTON_RELEASE_GIT_SHA
+    git show $CHAINS_RELEASE_GIT_SHA
     ```
 
 1. Create a workspace template file:
@@ -44,7 +44,7 @@ To follow these steps you'll need a checkout of the chains repo, a terminal wind
      resources:
        requests:
          storage: 1Gi
-   EOF
+EOF
    ```
 
 1. Execute the release pipeline.
@@ -71,14 +71,14 @@ To follow these steps you'll need a checkout of the chains repo, a terminal wind
    📝 Results
 
    NAME                    VALUE
-   commit-sha                 6ea31d92a97420d4b7af94745c45b02447ceaa19
+   commit-sha                 420adfcdf225326605f2b2c2264b42a2f7b86e4e
    release-file               https://storage.googleapis.com/tekton-releases/chains/previous/v0.13.0/release.yaml
    release-file-no-tag        https://storage.googleapis.com/tekton-releases/chains/previous/v0.13.0/release.notag.yaml
 
    (...)
    ```
 
-   The `commit-sha` should match `$TEKTON_RELEASE_GIT_SHA`.
+   The `commit-sha` should match `$CHAINS_RELEASE_GIT_SHA`.
    The two URLs can be opened in the browser or via `curl` to download the release manifests.
 
     1. The YAMLs are now released! Anyone installing Tekton Chains will now get the new version. Time to create a new GitHub release announcement:
@@ -147,10 +147,10 @@ To follow these steps you'll need a checkout of the chains repo, a terminal wind
 
     ```bash
     # Test backport
-    kubectl --context my-dev-cluster apply --filename https://storage.googleapis.com/tekton-releases/chains/previous/v0.12.1/release.yaml
+    kubectl --context my-dev-cluster apply --filename https://storage.googleapis.com/tekton-releases/chains/previous/$VERSION_TAG/release.yaml
     ```
 
-1. Announce the release in Slack channels #general, #trigers and #announcements.
+1. Announce the release in Slack channels #general, #chains and #announcements.
 
 Congratulations, you're done!
 
@@ -167,7 +167,7 @@ Congratulations, you're done!
    a short memorable name such as `dogfooding`:
 
    ```bash
-   kubectl config rename-context gke_tekton-releases_us-central1-a_dogfooding dogfoodin
+   kubectl config rename-context gke_tekton-releases_us-central1-a_dogfooding dogfooding
    ```
 
 ## Important: Switch `kubectl` back to your own cluster by default.
