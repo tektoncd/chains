@@ -1,3 +1,4 @@
+# Modifed for chains from tekton triggers: https://github.com/tektoncd/triggers/blob/main/tekton/release-pipeline.yaml
 ---
 apiVersion: tekton.dev/v1beta1
 kind: Pipeline
