@@ -95,31 +95,72 @@ const (
 	chainsConfig = "chains-config"
 )
 
+var defaults = map[string]string{
+	taskrunFormatKey:  "tekton",
+	taskrunStorageKey: "tekton",
+	taskrunSignerKey:  "x509",
+	ociFormatKey:      "simplesigning",
+	ociStorageKey:     "oci",
+	ociSignerKey:      "x509",
+}
+
+var supportedValues = map[string][]string{
+	taskrunFormatKey:  {"tekton"},
+	taskrunStorageKey: {"tekton", "oci", "gcs", "docdb"},
+	taskrunSignerKey:  {"pgp", "x509", "kms"},
+	ociFormatKey:      {"tekton", "simplesigning"},
+	ociStorageKey:     {"tekton", "oci", "gcs", "docdb"},
+	ociSignerKey:      {"pgp", "x509", "kms"},
+}
+
 func parse(data map[string]string) Config {
 	cfg := Config{}
 
 	// Artifact-specific configs
 
 	// TaskRuns
-	cfg.Artifacts.TaskRuns.Format = data[taskrunFormatKey]
-	cfg.Artifacts.TaskRuns.StorageBackend = data[taskrunStorageKey]
-	cfg.Artifacts.TaskRuns.Signer = data[taskrunSignerKey]
+	cfg.Artifacts.TaskRuns.Format = valueOrDefault(taskrunFormatKey, data)
+	cfg.Artifacts.TaskRuns.StorageBackend = valueOrDefault(taskrunStorageKey, data)
+	cfg.Artifacts.TaskRuns.Signer = valueOrDefault(taskrunSignerKey, data)
 
 	// OCI
-	cfg.Artifacts.OCI.Format = data[ociFormatKey]
-	cfg.Artifacts.OCI.StorageBackend = data[ociStorageKey]
-	cfg.Artifacts.OCI.Signer = data[ociSignerKey]
+	cfg.Artifacts.OCI.Format = valueOrDefault(ociFormatKey, data)
+	cfg.Artifacts.OCI.StorageBackend = valueOrDefault(ociStorageKey, data)
+	cfg.Artifacts.OCI.Signer = valueOrDefault(ociSignerKey, data)
 
 	// Storage level configs
 
-	cfg.Storage.GCS.Bucket = data[gcsBucketKey]
-	cfg.Storage.OCI.Repository = data[ociRepositoryKey]
-	cfg.Storage.OCI.Insecure = (data[ociRepositoryInsecureKey] == "true")
-	cfg.Storage.DocDB.URL = data[docDBUrlKey]
+	cfg.Storage.GCS.Bucket = valueOrDefault(gcsBucketKey, data)
+	cfg.Storage.OCI.Repository = valueOrDefault(ociRepositoryKey, data)
+	cfg.Storage.OCI.Insecure = (valueOrDefault(ociRepositoryInsecureKey, data) == "true")
+	cfg.Storage.DocDB.URL = valueOrDefault(docDBUrlKey, data)
 
-	cfg.Signers.KMS.KMSRef = data[kmsSignerKMSRef]
+	cfg.Signers.KMS.KMSRef = valueOrDefault(kmsSignerKMSRef, data)
 
 	return cfg
+}
+
+func valueOrDefault(key string, data map[string]string) string {
+	if v, ok := data[key]; ok {
+		if validate(key, v) {
+			return v
+		}
+	}
+	return defaults[key]
+}
+
+func validate(key, value string) bool {
+	vals, ok := supportedValues[key]
+	// if it doesn't exist in supportedValues, we don't validate
+	if !ok {
+		return true
+	}
+	for _, v := range vals {
+		if v == value {
+			return true
+		}
+	}
+	return false
 }
 
 type ConfigStore struct {

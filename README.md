@@ -13,18 +13,18 @@ See [DEVELOPMENT.md](DEVELOPMENT.md) for a guide on how to build and deploy your
 ### Configuration
 
 Chains uses a `ConfigMap` called `chains-config` in the `tekton-chains` namespace for configuration.
-Supported keys include:
+Supported keys include (scroll right for defaults):
 
-| Key | Description | Supported Values |
-| --- | --- | --- |
-| `artifacts.taskrun.format` | The format to store `TaskRun` payloads in. | `tekton` |
-| `artifacts.taskrun.storage` | The storage backend to store `TaskRun` signatures in. | `tekton`, `oci`, `gcs`, `docdb` |
-| `artifacts.taskrun.signer` | The signature backend to sign `Taskrun` payloads with. | `pgp`, `x509`, `kms` |
-| `artifacts.oci.format` | The format to store `OCI` payloads in. | `tekton`, `simplesigning` |
-| `artifacts.oci.storage` | The storage backend to store `OCI` signatures in. | `tekton`, `oci`, `gcs`, `docdb` |
-| `artifacts.oci.signer` | The signature backend to sign `OCI` payloads with. | `pgp`, `x509`, `kms` |
-| `signers.kms.kmsref` | The URI reference to a KMS service to use in `KMS` signers. | `gcpkms://projects/<project>/locations/<location>/keyRings/<keyring>/cryptoKeys/<key>`|
-| `storage.docdb.url` | The go-cloud URI reference to a docstore collection | `firestore://projects/<project>/databases/(default)/documents/<collection>?name_field=name`|
+| Key | Description | Supported Values | Default |
+| --- | --- | --- | --- |
+| `artifacts.taskrun.format` | The format to store `TaskRun` payloads in. | `tekton` | `tekton` |
+| `artifacts.taskrun.storage` | The storage backend to store `TaskRun` signatures in. | `tekton`, `oci`, `gcs`, `docdb` | `tekton` |
+| `artifacts.taskrun.signer` | The signature backend to sign `Taskrun` payloads with. | `pgp`, `x509`, `kms` | `x509` |
+| `artifacts.oci.format` | The format to store `OCI` payloads in. | `tekton`, `simplesigning` | `simplesigning` |
+| `artifacts.oci.storage` | The storage backend to store `OCI` signatures in. | `tekton`, `oci`, `gcs`, `docdb` | `oci` |
+| `artifacts.oci.signer` | The signature backend to sign `OCI` payloads with. | `pgp`, `x509`, `kms` | `x509` |
+| `signers.kms.kmsref` | The URI reference to a KMS service to use in `KMS` signers. | `gcpkms://projects/<project>/locations/<location>/keyRings/<keyring>/cryptoKeys/<key>`| |
+| `storage.docdb.url` | The go-cloud URI reference to a docstore collection | `firestore://projects/<project>/databases/(default)/documents/<collection>?name_field=name`| |
 
 ### Overview
 
