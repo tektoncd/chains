@@ -36,7 +36,7 @@ func TestNewConfigStore(t *testing.T) {
 
 	// Setup some config
 	cm.Data = map[string]string{}
-	cm.Data[taskrunFormatKey] = "foo"
+	cm.Data[taskrunSignerKey] = "pgp"
 
 	if cm, err = fakekubeclient.CoreV1().ConfigMaps(ns).Update(ctx, cm, metav1.UpdateOptions{}); err != nil {
 		t.Errorf("error updating configmap: %v", err)
@@ -45,24 +45,24 @@ func TestNewConfigStore(t *testing.T) {
 	// It should be updated by then...
 	time.Sleep(100 * time.Millisecond)
 	// Test that the values are set!
-	if diff := cmp.Diff("foo", cs.Config().Artifacts.TaskRuns.Format); diff != "" {
+	if diff := cmp.Diff("pgp", cs.Config().Artifacts.TaskRuns.Signer); diff != "" {
 		t.Error(diff)
 	}
 
 	// Change it again
-	cm.Data[taskrunFormatKey] = "bar"
+	cm.Data[taskrunSignerKey] = "kms"
 
 	if _, err := fakekubeclient.CoreV1().ConfigMaps(ns).Update(ctx, cm, metav1.UpdateOptions{}); err != nil {
 		t.Errorf("error updating configmap: %v", err)
 	}
 	time.Sleep(100 * time.Millisecond)
 	// Test that the values are set!
-	if diff := cmp.Diff("bar", cs.Config().Artifacts.TaskRuns.Format); diff != "" {
+	if diff := cmp.Diff("kms", cs.Config().Artifacts.TaskRuns.Signer); diff != "" {
 		t.Error(diff)
 	}
 }
 
-func Test_parse(t *testing.T) {
+func TestParse(t *testing.T) {
 	tests := []struct {
 		name string
 		data map[string]string
@@ -73,30 +73,51 @@ func Test_parse(t *testing.T) {
 			data: map[string]string{},
 			want: Config{
 				Artifacts: ArtifactConfigs{
-					TaskRuns: Artifact{},
+					TaskRuns: Artifact{
+						Format:         "tekton",
+						StorageBackend: "tekton",
+						Signer:         "x509",
+					},
+					OCI: Artifact{
+						Format:         "simplesigning",
+						StorageBackend: "oci",
+						Signer:         "x509",
+					},
 				},
 			},
 		},
 		{
 			name: "single",
-			data: map[string]string{taskrunFormatKey: "foo"},
+			data: map[string]string{taskrunSignerKey: "pgp"},
 			want: Config{
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
-						Format:         "foo",
-						StorageBackend: "",
+						Format:         "tekton",
+						Signer:         "pgp",
+						StorageBackend: "tekton",
+					},
+					OCI: Artifact{
+						Format:         "simplesigning",
+						StorageBackend: "oci",
+						Signer:         "x509",
 					},
 				},
 			},
 		},
 		{
 			name: "extra",
-			data: map[string]string{taskrunFormatKey: "foo", "other-key": "foo"},
+			data: map[string]string{taskrunSignerKey: "pgp", "other-key": "foo"},
 			want: Config{
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
-						Format:         "foo",
-						StorageBackend: "",
+						Format:         "tekton",
+						Signer:         "pgp",
+						StorageBackend: "tekton",
+					},
+					OCI: Artifact{
+						Format:         "simplesigning",
+						StorageBackend: "oci",
+						Signer:         "x509",
 					},
 				},
 			},

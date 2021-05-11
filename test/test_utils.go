@@ -173,6 +173,10 @@ func setConfigMap(ctx context.Context, t *testing.T, c *clients, data map[string
 		oldData[k] = v
 	}
 
+	if cm.Data == nil {
+		cm.Data = map[string]string{}
+	}
+
 	for k, v := range data {
 		cm.Data[k] = v
 	}
