@@ -34,12 +34,12 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
 
-	"cloud.google.com/go/compute/metadata"
 	"github.com/sigstore/cosign/pkg/cosign"
 	"github.com/tektoncd/pipeline/pkg/names"
 
@@ -58,7 +58,10 @@ type clients struct {
 	KubeClient     kubernetes.Interface
 	PipelineClient pipelineclientset.Interface
 	secret         secret
-	registry       string
+	// these represent the same registry; internal is accessible from within the cluster
+	// external is accessible from outside the cluster via port-forwarding
+	internalRegistry string
+	externalRegistry string
 }
 
 // newClients instantiates and returns several clientsets required for making requests to the
@@ -85,15 +88,24 @@ func newClients(t *testing.T, configPath, clusterName string) *clients {
 	return c
 }
 
-func setup(ctx context.Context, t *testing.T, so ...secretOpts) (*clients, string, func()) {
+type setupOpts struct {
+	useCosignSigner bool
+	registry        bool
+}
+
+func setup(ctx context.Context, t *testing.T, opts setupOpts) (*clients, string, func()) {
 	t.Helper()
 	namespace := names.SimpleNameGenerator.RestrictLengthWithRandomSuffix("earth")
 
 	c := newClients(t, knativetest.Flags.Kubeconfig, knativetest.Flags.Cluster)
 	createNamespace(ctx, t, namespace, c.KubeClient)
 
-	c.secret = setupSecret(ctx, t, c.KubeClient, so...)
-	c.registry = createRegistry(ctx, t, c.KubeClient)
+	c.secret = setupSecret(ctx, t, c.KubeClient, opts)
+	if opts.registry {
+		internalRegistry, svc := createRegistry(ctx, t, namespace, c.KubeClient)
+		externalRegistry := portForward(ctx, t, svc)
+		c.internalRegistry, c.externalRegistry = internalRegistry, externalRegistry
+	}
 
 	var cleanup = func() {
 		t.Logf("Deleting namespace %s", namespace)
@@ -121,13 +133,8 @@ type secret struct {
 	cosignPriv *ecdsa.PrivateKey
 }
 
-func createRegistry(ctx context.Context, t *testing.T, kubeClient kubernetes.Interface) string {
+func createRegistry(ctx context.Context, t *testing.T, namespace string, kubeClient kubernetes.Interface) (string, *corev1.Service) {
 	t.Helper()
-	if metadata.OnGCE() {
-		t.Log("LoadBalancer not supported on GCE, skipping creating registry")
-		return ""
-	}
-	namespace := "tekton-chains"
 	replicas := int32(1)
 	label := map[string]string{"app": "registry"}
 	meta := metav1.ObjectMeta{
@@ -161,19 +168,13 @@ func createRegistry(ctx context.Context, t *testing.T, kubeClient kubernetes.Int
 	service := &corev1.Service{
 		ObjectMeta: meta,
 		Spec: corev1.ServiceSpec{
-			Selector:              label,
-			ExternalTrafficPolicy: corev1.ServiceExternalTrafficPolicyTypeCluster,
-			Type:                  corev1.ServiceTypeLoadBalancer,
-			Ports:                 []corev1.ServicePort{{Port: int32(5000), Protocol: corev1.ProtocolTCP, TargetPort: intstr.IntOrString{IntVal: int32(5000)}}},
+			Selector: label,
+			Ports:    []corev1.ServicePort{{Port: int32(5000), Protocol: corev1.ProtocolTCP, TargetPort: intstr.IntOrString{IntVal: int32(5000)}}},
 		},
 	}
 	// first, check if the svc already exists
 	if svc, err := kubeClient.CoreV1().Services(namespace).Get(ctx, service.Name, metav1.GetOptions{}); err == nil {
-		if ingress := svc.Status.LoadBalancer.Ingress; ingress != nil {
-			if ingress[0].IP != "" {
-				return fmt.Sprintf("%s:5000", ingress[0].IP)
-			}
-		}
+		return fmt.Sprintf("%s.%s.svc.cluster.local:5000", svc.Name, svc.Namespace), svc
 	}
 	t.Logf("Creating insecure registry to deploy in ns %s", namespace)
 	if _, err := kubeClient.AppsV1().Deployments(namespace).Create(ctx, deployment, metav1.CreateOptions{}); err != nil {
@@ -186,50 +187,45 @@ func createRegistry(ctx context.Context, t *testing.T, kubeClient kubernetes.Int
 		t.Fatalf("Failed to create service for tests: %s", err)
 	}
 
-	t.Logf("Waiting for external service IP to be exposed...")
-	return waitForExternalIP(ctx, t, service, 2*time.Minute, kubeClient)
+	return fmt.Sprintf("%s.%s.svc.cluster.local:5000", service.Name, service.Namespace), service
 }
 
-func waitForExternalIP(ctx context.Context, t *testing.T, service *corev1.Service, timeout time.Duration, c kubernetes.Interface) string {
-	t.Helper()
-	w, err := c.CoreV1().Services(service.Namespace).Watch(ctx, metav1.SingleObject(metav1.ObjectMeta{
-		Name:      service.Name,
-		Namespace: service.Namespace,
-	}))
-	if err != nil {
-		t.Errorf("error watching taskrun: %s", err)
-	}
-	// Setup a timeout channel
-	timeoutChan := make(chan struct{})
+func portForward(ctx context.Context, t *testing.T, svc *corev1.Service) string {
+	freePort := getFreePort(t)
 	go func() {
-		time.Sleep(timeout)
-		timeoutChan <- struct{}{}
-	}()
-
-	// Wait for the condition to be true or a timeout
-	for {
-		select {
-		case ev := <-w.ResultChan():
-			tr := ev.Object.(*corev1.Service)
-			if ingress := tr.Status.LoadBalancer.Ingress; ingress != nil {
-				if ingress[0].IP != "" {
-					return fmt.Sprintf("%s:5000", ingress[0].IP)
+		// port forwarding has a bad habit of dying randomly, so keep restarting it
+		for {
+			t.Logf("Starting port forwarding on port %d...", freePort)
+			ctx, cancel := context.WithCancel(ctx)
+			cmd := exec.CommandContext(ctx, "kubectl", "port-forward", fmt.Sprintf("svc/%s", svc.Name), fmt.Sprintf("%d:5000", freePort), "-n", svc.Namespace)
+			select {
+			case <-ctx.Done():
+				cancel()
+				return // returning not to leak the goroutine
+			default:
+				if err := cmd.Run(); err != nil {
+					t.Logf("port forwarding died: %v\n", err)
+				} else {
+					cancel()
+					return
 				}
+				cancel()
 			}
-		case <-timeoutChan:
-			output, err := exec.Command("kubectl", "get", "svc", "-A").CombinedOutput()
-			t.Fatalf("Error creating registry, time out:%v\n%s", err, string(output))
 		}
+	}()
+	return fmt.Sprintf("localhost:%d", freePort)
+}
+
+func getFreePort(t *testing.T) int {
+	l, err := net.Listen("tcp", fmt.Sprintf("%s:0", "localhost"))
+	if err != nil {
+		t.Error(err)
+		return 5000 // just return something
 	}
+	return l.Addr().(*net.TCPAddr).Port
 }
 
-type secretOpts func(map[string]string)
-
-func useCosign(data map[string]string) {
-	delete(data, "x509.pem")
-}
-
-func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface, so ...secretOpts) secret {
+func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface, opts setupOpts) secret {
 	// Only overwrite the secret data if it isn't set.
 	namespace := "tekton-chains"
 	s := corev1.Secret{
@@ -267,10 +263,9 @@ func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface, so .
 		t.Error(err)
 	}
 
-	for _, opt := range so {
-		opt(s.StringData)
+	if opts.useCosignSigner {
+		delete(s.StringData, "x509.pem")
 	}
-
 	if _, err := c.CoreV1().Secrets(namespace).Update(ctx, &s, metav1.UpdateOptions{}); err != nil {
 		t.Error(err)
 	}

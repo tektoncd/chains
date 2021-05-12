@@ -42,7 +42,7 @@ import (
 
 func TestInstall(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
-	c, _, cleanup := setup(ctx, t)
+	c, _, cleanup := setup(ctx, t, setupOpts{})
 	defer cleanup()
 	dep, err := c.KubeClient.AppsV1().Deployments("tekton-chains").Get(ctx, "tekton-chains-controller", metav1.GetOptions{})
 	if err != nil {
@@ -55,7 +55,7 @@ func TestInstall(t *testing.T) {
 
 func TestTektonStorage(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
-	c, ns, cleanup := setup(ctx, t)
+	c, ns, cleanup := setup(ctx, t, setupOpts{})
 	defer cleanup()
 
 	// Setup the right config.
@@ -101,21 +101,21 @@ func TestTektonStorage(t *testing.T) {
 func TestOCISigning(t *testing.T) {
 	tests := []struct {
 		name string
-		opts []secretOpts
+		opts setupOpts
 	}{
 		{
 			name: "x509",
-			opts: []secretOpts{},
+			opts: setupOpts{},
 		}, {
 			name: "cosign",
-			opts: []secretOpts{useCosign},
+			opts: setupOpts{useCosignSigner: true},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			ctx := logtesting.TestContextWithLogger(t)
-			c, ns, cleanup := setup(ctx, t, test.opts...)
+			c, ns, cleanup := setup(ctx, t, test.opts)
 			defer cleanup()
 
 			// Setup the right config.
@@ -169,7 +169,7 @@ func TestGCSStorage(t *testing.T) {
 	if metadata.OnGCE() {
 		t.Skip("Skipping, integration tests do not support GCS secrets yet.")
 	}
-	c, ns, cleanup := setup(ctx, t)
+	c, ns, cleanup := setup(ctx, t, setupOpts{})
 	defer cleanup()
 
 	client, err := storage.NewClient(ctx)
@@ -209,10 +209,7 @@ func TestGCSStorage(t *testing.T) {
 
 func TestOCIStorage(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
-	if metadata.OnGCE() {
-		t.Skip("Skipping, LoadBalancer not supported on GCE. Replace this with calling the service name itself once https://github.com/sigstore/cosign/issues/311 has been done.")
-	}
-	c, ns, cleanup := setup(ctx, t)
+	c, ns, cleanup := setup(ctx, t, setupOpts{registry: true})
 	defer cleanup()
 
 	resetConfig := setConfigMap(ctx, t, c, map[string]string{
@@ -225,7 +222,8 @@ func TestOCIStorage(t *testing.T) {
 	time.Sleep(3 * time.Second)
 
 	// create necessary resources
-	image := fmt.Sprintf("%s/%s", c.registry, "chains-test-oci-storage")
+	imageName := "chains-test-oci-storage"
+	image := fmt.Sprintf("%s/%s", c.internalRegistry, imageName)
 	task := kanikoTask(t, ns, image)
 
 	if _, err := c.PipelineClient.TektonV1beta1().Tasks(ns).Create(ctx, task, metav1.CreateOptions{}); err != nil {
@@ -242,11 +240,11 @@ func TestOCIStorage(t *testing.T) {
 	waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, done, 60*time.Second)
 
 	pubKey := signature.ECDSAVerifier{Key: &c.secret.x509Priv.PublicKey, HashAlg: crypto.SHA256}
-	ref, err := name.ParseReference(image, name.Insecure)
+	externalRef, err := name.ParseReference(fmt.Sprintf("%s/%s", c.externalRegistry, imageName), name.Insecure)
 	if err != nil {
-		t.Errorf("parsing ref: %v", err)
+		t.Fatalf("parsing ref: %v", err)
 	}
-
+	t.Logf("Verifying %s...", externalRef.String())
 	// wait two minutes for the controller to sign
 	// setup a timeout channel
 	timeoutChan := make(chan struct{})
@@ -257,7 +255,7 @@ func TestOCIStorage(t *testing.T) {
 	for {
 		select {
 		default:
-			if _, err = cosign.Verify(ctx, ref, &cosign.CheckOpts{
+			if _, err = cosign.Verify(ctx, externalRef, &cosign.CheckOpts{
 				PubKey: pubKey,
 			}); err != nil {
 				t.Log(err)
