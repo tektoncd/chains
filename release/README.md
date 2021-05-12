@@ -36,7 +36,7 @@ To follow these steps you'll need a checkout of the chains repo, a terminal wind
 
 1. Create a workspace template file:
 
-   ```bash
+```bash
    cat <<EOF > workspace-template.yaml
    spec:
      accessModes:
@@ -45,7 +45,7 @@ To follow these steps you'll need a checkout of the chains repo, a terminal wind
        requests:
          storage: 1Gi
 EOF
-   ```
+```
 
 1. Execute the release pipeline.
 
@@ -172,6 +172,6 @@ Congratulations, you're done!
 
 ## Important: Switch `kubectl` back to your own cluster by default.
 
-    ```bash
+```bash
     kubectl config use-context my-dev-cluster
-    ```
+```
