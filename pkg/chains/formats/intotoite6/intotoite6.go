@@ -12,6 +12,8 @@ import (
 
 	"github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+
+	"github.com/google/go-containerregistry/pkg/name"
 )
 
 const (
@@ -300,48 +302,44 @@ func intP(i int) *int {
 	return &i
 }
 
-// getPackageURLDocker takes an image id and creates a package URL string based from it.
+// getPackageURLDocker takes an image id and creates a package URL string
+// based from it.
 // https://github.com/package-url/purl-spec
-func getPackageURLDocker(image string) (string, string, string) {
-	// image id formats: name@alg:digest
-	//                   schema://name@alg:digest
-	d := strings.Split(image, "//")
+func getPackageURLDocker(imageID string) (string, string, string) {
+	// Default registry per purl spec
+	const defaultRegistry = "hub.docker.com"
+
+	// imageID formats: name@alg:digest
+	//                  schema://name@alg:digest
+	d := strings.Split(imageID, "//")
 	if len(d) == 2 {
 		// Get away with schema
-		d[0] = d[1]
+		imageID = d[1]
 	}
 
-	d = strings.Split(d[0], "@")
-	if len(d) != 2 {
-		return "", "", ""
-	}
-	// d[0]: image name
-	// d[1]: alg:hash
-
-	// name can be in the formats: image
-	//                             path/image
-	//                             repo/path/image
-	// This way of ectracting the repository url seems a little fragile,
-	// but probably the best option we have right now.
-	segments := strings.Split(d[0], "/")
-	repoURL := ""
-	if len(segments) > 2 {
-		repoURL = segments[0]
-		segments = segments[1:]
-	}
-	path := strings.Join(segments, "/")
-
-	h := strings.Split(d[1], ":")
-	if len(h) != 2 {
+	digest, err := name.NewDigest(imageID, name.WithDefaultRegistry(defaultRegistry))
+	if err != nil {
 		return "", "", ""
 	}
 
-	uri := fmt.Sprintf("pkg:docker/%s@%s:%s", path, h[0], h[1])
-	if repoURL != "" {
-		uri = fmt.Sprintf("%s?repository_url=%s", uri, repoURL)
+	// DigestStr() is alg:digest
+	parts := strings.Split(digest.DigestStr(), ":")
+	if len(parts) != 2 {
+		return "", "", ""
 	}
 
-	return uri, h[0], h[1]
+	purl := fmt.Sprintf("pkg:docker/%s@%s",
+		digest.Context().RepositoryStr(),
+		digest.DigestStr(),
+	)
+
+	// Only inlude registry if it's not the default
+	registry := digest.Context().Registry.Name()
+	if registry != defaultRegistry {
+		purl = fmt.Sprintf("%s?repository_url=%s", purl, registry)
+	}
+
+	return purl, parts[0], parts[1]
 }
 
 // getOCIImageID generates an imageID that is compatible imageID field in

@@ -53,23 +53,23 @@ var testData1 = `
       {
         "name": "step1",
         "container": "step-step1",
-        "imageID": "docker-pullable://gcr.io/test1/test1@sha256:hash1"
+        "imageID": "docker-pullable://gcr.io/test1/test1@sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"
       },
       {
         "name": "step2",
         "container": "step-step2",
-        "imageID": "docker-pullable://gcr.io/test2/test2@sha256:hash2"
+        "imageID": "docker-pullable://gcr.io/test2/test2@sha256:4d6dd704ef58cb214dd826519929e92a978a57cdee43693006139c0080fd6fac"
       },
       {
         "name": "step3",
         "container": "step-step3",
-        "imageID": "docker-pullable://gcr.io/test3/test3@sha256:hash3"
+        "imageID": "docker-pullable://gcr.io/test3/test3@sha256:f1a8b8549c179f41e27ff3db0fe1a1793e4b109da46586501a8343637b1d0478"
       }
     ],
     "taskResults": [
       {
         "name": "IMAGE-DIGEST",
-        "value": "sha256:hash4"
+        "value": "sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"
       },
       {
         "name": "filename-DIGEST",
@@ -130,9 +130,9 @@ var expected1 = in_toto.ProvenanceStatement{
 				},
 			},
 			{
-				Name: "pkg:docker/test/image@sha256:hash4?repository_url=test.io",
+				Name: "pkg:docker/test/image@sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7?repository_url=test.io",
 				Digest: map[string]string{
-					"sha256": "hash4",
+					"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7",
 				},
 			},
 		},
@@ -146,21 +146,21 @@ var expected1 = in_toto.ProvenanceStatement{
 				},
 			},
 			{
-				URI: "pkg:docker/test1/test1@sha256:hash1?repository_url=gcr.io",
+				URI: "pkg:docker/test1/test1@sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6?repository_url=gcr.io",
 				Digest: map[string]string{
-					"sha256": "hash1",
+					"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6",
 				},
 			},
 			{
-				URI: "pkg:docker/test2/test2@sha256:hash2?repository_url=gcr.io",
+				URI: "pkg:docker/test2/test2@sha256:4d6dd704ef58cb214dd826519929e92a978a57cdee43693006139c0080fd6fac?repository_url=gcr.io",
 				Digest: map[string]string{
-					"sha256": "hash2",
+					"sha256": "4d6dd704ef58cb214dd826519929e92a978a57cdee43693006139c0080fd6fac",
 				},
 			},
 			{
-				URI: "pkg:docker/test3/test3@sha256:hash3?repository_url=gcr.io",
+				URI: "pkg:docker/test3/test3@sha256:f1a8b8549c179f41e27ff3db0fe1a1793e4b109da46586501a8343637b1d0478?repository_url=gcr.io",
 				Digest: map[string]string{
-					"sha256": "hash3",
+					"sha256": "f1a8b8549c179f41e27ff3db0fe1a1793e4b109da46586501a8343637b1d0478",
 				},
 			},
 		},
@@ -200,13 +200,13 @@ var testData2 = `
       {
         "name": "step1",
         "container": "step-step1",
-        "imageID": "docker-pullable://gcr.io/test1/test1@sha256:hash1"
+        "imageID": "docker-pullable://gcr.io/test1/test1@sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"
       }
     ],
     "taskResults": [
       {
         "name": "some-uri-DIGEST",
-        "value": "sha256:hash123"
+        "value": "sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"
       },
       {
         "name": "some-uri",
@@ -238,7 +238,7 @@ var expected2 = in_toto.ProvenanceStatement{
 			{
 				Name: "pkg:deb/debian/curl@7.50.3-1",
 				Digest: map[string]string{
-					"sha256": "hash123",
+					"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6",
 				},
 			},
 		},
@@ -246,9 +246,9 @@ var expected2 = in_toto.ProvenanceStatement{
 	Predicate: in_toto.ProvenancePredicate{
 		Materials: []in_toto.ProvenanceMaterial{
 			{
-				URI: "pkg:docker/test1/test1@sha256:hash1?repository_url=gcr.io",
+				URI: "pkg:docker/test1/test1@sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6?repository_url=gcr.io",
 				Digest: map[string]string{
-					"sha256": "hash1",
+					"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6",
 				},
 			},
 		},
@@ -342,28 +342,34 @@ func TestPurlDocker(t *testing.T) {
 		digest  string
 	}{
 		{
-			imageID: "name@alg:digest",
-			purl:    "pkg:docker/name@alg:digest",
-			alg:     "alg",
-			digest:  "digest",
+			imageID: "alpine@sha256:3f1017b520fe358d7b3796879232cd36259066ccd5bab5466cbedb444064dfed",
+			purl:    "pkg:docker/alpine@sha256:3f1017b520fe358d7b3796879232cd36259066ccd5bab5466cbedb444064dfed",
+			alg:     "sha256",
+			digest:  "3f1017b520fe358d7b3796879232cd36259066ccd5bab5466cbedb444064dfed",
 		},
 		{
-			imageID: "docker://name@alg:digest",
-			purl:    "pkg:docker/name@alg:digest",
-			alg:     "alg",
-			digest:  "digest",
+			imageID: "org/alpine@sha256:3f1017b520fe358d7b3796879232cd36259066ccd5bab5466cbedb444064dfed",
+			purl:    "pkg:docker/org/alpine@sha256:3f1017b520fe358d7b3796879232cd36259066ccd5bab5466cbedb444064dfed",
+			alg:     "sha256",
+			digest:  "3f1017b520fe358d7b3796879232cd36259066ccd5bab5466cbedb444064dfed",
 		},
 		{
-			imageID: "docker://org/name@alg:digest",
-			purl:    "pkg:docker/org/name@alg:digest",
-			alg:     "alg",
-			digest:  "digest",
+			imageID: "docker://alpine@sha256:6e0447537050cf871f9ab6a3fec5715f9c6fff5212f6666993f1fc46b1f717a3",
+			purl:    "pkg:docker/alpine@sha256:6e0447537050cf871f9ab6a3fec5715f9c6fff5212f6666993f1fc46b1f717a3",
+			alg:     "sha256",
+			digest:  "6e0447537050cf871f9ab6a3fec5715f9c6fff5212f6666993f1fc46b1f717a3",
 		},
 		{
-			imageID: "docker://gcr.io/org/name@alg:digest",
-			purl:    "pkg:docker/org/name@alg:digest?repository_url=gcr.io",
-			alg:     "alg",
-			digest:  "digest",
+			imageID: "docker://org/name@sha256:55bbe28f6e4abb21be67cdd592e6e3b7b21b1a7b159768d539eb63119bbc1d28",
+			purl:    "pkg:docker/org/name@sha256:55bbe28f6e4abb21be67cdd592e6e3b7b21b1a7b159768d539eb63119bbc1d28",
+			alg:     "sha256",
+			digest:  "55bbe28f6e4abb21be67cdd592e6e3b7b21b1a7b159768d539eb63119bbc1d28",
+		},
+		{
+			imageID: "docker://gcr.io/org/name@sha256:64e1a1f5bd1c888e107e0145e26582edfab24779c1bbb0e11f3768432c5c0399",
+			purl:    "pkg:docker/org/name@sha256:64e1a1f5bd1c888e107e0145e26582edfab24779c1bbb0e11f3768432c5c0399?repository_url=gcr.io",
+			alg:     "sha256",
+			digest:  "64e1a1f5bd1c888e107e0145e26582edfab24779c1bbb0e11f3768432c5c0399",
 		},
 	}
 
@@ -389,9 +395,9 @@ func TestGetOCIImageID(t *testing.T) {
 		digest  string
 	}{
 		{
-			imageID: "docker://name@alg:digest",
+			imageID: "docker://name@sha256:digest",
 			name:    "name",
-			alg:     "alg",
+			alg:     "sha256",
 			digest:  "digest",
 		},
 	}
