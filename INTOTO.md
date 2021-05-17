@@ -8,9 +8,12 @@ In-toto attestation spec is defined
 The in-toto format can be enabled by configuring Chains to use format
 `in-toto-ite6`.
 
-To provide a Git url/commit as material, add a parameter named
+To provide a git URL/commit as material, add a parameter named
 `CHAINS-GIT_COMMIT` and `CHAINS-GIT_URL`. The value of these
-parameters should be fed by some VCS task. Like this (from a `PipeLine`):
+parameters should be fed by some VCS task (e.g like this
+[task](https://github.com/tektoncd/catalog/blob/main/task/git-clone/0.3/git-clone.yaml#L81).
+A `PipeLine` example where another task `checkout` have URL/commit as
+task results:
 
 ```
     - name: build
@@ -20,6 +23,8 @@ parameters should be fed by some VCS task. Like this (from a `PipeLine`):
         - name: CHAINS-GIT_URL
           value: "$(tasks.checkout.results.url)"
 ```
+
+### Type Hinting
 
 To capture arifacts created by a task, Chains will scan the TaskRun
 result for a result name `*_DIGEST`. The result shall be a string on
@@ -39,21 +44,18 @@ An example (a Task):
     description: Digest of the image just built.
 ```
 
-So if the `IMAGE` param is
-`gcr.io/test/foo` and
-the result `IMAGE_DIGEST` is `sha256:abcd` then an attestation for the
-subject
-`pkg:/docker/test/foo@sha256:abcd?repository_url=gcr.io`
-is created. Note that images are encoded using [Package
+So if the `IMAGE` parameter have the value `gcr.io/test/foo` and the
+result `IMAGE_DIGEST` is `sha256:abcd` then an attestation for the
+subject `pkg:/docker/test/foo@sha256:abcd?repository_url=gcr.io`
+is created. Note that image references are represented using [Package
 URL](https://github.com/package-url/purl-spec) format.
 
 ## Limitations
 This is an MVP implementation of the the in-toto attestation
 format. More work would be required to properly capture the
 `Entrypoint` field in the provenance predicate, now the TaskRef name
-is used.
-Metadata related to hermeticity/reproducible are currently not
-populated.
+is used. Also metadata related to hermeticity/reproducible are
+currently not populated.
 
 ## Examples
 
