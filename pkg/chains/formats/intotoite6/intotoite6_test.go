@@ -3,7 +3,9 @@ package intotoite6
 import (
 	"encoding/json"
 	"testing"
+	"time"
 
+	"github.com/tektoncd/chains/pkg/chains/formats"
 	"github.com/tektoncd/chains/pkg/config"
 
 	"github.com/google/go-cmp/cmp"
@@ -39,6 +41,8 @@ var testData1 = `
     "serviceAccountName": "default"
   },
   "status": {
+    "startTime": "2021-03-29T09:50:00Z",
+    "completionTime": "2021-03-29T09:50:15Z",
     "conditions": [
       {
         "type": "Succeeded",
@@ -68,11 +72,11 @@ var testData1 = `
     ],
     "taskResults": [
       {
-        "name": "IMAGE-DIGEST",
+        "name": "IMAGE_DIGEST",
         "value": "sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"
       },
       {
-        "name": "filename-DIGEST",
+        "name": "filename_DIGEST",
         "value": "sha256:hash5   /bin/ls"
       }
     ],
@@ -105,11 +109,11 @@ var testData1 = `
       ],
       "results": [
         {
-          "name": "IMAGE-DIGEST",
+          "name": "IMAGE_DIGEST",
           "description": "Digest of the image just built."
         },
         {
-          "name": "filename-DIGEST",
+          "name": "filename_DIGEST",
           "description": "Digest of the file just built."
         }
       ]
@@ -118,6 +122,8 @@ var testData1 = `
 }
 `
 
+var e1BuildStart = time.Unix(1617011400, 0)
+var e1BuildFinished = time.Unix(1617011415, 0)
 var expected1 = in_toto.ProvenanceStatement{
 	StatementHeader: in_toto.StatementHeader{
 		Type:          in_toto.StatementInTotoV01,
@@ -138,6 +144,10 @@ var expected1 = in_toto.ProvenanceStatement{
 		},
 	},
 	Predicate: in_toto.ProvenancePredicate{
+		Metadata: in_toto.ProvenanceMetadata{
+			BuildStartedOn:  &e1BuildStart,
+			BuildFinishedOn: &e1BuildFinished,
+		},
 		Materials: []in_toto.ProvenanceMaterial{
 			{
 				URI: "git+https://git.test.com",
@@ -205,7 +215,7 @@ var testData2 = `
     ],
     "taskResults": [
       {
-        "name": "some-uri-DIGEST",
+        "name": "some-uri_DIGEST",
         "value": "sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"
       },
       {
@@ -217,7 +227,7 @@ var testData2 = `
       "params": [],
       "results": [
         {
-          "name": "some-uri-DIGEST",
+          "name": "some-uri_DIGEST",
           "description": "Digest of a file to push."
         },
         {
@@ -254,6 +264,115 @@ var expected2 = in_toto.ProvenanceStatement{
 		},
 		Builder: in_toto.ProvenanceBuilder{
 			ID: "test_builder-2",
+		},
+		Recipe: in_toto.ProvenanceRecipe{
+			Type:       tektonID,
+			EntryPoint: "test-task",
+		},
+	},
+}
+
+var dataMultpleSubjects = `
+{
+  "spec": {
+    "params": [],
+    "taskRef": {
+      "name": "test-task",
+      "kind": "Task"
+    },
+    "serviceAccountName": "default"
+  },
+  "status": {
+    "conditions": [
+      {
+        "type": "Succeeded",
+        "status": "True",
+        "lastTransitionTime": "2021-03-29T09:50:15Z",
+        "reason": "Succeeded",
+        "message": "All Steps have completed executing"
+      }
+    ],
+    "podName": "test-pod-name",
+    "steps": [
+      {
+        "name": "step1",
+        "container": "step-step1",
+        "imageID": "docker-pullable://gcr.io/test1/test1@sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"
+      }
+    ],
+    "taskResults": [
+      {
+        "name": "file1_DIGEST",
+        "value": "sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"
+      },
+      {
+        "name": "file1",
+        "value": "pkg:deb/debian/curl@7.50.3-1"
+      },
+      {
+        "name": "file2_DIGEST",
+        "value": "sha256:daa1a56e13c85cf164e7d9e595006649e3a04c47fe4a8261320e18a0bf3b0367"
+      },
+      {
+        "name": "file2",
+        "value": "pkg:generic/curl@7.50.3-1.tar.gz"
+      }
+    ],
+    "taskSpec": {
+      "params": [],
+      "results": [
+        {
+          "name": "file1_DIGEST",
+          "description": "Digest of a file to push."
+        },
+        {
+          "name": "file1",
+          "description": "some assembled file"
+        },
+        {
+          "name": "file2_DIGEST",
+          "description": "Digest of a file to push."
+        },
+        {
+          "name": "file2",
+          "description": "some assembled file"
+        }
+      ]
+    }
+  }
+}
+`
+
+var expectedMultipleSubjects = in_toto.ProvenanceStatement{
+	StatementHeader: in_toto.StatementHeader{
+		Type:          in_toto.StatementInTotoV01,
+		PredicateType: in_toto.PredicateProvenanceV01,
+		Subject: []in_toto.Subject{
+			{
+				Name: "pkg:deb/debian/curl@7.50.3-1",
+				Digest: map[string]string{
+					"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6",
+				},
+			},
+			{
+				Name: "pkg:generic/curl@7.50.3-1.tar.gz",
+				Digest: map[string]string{
+					"sha256": "daa1a56e13c85cf164e7d9e595006649e3a04c47fe4a8261320e18a0bf3b0367",
+				},
+			},
+		},
+	},
+	Predicate: in_toto.ProvenancePredicate{
+		Materials: []in_toto.ProvenanceMaterial{
+			{
+				URI: "pkg:docker/test1/test1@sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6?repository_url=gcr.io",
+				Digest: map[string]string{
+					"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6",
+				},
+			},
+		},
+		Builder: in_toto.ProvenanceBuilder{
+			ID: "test_builder-multiple",
 		},
 		Recipe: in_toto.ProvenanceRecipe{
 			Type:       tektonID,
@@ -303,6 +422,28 @@ func TestInTotoIte6_CreatePayload2(t *testing.T) {
 	got, err := i.CreatePayload(&tr)
 
 	if diff := cmp.Diff(expected2, got); diff != "" {
+		t.Errorf("InTotoIte6.CreatePayload(): -want +got: %s", diff)
+	}
+}
+
+func TestInTotoIte6_MultipleSubjects(t *testing.T) {
+	var tr v1beta1.TaskRun
+
+	err := json.Unmarshal([]byte(dataMultpleSubjects), &tr)
+	if err != nil {
+		t.Errorf("json.Unmarshal() error = %v", err)
+		return
+	}
+
+	cfg := config.Config{
+		Builder: config.BuilderConfig{
+			ID: "test_builder-multiple",
+		},
+	}
+	i, _ := NewFormater(cfg)
+	got, err := i.CreatePayload(&tr)
+
+	if diff := cmp.Diff(expectedMultipleSubjects, got); diff != "" {
 		t.Errorf("InTotoIte6.CreatePayload(): -want +got: %s", diff)
 	}
 }
@@ -406,5 +547,59 @@ func TestGetOCIImageID(t *testing.T) {
 		if imageID != test.imageID {
 			t.Errorf("Invalid image ID, got '%s' want '%s'", imageID, test.imageID)
 		}
+	}
+}
+
+func TestCreatePayloadError(t *testing.T) {
+	cfg := config.Config{
+		Builder: config.BuilderConfig{
+			ID: "testid",
+		},
+	}
+	f, _ := NewFormater(cfg)
+
+	t.Run("nil TaskRef", func(t *testing.T) {
+		var tr = v1beta1.TaskRun{
+			Status: v1beta1.TaskRunStatus{
+				TaskRunStatusFields: v1beta1.TaskRunStatusFields{
+					PodName: "test-pod",
+				},
+			},
+		}
+
+		p, err := f.CreatePayload(&tr)
+		if p != nil {
+			t.Errorf("Unexpected payload")
+		}
+		if err == nil {
+			t.Errorf("Expected error")
+		} else {
+			if err.Error() != "provided TaskRef is nil for test-pod" {
+				t.Errorf("wrong error returned: '%s'", err.Error())
+			}
+		}
+	})
+
+	t.Run("Invalid type", func(t *testing.T) {
+		p, err := f.CreatePayload("not a task ref")
+
+		if p != nil {
+			t.Errorf("Unexpected payload")
+		}
+		if err == nil {
+			t.Errorf("Expected error")
+		} else {
+			if err.Error() != "unsupported type: not a task ref" {
+				t.Errorf("wrong error returned: '%s'", err.Error())
+			}
+		}
+	})
+
+}
+
+func TestCorrectPayloadType(t *testing.T) {
+	var i InTotoIte6
+	if i.Type() != formats.PayloadTypeInTotoIte6 {
+		t.Errorf("Invalid type returned: %s", i.Type())
 	}
 }

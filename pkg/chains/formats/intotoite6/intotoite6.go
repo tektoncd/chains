@@ -23,9 +23,10 @@ const (
 var ErrNoBuilderID = errors.New("no builder id configured")
 
 const (
-	commitParam     = "CHAINS-GIT_COMMIT"
-	urlParam        = "CHAINS-GIT_URL"
-	ociDigestResult = "IMAGE-DIGEST"
+	commitParam        = "CHAINS-GIT_COMMIT"
+	urlParam           = "CHAINS-GIT_URL"
+	ociDigestResult    = "IMAGE_DIGEST"
+	chainsDigestSuffix = "_DIGEST"
 )
 
 type artifactType int
@@ -65,18 +66,18 @@ func (i *InTotoIte6) CreatePayload(obj interface{}) (interface{}, error) {
 	case *v1beta1.TaskRun:
 		tr = v
 	default:
-		return nil, fmt.Errorf("unsupported type %s", v)
+		return nil, fmt.Errorf("unsupported type: %s", v)
 
 	}
 
 	if tr.Spec.TaskRef == nil {
-		return nil, fmt.Errorf("TaskRef is nil for %s", tr.Status.PodName)
+		return nil, fmt.Errorf("provided TaskRef is nil for %s", tr.Status.PodName)
 	}
 
 	// Here we translate a Tekton TaskRun into an InToto ite6 attestation.
 	// At a high leevel, the  mapping looks roughly like:
 	// Podname -> Builder.Id
-	// Results with name *-DIGEST -> Subject
+	// Results with name *_DIGEST -> Subject
 	// Step containers -> Materials
 	// Params with name CHAINS-GIT_* -> Materials and recipe.materials
 	// tekton-chains -> Recipe.type
@@ -154,16 +155,16 @@ func (i *InTotoIte6) Type() formats.PayloadType {
 }
 
 // getResultDigests scans over the task.Status.TaskSpec.Results to find any
-// result that has a name that ends with -DIGEST.
+// result that has a name that ends with _DIGEST.
 func getResultDigests(tr *v1beta1.TaskRun) []artifactResult {
 	results := []artifactResult{}
 	// Scan for digests
 	for _, r := range tr.Status.TaskSpec.Results {
-		if strings.HasSuffix(r.Name, "-DIGEST") {
-			// 7 chars in -DIGEST
+		if strings.HasSuffix(r.Name, chainsDigestSuffix) {
+			// 7 chars in _DIGEST
 			at := artifactTypeUnknown
 
-			// IMAGE-DIGEST always refers to an OCI image
+			// IMAGE_DIGEST always refers to an OCI image
 			if r.Name == ociDigestResult {
 				at = artifactTypeOCI
 			}
@@ -207,10 +208,10 @@ func getVcsInfo(tr *v1beta1.TaskRun) *vcsInfo {
 }
 
 // getSubjectDigests uses depends on taskResults with names ending with
-// -DIGEST.
+// _DIGEST.
 // To be able to find the resource that matches the digest, it relies on a
 // naming schema for an input parameter.
-// If the output result from this task is foo-DIGEST, it expects to find an
+// If the output result from this task is foo_DIGEST, it expects to find an
 // parameter named 'foo', and resolves this value to use for the subject with
 // for the found digest.
 // If no parameter is found, we search the results of this task, which allows
@@ -223,7 +224,7 @@ func getSubjectDigests(tr *v1beta1.TaskRun, results []artifactResult) []in_toto.
 	subs := []in_toto.Subject{}
 	r := regexp.MustCompile(`(\S+)\s+(\S+)`)
 
-	// Resolve *-DIGEST variables
+	// Resolve *_DIGEST variables
 Results:
 	for _, ar := range results {
 		// Look for subject amongst the params
@@ -256,8 +257,8 @@ Results:
 		for _, trr := range tr.Status.TaskRunResults {
 			if trr.Name == ar.ResultName {
 				// Value should be on format:
-				// hashalg:hash
-				// hashalg:hash filename
+				// alg:hash
+				// alg:hash filename
 				mod := strings.TrimRight(trr.Value, "\n")
 				ah := strings.Split(mod, ":")
 				if len(ah) != 2 {

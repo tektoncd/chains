@@ -39,6 +39,9 @@ When outputing an OCI image without using a `PipelineResource`, `Chains` will lo
 * `IMAGE_URL` - The URL to the built OCI image
 * `IMAGE_DIGEST` - The Digest of the built OCI image
 
+For in-toto attestations, see [INTOTO.md](INTOTO.md) for description
+of in-toto specific type hinting.
+
 Note that these are provided automatically when using `PipelineResources`.
 
 ### Signing Secrets
@@ -196,4 +199,3 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for an overview of our processes
 See [DEVELOPMENT.md](DEVELOPMENT.md) for how to get started
 See [ROADMAP.md](ROADMAP.md) for the current roadmap
 Look at our good first issues and our help wanted issues
-
