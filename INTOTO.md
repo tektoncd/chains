@@ -53,7 +53,7 @@ URL](https://github.com/package-url/purl-spec) format.
 ## Limitations
 This is an MVP implementation of the the in-toto attestation
 format. More work would be required to properly capture the
-`Entrypoint` field in the provenance predicate, now the TaskRef name
+`Entrypoint` field in the provenance predicate, now the `TaskRef`'s name
 is used. Also metadata related to hermeticity/reproducible are
 currently not populated.
 
