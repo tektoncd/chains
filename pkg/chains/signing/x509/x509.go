@@ -14,25 +14,25 @@ limitations under the License.
 package x509
 
 import (
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/ed25519"
-	"crypto/rand"
-	"crypto/sha256"
 	cx509 "crypto/x509"
-	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
+	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/tektoncd/chains/pkg/chains/signing"
 	"go.uber.org/zap"
 )
 
-// Signer exposes methods to sign payloads using x509
+// Signer exposes methods to sign payloads using PGP
 type Signer struct {
-	key    interface{}
+	signature.Signer
 	logger *zap.SugaredLogger
 }
 
@@ -58,35 +58,18 @@ func NewSigner(secretPath string, logger *zap.SugaredLogger) (*Signer, error) {
 		return nil, err
 	}
 
-	s := &Signer{
-		key:    pk,
-		logger: logger,
-	}
-
-	return s, nil
-}
-
-// Sign signs an incoming payload.
-// It returns the signature and the marshaled payload object.
-func (s *Signer) Sign(i interface{}) (string, []byte, error) {
-	b, err := json.Marshal(i)
-	if err != nil {
-		return "", nil, err
-	}
-
-	h := sha256.Sum256(b)
-	var signature []byte
-	switch k := s.key.(type) {
+	var s signature.Signer
+	switch k := pk.(type) {
 	case *ecdsa.PrivateKey:
-		signature, err = ecdsa.SignASN1(rand.Reader, k, h[:])
+		s = signature.NewECDSASignerVerifier(k, crypto.SHA256)
 	case ed25519.PrivateKey:
-		signature = ed25519.Sign(k, b)
-	}
-	if err != nil {
-		return "", nil, err
+		return nil, errors.New("still need to implement ed25519")
 	}
 
-	return string(signature), b, nil
+	return &Signer{
+		Signer: s,
+		logger: logger,
+	}, nil
 }
 
 func (s *Signer) Type() string {

@@ -13,8 +13,10 @@ limitations under the License.
 
 package signing
 
+import "github.com/sigstore/sigstore/pkg/signature"
+
 type Signer interface {
-	Sign(i interface{}) (string, []byte, error)
+	signature.Signer
 	Type() string
 }
 

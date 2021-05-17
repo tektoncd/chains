@@ -50,13 +50,13 @@ func NewStorageBackend(ps versioned.Interface, logger *zap.SugaredLogger, tr *v1
 }
 
 // StorePayload implements the Payloader interface.
-func (b *Backend) StorePayload(signed []byte, signature string, key string) error {
+func (b *Backend) StorePayload(rawPayload []byte, signature string, key string) error {
 	b.logger.Infof("Storing payload on TaskRun %s/%s", b.tr.Namespace, b.tr.Name)
 
 	// Use patch instead of update to prevent race conditions.
 	patchBytes, err := patch.GetAnnotationsPatch(map[string]string{
 		// Base64 encode both the signature and the payload
-		fmt.Sprintf(PayloadAnnotationFormat, key):   base64.StdEncoding.EncodeToString(signed),
+		fmt.Sprintf(PayloadAnnotationFormat, key):   base64.StdEncoding.EncodeToString(rawPayload),
 		fmt.Sprintf(SignatureAnnotationFormat, key): base64.StdEncoding.EncodeToString([]byte(signature)),
 	})
 	if err != nil {

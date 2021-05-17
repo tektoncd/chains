@@ -56,7 +56,7 @@ func NewStorageBackend(logger *zap.SugaredLogger, tr *v1beta1.TaskRun, cfg confi
 }
 
 // StorePayload implements the Payloader interface.
-func (b *Backend) StorePayload(signed []byte, signature string, key string) error {
+func (b *Backend) StorePayload(rawPayload []byte, signature string, key string) error {
 	// We need two object names: the signature and the payload. We want to make these unique to the UID, but easy to find based on the
 	// name/namespace as well.
 	// $bucket/taskrun-$namespace-$name-$uid/$key.signature
@@ -76,7 +76,7 @@ func (b *Backend) StorePayload(signed []byte, signature string, key string) erro
 	payloadName := path.Join(root, fmt.Sprintf("%s.payload", key))
 	payloadObj := b.writer.GetWriter(payloadName)
 	defer payloadObj.Close()
-	if _, err := payloadObj.Write(signed); err != nil {
+	if _, err := payloadObj.Write(rawPayload); err != nil {
 		return err
 	}
 	if err := payloadObj.Close(); err != nil {
