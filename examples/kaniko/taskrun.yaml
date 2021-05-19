@@ -1,0 +1,16 @@
+apiVersion: tekton.dev/v1beta1
+kind: TaskRun
+metadata:
+  name: kaniko-run
+spec:
+  taskRef:
+    name: kaniko-chains
+  params:
+  - name: IMAGE
+    value: ${REGISTRY}/kaniko-chains
+  workspaces:
+  - name: source
+    emptyDir: {}
+  - name: dockerconfig
+    secret:
+      secretName: ${DOCKERCONFIG_SECRET}
