@@ -484,7 +484,7 @@ github.com/tektoncd/pipeline/pkg/list
 github.com/tektoncd/pipeline/pkg/names
 github.com/tektoncd/pipeline/pkg/reconciler/pipeline/dag
 github.com/tektoncd/pipeline/pkg/substitution
-# github.com/tektoncd/plumbing v0.0.0-20210420200944-17170d5e7bc9
+# github.com/tektoncd/plumbing v0.0.0-20210514044347-f8a9689d5bd5
 github.com/tektoncd/plumbing
 github.com/tektoncd/plumbing/scripts
 # github.com/theupdateframework/go-tuf v0.0.0-20201230183259-aee6270feb55

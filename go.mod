@@ -18,7 +18,7 @@ require (
 	github.com/sigstore/cosign v0.3.2-0.20210504221908-6a2c836159a9
 	github.com/sigstore/sigstore v0.0.0-20210427115853-11e6eaab7cdc
 	github.com/tektoncd/pipeline v0.23.0
-	github.com/tektoncd/plumbing v0.0.0-20210420200944-17170d5e7bc9
+	github.com/tektoncd/plumbing v0.0.0-20210514044347-f8a9689d5bd5
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.16.0
 	gocloud.dev v0.22.0
