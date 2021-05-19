@@ -110,6 +110,12 @@ openssl ecparam -genkey -name prime256v1 > ec_private.pem
 openssl pkcs8 -topk8 -in ec_private.pem  -nocrypt
 ```
 
+You can then convert to PKCS8 PEM format.
+
+```shell
+openssl pkcs8 -topk8 -nocrypt -in ec_private.pem -out x509.pem
+```
+
 You can add this to the secret with something like:
 
 ```shell
