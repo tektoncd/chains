@@ -12,18 +12,19 @@ To do this, you will need access to credentials for your registry (they are in a
 Next, create a [Docker config type Kubernetes secret](https://kubernetes.io/docs/concepts/configuration/secret/#docker-config-secrets), which will contain the credentials required to push signatures:
 
 ```
-$ kubectl create secret docker-registry registry-credentials \
+kubectl create secret docker-registry registry-credentials \
   --docker-server=gcr.io \
   --docker-username=_json_key \
   --docker-email=someemail@something.com \
-  --docker-password="$(cat credentials.json)"
+  --docker-password="$(cat credentials.json)" \
+  -n tekton-chains
 ```
 More details around creating this secret can be found [here](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/#registry-secret-existing-credentials).
 
 We can then give the `tekton-chains-controller` service account access to these credentials:
 
 ```
-$ kubectl patch serviceaccount tekton-chains-controller \
+kubectl patch serviceaccount tekton-chains-controller \
   -p "{\"imagePullSecrets\": [{\"name\": \"registry-credentials\"}]}" -n tekton-chains
 ```
 
