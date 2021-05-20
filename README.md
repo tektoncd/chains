@@ -204,6 +204,8 @@ gpg: Good signature from "Tekton Unit Tests <testing@tekton.dev>" [ultimate]
 
 Now we have a verifiable record of the `TaskRuns`!
 
+## Authentication
+For more information about setting up authentication for Chains, check out [authentication.md](./docs/authentication.md).
 
 ## Want to contribute
 
