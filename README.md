@@ -106,24 +106,10 @@ To use a cosign generated key, chains will expect the following to be stored in 
 
 ##### Setup
 
-To create an ecdsa keypair, you can do something like:
+To create an ecdsa keypair, you can run [gen-keys.sh](gen-keys.sh).
+This script will take care of creating the keypair (`x509.pem` and `x509.pub`), and storing the private key as a Kubernetes secret.
 
-```shell
-openssl ecparam -genkey -name prime256v1 > ec_private.pem
-openssl pkcs8 -topk8 -in ec_private.pem  -nocrypt
-```
-
-You can then convert to PKCS8 PEM format.
-
-```shell
-openssl pkcs8 -topk8 -nocrypt -in ec_private.pem -out x509.pem
-```
-
-You can add this to the secret with something like:
-
-```shell
-kubectl create secret generic signing-secrets -n tekton-chains --from-file=x509.pem
-```
+_Note: requires `openssl` is installed_
 
 ##### Cosign
 To create a cosign keypair, `cosign.key` and `cosign.pub`, install [cosign](https://github.com/sigstore/cosign) and run the following:
