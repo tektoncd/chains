@@ -1,4 +1,4 @@
-# In-toto attestation formater
+# In-toto attestation formatter
 
 ## Overview
 

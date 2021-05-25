@@ -110,6 +110,8 @@ var defaults = map[string]string{
 	ociFormatKey:      "simplesigning",
 	ociStorageKey:     "oci",
 	ociSignerKey:      "x509",
+
+	builderIDKey: "tekton-chains",
 }
 
 var supportedValues = map[string][]string{

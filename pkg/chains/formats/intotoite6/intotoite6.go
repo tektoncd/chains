@@ -70,10 +70,6 @@ func (i *InTotoIte6) CreatePayload(obj interface{}) (interface{}, error) {
 
 	}
 
-	if tr.Spec.TaskRef == nil {
-		return nil, fmt.Errorf("provided TaskRef is nil for %s", tr.Status.PodName)
-	}
-
 	// Here we translate a Tekton TaskRun into an InToto ite6 provenance
 	// attestation.
 	// https://github.com/in-toto/attestation/blob/main/spec/predicates/provenance.md
@@ -84,6 +80,12 @@ func (i *InTotoIte6) CreatePayload(obj interface{}) (interface{}, error) {
 	// Params with name CHAINS-GIT_* -> Materials and recipe.materials
 	// tekton-chains -> Recipe.type
 	// Taskname -> Recipe.entry_point
+	var name string
+	if tr.Spec.TaskRef != nil {
+		name = tr.Spec.TaskRef.Name
+	} else {
+		name = tr.Name
+	}
 	att := in_toto.ProvenanceStatement{
 		StatementHeader: in_toto.StatementHeader{
 			Type:          in_toto.StatementInTotoV01,
@@ -95,7 +97,7 @@ func (i *InTotoIte6) CreatePayload(obj interface{}) (interface{}, error) {
 			},
 			Recipe: in_toto.ProvenanceRecipe{
 				Type:       tektonID,
-				EntryPoint: tr.Spec.TaskRef.Name,
+				EntryPoint: name,
 			},
 		},
 	}
@@ -161,7 +163,7 @@ func (i *InTotoIte6) Type() formats.PayloadType {
 func getResultDigests(tr *v1beta1.TaskRun) []artifactResult {
 	results := []artifactResult{}
 	// Scan for digests
-	for _, r := range tr.Status.TaskSpec.Results {
+	for _, r := range tr.Status.TaskRunResults {
 		if strings.HasSuffix(r.Name, chainsDigestSuffix) {
 			// 7 chars in _DIGEST
 			at := artifactTypeUnknown

@@ -72,6 +72,9 @@ func TestParse(t *testing.T) {
 			name: "empty",
 			data: map[string]string{},
 			want: Config{
+				Builder: BuilderConfig{
+					"tekton-chains",
+				},
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
 						Format:         "tekton",
@@ -90,6 +93,9 @@ func TestParse(t *testing.T) {
 			name: "single",
 			data: map[string]string{taskrunSignerKey: "pgp"},
 			want: Config{
+				Builder: BuilderConfig{
+					"tekton-chains",
+				},
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
 						Format:         "tekton",
@@ -108,6 +114,9 @@ func TestParse(t *testing.T) {
 			name: "extra",
 			data: map[string]string{taskrunSignerKey: "pgp", "other-key": "foo"},
 			want: Config{
+				Builder: BuilderConfig{
+					"tekton-chains",
+				},
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
 						Format:         "tekton",
