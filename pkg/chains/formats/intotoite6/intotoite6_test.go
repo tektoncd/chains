@@ -432,6 +432,32 @@ func TestInTotoIte6_CreatePayload2(t *testing.T) {
 	}
 }
 
+func TestInTotoIte6_CreatePayloadNilTaskRef(t *testing.T) {
+	var tr v1beta1.TaskRun
+
+	if err := json.Unmarshal([]byte(testData1), &tr); err != nil {
+		t.Fatal(err)
+	}
+
+	tr.Spec.TaskRef = nil
+	cfg := config.Config{
+		Builder: config.BuilderConfig{
+			ID: "testid",
+		},
+	}
+	f, _ := NewFormatter(cfg)
+
+	p, err := f.CreatePayload(&tr)
+	if err != nil {
+		t.Errorf("unexpected error: %s", err.Error())
+	}
+
+	ps := p.(in_toto.ProvenanceStatement)
+	if diff := cmp.Diff(tr.Name, ps.Predicate.Recipe.EntryPoint); diff != "" {
+		t.Errorf("InTotoIte6.CreatePayload(): -want +got: %s", diff)
+	}
+}
+
 func TestInTotoIte6_MultipleSubjects(t *testing.T) {
 	var tr v1beta1.TaskRun
 
@@ -466,10 +492,10 @@ func TestNewFormatter(t *testing.T) {
 		}
 		f, err := NewFormatter(cfg)
 		if f == nil {
-			t.Error("Failed to create formater")
+			t.Error("Failed to create formatter")
 		}
 		if err != nil {
-			t.Errorf("Error creating formater: %s", err)
+			t.Errorf("Error creating formatter: %s", err)
 		}
 	})
 	t.Run("Fail", func(t *testing.T) {
@@ -566,28 +592,6 @@ func TestCreatePayloadError(t *testing.T) {
 		},
 	}
 	f, _ := NewFormatter(cfg)
-
-	t.Run("nil TaskRef", func(t *testing.T) {
-		var tr = v1beta1.TaskRun{
-			Status: v1beta1.TaskRunStatus{
-				TaskRunStatusFields: v1beta1.TaskRunStatusFields{
-					PodName: "test-pod",
-				},
-			},
-		}
-
-		p, err := f.CreatePayload(&tr)
-		if p != nil {
-			t.Errorf("Unexpected payload")
-		}
-		if err == nil {
-			t.Errorf("Expected error")
-		} else {
-			if err.Error() != "provided TaskRef is nil for test-pod" {
-				t.Errorf("wrong error returned: '%s'", err.Error())
-			}
-		}
-	})
 
 	t.Run("Invalid type", func(t *testing.T) {
 		p, err := f.CreatePayload("not a task ref")

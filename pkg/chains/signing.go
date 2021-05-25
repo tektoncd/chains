@@ -118,29 +118,29 @@ func allSigners(sp string, cfg config.Config, l *zap.SugaredLogger) map[string]s
 	return all
 }
 
-func allFormaters(cfg config.Config, l *zap.SugaredLogger) map[formats.PayloadType]formats.Payloader {
+func allFormatters(cfg config.Config, l *zap.SugaredLogger) map[formats.PayloadType]formats.Payloader {
 	all := map[formats.PayloadType]formats.Payloader{}
 
 	for _, f := range formats.AllFormatters {
 		switch f {
 		case formats.PayloadTypeTekton:
-			formater, err := tekton.NewFormatter()
+			formatter, err := tekton.NewFormatter()
 			if err != nil {
-				l.Warnf("error configuring tekton formater: %s", err)
+				l.Warnf("error configuring tekton formatter: %s", err)
 			}
-			all[f] = formater
+			all[f] = formatter
 		case formats.PayloadTypeSimpleSigning:
-			formater, err := simple.NewFormatter()
+			formatter, err := simple.NewFormatter()
 			if err != nil {
-				l.Warnf("error configuring tekton formater: %s", err)
+				l.Warnf("error configuring tekton formatter: %s", err)
 			}
-			all[f] = formater
+			all[f] = formatter
 		case formats.PayloadTypeInTotoIte6:
-			formater, err := intotoite6.NewFormatter(cfg)
+			formatter, err := intotoite6.NewFormatter(cfg)
 			if err != nil {
-				l.Warnf("error configuring tekton formater: %s", err)
+				l.Warnf("error configuring tekton formatter: %s", err)
 			}
-			all[f] = formater
+			all[f] = formatter
 		}
 	}
 
@@ -165,7 +165,7 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 	}
 
 	signers := allSigners(ts.SecretPath, cfg, ts.Logger)
-	allFormats := allFormaters(cfg, ts.Logger)
+	allFormats := allFormatters(cfg, ts.Logger)
 
 	var merr *multierror.Error
 	for _, signableType := range enabledSignableTypes {
