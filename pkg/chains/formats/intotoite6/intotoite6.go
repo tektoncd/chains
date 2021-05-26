@@ -1,28 +1,37 @@
+/*
+Copyright 2021 The Tekton Authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package intotoite6
 
 import (
-	"errors"
 	"fmt"
 	"regexp"
 	"sort"
 	"strings"
 
+	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/tektoncd/chains/pkg/chains/formats"
 	"github.com/tektoncd/chains/pkg/config"
-
-	"github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 
 	"github.com/google/go-containerregistry/pkg/name"
 )
 
 const (
-	tektonID = "https://tekton.dev/attestations/chains@v1"
-)
-
-var ErrNoBuilderID = errors.New("no builder id configured")
-
-const (
+	tektonID           = "https://tekton.dev/attestations/chains@v1"
 	commitParam        = "CHAINS-GIT_COMMIT"
 	urlParam           = "CHAINS-GIT_URL"
 	ociDigestResult    = "IMAGE_DIGEST"
@@ -52,50 +61,45 @@ type vcsInfo struct {
 }
 
 func NewFormatter(cfg config.Config) (formats.Payloader, error) {
-	if cfg.Builder.ID == "" {
-		return nil, ErrNoBuilderID
-	}
-
 	return &InTotoIte6{builderID: cfg.Builder.ID}, nil
 }
 
 func (i *InTotoIte6) CreatePayload(obj interface{}) (interface{}, error) {
 	var tr *v1beta1.TaskRun
-
 	switch v := obj.(type) {
 	case *v1beta1.TaskRun:
 		tr = v
 	default:
-		return nil, fmt.Errorf("unsupported type: %s", v)
-
+		return nil, fmt.Errorf("intoto does not support type: %s", v)
 	}
+	return i.generateAttestationFromTaskRun(tr)
+}
 
-	// Here we translate a Tekton TaskRun into an InToto ite6 provenance
-	// attestation.
-	// https://github.com/in-toto/attestation/blob/main/spec/predicates/provenance.md
-	// At a high leevel, the  mapping looks roughly like:
-	// Configured builder id -> Builder.Id
-	// Results with name *_DIGEST -> Subject
-	// Step containers -> Materials
-	// Params with name CHAINS-GIT_* -> Materials and recipe.materials
-	// tekton-chains -> Recipe.type
-	// Taskname -> Recipe.entry_point
-	var name string
+// generateAttestationFromTaskRun translates a Tekton TaskRun into an InToto ite6 provenance
+// attestation.
+// Spec: https://github.com/in-toto/attestation/blob/main/spec/predicates/provenance.md
+// At a high level, the mapping looks roughly like:
+// 	Configured builder id -> Builder.Id
+// 	Results with name *_DIGEST -> Subject
+// 	Step containers -> Materials
+// 	Params with name CHAINS-GIT_* -> Materials and recipe.materials
+// 	tekton-chains -> Recipe.type
+// 	Taskname -> Recipe.entry_point
+func (i *InTotoIte6) generateAttestationFromTaskRun(tr *v1beta1.TaskRun) (interface{}, error) {
+	name := tr.Name
 	if tr.Spec.TaskRef != nil {
 		name = tr.Spec.TaskRef.Name
-	} else {
-		name = tr.Name
 	}
-	att := in_toto.ProvenanceStatement{
-		StatementHeader: in_toto.StatementHeader{
-			Type:          in_toto.StatementInTotoV01,
-			PredicateType: in_toto.PredicateProvenanceV01,
+	att := intoto.ProvenanceStatement{
+		StatementHeader: intoto.StatementHeader{
+			Type:          intoto.StatementInTotoV01,
+			PredicateType: intoto.PredicateProvenanceV01,
 		},
-		Predicate: in_toto.ProvenancePredicate{
-			Builder: in_toto.ProvenanceBuilder{
+		Predicate: intoto.ProvenancePredicate{
+			Builder: intoto.ProvenanceBuilder{
 				ID: i.builderID,
 			},
-			Recipe: in_toto.ProvenanceRecipe{
+			Recipe: intoto.ProvenanceRecipe{
 				Type:       tektonID,
 				EntryPoint: name,
 			},
@@ -111,33 +115,8 @@ func (i *InTotoIte6) CreatePayload(obj interface{}) (interface{}, error) {
 	results := getResultDigests(tr)
 	att.StatementHeader.Subject = getSubjectDigests(tr, results)
 
-	att.Predicate.Materials = []in_toto.ProvenanceMaterial{}
-	vcsInfo := getVcsInfo(tr)
-	var recipeMaterialUri string
-
-	// Store git rev as Materials and Recipe.Material
-	if vcsInfo != nil {
-		att.Predicate.Materials = append(att.Predicate.Materials, in_toto.ProvenanceMaterial{
-			URI:    vcsInfo.URL,
-			Digest: map[string]string{"git_commit": vcsInfo.Commit},
-		})
-		// Remember the URI of the recipe material. We need to find it later to set the index correctly (after sorting)
-		recipeMaterialUri = vcsInfo.URL
-	}
-
-	// Add all found step containers as materials
-	for _, trs := range tr.Status.Steps {
-		uri, alg, digest := getPackageURLDocker(trs.ImageID)
-		if uri == "" {
-			continue
-		}
-
-		att.Predicate.Materials = append(att.Predicate.Materials, in_toto.ProvenanceMaterial{
-			URI:    uri,
-			Digest: in_toto.DigestSet{alg: digest},
-		})
-	}
-
+	recipeMaterialUri, mats := materials(tr)
+	att.Predicate.Materials = mats
 	sort.Slice(att.Predicate.Materials, func(i, j int) bool {
 		return att.Predicate.Materials[i].URI <= att.Predicate.Materials[j].URI
 	})
@@ -152,6 +131,39 @@ func (i *InTotoIte6) CreatePayload(obj interface{}) (interface{}, error) {
 	}
 
 	return att, nil
+}
+
+// materials will add the following to the attestation materials:
+// 	1. All step containers
+//  2. Any specification for git
+func materials(tr *v1beta1.TaskRun) (string, []intoto.ProvenanceMaterial) {
+	var m []intoto.ProvenanceMaterial
+	vcsInfo := getVcsInfo(tr)
+	var recipeMaterialUri string
+
+	// Store git rev as Materials and Recipe.Material
+	if vcsInfo != nil {
+		m = append(m, intoto.ProvenanceMaterial{
+			URI:    vcsInfo.URL,
+			Digest: map[string]string{"git_commit": vcsInfo.Commit},
+		})
+		// Remember the URI of the recipe material. We need to find it later to set the index correctly (after sorting)
+		recipeMaterialUri = vcsInfo.URL
+	}
+	// Add all found step containers as materials
+	for _, trs := range tr.Status.Steps {
+		uri, alg, digest := getPackageURLDocker(trs.ImageID)
+		if uri == "" {
+			continue
+		}
+
+		m = append(m, intoto.ProvenanceMaterial{
+			URI:    uri,
+			Digest: intoto.DigestSet{alg: digest},
+		})
+	}
+
+	return recipeMaterialUri, m
 }
 
 func (i *InTotoIte6) Type() formats.PayloadType {
@@ -224,8 +236,8 @@ func getVcsInfo(tr *v1beta1.TaskRun) *vcsInfo {
 // Digests can be on two formats: $alg:$digest (commonly used for container
 // image hashes), or $alg:$digest $path, which is used when a step is
 // calculating a hash of a previous step.
-func getSubjectDigests(tr *v1beta1.TaskRun, results []artifactResult) []in_toto.Subject {
-	subs := []in_toto.Subject{}
+func getSubjectDigests(tr *v1beta1.TaskRun, results []artifactResult) []intoto.Subject {
+	subs := []intoto.Subject{}
 	r := regexp.MustCompile(`(\S+)\s+(\S+)`)
 
 	// Resolve *_DIGEST variables
@@ -285,7 +297,7 @@ Results:
 					sub, _, _ = getPackageURLDocker(imageID)
 				}
 
-				subs = append(subs, in_toto.Subject{
+				subs = append(subs, intoto.Subject{
 					Name: sub,
 					Digest: map[string]string{
 						alg: hash,

@@ -1,3 +1,19 @@
+/*
+Copyright 2021 The Tekton Authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package intotoite6
 
 import (
@@ -498,16 +514,6 @@ func TestNewFormatter(t *testing.T) {
 			t.Errorf("Error creating formatter: %s", err)
 		}
 	})
-	t.Run("Fail", func(t *testing.T) {
-		cfg := config.Config{}
-		f, err := NewFormatter(cfg)
-		if f != nil {
-			t.Error("Expected to create to fail")
-		}
-		if err != ErrNoBuilderID {
-			t.Errorf("Unexpected error : %s", err)
-		}
-	})
 }
 
 func TestPurlDocker(t *testing.T) {
@@ -602,7 +608,7 @@ func TestCreatePayloadError(t *testing.T) {
 		if err == nil {
 			t.Errorf("Expected error")
 		} else {
-			if err.Error() != "unsupported type: not a task ref" {
+			if err.Error() != "intoto does not support type: not a task ref" {
 				t.Errorf("wrong error returned: '%s'", err.Error())
 			}
 		}
