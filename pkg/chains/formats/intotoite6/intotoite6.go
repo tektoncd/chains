@@ -55,11 +55,6 @@ type artifactResult struct {
 	Type       artifactType
 }
 
-type vcsInfo struct {
-	Commit string
-	URL    string
-}
-
 func NewFormatter(cfg config.Config) (formats.Payloader, error) {
 	return &InTotoIte6{builderID: cfg.Builder.ID}, nil
 }
@@ -115,20 +110,9 @@ func (i *InTotoIte6) generateAttestationFromTaskRun(tr *v1beta1.TaskRun) (interf
 	results := getResultDigests(tr)
 	att.StatementHeader.Subject = getSubjectDigests(tr, results)
 
-	recipeMaterialUri, mats := materials(tr)
+	definedInMaterial, mats := materials(tr)
 	att.Predicate.Materials = mats
-	sort.Slice(att.Predicate.Materials, func(i, j int) bool {
-		return att.Predicate.Materials[i].URI <= att.Predicate.Materials[j].URI
-	})
-
-	if recipeMaterialUri != "" {
-		for i, m := range att.Predicate.Materials {
-			if m.URI == recipeMaterialUri {
-				att.Predicate.Recipe.DefinedInMaterial = intP(i)
-				break
-			}
-		}
-	}
+	att.Predicate.Recipe.DefinedInMaterial = definedInMaterial
 
 	return att, nil
 }
@@ -136,19 +120,16 @@ func (i *InTotoIte6) generateAttestationFromTaskRun(tr *v1beta1.TaskRun) (interf
 // materials will add the following to the attestation materials:
 // 	1. All step containers
 //  2. Any specification for git
-func materials(tr *v1beta1.TaskRun) (string, []intoto.ProvenanceMaterial) {
+func materials(tr *v1beta1.TaskRun) (*int, []intoto.ProvenanceMaterial) {
 	var m []intoto.ProvenanceMaterial
-	vcsInfo := getVcsInfo(tr)
-	var recipeMaterialUri string
+	gitCommit, gitURL := gitInfo(tr)
 
 	// Store git rev as Materials and Recipe.Material
-	if vcsInfo != nil {
+	if gitCommit != "" && gitURL != "" {
 		m = append(m, intoto.ProvenanceMaterial{
-			URI:    vcsInfo.URL,
-			Digest: map[string]string{"git_commit": vcsInfo.Commit},
+			URI:    gitURL,
+			Digest: map[string]string{"git_commit": gitCommit},
 		})
-		// Remember the URI of the recipe material. We need to find it later to set the index correctly (after sorting)
-		recipeMaterialUri = vcsInfo.URL
 	}
 	// Add all found step containers as materials
 	for _, trs := range tr.Status.Steps {
@@ -162,8 +143,18 @@ func materials(tr *v1beta1.TaskRun) (string, []intoto.ProvenanceMaterial) {
 			Digest: intoto.DigestSet{alg: digest},
 		})
 	}
-
-	return recipeMaterialUri, m
+	sort.Slice(m, func(i, j int) bool {
+		return m[i].URI <= m[j].URI
+	})
+	// find the index of the Git material, if it exists, in the newly sorted list
+	var definedInMaterial *int
+	for i, u := range m {
+		if u.URI == gitURL {
+			definedInMaterial = intP(i)
+			break
+		}
+	}
+	return definedInMaterial, m
 }
 
 func (i *InTotoIte6) Type() formats.PayloadType {
@@ -196,31 +187,24 @@ func getResultDigests(tr *v1beta1.TaskRun) []artifactResult {
 	return results
 }
 
-// getVcsInfo scans over the input parameters and looks for parameters
+// gitInfo scans over the input parameters and looks for parameters
 // with specified names.
-func getVcsInfo(tr *v1beta1.TaskRun) *vcsInfo {
-	var v vcsInfo
+func gitInfo(tr *v1beta1.TaskRun) (commit string, url string) {
 	// Scan for git params to use for materials
 	for _, p := range tr.Spec.Params {
 		if p.Name == commitParam {
-			v.Commit = p.Value.StringVal
+			commit = p.Value.StringVal
 			continue
 		}
 		if p.Name == urlParam {
-			v.URL = p.Value.StringVal
+			url = p.Value.StringVal
 			// make sure url is PURL (git+https)
-			if !strings.HasPrefix(v.URL, "git+") {
-				v.URL = "git+" + v.URL
+			if !strings.HasPrefix(url, "git+") {
+				url = "git+" + url
 			}
-			continue
 		}
 	}
-
-	if v.Commit == "" || v.URL == "" {
-		return nil
-	}
-
-	return &v
+	return
 }
 
 // getSubjectDigests uses depends on taskResults with names ending with
