@@ -18,7 +18,6 @@ package intotoite6
 
 import (
 	"fmt"
-	"regexp"
 	"sort"
 	"strings"
 
@@ -38,21 +37,8 @@ const (
 	chainsDigestSuffix = "_DIGEST"
 )
 
-type artifactType int
-
-const (
-	artifactTypeUnknown artifactType = iota
-	artifactTypeOCI
-)
-
 type InTotoIte6 struct {
 	builderID string
-}
-
-type artifactResult struct {
-	ParamName  string
-	ResultName string
-	Type       artifactType
 }
 
 func NewFormatter(cfg config.Config) (formats.Payloader, error) {
@@ -107,8 +93,7 @@ func (i *InTotoIte6) generateAttestationFromTaskRun(tr *v1beta1.TaskRun) (interf
 		att.Predicate.Metadata.BuildFinishedOn = &tr.Status.CompletionTime.Time
 	}
 
-	results := getResultDigests(tr)
-	att.StatementHeader.Subject = getSubjectDigests(tr, results)
+	att.StatementHeader.Subject = getSubjectDigests(tr)
 
 	definedInMaterial, mats := materials(tr)
 	att.Predicate.Materials = mats
@@ -118,8 +103,8 @@ func (i *InTotoIte6) generateAttestationFromTaskRun(tr *v1beta1.TaskRun) (interf
 }
 
 // materials will add the following to the attestation materials:
-// 	1. All step containers
-//  2. Any specification for git
+// 1. All step containers
+// 2. Any specification for git
 func materials(tr *v1beta1.TaskRun) (*int, []intoto.ProvenanceMaterial) {
 	var m []intoto.ProvenanceMaterial
 	gitCommit, gitURL := gitInfo(tr)
@@ -161,32 +146,6 @@ func (i *InTotoIte6) Type() formats.PayloadType {
 	return formats.PayloadTypeInTotoIte6
 }
 
-// getResultDigests scans over the task.Status.TaskSpec.Results to find any
-// result that has a name that ends with _DIGEST.
-func getResultDigests(tr *v1beta1.TaskRun) []artifactResult {
-	results := []artifactResult{}
-	// Scan for digests
-	for _, r := range tr.Status.TaskRunResults {
-		if strings.HasSuffix(r.Name, chainsDigestSuffix) {
-			// 7 chars in _DIGEST
-			at := artifactTypeUnknown
-
-			// IMAGE_DIGEST always refers to an OCI image
-			if r.Name == ociDigestResult {
-				at = artifactTypeOCI
-			}
-
-			results = append(results, artifactResult{
-				ParamName:  r.Name[:len(r.Name)-7],
-				ResultName: r.Name,
-				Type:       at,
-			})
-		}
-	}
-
-	return results
-}
-
 // gitInfo scans over the input parameters and looks for parameters
 // with specified names.
 func gitInfo(tr *v1beta1.TaskRun) (commit string, url string) {
@@ -207,7 +166,7 @@ func gitInfo(tr *v1beta1.TaskRun) (commit string, url string) {
 	return
 }
 
-// getSubjectDigests uses depends on taskResults with names ending with
+// getSubjectDigests depends on taskResults with names ending with
 // _DIGEST.
 // To be able to find the resource that matches the digest, it relies on a
 // naming schema for an input parameter.
@@ -220,83 +179,58 @@ func gitInfo(tr *v1beta1.TaskRun) (commit string, url string) {
 // Digests can be on two formats: $alg:$digest (commonly used for container
 // image hashes), or $alg:$digest $path, which is used when a step is
 // calculating a hash of a previous step.
-func getSubjectDigests(tr *v1beta1.TaskRun, results []artifactResult) []intoto.Subject {
-	subs := []intoto.Subject{}
-	r := regexp.MustCompile(`(\S+)\s+(\S+)`)
+func getSubjectDigests(tr *v1beta1.TaskRun) []intoto.Subject {
+	var subjects []intoto.Subject
 
-	// Resolve *_DIGEST variables
-Results:
-	for _, ar := range results {
-		// Look for subject amongst the params
-		sub := ""
-		for _, p := range tr.Spec.Params {
-			if ar.ParamName == p.Name {
-				if p.Value.Type != v1beta1.ParamTypeString {
-					continue
-				}
-				sub = p.Value.StringVal
-				break
-			}
-		}
-		if sub == "" {
-			// Loog amongst task results
-			for _, trr := range tr.Status.TaskRunResults {
-				if trr.Name == ar.ParamName {
-					sub = strings.TrimRight(trr.Value, "\n")
-					break
-				}
-			}
-		}
-
-		if sub == "" {
-			// Parameter was not specifed for this task run
+	for _, trr := range tr.Status.TaskRunResults {
+		if !strings.HasSuffix(trr.Name, chainsDigestSuffix) {
 			continue
 		}
-
-		// Loop over the parameters
-		for _, trr := range tr.Status.TaskRunResults {
-			if trr.Name == ar.ResultName {
-				// Value should be on format:
-				// alg:hash
-				// alg:hash filename
-				mod := strings.TrimRight(trr.Value, "\n")
-				ah := strings.Split(mod, ":")
-				if len(ah) != 2 {
-					continue
-				}
-				alg := ah[0]
-
-				// Is format "hash filename"
-				groups := r.FindStringSubmatch(ah[1])
-				var hash string
-				if len(groups) == 3 {
-					hash = groups[1]
-				} else {
-					hash = ah[1]
-				}
-
-				// OCI image shall use pacakge url format for subjects
-				if ar.Type == artifactTypeOCI {
-					imageID := getOCIImageID(sub, alg, hash)
-					sub, _, _ = getPackageURLDocker(imageID)
-				}
-
-				subs = append(subs, intoto.Subject{
-					Name: sub,
-					Digest: map[string]string{
-						alg: hash,
-					},
-				})
-				// Subject found, go after next result
-				continue Results
+		potentialKey := strings.TrimSuffix(trr.Name, chainsDigestSuffix)
+		var sub string
+		// try to match the key to a param or a result
+		for _, p := range tr.Spec.Params {
+			if potentialKey != p.Name || p.Value.Type != v1beta1.ParamTypeString {
+				continue
+			}
+			sub = p.Value.StringVal
+		}
+		for _, p := range tr.Status.TaskRunResults {
+			if potentialKey == p.Name {
+				sub = strings.TrimRight(p.Value, "\n")
 			}
 		}
-	}
+		// if we couldn't match to a param or a result, continue
+		if sub == "" {
+			continue
+		}
+		// Value should be of the format:
+		//   alg:hash
+		//   alg:hash filename
+		algHash := strings.Split(trr.Value, " ")[0]
+		ah := strings.Split(algHash, ":")
+		if len(ah) != 2 {
+			continue
+		}
+		alg := ah[0]
+		hash := ah[1]
 
-	sort.Slice(subs, func(i, j int) bool {
-		return subs[i].Name <= subs[j].Name
+		// OCI image shall use pacakge url format for subjects
+		if trr.Name == ociDigestResult {
+			imageID := getOCIImageID(sub, alg, hash)
+			sub, _, _ = getPackageURLDocker(imageID)
+		}
+		subjects = append(subjects, intoto.Subject{
+			Name: sub,
+			Digest: map[string]string{
+				alg: hash,
+			},
+		})
+	}
+	sort.Slice(subjects, func(i, j int) bool {
+		return subjects[i].Name <= subjects[j].Name
 	})
-	return subs
+	return subjects
 }
 
 func intP(i int) *int {

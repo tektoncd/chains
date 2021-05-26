@@ -5,6 +5,7 @@ go 1.13
 require (
 	cloud.google.com/go v0.81.0
 	cloud.google.com/go/storage v1.12.0
+	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/google/go-cmp v0.5.5
 	github.com/google/go-containerregistry v0.5.0
 	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20210129212729-5c4818de4025
