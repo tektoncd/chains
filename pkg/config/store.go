@@ -98,6 +98,7 @@ const (
 	// No config needed for Tekton object storage
 
 	// No config needed for pgp signer
+
 	// No config needed for x509 signer
 
 	// KMS

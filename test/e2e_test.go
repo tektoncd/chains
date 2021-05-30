@@ -209,6 +209,8 @@ func TestOCIStorage(t *testing.T) {
 
 	resetConfig := setConfigMap(ctx, t, c, map[string]string{
 		"storage.oci.repository.insecure": "true",
+		"artifacts.oci.storage":           "oci",
+		"artifacts.taskrun.storage":       "tekton",
 	})
 	defer resetConfig()
 	time.Sleep(3 * time.Second)

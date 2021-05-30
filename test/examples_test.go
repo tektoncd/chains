@@ -36,6 +36,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
+	"github.com/in-toto/in-toto-golang/pkg/ssl"
 
 	"github.com/ghodss/yaml"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -106,12 +107,33 @@ func runInTotoFormatterTests(ctx context.Context, t *testing.T, ns string, c *cl
 
 			// verify signature
 			pub := &c.secret.x509Priv.PublicKey
-			h := sha256.Sum256(payload)
-			if !ecdsa.VerifyASN1(pub, h[:], signature) {
-				t.Fatal("invalid signature")
+			verifier := &verifier{
+				pub: pub,
+			}
+			ev := ssl.NewEnvelopeVerifier(verifier)
+			env := ssl.Envelope{}
+			if err := json.Unmarshal(signature, &env); err != nil {
+				t.Fatal(err)
+			}
+
+			ok, err := ev.Verify(&env)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !ok {
+				t.Fatal(err)
 			}
 		})
 	}
+}
+
+type verifier struct {
+	pub *ecdsa.PublicKey
+}
+
+func (v *verifier) Verify(_ string, data, sig []byte) (bool, error) {
+	h := sha256.Sum256(data)
+	return ecdsa.VerifyASN1(v.pub, h[:], sig), nil
 }
 
 func expectedProvenance(t *testing.T, example string, tr *v1beta1.TaskRun) intoto.ProvenanceStatement {
