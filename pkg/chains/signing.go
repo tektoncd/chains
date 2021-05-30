@@ -207,6 +207,16 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 				ts.Logger.Warnf("No signer %s configured for object: %v", signerType, obj)
 				continue
 			}
+
+			if payloader.Wrap() {
+				wrapped, err := signing.Wrap(ctx, signer)
+				if err != nil {
+					return err
+				}
+				ts.Logger.Infof("Using wrapped envelope signer for %s", payloader.Type())
+				signer = wrapped
+			}
+
 			ts.Logger.Infof("Signing object %s with %s", obj, signerType)
 			rawPayload, err := json.Marshal(payload)
 			if err != nil {
@@ -234,9 +244,10 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 					if err != nil {
 						ts.Logger.Error(err)
 						merr = multierror.Append(merr, err)
+					} else {
+						ts.Logger.Infof("Uploaded entry to %s with index %d", cfg.Transparency.URL, *entry.LogIndex)
+						extraAnnotations[ChainsTransparencyAnnotation] = fmt.Sprintf("%s/%d", cfg.Transparency.URL, *entry.LogIndex)
 					}
-					ts.Logger.Infof("Uploaded entry to %s with index %d", cfg.Transparency.URL, *entry.LogIndex)
-					extraAnnotations[ChainsTransparencyAnnotation] = fmt.Sprintf("%s/%d", cfg.Transparency.URL, *entry.LogIndex)
 				}
 			}
 		}

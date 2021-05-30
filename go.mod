@@ -10,9 +10,10 @@ require (
 	github.com/google/go-containerregistry v0.5.1
 	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20210216200643-d81088d9983e
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/in-toto/in-toto-golang v0.1.1-0.20210505200736-471bd79ebd18
+	github.com/in-toto/in-toto-golang v0.1.1-0.20210528150343-f7dc21abaccf
 	github.com/pkg/errors v0.9.1
 	github.com/sigstore/cosign v0.5.0
+	github.com/sigstore/rekor v0.1.2-0.20210519014330-b5480728bde6
 	github.com/sigstore/sigstore v0.0.0-20210530211317-99216b8b86a6
 	github.com/tektoncd/pipeline v0.23.0
 	github.com/tektoncd/plumbing v0.0.0-20210514044347-f8a9689d5bd5
@@ -23,7 +24,6 @@ require (
 	k8s.io/apimachinery v0.21.1
 	k8s.io/client-go v0.19.7
 	knative.dev/pkg v0.0.0-20210127163530-0d31134d5f4e
-
 )
 
 // Knative deps (release-0.20)

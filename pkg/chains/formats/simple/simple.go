@@ -38,7 +38,10 @@ func (i *SimpleSigning) CreatePayload(obj interface{}) (interface{}, error) {
 	default:
 		return nil, fmt.Errorf("unsupported type %s", v)
 	}
+}
 
+func (i *SimpleSigning) Wrap() bool {
+	return false
 }
 
 func NewFormatter() (formats.Payloader, error) {

@@ -38,17 +38,26 @@ type Signer struct {
 
 // NewSigner returns a configured Signer
 func NewSigner(secretPath string, logger *zap.SugaredLogger) (*Signer, error) {
-	privateKeyPath := filepath.Join(secretPath, "x509.pem")
-	if contents, err := ioutil.ReadFile(privateKeyPath); err == nil {
-		return x509Signer(contents, logger)
-	}
 
-	privateKeyPath = filepath.Join(secretPath, "cosign.key")
-	if contents, err := ioutil.ReadFile(privateKeyPath); err == nil {
-		return cosignSigner(secretPath, contents, logger)
-	}
+	x509PrivateKeyPath := filepath.Join(secretPath, "x509.pem")
+	cosignPrivateKeypath := filepath.Join(secretPath, "cosign.key")
 
-	return nil, errors.New("no valid private key found, looked for: [x509.pem, cosign.key]")
+	var signer *Signer
+	if contents, err := ioutil.ReadFile(x509PrivateKeyPath); err == nil {
+		signer, err = x509Signer(contents, logger)
+		if err != nil {
+			return nil, err
+		}
+	} else if contents, err := ioutil.ReadFile(cosignPrivateKeypath); err == nil {
+		signer, err = cosignSigner(secretPath, contents, logger)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, errors.New("no valid private key found, looked for: [x509.pem, cosign.key]")
+	}
+	return signer, nil
+
 }
 
 func x509Signer(privateKey []byte, logger *zap.SugaredLogger) (*Signer, error) {

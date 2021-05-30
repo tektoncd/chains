@@ -13,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/in-toto/in-toto-golang/pkg/ssl"
 )
 
 /*
@@ -38,6 +40,9 @@ type Key struct {
 	KeyVal              KeyVal   `json:"keyval"`
 	Scheme              string   `json:"scheme"`
 }
+
+// PayloadType is the payload type used for links and layouts.
+const PayloadType = "application/vnd.in-toto+json"
 
 // ErrEmptyKeyField will be thrown if a field in our Key struct is empty.
 var ErrEmptyKeyField = errors.New("empty field in key")
@@ -74,6 +79,9 @@ const (
 	// PredicateProvenanceV01 represents a build provenance for an artifact.
 	PredicateProvenanceV01 = "https://in-toto.io/Provenance/v0.1"
 )
+
+// ErrInvalidPayloadType indicates that the envelope used an unkown payload type
+var ErrInvalidPayloadType = errors.New("unknown payload type")
 
 /*
 matchEcdsaScheme checks if the scheme suffix, matches the ecdsa key
@@ -959,4 +967,38 @@ completeness
 type SPDXStatement struct {
 	StatementHeader
 	Predicate interface{} `json:"predicate"`
+}
+
+/*
+SSLSigner provides signature generation and validation based on the SSL
+Signing Spec: https://github.com/secure-systems-lab/signing-spec
+as describe by: https://github.com/MarkLodato/ITE/tree/media-type/ITE/5
+It wraps the generic SSL envelope signer and enforces the correct payload
+type both during signature generation and validation.
+*/
+type SSLSigner struct {
+	signer *ssl.EnvelopeSigner
+}
+
+func NewSSLSigner(p ...ssl.SignVerifier) (*SSLSigner, error) {
+	es, err := ssl.NewEnvelopeSigner(p...)
+	if err != nil {
+		return nil, err
+	}
+
+	return &SSLSigner{
+		signer: es,
+	}, nil
+}
+
+func (s *SSLSigner) SignPayload(body []byte) (*ssl.Envelope, error) {
+	return s.signer.SignPayload(PayloadType, body)
+}
+
+func (s *SSLSigner) Verify(e *ssl.Envelope) (bool, error) {
+	if e.PayloadType != PayloadType {
+		return false, ErrInvalidPayloadType
+	}
+
+	return s.signer.Verify(e)
 }

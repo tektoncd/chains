@@ -45,6 +45,10 @@ func NewFormatter(cfg config.Config) (formats.Payloader, error) {
 	return &InTotoIte6{builderID: cfg.Builder.ID}, nil
 }
 
+func (i *InTotoIte6) Wrap() bool {
+	return true
+}
+
 func (i *InTotoIte6) CreatePayload(obj interface{}) (interface{}, error) {
 	var tr *v1beta1.TaskRun
 	switch v := obj.(type) {

@@ -44,3 +44,7 @@ func (i *Tekton) CreatePayload(obj interface{}) (interface{}, error) {
 func (i *Tekton) Type() formats.PayloadType {
 	return formats.PayloadTypeTekton
 }
+
+func (i *Tekton) Wrap() bool {
+	return false
+}

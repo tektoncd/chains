@@ -17,6 +17,7 @@ package formats
 type Payloader interface {
 	CreatePayload(obj interface{}) (interface{}, error)
 	Type() PayloadType
+	Wrap() bool
 }
 
 type PayloadType string
