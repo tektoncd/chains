@@ -1,6 +1,6 @@
 # Authentication for Chains
 
-Authentication can be required for the following features in Chains:
+Authentication must be set up to take advantage of the following features in Chains:
 * Pushing signatures to an OCI registry after signing an image
 
 This doc will cover how to set this up!
