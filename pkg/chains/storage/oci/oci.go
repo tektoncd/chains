@@ -91,7 +91,7 @@ func (b *Backend) StorePayload(rawPayload []byte, signature string, key string) 
 	if _, err = cosign.Upload(context.TODO(), []byte(signature), rawPayload, cosignDst, cosign.UploadOpts{RemoteOpts: []remote.Option{b.auth}}); err != nil {
 		return errors.Wrap(err, "uploading")
 	}
-	b.logger.Infof("Successfully uploaded signatue for %s", imageName)
+	b.logger.Infof("Successfully uploaded signature for %s", imageName)
 	return nil
 }
 
