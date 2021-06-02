@@ -1,15 +1,15 @@
-apiVersion: tekton.dev/v1alpha1
+apiVersion: tekton.dev/v1beta1
 kind: TaskRun
 metadata:
   generateName: build-push-run-output-image-
 spec:
+  serviceAccountName: ""
   taskSpec:
-    inputs:
-      resources:
+    resources:
+      inputs:
       - name: sourcerepo
         type: git
-    outputs:
-      resources:
+      outputs:
       - name: builtImage
         type: image
         targetPath: /workspace/sourcerepo
@@ -32,8 +32,8 @@ spec:
     - name: echo
       image: busybox
       script: cat $(inputs.resources.sourcerepo.path)/index.json
-  inputs:
-    resources:
+  resources:
+    inputs:
     - name: sourcerepo
       resourceSpec:
         type: git
@@ -42,8 +42,7 @@ spec:
           value: v0.32.0
         - name: url
           value: https://github.com/GoogleContainerTools/skaffold
-  outputs:
-    resources:
+    outputs:
     - name: builtImage
       resourceSpec:
         type: image

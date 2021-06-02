@@ -5,7 +5,7 @@ go 1.13
 require (
 	cloud.google.com/go v0.81.0
 	cloud.google.com/go/storage v1.12.0
-	github.com/docker/distribution v2.7.1+incompatible // indirect
+	github.com/ghodss/yaml v1.0.0
 	github.com/google/go-cmp v0.5.5
 	github.com/google/go-containerregistry v0.5.0
 	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20210129212729-5c4818de4025
@@ -16,7 +16,6 @@ require (
 	github.com/sigstore/sigstore v0.0.0-20210427115853-11e6eaab7cdc
 	github.com/tektoncd/pipeline v0.23.0
 	github.com/tektoncd/plumbing v0.0.0-20210514044347-f8a9689d5bd5
-	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.16.0
 	gocloud.dev v0.22.0
 	golang.org/x/crypto v0.0.0-20210421170649-83a5a9bb288b
