@@ -33,7 +33,7 @@ secret/signing-secrets created
 To create a simple `TaskRun`, run:
 
 ```shell
-$ kubectl create -f examples/task-output-image.yaml
+$ kubectl create -f examples/taskruns/task-output-image.yaml
 taskrun.tekton.dev/build-push-run-output-image-qbjvh created
 ```
 
@@ -78,7 +78,7 @@ configmap/chains-config patched
 To create a simple `TaskRun`, run:
 
 ```shell
-$ kubectl create -f examples/task-output-image.yaml
+$ kubectl create -f examples/taskruns/task-output-image.yaml
 taskrun.tekton.dev/build-push-run-output-image-qbjvh created
 ```
 
