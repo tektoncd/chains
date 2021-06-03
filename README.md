@@ -57,3 +57,7 @@ We are so excited to have you!
 * See [DEVELOPMENT.md](DEVELOPMENT.md) for how to get started
 * See [ROADMAP.md](ROADMAP.md) for the current roadmap
 Check out our good first issues and our help wanted issues to get started!
+
+To learn more about Chains:
+* Chat with us in the [#chains](https://tektoncd.slack.com/messages/chains) Slack channel
+* Attend the Chains Working Group meeting, details [here](https://github.com/tektoncd/community/blob/main/working-groups.md#chains)
