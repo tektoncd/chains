@@ -1,0 +1,24 @@
+{
+    "_type": "https://in-toto.io/Statement/v0.1",
+    "predicateType": "https://in-toto.io/Provenance/v0.1",
+    "subject": null,
+    "predicate": {
+        "builder": {
+            "id": "tekton-chains"
+        },
+        "recipe": {
+            "type": "https://tekton.dev/attestations/chains@v1",
+            "entryPoint": "{{.Entrypoint}}"
+        },
+        "metadata": {
+            "buildStartedOn": "{{.BuildStartedOn}}",
+            "buildFinishedOn": "{{.BuildFinishedOn}}",
+            "completeness": {
+                "arguments": false,
+                "environment": false,
+                "materials": false
+            },
+            "reproducible": false
+        }
+    }
+}

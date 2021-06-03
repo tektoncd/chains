@@ -6,7 +6,7 @@ In-toto attestation spec is defined
 [here](https://github.com/in-toto/attestation/tree/v0.1.0/spec).
 
 The in-toto format can be enabled by configuring Chains to use format
-`in-toto-ite6`.
+`in-toto`.
 
 To provide a git URL/commit as material, add a parameter named
 `CHAINS-GIT_COMMIT` and `CHAINS-GIT_URL`. The value of these
