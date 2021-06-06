@@ -14,6 +14,7 @@ limitations under the License.
 package x509
 
 import (
+	"context"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/ed25519"
@@ -23,10 +24,14 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
+	"google.golang.org/api/idtoken"
+
 	"github.com/pkg/errors"
 	"github.com/sigstore/cosign/pkg/cosign"
+	"github.com/sigstore/cosign/pkg/cosign/fulcio"
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/tektoncd/chains/pkg/chains/signing"
+	"github.com/tektoncd/chains/pkg/config"
 	"go.uber.org/zap"
 )
 
@@ -37,7 +42,15 @@ type Signer struct {
 }
 
 // NewSigner returns a configured Signer
-func NewSigner(secretPath string, logger *zap.SugaredLogger) (*Signer, error) {
+func NewSigner(secretPath string, cfg config.Config, logger *zap.SugaredLogger) (*Signer, error) {
+	if cfg.Signers.X509.FulcioAddr != "" {
+		return fulcioSigner(logger)
+	}
+
+	privateKeyPath := filepath.Join(secretPath, "x509.pem")
+	if contents, err := ioutil.ReadFile(privateKeyPath); err == nil {
+		return x509Signer(contents, logger)
+	}
 
 	x509PrivateKeyPath := filepath.Join(secretPath, "x509.pem")
 	cosignPrivateKeypath := filepath.Join(secretPath, "cosign.key")
@@ -57,6 +70,27 @@ func NewSigner(secretPath string, logger *zap.SugaredLogger) (*Signer, error) {
 		return nil, errors.New("no valid private key found, looked for: [x509.pem, cosign.key]")
 	}
 	return signer, nil
+
+}
+
+func fulcioSigner(logger *zap.SugaredLogger) (*Signer, error) {
+	ts, err := idtoken.NewTokenSource(context.Background(), "sigstore")
+	if err != nil {
+		return nil, err
+	}
+	tok, err := ts.Token()
+	if err != nil {
+		return nil, err
+	}
+
+	k, err := fulcio.NewSigner(context.Background(), tok.AccessToken)
+	if err != nil {
+		return nil, err
+	}
+	return &Signer{
+		Signer: k.ECDSASignerVerifier,
+		logger: logger,
+	}, nil
 
 }
 

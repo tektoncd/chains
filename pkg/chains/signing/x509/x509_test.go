@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/tektoncd/chains/pkg/config"
 	logtesting "knative.dev/pkg/logging/testing"
 )
 
@@ -56,7 +57,7 @@ func TestSigner_SignECDSA(t *testing.T) {
 	}
 
 	// create a signer
-	signer, err := NewSigner(d, logger)
+	signer, err := NewSigner(d, config.Config{}, logger)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -98,7 +99,7 @@ func TestSigner_SignED25519(t *testing.T) {
 	}
 
 	// create a signer
-	signer, err := NewSigner(d, logger)
+	signer, err := NewSigner(d, config.Config{}, logger)
 	if err != nil {
 		t.Fatal(err)
 	}
