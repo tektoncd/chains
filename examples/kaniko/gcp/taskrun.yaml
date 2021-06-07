@@ -1,0 +1,16 @@
+apiVersion: tekton.dev/v1beta1
+kind: TaskRun
+metadata:
+  name: kaniko-gcp
+spec:
+  taskRef:
+    name: kaniko-gcp
+  params:
+  - name: IMAGE
+    value: <your image>
+  workspaces:
+  - name: source
+    emptyDir: {}
+  - name: credentials
+    secret:
+      secretName: <your credentials secret>
