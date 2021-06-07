@@ -79,19 +79,10 @@ Chains also has the following requirements:
 
 To create a cosign keypair, `cosign.key` and `cosign.pub`, install [cosign](https://github.com/sigstore/cosign) and run the following:
 ```shell
-cosign generate-key-pair
-```
-Cosign will prompt you for a password; store this password in a file called `cosign.password`:
-```shell
-echo -n $passphrase > cosign.password
+cosign generate-key-pair -k8s tekton-chains/signing-secrets
 ```
 
-## Store Key as Kubernetes Secret
-
-You can create a secret with:
-```
-kubectl create secret generic signing-secrets -n tekton-chains --from-file=cosign.key --from-file cosign.password
-```
+Cosign will prompt you for a password, and create the Kubernetes secret for you.
 
 # KMS
 Chains uses a ["go-cloud"](https://github.com/google/go-cloud) URI like scheme for KMS references.
