@@ -13,11 +13,12 @@ You can opt to try the tutorial with either of the following key types:
 * [PGP/GPG](#PGP/GPG)
 
 ## x509
-To generate your own x509 keypair and save it as a Kubernetes secret, install [cosign](https://github.com/sigstore/cosign) and run the following:
+To generate your own encrypted x509 keypair and save it as a Kubernetes secret, install [cosign](https://github.com/sigstore/cosign) and run the following:
 
 ```shell
 cosign generate-key-pair -k8s tekton-chains/signing-secrets
 ```
+cosign will prompt you for a password, which will be stored in the Kubernetes secret.
 
 To create a simple `TaskRun`, run:
 
@@ -49,7 +50,7 @@ $ kubectl get taskrun $TASKRUN -o=json | jq  -r ".metadata.annotations[\"chains.
 Finally, we can check the signature with [cosign](https://github.com/sigstore/cosign):
 
 ```shell
-$ cosign verify-blob -key x509.pub -signature ./signature ./payload 
+$ cosign verify-blob -key cosign.pub -signature ./signature ./payload 
 Verified OK
 ```
 

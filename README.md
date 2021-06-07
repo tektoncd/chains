@@ -21,6 +21,8 @@ Current features include:
 * Support for multiple storage backends for signatures
 
 ### Installation
+Prerequisite: you'll need [Tekton Pipelines](https://github.com/tektoncd/pipeline/blob/main/docs/install.md) installed on your cluster before you install Chains.
+
 To install the latest version of Chains to your Kubernetes cluster, run:
 ```
 kubectl apply --filename https://storage.googleapis.com/tekton-releases/chains/latest/release.yaml
