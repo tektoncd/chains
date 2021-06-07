@@ -134,7 +134,7 @@ func TestParse(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := parse(tt.data)
+			got := parse(tt.data, logtesting.TestLogger(t))
 			if diff := cmp.Diff(got, tt.want); diff != "" {
 				t.Errorf("parse() = %v", diff)
 			}
@@ -173,7 +173,7 @@ func TestValueOrDefault(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
-			got := valueOrDefault(test.key, map[string]string{test.key: test.value})
+			got := valueOrDefault(test.key, map[string]string{test.key: test.value}, logtesting.TestLogger(t))
 			if got != test.expected {
 				t.Fatalf("got (%s) is not expected (%s)", got, test.expected)
 			}
