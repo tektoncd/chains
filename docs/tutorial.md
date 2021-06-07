@@ -13,21 +13,10 @@ You can opt to try the tutorial with either of the following key types:
 * [PGP/GPG](#PGP/GPG)
 
 ## x509
-To generate your own x509 keypair and save it as a Kubernetes secret, run [gen-keys.sh](../gen-keys.sh):
+To generate your own x509 keypair and save it as a Kubernetes secret, install [cosign](https://github.com/sigstore/cosign) and run the following:
 
 ```shell
-$ ./gen-keys.sh
-+ export NAMESPACE=tekton-chains
-+ NAMESPACE=tekton-chains
-+ export SECRET_NAME=signing-secrets
-+ SECRET_NAME=signing-secrets
-+ openssl ecparam -genkey -name prime256v1
-+ openssl pkcs8 -topk8 -in ec_private.pem -nocrypt -out x509.pem
-+ openssl ec -in x509.pem -pubout -out x509.pub
-read EC key
-writing EC key
-+ kubectl create secret generic signing-secrets -n tekton-chains --from-file=x509.pem
-secret/signing-secrets created
+cosign generate-key-pair -k8s tekton-chains/signing-secrets
 ```
 
 To create a simple `TaskRun`, run:
