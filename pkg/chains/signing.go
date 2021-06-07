@@ -132,13 +132,13 @@ func allFormatters(cfg config.Config, l *zap.SugaredLogger) map[formats.PayloadT
 		case formats.PayloadTypeSimpleSigning:
 			formatter, err := simple.NewFormatter()
 			if err != nil {
-				l.Warnf("error configuring tekton formatter: %s", err)
+				l.Warnf("error configuring simplesigning formatter: %s", err)
 			}
 			all[f] = formatter
 		case formats.PayloadTypeInTotoIte6:
 			formatter, err := intotoite6.NewFormatter(cfg)
 			if err != nil {
-				l.Warnf("error configuring tekton formatter: %s", err)
+				l.Warnf("error configuring intoto formatter: %s", err)
 			}
 			all[f] = formatter
 		}

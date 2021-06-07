@@ -123,40 +123,42 @@ var supportedValues = map[string][]string{
 	ociSignerKey:      {"pgp", "x509", "kms"},
 }
 
-func parse(data map[string]string) Config {
+func parse(data map[string]string, logger *zap.SugaredLogger) Config {
 	cfg := Config{}
 
 	// Artifact-specific configs
 
 	// TaskRuns
-	cfg.Artifacts.TaskRuns.Format = valueOrDefault(taskrunFormatKey, data)
-	cfg.Artifacts.TaskRuns.StorageBackend = valueOrDefault(taskrunStorageKey, data)
-	cfg.Artifacts.TaskRuns.Signer = valueOrDefault(taskrunSignerKey, data)
+	cfg.Artifacts.TaskRuns.Format = valueOrDefault(taskrunFormatKey, data, logger)
+	cfg.Artifacts.TaskRuns.StorageBackend = valueOrDefault(taskrunStorageKey, data, logger)
+	cfg.Artifacts.TaskRuns.Signer = valueOrDefault(taskrunSignerKey, data, logger)
 
 	// OCI
-	cfg.Artifacts.OCI.Format = valueOrDefault(ociFormatKey, data)
-	cfg.Artifacts.OCI.StorageBackend = valueOrDefault(ociStorageKey, data)
-	cfg.Artifacts.OCI.Signer = valueOrDefault(ociSignerKey, data)
+	cfg.Artifacts.OCI.Format = valueOrDefault(ociFormatKey, data, logger)
+	cfg.Artifacts.OCI.StorageBackend = valueOrDefault(ociStorageKey, data, logger)
+	cfg.Artifacts.OCI.Signer = valueOrDefault(ociSignerKey, data, logger)
 
 	// Storage level configs
 
-	cfg.Storage.GCS.Bucket = valueOrDefault(gcsBucketKey, data)
-	cfg.Storage.OCI.Repository = valueOrDefault(ociRepositoryKey, data)
-	cfg.Storage.OCI.Insecure = (valueOrDefault(ociRepositoryInsecureKey, data) == "true")
-	cfg.Storage.DocDB.URL = valueOrDefault(docDBUrlKey, data)
+	cfg.Storage.GCS.Bucket = valueOrDefault(gcsBucketKey, data, logger)
+	cfg.Storage.OCI.Repository = valueOrDefault(ociRepositoryKey, data, logger)
+	cfg.Storage.OCI.Insecure = (valueOrDefault(ociRepositoryInsecureKey, data, logger) == "true")
+	cfg.Storage.DocDB.URL = valueOrDefault(docDBUrlKey, data, logger)
 
-	cfg.Signers.KMS.KMSRef = valueOrDefault(kmsSignerKMSRef, data)
+	cfg.Signers.KMS.KMSRef = valueOrDefault(kmsSignerKMSRef, data, logger)
 
 	// Build config
-	cfg.Builder.ID = valueOrDefault(builderIDKey, data)
+	cfg.Builder.ID = valueOrDefault(builderIDKey, data, logger)
 
 	return cfg
 }
 
-func valueOrDefault(key string, data map[string]string) string {
+func valueOrDefault(key string, data map[string]string, logger *zap.SugaredLogger) string {
 	if v, ok := data[key]; ok {
 		if validate(key, v) {
 			return v
+		} else {
+			logger.Warnf("[%s] is not a valid option for key [%s], using default [%s] instead. please set [%s] to one of %v in the config\n", v, key, defaults[key], key, supportedValues[key])
 		}
 	}
 	return defaults[key]
@@ -193,7 +195,7 @@ func (cs *ConfigStore) watch() {
 		for evt := range cs.c {
 			cm := evt.Object.(*corev1.ConfigMap)
 			cs.logger.Debugf("watch event %s on %s/%s", evt.Type, cm.Namespace, cm.Name)
-			config := parse(cm.Data)
+			config := parse(cm.Data, cs.logger)
 			// Swap the values!
 			cs.config.Store(config)
 			cs.logger.Infof("config store %s updated: %v", cs.name, cm.Data)
