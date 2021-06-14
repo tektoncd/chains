@@ -13,7 +13,3 @@
 workspace-template.yaml
 # Dependency directories (remove the comment below to include it)
 # vendor/
-
-# keys that may be generated
-*.pem
-*.pub

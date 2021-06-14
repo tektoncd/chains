@@ -14,9 +14,12 @@ limitations under the License.
 package chains
 
 import (
+	"context"
 	"errors"
 	"testing"
 
+	"github.com/sigstore/rekor/pkg/generated/models"
+	"github.com/tektoncd/chains/pkg/chains/signing"
 	"github.com/tektoncd/chains/pkg/chains/storage"
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -47,7 +50,7 @@ func TestMarkSigned(t *testing.T) {
 	}
 
 	// Now mark it as signed.
-	if err := MarkSigned(tr, c); err != nil {
+	if err := MarkSigned(tr, c, nil); err != nil {
 		t.Errorf("MarkSigned() error = %v", err)
 	}
 
@@ -58,6 +61,28 @@ func TestMarkSigned(t *testing.T) {
 	}
 	if _, ok := signed.Annotations[ChainsAnnotation]; !ok {
 		t.Error("Taskrun not signed.")
+	}
+
+	// Try some extra annotations
+
+	// Now mark it as signed.
+	extra := map[string]string{
+		"foo": "bar",
+	}
+	if err := MarkSigned(tr, c, extra); err != nil {
+		t.Errorf("MarkSigned() error = %v", err)
+	}
+
+	// Now check the signature.
+	signed, err = c.TektonV1beta1().TaskRuns(tr.Namespace).Get(ctx, tr.Name, metav1.GetOptions{})
+	if err != nil {
+		t.Errorf("Get() error = %v", err)
+	}
+	if _, ok := signed.Annotations[ChainsAnnotation]; !ok {
+		t.Error("Taskrun not signed.")
+	}
+	if signed.Annotations["foo"] != "bar" {
+		t.Error("Extra annotations not applied")
 	}
 }
 
@@ -138,7 +163,7 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cleanup := setupMocks(tt.backends)
+			cleanup := setupMocks(tt.backends, &mockRekor{})
 			defer cleanup()
 
 			ctx, _ := rtesting.SetupFakeContext(t)
@@ -201,7 +226,74 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 	}
 }
 
-func setupMocks(backends []*mockBackend) func() {
+func TestTaskRunSigner_Transparency(t *testing.T) {
+	rekor := &mockRekor{}
+	backends := []*mockBackend{{backendType: "mock"}}
+	cleanup := setupMocks(backends, rekor)
+	defer cleanup()
+
+	ctx, _ := rtesting.SetupFakeContext(t)
+	logger := logtesting.TestLogger(t)
+	ps := fakepipelineclient.Get(ctx)
+
+	cfgStore := &mockConfig{cfg: config.Config{
+		Artifacts: config.ArtifactConfigs{
+			TaskRuns: config.Artifact{
+				Format:         "tekton",
+				StorageBackend: "mock",
+				Signer:         "x509",
+			},
+		},
+		Transparency: config.TransparencyConfig{
+			Enabled: false,
+		},
+	}}
+
+	ts := &TaskRunSigner{
+		Logger:            logger,
+		Pipelineclientset: ps,
+		SecretPath:        "./signing/x509/testdata/",
+		ConfigStore:       cfgStore,
+	}
+
+	tr := &v1beta1.TaskRun{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "foo",
+		},
+	}
+	if _, err := ps.TektonV1beta1().TaskRuns(tr.Namespace).Create(ctx, tr, metav1.CreateOptions{}); err != nil {
+		t.Errorf("error creating fake taskrun: %v", err)
+	}
+	if err := ts.SignTaskRun(ctx, tr); err != nil {
+		t.Errorf("TaskRunSigner.SignTaskRun() error = %v", err)
+	}
+
+	if len(rekor.entries) != 0 {
+		t.Error("expected no transparency log entries!")
+	}
+
+	// Now enable and try again!
+	cfgStore.cfg.Transparency.Enabled = true
+	ts.ConfigStore = cfgStore
+
+	tr2 := &v1beta1.TaskRun{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "foobar",
+		},
+	}
+	if _, err := ps.TektonV1beta1().TaskRuns(tr.Namespace).Create(ctx, tr2, metav1.CreateOptions{}); err != nil {
+		t.Errorf("error creating fake taskrun: %v", err)
+	}
+	if err := ts.SignTaskRun(ctx, tr2); err != nil {
+		t.Errorf("TaskRunSigner.SignTaskRun() error = %v", err)
+	}
+
+	if len(rekor.entries) != 1 {
+		t.Error("expected transparency log entry!")
+	}
+}
+
+func setupMocks(backends []*mockBackend, rekor *mockRekor) func() {
 	oldGet := getBackends
 	getBackends = func(ps versioned.Interface, logger *zap.SugaredLogger, _ *v1beta1.TaskRun, _ config.Config) (map[string]storage.Backend, error) {
 		newBackends := map[string]storage.Backend{}
@@ -210,9 +302,28 @@ func setupMocks(backends []*mockBackend) func() {
 		}
 		return newBackends, nil
 	}
+
+	oldRekor := getRekor
+	getRekor = func(_ string, _ *zap.SugaredLogger) (rekorClient, error) {
+		return rekor, nil
+	}
+
 	return func() {
+		getRekor = oldRekor
 		getBackends = oldGet
 	}
+}
+
+type mockRekor struct {
+	entries [][]byte
+}
+
+func (r *mockRekor) UploadTlog(ctx context.Context, signer signing.Signer, signature, rawPayload []byte) (*models.LogEntryAnon, error) {
+	r.entries = append(r.entries, signature)
+	index := int64(len(r.entries) - 1)
+	return &models.LogEntryAnon{
+		LogIndex: &index,
+	}, nil
 }
 
 type mockBackend struct {

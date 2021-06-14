@@ -12,10 +12,11 @@ import (
 )
 
 type Config struct {
-	Artifacts ArtifactConfigs
-	Storage   StorageConfigs
-	Signers   SignerConfigs
-	Builder   BuilderConfig
+	Artifacts    ArtifactConfigs
+	Storage      StorageConfigs
+	Signers      SignerConfigs
+	Builder      BuilderConfig
+	Transparency TransparencyConfig
 }
 
 // ArtifactConfig contains the configuration for how to sign/store/format the signatures for each artifact type
@@ -76,6 +77,11 @@ type DocDBStorageConfig struct {
 	URL string
 }
 
+type TransparencyConfig struct {
+	Enabled bool
+	URL     string
+}
+
 const (
 	taskrunFormatKey  = "artifacts.taskrun.format"
 	taskrunStorageKey = "artifacts.taskrun.storage"
@@ -100,16 +106,20 @@ const (
 	// Builder config
 	builderIDKey = "builder.id"
 
+	transparencyEnabledKey = "transparency.enabled"
+	transparencyURLKey     = "transparency.url"
+
 	chainsConfig = "chains-config"
 )
 
 var defaults = map[string]string{
-	taskrunFormatKey:  "tekton",
-	taskrunStorageKey: "tekton",
-	taskrunSignerKey:  "x509",
-	ociFormatKey:      "simplesigning",
-	ociStorageKey:     "oci",
-	ociSignerKey:      "x509",
+	taskrunFormatKey:   "tekton",
+	taskrunStorageKey:  "tekton",
+	taskrunSignerKey:   "x509",
+	ociFormatKey:       "simplesigning",
+	ociStorageKey:      "oci",
+	ociSignerKey:       "x509",
+	transparencyURLKey: "https://rekor.sigstore.dev",
 
 	builderIDKey: "tekton-chains",
 }
@@ -144,6 +154,9 @@ func parse(data map[string]string, logger *zap.SugaredLogger) Config {
 	cfg.Storage.OCI.Repository = valueOrDefault(ociRepositoryKey, data, logger)
 	cfg.Storage.OCI.Insecure = (valueOrDefault(ociRepositoryInsecureKey, data, logger) == "true")
 	cfg.Storage.DocDB.URL = valueOrDefault(docDBUrlKey, data, logger)
+
+	cfg.Transparency.Enabled = (valueOrDefault(transparencyEnabledKey, data, logger) == "true")
+	cfg.Transparency.URL = valueOrDefault(transparencyURLKey, data, logger)
 
 	cfg.Signers.KMS.KMSRef = valueOrDefault(kmsSignerKMSRef, data, logger)
 

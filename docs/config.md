@@ -33,4 +33,6 @@ Supported keys include (scroll right for defaults):
 | `artifacts.oci.signer` | The signature backend to sign `OCI` payloads with. | `pgp`, `x509`, `kms` | `x509` |
 | `signers.kms.kmsref` | The URI reference to a KMS service to use in `KMS` signers. | `gcpkms://projects/<project>/locations/<location>/keyRings/<keyring>/cryptoKeys/<key>`| |
 | `storage.docdb.url` | The go-cloud URI reference to a docstore collection | `firestore://projects/<project>/databases/(default)/documents/<collection>?name_field=name`| |
+| `transparency.enabled` | EXPERIMENTAL. Whether to enable automatic binary transparency uploads. | `false` | |
+| `transparency.url` | EXPERIMENTAL. The URL to upload binary transparency attestations to, if enabled. | `https://rekor.sigstore.dev`| |
 
