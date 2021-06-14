@@ -87,6 +87,9 @@ func TestParse(t *testing.T) {
 						Signer:         "x509",
 					},
 				},
+				Transparency: TransparencyConfig{
+					URL: "https://rekor.sigstore.dev",
+				},
 			},
 		},
 		{
@@ -108,6 +111,9 @@ func TestParse(t *testing.T) {
 						Signer:         "x509",
 					},
 				},
+				Transparency: TransparencyConfig{
+					URL: "https://rekor.sigstore.dev",
+				},
 			},
 		},
 		{
@@ -128,6 +134,9 @@ func TestParse(t *testing.T) {
 						StorageBackend: "oci",
 						Signer:         "x509",
 					},
+				},
+				Transparency: TransparencyConfig{
+					URL: "https://rekor.sigstore.dev",
 				},
 			},
 		},

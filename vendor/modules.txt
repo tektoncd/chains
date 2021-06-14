@@ -1,4 +1,5 @@
 # cloud.google.com/go v0.81.0
+## explicit
 cloud.google.com/go
 cloud.google.com/go/compute/metadata
 cloud.google.com/go/container/apiv1
@@ -13,6 +14,7 @@ cloud.google.com/go/trace/apiv2
 # cloud.google.com/go/firestore v1.5.0
 cloud.google.com/go/firestore/apiv1
 # cloud.google.com/go/storage v1.15.0
+## explicit
 cloud.google.com/go/storage
 # contrib.go.opencensus.io/exporter/ocagent v0.7.1-0.20200907061046-05415f1de66d
 contrib.go.opencensus.io/exporter/ocagent
@@ -147,6 +149,7 @@ github.com/form3tech-oss/jwt-go
 # github.com/fsnotify/fsnotify v1.4.9
 github.com/fsnotify/fsnotify
 # github.com/ghodss/yaml v1.0.0
+## explicit
 github.com/ghodss/yaml
 # github.com/go-chi/chi v4.1.2+incompatible
 github.com/go-chi/chi
@@ -221,6 +224,7 @@ github.com/golang/snappy
 github.com/google/certificate-transparency-go/asn1
 github.com/google/certificate-transparency-go/tls
 # github.com/google/go-cmp v0.5.6
+## explicit
 github.com/google/go-cmp/cmp
 github.com/google/go-cmp/cmp/cmpopts
 github.com/google/go-cmp/cmp/internal/diff
@@ -228,6 +232,7 @@ github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
 # github.com/google/go-containerregistry v0.5.1
+## explicit
 github.com/google/go-containerregistry/internal/and
 github.com/google/go-containerregistry/internal/estargz
 github.com/google/go-containerregistry/internal/gzip
@@ -249,6 +254,7 @@ github.com/google/go-containerregistry/pkg/v1/stream
 github.com/google/go-containerregistry/pkg/v1/tarball
 github.com/google/go-containerregistry/pkg/v1/types
 # github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20210216200643-d81088d9983e
+## explicit
 github.com/google/go-containerregistry/pkg/authn/k8schain
 # github.com/google/gofuzz v1.2.0
 github.com/google/gofuzz
@@ -283,6 +289,7 @@ github.com/hashicorp/errwrap
 # github.com/hashicorp/go-cleanhttp v0.5.2
 github.com/hashicorp/go-cleanhttp
 # github.com/hashicorp/go-multierror v1.1.1
+## explicit
 github.com/hashicorp/go-multierror
 # github.com/hashicorp/go-retryablehttp v0.6.8
 github.com/hashicorp/go-retryablehttp
@@ -318,6 +325,7 @@ github.com/howeyc/gopass
 # github.com/imdario/mergo v0.3.9
 github.com/imdario/mergo
 # github.com/in-toto/in-toto-golang v0.1.1-0.20210505200736-471bd79ebd18
+## explicit
 github.com/in-toto/in-toto-golang/in_toto
 # github.com/inconshreveable/mousetrap v1.0.0
 github.com/inconshreveable/mousetrap
@@ -372,6 +380,7 @@ github.com/pelletier/go-toml
 github.com/pierrec/lz4
 github.com/pierrec/lz4/internal/xxh32
 # github.com/pkg/errors v0.9.1
+## explicit
 github.com/pkg/errors
 # github.com/prometheus/client_golang v1.10.0
 github.com/prometheus/client_golang/prometheus
@@ -408,6 +417,7 @@ github.com/sassoftware/relic/signers/sigerrors
 # github.com/shibumi/go-pathspec v1.2.0
 github.com/shibumi/go-pathspec
 # github.com/sigstore/cosign v0.5.0
+## explicit
 github.com/sigstore/cosign/pkg/cosign
 github.com/sigstore/cosign/pkg/cosign/remote
 # github.com/sigstore/rekor v0.1.2-0.20210519014330-b5480728bde6
@@ -437,6 +447,7 @@ github.com/sigstore/rekor/pkg/types/rpm/v0.0.1
 github.com/sigstore/rekor/pkg/util
 github.com/sigstore/rekor/pkg/verify
 # github.com/sigstore/sigstore v0.0.0-20210530211317-99216b8b86a6
+## explicit
 github.com/sigstore/sigstore/pkg/kms
 github.com/sigstore/sigstore/pkg/kms/gcp
 github.com/sigstore/sigstore/pkg/kms/hashivault
@@ -460,6 +471,7 @@ github.com/spf13/viper
 # github.com/subosito/gotenv v1.2.0
 github.com/subosito/gotenv
 # github.com/tektoncd/pipeline v0.23.0
+## explicit
 github.com/tektoncd/pipeline/pkg/apis/config
 github.com/tektoncd/pipeline/pkg/apis/pipeline
 github.com/tektoncd/pipeline/pkg/apis/pipeline/pod
@@ -494,6 +506,7 @@ github.com/tektoncd/pipeline/pkg/names
 github.com/tektoncd/pipeline/pkg/reconciler/pipeline/dag
 github.com/tektoncd/pipeline/pkg/substitution
 # github.com/tektoncd/plumbing v0.0.0-20210514044347-f8a9689d5bd5
+## explicit
 github.com/tektoncd/plumbing
 github.com/tektoncd/plumbing/scripts
 # github.com/theupdateframework/go-tuf v0.0.0-20201230183259-aee6270feb55
@@ -545,6 +558,7 @@ go.uber.org/automaxprocs/maxprocs
 # go.uber.org/multierr v1.7.0
 go.uber.org/multierr
 # go.uber.org/zap v1.16.0
+## explicit
 go.uber.org/zap
 go.uber.org/zap/buffer
 go.uber.org/zap/internal/bufferpool
@@ -554,6 +568,7 @@ go.uber.org/zap/internal/ztest
 go.uber.org/zap/zapcore
 go.uber.org/zap/zaptest
 # gocloud.dev v0.23.0
+## explicit
 gocloud.dev/docstore
 gocloud.dev/docstore/driver
 gocloud.dev/docstore/gcpfirestore
@@ -567,6 +582,7 @@ gocloud.dev/internal/openurl
 gocloud.dev/internal/retry
 gocloud.dev/internal/useragent
 # golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
+## explicit
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/cast5
 golang.org/x/crypto/chacha20
@@ -820,6 +836,7 @@ gopkg.in/yaml.v2
 # gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 gopkg.in/yaml.v3
 # k8s.io/api v0.19.7
+## explicit
 k8s.io/api/admission/v1
 k8s.io/api/admissionregistration/v1
 k8s.io/api/admissionregistration/v1beta1
@@ -866,6 +883,7 @@ k8s.io/api/storage/v1beta1
 k8s.io/apiextensions-apiserver/pkg/apis/apiextensions
 k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1
 # k8s.io/apimachinery v0.21.1
+## explicit
 k8s.io/apimachinery/pkg/api/equality
 k8s.io/apimachinery/pkg/api/errors
 k8s.io/apimachinery/pkg/api/meta
@@ -914,6 +932,7 @@ k8s.io/apimachinery/pkg/watch
 k8s.io/apimachinery/third_party/forked/golang/json
 k8s.io/apimachinery/third_party/forked/golang/reflect
 # k8s.io/client-go v0.19.7
+## explicit
 k8s.io/client-go/discovery
 k8s.io/client-go/discovery/fake
 k8s.io/client-go/dynamic
@@ -1146,6 +1165,7 @@ k8s.io/utils/integer
 k8s.io/utils/pointer
 k8s.io/utils/trace
 # knative.dev/pkg v0.0.0-20210127163530-0d31134d5f4e
+## explicit
 knative.dev/pkg/apis
 knative.dev/pkg/apis/duck
 knative.dev/pkg/apis/duck/ducktypes
@@ -1194,3 +1214,5 @@ knative.dev/pkg/webhook/certificates/resources
 sigs.k8s.io/structured-merge-diff/v4/value
 # sigs.k8s.io/yaml v1.2.0
 sigs.k8s.io/yaml
+# contrib.go.opencensus.io/exporter/stackdriver => contrib.go.opencensus.io/exporter/stackdriver v0.13.4
+# github.com/Azure/azure-sdk-for-go => github.com/Azure/azure-sdk-for-go v38.2.0+incompatible

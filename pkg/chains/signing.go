@@ -16,6 +16,7 @@ package chains
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/tektoncd/chains/pkg/artifacts"
@@ -39,7 +40,8 @@ import (
 
 const (
 	// ChainsAnnotation is the standard annotation to indicate a TR has been signed.
-	ChainsAnnotation = "chains.tekton.dev/signed"
+	ChainsAnnotation             = "chains.tekton.dev/signed"
+	ChainsTransparencyAnnotation = "chains.tekton.dev/transparency"
 )
 
 type Signer interface {
@@ -67,11 +69,13 @@ func IsSigned(tr *v1beta1.TaskRun) bool {
 }
 
 // MarkSigned marks a TaskRun as signed.
-func MarkSigned(tr *v1beta1.TaskRun, ps versioned.Interface) error {
+func MarkSigned(tr *v1beta1.TaskRun, ps versioned.Interface, annotations map[string]string) error {
 	// Use patch instead of update to help prevent race conditions.
-	patchBytes, err := patch.GetAnnotationsPatch(map[string]string{
-		ChainsAnnotation: "true",
-	})
+	if annotations == nil {
+		annotations = map[string]string{}
+	}
+	annotations[ChainsAnnotation] = "true"
+	patchBytes, err := patch.GetAnnotationsPatch(annotations)
 	if err != nil {
 		return err
 	}
@@ -167,7 +171,13 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 	signers := allSigners(ts.SecretPath, cfg, ts.Logger)
 	allFormats := allFormatters(cfg, ts.Logger)
 
+	rekorClient, err := getRekor(cfg.Transparency.URL, ts.Logger)
+	if err != nil {
+		return err
+	}
+
 	var merr *multierror.Error
+	extraAnnotations := map[string]string{}
 	for _, signableType := range enabledSignableTypes {
 		// Extract all the "things" to be signed.
 		// We might have a few of each type (several binaries, or images)
@@ -215,6 +225,20 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 				ts.Logger.Error(err)
 				merr = multierror.Append(merr, err)
 			}
+
+			if cfg.Transparency.Enabled {
+				if signerType == signing.TypePgp {
+					ts.Logger.Info("PGP unsupported for transparency logs")
+				} else {
+					entry, err := rekorClient.UploadTlog(ctx, signer, signature, rawPayload)
+					if err != nil {
+						ts.Logger.Error(err)
+						merr = multierror.Append(merr, err)
+					}
+					ts.Logger.Infof("Uploaded entry to %s with index %d", cfg.Transparency.URL, *entry.LogIndex)
+					extraAnnotations[ChainsTransparencyAnnotation] = fmt.Sprintf("%s/%d", cfg.Transparency.URL, *entry.LogIndex)
+				}
+			}
 		}
 		if merr.ErrorOrNil() != nil {
 			return merr
@@ -222,5 +246,5 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 	}
 
 	// Now mark the TaskRun as signed
-	return MarkSigned(tr, ts.Pipelineclientset)
+	return MarkSigned(tr, ts.Pipelineclientset, extraAnnotations)
 }
