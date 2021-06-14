@@ -249,7 +249,7 @@ func TestOCIStorage(t *testing.T) {
 		default:
 			if _, err = cosign.Verify(ctx, externalRef, &cosign.CheckOpts{
 				PubKey: pubKey,
-			}); err != nil {
+			}, ""); err != nil {
 				t.Log(err)
 			} else {
 				return

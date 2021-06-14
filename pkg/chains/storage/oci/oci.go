@@ -23,6 +23,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/pkg/errors"
 	"github.com/sigstore/cosign/pkg/cosign"
+	cremote "github.com/sigstore/cosign/pkg/cosign/remote"
 	"github.com/tektoncd/chains/pkg/chains/formats/simple"
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -88,7 +89,7 @@ func (b *Backend) StorePayload(rawPayload []byte, signature string, key string) 
 	if err != nil {
 		return errors.Wrap(err, "destination ref")
 	}
-	if _, err = cosign.Upload(context.TODO(), []byte(signature), rawPayload, cosignDst, cosign.UploadOpts{RemoteOpts: []remote.Option{b.auth}}); err != nil {
+	if _, err = cremote.UploadSignature(context.TODO(), []byte(signature), rawPayload, cosignDst, cremote.UploadOpts{RemoteOpts: []remote.Option{b.auth}}); err != nil {
 		return errors.Wrap(err, "uploading")
 	}
 	b.logger.Infof("Successfully uploaded signature for %s", imageName)
