@@ -52,7 +52,7 @@ reports and fixes.
 
 ## Community
 
-You can contact us on the [go-cloud mailing list][].
+For questions, please use [GitHub Discussions](https://github.com/google/wire/discussions).
 
 This project is covered by the Go [Code of Conduct][].
 

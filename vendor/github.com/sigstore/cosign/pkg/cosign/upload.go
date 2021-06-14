@@ -18,7 +18,6 @@ package cosign
 import (
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/go-openapi/strfmt"
@@ -27,43 +26,25 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/pkg/errors"
 
-	"github.com/sigstore/rekor/cmd/rekor-cli/app"
+	"github.com/sigstore/rekor/pkg/generated/client"
 	"github.com/sigstore/rekor/pkg/generated/client/entries"
 	"github.com/sigstore/rekor/pkg/generated/models"
 	rekord_v001 "github.com/sigstore/rekor/pkg/types/rekord/v0.0.1"
 )
 
 const (
-	ExperimentalEnv     = "COSIGN_EXPERIMENTAL"
-	repoEnv             = "COSIGN_REPOSITORY"
-	DockerMediaTypesEnv = "COSIGN_DOCKER_MEDIA_TYPES"
-	ServerEnv           = "REKOR_SERVER"
-	rekorServer         = "https://api.rekor.dev"
+	repoEnv = "COSIGN_REPOSITORY"
 )
 
-func Experimental() bool {
-	if b, err := strconv.ParseBool(os.Getenv(ExperimentalEnv)); err == nil {
-		return b
-	}
-	return false
-}
-
-func DockerMediaTypes() bool {
-	if b, err := strconv.ParseBool(os.Getenv(DockerMediaTypesEnv)); err == nil {
-		return b
-	}
-	return false
-}
-
-func DestinationRef(ref name.Reference, img *remote.Descriptor) (name.Reference, error) {
-	dstTag := ref.Context().Tag(Munge(img.Descriptor))
+func substituteRepo(img name.Reference) (name.Reference, error) {
 	wantRepo := os.Getenv(repoEnv)
 	if wantRepo == "" {
-		return dstTag, nil
+		return img, nil
 	}
+	reg := img.Context().RegistryStr()
 	// strip registry from image
-	oldImage := strings.TrimPrefix(dstTag.Name(), dstTag.RegistryStr())
-	newSubrepo := strings.TrimPrefix(wantRepo, dstTag.RegistryStr())
+	oldImage := strings.TrimPrefix(img.Name(), reg)
+	newSubrepo := strings.TrimPrefix(wantRepo, reg)
 
 	// replace old subrepo with new one
 	subRepo := strings.Split(oldImage, "/")
@@ -72,17 +53,26 @@ func DestinationRef(ref name.Reference, img *remote.Descriptor) (name.Reference,
 	} else {
 		subRepo[1] = strings.TrimPrefix(s[1], "/")
 	}
-	subbed := dstTag.RegistryStr() + strings.Join(subRepo, "/")
+	newRepo := strings.Join(subRepo, "/")
+	// add the tag back in if we lost it
+	if dstTag, isTag := img.(name.Tag); isTag && !strings.Contains(newRepo, ":") {
+		newRepo = newRepo + ":" + dstTag.TagStr()
+	}
+	subbed := reg + newRepo
 	return name.ParseReference(subbed)
 }
 
-// Upload will upload the signature, public key and payload to the tlog
-func UploadTLog(signature, payload []byte, pemBytes []byte) (*models.LogEntryAnon, error) {
-	rekorClient, err := app.GetRekorClient(TlogServer())
-	if err != nil {
-		return nil, err
-	}
+func SignaturesRef(signed name.Digest) (name.Reference, error) {
+	return substituteRepo(signed.Context().Tag(signatureImageTagForDigest(signed.DigestStr())))
+}
 
+func DestinationRef(ref name.Reference, img *remote.Descriptor) (name.Reference, error) {
+	dstTag := ref.Context().Tag(Munge(img.Descriptor))
+	return substituteRepo(dstTag)
+}
+
+// Upload will upload the signature, public key and payload to the tlog
+func UploadTLog(rekorClient *client.Rekor, signature, payload []byte, pemBytes []byte) (*models.LogEntryAnon, error) {
 	re := rekorEntry(payload, signature, pemBytes)
 	returnVal := models.Rekord{
 		APIVersion: swag.String(re.APIVersion()),
@@ -125,12 +115,4 @@ func rekorEntry(payload, signature, pubKey []byte) rekord_v001.V001Entry {
 			},
 		},
 	}
-}
-
-// tlogServer returns the name of the tlog server, can be overwritten via env var
-func TlogServer() string {
-	if s := os.Getenv(ServerEnv); s != "" {
-		return s
-	}
-	return rekorServer
 }

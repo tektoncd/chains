@@ -47,7 +47,7 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature/payload"
 )
 
-// This is rekor's public key, via `curl -L api.rekor.dev/api/v1/log/publicKey`
+// This is rekor's public key, via `curl -L rekor.sigstore.dev/api/v1/log/publicKey`
 // rekor.pub should be updated whenever the Rekor public key is rotated & the bundle annotation should be up-versioned
 //go:embed rekor.pub
 var rekorPub string
@@ -150,13 +150,13 @@ type CheckOpts struct {
 
 // Verify does all the main cosign checks in a loop, returning validated payloads.
 // If there were no payloads, we return an error.
-func Verify(ctx context.Context, ref name.Reference, co *CheckOpts) ([]SignedPayload, error) {
+func Verify(ctx context.Context, ref name.Reference, co *CheckOpts, rekorServerURL string) ([]SignedPayload, error) {
 	// Enforce this up front.
 	if co.Roots == nil && co.PubKey == nil {
 		return nil, errors.New("one of public key or cert roots is required")
 	}
 	// TODO: Figure out if we'll need a client before creating one.
-	rekorClient, err := app.GetRekorClient(TlogServer())
+	rekorClient, err := app.GetRekorClient(rekorServerURL)
 	if err != nil {
 		return nil, err
 	}
@@ -251,7 +251,7 @@ func Verify(ctx context.Context, ref name.Reference, co *CheckOpts) ([]SignedPay
 					continue
 				}
 				// Expiry check is only enabled with Tlog support
-				if err := checkExpiry(sp.Cert, time.Unix(e.IntegratedTime, 0)); err != nil {
+				if err := checkExpiry(sp.Cert, time.Unix(*e.IntegratedTime, 0)); err != nil {
 					validationErrs = append(validationErrs, err.Error())
 					continue
 				}
@@ -308,7 +308,8 @@ func (sp *SignedPayload) VerifyBundle() (bool, error) {
 	le := &models.LogEntryAnon{
 		LogIndex:       sp.Bundle.LogIndex,
 		Body:           sp.Bundle.Body,
-		IntegratedTime: sp.Bundle.IntegratedTime,
+		IntegratedTime: &sp.Bundle.IntegratedTime,
+		LogID:          &sp.Bundle.LogID,
 	}
 	contents, err := le.MarshalBinary()
 	if err != nil {
