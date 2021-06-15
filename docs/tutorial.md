@@ -92,10 +92,10 @@ $ kubectl get taskrun $TASKRUN -o=json | jq  -r ".metadata.annotations[\"chains.
 $ kubectl get taskrun $TASKRUN -o=json | jq  -r ".metadata.annotations[\"chains.tekton.dev/signature-taskrun-$TASKRUN_UID\"]" | base64 --decode > signature
 ```
 
-Finally, we can check the signature with [cosign](https://github.com/sigstore/cosign):
+Finally, we can check the signature with [gpg](https://gnupg.org/):
 
 ```shell
- gpg --verify signature payload
+$ gpg --verify signature payload
 gpg: Signature made Mon Jul 27 14:42:01 2020 CDT
 gpg:                using RSA key 4FCFD41D993B806C
 gpg: checking the trustdb
