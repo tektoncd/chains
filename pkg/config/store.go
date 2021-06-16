@@ -17,6 +17,7 @@ type Config struct {
 	Signers      SignerConfigs
 	Builder      BuilderConfig
 	Transparency TransparencyConfig
+	SPIRE        SPIREConfig
 }
 
 // ArtifactConfig contains the configuration for how to sign/store/format the signatures for each artifact type
@@ -82,6 +83,10 @@ type TransparencyConfig struct {
 	URL     string
 }
 
+type SPIREConfig struct {
+	Enabled bool
+}
+
 const (
 	taskrunFormatKey  = "artifacts.taskrun.format"
 	taskrunStorageKey = "artifacts.taskrun.storage"
@@ -108,6 +113,9 @@ const (
 
 	transparencyEnabledKey = "transparency.enabled"
 	transparencyURLKey     = "transparency.url"
+
+	// SPIRE config
+	spireEnabledKey = "spire.enabled"
 
 	chainsConfig = "chains-config"
 )
@@ -157,6 +165,8 @@ func parse(data map[string]string, logger *zap.SugaredLogger) Config {
 
 	cfg.Transparency.Enabled = (valueOrDefault(transparencyEnabledKey, data, logger) == "true")
 	cfg.Transparency.URL = valueOrDefault(transparencyURLKey, data, logger)
+
+	cfg.SPIRE.Enabled = (valueOrDefault(spireEnabledKey, data, logger) == "true")
 
 	cfg.Signers.KMS.KMSRef = valueOrDefault(kmsSignerKMSRef, data, logger)
 
