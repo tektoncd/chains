@@ -16,29 +16,41 @@ package tekton
 import (
 	"fmt"
 
+	"github.com/pkg/errors"
 	"github.com/tektoncd/chains/pkg/chains/formats"
+	"github.com/tektoncd/chains/pkg/chains/spire"
+	"github.com/tektoncd/chains/pkg/config"
+	"go.uber.org/zap"
 
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 )
 
 // Tekton is a formatter that just captures the TaskRun Status with no modifications.
 type Tekton struct {
+	logger       *zap.SugaredLogger
+	spireEnabled bool
 }
 
-func NewFormatter() (formats.Payloader, error) {
-	return &Tekton{}, nil
+func NewFormatter(cfg config.Config, l *zap.SugaredLogger) (formats.Payloader, error) {
+	return &Tekton{
+		logger:       l,
+		spireEnabled: cfg.SPIRE.Enabled,
+	}, nil
 }
 
 // CreatePayload implements the Payloader interface.
 func (i *Tekton) CreatePayload(obj interface{}) (interface{}, error) {
-
 	switch v := obj.(type) {
 	case *v1beta1.TaskRun:
+		if i.spireEnabled {
+			if err := spire.Verify(v, i.logger); err != nil {
+				return nil, errors.Wrap(err, "verifying SPIRE")
+			}
+		}
 		return v.Status, nil
 	default:
 		return nil, fmt.Errorf("unsupported type %s", v)
 	}
-
 }
 
 func (i *Tekton) Type() formats.PayloadType {
