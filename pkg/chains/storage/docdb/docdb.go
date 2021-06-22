@@ -23,6 +23,7 @@ import (
 	"go.uber.org/zap"
 	"gocloud.dev/docstore"
 	_ "gocloud.dev/docstore/gcpfirestore"
+	_ "gocloud.dev/docstore/awsdynamodb"
 )
 
 const (
