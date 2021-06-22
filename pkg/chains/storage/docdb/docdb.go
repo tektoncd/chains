@@ -78,7 +78,7 @@ func (b *Backend) StorePayload(signed []byte, signature string, key string) erro
 		Name:      key,
 	}
 
-	if err := b.coll.Create(context.Background(), &entry); err != nil {
+	if err := b.coll.Put(context.Background(), &entry); err != nil {
 		return err
 	}
 
