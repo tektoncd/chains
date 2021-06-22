@@ -22,8 +22,8 @@ import (
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"go.uber.org/zap"
 	"gocloud.dev/docstore"
-	_ "gocloud.dev/docstore/gcpfirestore"
 	_ "gocloud.dev/docstore/awsdynamodb"
+	_ "gocloud.dev/docstore/gcpfirestore"
 )
 
 const (
