@@ -12,31 +12,25 @@ must perform the same steps.
 If the key is not recognized ErrUnknownKey shall be returned.
 */
 type Verifier interface {
-	Verify(keyID string, data, sig []byte) (bool, error)
+	Verify(keyID string, data, sig []byte) error
 }
 
 type EnvelopeVerifier struct {
 	providers []Verifier
 }
 
-func (ev *EnvelopeVerifier) Verify(e *Envelope) (bool, error) {
+func (ev *EnvelopeVerifier) Verify(e *Envelope) error {
 	if len(e.Signatures) == 0 {
-		return false, ErrNoSignature
+		return ErrNoSignature
 	}
 
 	// Decode payload (i.e serialized body)
 	body, err := b64Decode(e.Payload)
 	if err != nil {
-		return false, err
+		return err
 	}
 	// Generate PAE(payloadtype, serialized body)
-	paeEnc, err := PAE([][]byte{
-		[]byte(e.PayloadType),
-		body,
-	})
-	if err != nil {
-		return false, err
-	}
+	paeEnc := PAE(e.PayloadType, string(body))
 
 	// If *any* signature is found to be incorrect, the entire verification
 	// step fails even if *some* signatures are correct.
@@ -44,30 +38,29 @@ func (ev *EnvelopeVerifier) Verify(e *Envelope) (bool, error) {
 	for _, s := range e.Signatures {
 		sig, err := b64Decode(s.Sig)
 		if err != nil {
-			return false, err
+			return err
 		}
 
 		// Loop over the providers. If a provider recognizes the key, we exit
 		// the loop and use the result.
 		for _, v := range ev.providers {
-			ok, err := v.Verify(s.KeyID, paeEnc, sig)
+			err := v.Verify(s.KeyID, paeEnc, sig)
 			if err != nil {
 				if err == ErrUnknownKey {
 					continue
 				}
-				return false, err
-			}
-
-			if !ok {
-				return false, nil
+				return err
 			}
 
 			verified = true
 			break
 		}
 	}
+	if !verified {
+		return ErrUnknownKey
+	}
 
-	return verified, nil
+	return nil
 }
 
 func NewEnvelopeVerifier(p ...Verifier) EnvelopeVerifier {
