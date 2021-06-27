@@ -10,7 +10,7 @@ require (
 	github.com/google/go-containerregistry v0.5.1
 	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20210216200643-d81088d9983e
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/in-toto/in-toto-golang v0.1.1-0.20210528150343-f7dc21abaccf
+	github.com/in-toto/in-toto-golang v0.2.1-0.20210627200632-886210ae2ab9
 	github.com/pkg/errors v0.9.1
 	github.com/sigstore/cosign v0.5.0
 	github.com/sigstore/rekor v0.1.2-0.20210519014330-b5480728bde6

@@ -54,7 +54,7 @@ func (w *sslAdapter) Sign(data []byte) ([]byte, string, error) {
 	return sig, w.KeyID, err
 }
 
-func (w *sslAdapter) Verify(keyID string, data, sig []byte) (bool, error) {
+func (w *sslAdapter) Verify(keyID string, data, sig []byte) error {
 	panic("unimplemented")
 }
 

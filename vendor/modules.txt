@@ -328,7 +328,7 @@ github.com/hashicorp/vault/sdk/helper/strutil
 github.com/howeyc/gopass
 # github.com/imdario/mergo v0.3.9
 github.com/imdario/mergo
-# github.com/in-toto/in-toto-golang v0.1.1-0.20210528150343-f7dc21abaccf
+# github.com/in-toto/in-toto-golang v0.2.1-0.20210627200632-886210ae2ab9
 ## explicit
 github.com/in-toto/in-toto-golang/in_toto
 github.com/in-toto/in-toto-golang/pkg/ssl
@@ -642,7 +642,7 @@ golang.org/x/oauth2/jwt
 # golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20210521203332-0cec03c779c1
+# golang.org/x/sys v0.0.0-20210616094352-59db8d763f22
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
 golang.org/x/sys/internal/unsafeheader

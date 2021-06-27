@@ -6,7 +6,10 @@ See https://github.com/in-toto/docs/blob/master/in-toto-spec.md
 package in_toto
 
 import (
+	"errors"
 	"fmt"
+	"io"
+	"os"
 	osPath "path"
 	"path/filepath"
 	"reflect"
@@ -14,6 +17,9 @@ import (
 	"strings"
 	"time"
 )
+
+// ErrInspectionRunDirIsSymlink gets thrown if the runDir is a symlink
+var ErrInspectionRunDirIsSymlink = errors.New("runDir is a symlink. This is a security risk")
 
 /*
 RunInspections iteratively executes the command in the Run field of all
@@ -33,13 +39,19 @@ If executing the inspection command fails, or if the executed command has a
 non-zero exit code, the first return value is an empty Metablock map and the
 second return value is the error.
 */
-func RunInspections(layout Layout) (map[string]Metablock, error) {
+func RunInspections(layout Layout, runDir string) (map[string]Metablock, error) {
 	inspectionMetadata := make(map[string]Metablock)
 
 	for _, inspection := range layout.Inspect {
 
-		linkMb, err := InTotoRun(inspection.Name, []string{"."}, []string{"."},
+		paths := []string{"."}
+		if runDir != "" {
+			paths = []string{runDir}
+		}
+
+		linkMb, err := InTotoRun(inspection.Name, runDir, paths, paths,
 			inspection.Run, Key{}, []string{"sha256"}, nil)
+
 		if err != nil {
 			return nil, err
 		}
@@ -813,7 +825,136 @@ func InTotoVerify(layoutMb Metablock, layoutKeys map[string]Key,
 		return summaryLink, err
 	}
 
-	inspectionMetadata, err := RunInspections(layout)
+	inspectionMetadata, err := RunInspections(layout, "")
+	if err != nil {
+		return summaryLink, err
+	}
+
+	// Add steps metadata to inspection metadata, because inspection artifact
+	// rules may also refer to artifacts reported by step links
+	for k, v := range stepsMetadataReduced {
+		inspectionMetadata[k] = v
+	}
+
+	if err = VerifyArtifacts(layout.inspectAsInterfaceSlice(),
+		inspectionMetadata); err != nil {
+		return summaryLink, err
+	}
+
+	summaryLink, err = GetSummaryLink(layout, stepsMetadataReduced, stepName)
+	if err != nil {
+		return summaryLink, err
+	}
+
+	return summaryLink, nil
+}
+
+/*
+InTotoVerifyWithDirectory provides the same functionality as IntotoVerify, but
+adds the possibility to select a local directory from where the inspections are run.
+*/
+func InTotoVerifyWithDirectory(layoutMb Metablock, layoutKeys map[string]Key,
+	linkDir string, runDir string, stepName string, parameterDictionary map[string]string) (
+	Metablock, error) {
+
+	var summaryLink Metablock
+	var err error
+
+	// runDir sanity checks
+	// check if path exists
+	info, err := os.Stat(runDir)
+	if err != nil {
+		return Metablock{}, err
+	}
+
+	// check if runDir is a symlink
+	if info.Mode()&os.ModeSymlink == os.ModeSymlink {
+		return Metablock{}, ErrInspectionRunDirIsSymlink
+	}
+
+	// check if runDir is writable and a directory
+	err = isWritable(runDir)
+	if err != nil {
+		return Metablock{}, err
+	}
+
+	// check if runDir is empty (we do not want to overwrite files)
+	// We abuse File.Readdirnames for this action.
+	f, err := os.Open(runDir)
+	if err != nil {
+		return Metablock{}, err
+	}
+	// We use Readdirnames(1) for performance reasons, one child node
+	// is enough to proof that the directory is not empty
+	_, err = f.Readdirnames(1)
+	// if io.EOF gets returned as error the directory is empty
+	if err == io.EOF {
+		return Metablock{}, err
+	}
+	err = f.Close()
+	if err != nil {
+		return Metablock{}, err
+	}
+
+	// Verify root signatures
+	if err := VerifyLayoutSignatures(layoutMb, layoutKeys); err != nil {
+		return summaryLink, err
+	}
+
+	// Extract the layout from its Metablock container (for further processing)
+	layout := layoutMb.Signed.(Layout)
+
+	// Verify layout expiration
+	if err := VerifyLayoutExpiration(layout); err != nil {
+		return summaryLink, err
+	}
+
+	// Substitute parameters in layout
+	layout, err = SubstituteParameters(layout, parameterDictionary)
+	if err != nil {
+		return summaryLink, err
+	}
+
+	// Load links for layout
+	stepsMetadata, err := LoadLinksForLayout(layout, linkDir)
+	if err != nil {
+		return summaryLink, err
+	}
+
+	// Verify link signatures
+	stepsMetadataVerified, err := VerifyLinkSignatureThesholds(layout,
+		stepsMetadata)
+	if err != nil {
+		return summaryLink, err
+	}
+
+	// Verify and resolve sublayouts
+	stepsSublayoutVerified, err := VerifySublayouts(layout,
+		stepsMetadataVerified, linkDir)
+	if err != nil {
+		return summaryLink, err
+	}
+
+	// Verify command alignment (WARNING only)
+	VerifyStepCommandAlignment(layout, stepsSublayoutVerified)
+
+	// Given that signature thresholds have been checked above and the rest of
+	// the relevant link properties, i.e. materials and products, have to be
+	// exactly equal, we can reduce the map of steps metadata. However, we error
+	// if the relevant properties are not equal among links of a step.
+	stepsMetadataReduced, err := ReduceStepsMetadata(layout,
+		stepsSublayoutVerified)
+	if err != nil {
+		return summaryLink, err
+	}
+
+	// Verify artifact rules
+	if err = VerifyArtifacts(layout.stepsAsInterfaceSlice(),
+		stepsMetadataReduced); err != nil {
+		return summaryLink, err
+	}
+
+	inspectionMetadata, err := RunInspections(layout, runDir)
 	if err != nil {
 		return summaryLink, err
 	}

@@ -995,9 +995,9 @@ func (s *SSLSigner) SignPayload(body []byte) (*ssl.Envelope, error) {
 	return s.signer.SignPayload(PayloadType, body)
 }
 
-func (s *SSLSigner) Verify(e *ssl.Envelope) (bool, error) {
+func (s *SSLSigner) Verify(e *ssl.Envelope) error {
 	if e.PayloadType != PayloadType {
-		return false, ErrInvalidPayloadType
+		return ErrInvalidPayloadType
 	}
 
 	return s.signer.Verify(e)
