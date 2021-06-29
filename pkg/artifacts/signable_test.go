@@ -14,6 +14,7 @@ limitations under the License.
 package artifacts
 
 import (
+	"fmt"
 	"reflect"
 	"sort"
 	"testing"
@@ -21,6 +22,11 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	logtesting "knative.dev/pkg/logging/testing"
+)
+
+const (
+	digest1 = "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5"
+	digest2 = "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b6"
 )
 
 func TestOCIArtifact_ExtractObjects(t *testing.T) {
@@ -44,7 +50,7 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 							{
 								ResourceName: "my-image",
 								Key:          "digest",
-								Value:        "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5",
+								Value:        digest1,
 							},
 						},
 						TaskSpec: &v1beta1.TaskSpec{
@@ -78,7 +84,7 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 							{
 								ResourceName: "my-image1",
 								Key:          "digest",
-								Value:        "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5",
+								Value:        digest1,
 							},
 							{
 								ResourceName: "my-image2",
@@ -88,7 +94,7 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 							{
 								ResourceName: "my-image2",
 								Key:          "digest",
-								Value:        "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b6",
+								Value:        digest2,
 							},
 						},
 						TaskSpec: &v1beta1.TaskSpec{
@@ -131,7 +137,7 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 							{
 								ResourceName: "my-image",
 								Key:          "digest",
-								Value:        "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5",
+								Value:        digest1,
 							},
 						},
 						TaskRunResults: []v1beta1.TaskRunResult{
@@ -195,7 +201,7 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 							{
 								ResourceName: "my-image",
 								Key:          "digest",
-								Value:        "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5",
+								Value:        digest1,
 							},
 							{
 								ResourceName: "gibberish",
@@ -205,7 +211,7 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 							{
 								ResourceName: "gobble-dygook",
 								Key:          "digest",
-								Value:        "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5",
+								Value:        digest1,
 							},
 						},
 						TaskSpec: &v1beta1.TaskSpec{
@@ -242,6 +248,29 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 				t.Errorf("OCIArtifact.ExtractObjects() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestExtractOCIImagesFromResults(t *testing.T) {
+	tr := &v1beta1.TaskRun{
+		Status: v1beta1.TaskRunStatus{
+			TaskRunStatusFields: v1beta1.TaskRunStatusFields{
+				TaskRunResults: []v1beta1.TaskRunResult{
+					{Name: "img1_IMAGE_URL", Value: "img1"},
+					{Name: "img1_IMAGE_DIGEST", Value: digest1},
+					{Name: "img2_IMAGE_URL", Value: "img2"},
+					{Name: "img2_IMAGE_DIGEST", Value: digest2},
+				},
+			},
+		},
+	}
+	want := []interface{}{
+		digest(t, fmt.Sprintf("img1@%s", digest1)),
+		digest(t, fmt.Sprintf("img2@%s", digest2)),
+	}
+	got := ExtractOCIImagesFromResults(tr, logtesting.TestLogger(t))
+	if !reflect.DeepEqual(got, want) {
+		t.Fatal("not the same")
 	}
 }
 
