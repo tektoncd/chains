@@ -9,8 +9,14 @@
 
 When outputing an OCI image without using a `PipelineResource`, `Chains` will look for the following Results:
 
-* `IMAGE_URL` - The URL to the built OCI image
-* `IMAGE_DIGEST` - The Digest of the built OCI image
+* `*IMAGE_URL` - The URL to the built OCI image
+* `*IMAGE_DIGEST` - The Digest of the built OCI image
+
+where `*` indicates any expression.
+For example, if **both** `MYIMAGE_IMAGE_URL` AND `MYIMAGE_IMAGE_DIGEST` are correcty formatted to point to an OCI image, then `chains` will pick up on it and try to sign the image.
+
+Multiple images can be specified by using different prefixes in place of `*`.
+
 
 For in-toto attestations, see [INTOTO.md](INTOTO.md) for description
 of in-toto specific type hinting.
