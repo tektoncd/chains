@@ -411,7 +411,9 @@ github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkE
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/etcd v3.3.13+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-etcd v2.0.0+incompatible/go.mod h1:Jez6KQU2B/sWsbdaef3ED8NzMklzPG4d5KIOhIy30Tk=
+github.com/coreos/go-oidc v2.1.0+incompatible h1:sdJrfw8akMnCuUlaZU3tE/uYXFgfqom8DBE9so9EBsM=
 github.com/coreos/go-oidc v2.1.0+incompatible/go.mod h1:CgnwVTmzoESiwO9qyAFEMiHoZ1nMCKZlZ9V6mm3/LKc=
+github.com/coreos/go-oidc/v3 v3.0.0 h1:/mAA0XMgYJw2Uqm7WKGCsKnjitE/+A0FFbOmiRJm7LQ=
 github.com/coreos/go-oidc/v3 v3.0.0/go.mod h1:rEJ/idjfUyfkBit1eI1fvyr+64/g9dcKpAm8MJMesvo=
 github.com/coreos/go-semver v0.2.0/go.mod h1:nnelYz7RCh+5ahJtPPxZlU+153eP4D4r3EedlOD2RNk=
 github.com/coreos/go-semver v0.3.0/go.mod h1:nnelYz7RCh+5ahJtPPxZlU+153eP4D4r3EedlOD2RNk=
@@ -1630,6 +1632,7 @@ github.com/securego/gosec v0.0.0-20200103095621-79fbf3af8d83/go.mod h1:vvbZ2Ae7A
 github.com/securego/gosec v0.0.0-20200401082031-e946c8c39989/go.mod h1:i9l/TNj+yDFh9SZXUTvspXTjbFXgZGP/UvhU1S65A4A=
 github.com/securego/gosec/v2 v2.3.0/go.mod h1:UzeVyUXbxukhLeHKV3VVqo7HdoQR9MrRfFmZYotn8ME=
 github.com/securego/gosec/v2 v2.7.0/go.mod h1:xNbGArrGUspJLuz3LS5XCY1EBW/0vABAl/LWfSklmiM=
+github.com/segmentio/ksuid v1.0.3 h1:FoResxvleQwYiPAVKe1tMUlEirodZqlqglIuFsdDntY=
 github.com/segmentio/ksuid v1.0.3/go.mod h1:/XUiZBD3kVx5SmUOl55voK5yeAbBNNIed+2O73XgrPE=
 github.com/segmentio/textio v1.2.0/go.mod h1:+Rb7v0YVODP+tK5F7FD9TCkV7gOYx9IgLHWiqtvY8ag=
 github.com/sergi/go-diff v1.0.0/go.mod h1:0CfEIISq7TuYL3j771MWULgwwjU+GofnZX9QAmXWZgo=
@@ -1647,8 +1650,9 @@ github.com/shurcooL/go v0.0.0-20180423040247-9e1955d9fb6e/go.mod h1:TDJrrUr11Vxr
 github.com/shurcooL/go-goon v0.0.0-20170922171312-37c2f522c041/go.mod h1:N5mDOmsrJOB+vfqUK+7DmDyjhSLIIBnXo9lvZJj3MWQ=
 github.com/shurcooL/graphql v0.0.0-20181231061246-d48a9a75455f/go.mod h1:AuYgA5Kyo4c7HfUmvRGs/6rGlMMV/6B1bVnB9JxJEEg=
 github.com/shurcooL/sanitized_anchor_name v1.0.0/go.mod h1:1NzhyTcUVG4SuEtjjoZeVRXNmyL/1OwPU0+IJeTBvfc=
-github.com/sigstore/cosign v0.5.0 h1:mBLmlYHTBFe1OmuzLUri15lDGgre2ouCmN8oGCfKb4M=
-github.com/sigstore/cosign v0.5.0/go.mod h1:sIOvPbA2HKUM2JEq6SgDldjIAidUyiKxMr9hqtnmuIs=
+github.com/sigstore/cosign v0.5.1-0.20210604183427-21e9b2737a63 h1:t4Wp58+U87dfFkKPOE/HJhLFQPcjlwurhSxRcX6AsIo=
+github.com/sigstore/cosign v0.5.1-0.20210604183427-21e9b2737a63/go.mod h1:sIOvPbA2HKUM2JEq6SgDldjIAidUyiKxMr9hqtnmuIs=
+github.com/sigstore/fulcio v0.0.0-20210405115948-e7630f533fca h1:CB8JH2VzlMHqgtMhCQpiMQ0zER0tYDeM6xbv++VHcjQ=
 github.com/sigstore/fulcio v0.0.0-20210405115948-e7630f533fca/go.mod h1:l16xJtuil/zC7RaacVfLf8EwmkFEMWI0hYxKkkahL2I=
 github.com/sigstore/rekor v0.1.1/go.mod h1:b+T8TvGKWgaFbtPRQgF/gXjbj/R9HdJ5lA93cnGT3Sc=
 github.com/sigstore/rekor v0.1.2-0.20210514231425-7e3d950f34c6/go.mod h1:3q5eM6+yOcyqJwhS1zxGneWYTX82QLp0wpbbVEtkPdo=
@@ -1667,6 +1671,7 @@ github.com/sirupsen/logrus v1.6.0/go.mod h1:7uNnSEd1DgxDLC74fIahvMZmmYsHGZGEOFrf
 github.com/sirupsen/logrus v1.7.0/go.mod h1:yWOB1SBYBC5VeMP7gHvWumXLIWorT60ONWic61uBYv0=
 github.com/sirupsen/logrus v1.8.1 h1:dJKuHgqk1NNQlqoA6BTlM1Wf9DOH3NBjQyu0h9+AZZE=
 github.com/sirupsen/logrus v1.8.1/go.mod h1:yWOB1SBYBC5VeMP7gHvWumXLIWorT60ONWic61uBYv0=
+github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 h1:JIAuq3EEf9cgbU6AtGPK4CTG3Zf6CKMNqf0MHTggAUA=
 github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966/go.mod h1:sUM3LWHvSMaG192sy56D9F7CNvL7jUJVXoqM1QKLnog=
 github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d/go.mod h1:OnSkiWE9lh6wB0YB77sQom3nweQdgAjqCqsofrRNTgc=
 github.com/smartystreets/assertions v1.0.0 h1:UVQPSSmc3qtTi+zPPkCXvZX9VvW/xT/NsRvKfwY81a8=
@@ -1756,8 +1761,8 @@ github.com/tektoncd/pipeline v0.5.1-0.20190731183258-9d7e37e85bf8/go.mod h1:IZzJ
 github.com/tektoncd/pipeline v0.23.0 h1:nOyk1KqXTZBlqRx20YrITUh7F/uDI2bXMfHedIxIzEY=
 github.com/tektoncd/pipeline v0.23.0/go.mod h1:QcD1kMaXVIHA/V7RCi4NQUCR6z3plBVjmglRbpS71FQ=
 github.com/tektoncd/plumbing v0.0.0-20201021153918-6b7e894737b5/go.mod h1:WTWwsg91xgm+jPOKoyKVK/yRYxnVDlUYeDlypB1lDdQ=
-github.com/tektoncd/plumbing v0.0.0-20210514044347-f8a9689d5bd5 h1:tY3t38AFNwlSWALhulEHryANpQ53Hfjp9jM5zl8ImSQ=
-github.com/tektoncd/plumbing v0.0.0-20210514044347-f8a9689d5bd5/go.mod h1:WTWwsg91xgm+jPOKoyKVK/yRYxnVDlUYeDlypB1lDdQ=
+github.com/tektoncd/plumbing v0.0.0-20210611115258-d6936aa3f94f h1:V3vBTVOcjrhGGz1+N5RBrqz0MpBCg17M9bepr+4IXws=
+github.com/tektoncd/plumbing v0.0.0-20210611115258-d6936aa3f94f/go.mod h1:WTWwsg91xgm+jPOKoyKVK/yRYxnVDlUYeDlypB1lDdQ=
 github.com/tent/canonical-json-go v0.0.0-20130607151641-96e4ba3a7613/go.mod h1:g6AnIpDSYMcphz193otpSIzN+11Rs+AAIIC6rm1enug=
 github.com/tetafro/godot v0.3.7/go.mod h1:/7NLHhv08H1+8DNj0MElpAACw1ajsCuf3TKNQxA5S+0=
 github.com/tetafro/godot v0.4.2/go.mod h1:/7NLHhv08H1+8DNj0MElpAACw1ajsCuf3TKNQxA5S+0=

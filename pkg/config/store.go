@@ -54,6 +54,7 @@ type PGPSigner struct {
 }
 
 type X509Signer struct {
+	FulcioAddr string
 }
 
 type KMSSigner struct {
@@ -102,6 +103,8 @@ const (
 
 	// KMS
 	kmsSignerKMSRef = "signers.kms.kmsref"
+	// KMS
+	x509SignerFulcioAddr = "signers.x509.fulcioaddr"
 
 	// Builder config
 	builderIDKey = "builder.id"
@@ -159,6 +162,8 @@ func parse(data map[string]string, logger *zap.SugaredLogger) Config {
 	cfg.Transparency.URL = valueOrDefault(transparencyURLKey, data, logger)
 
 	cfg.Signers.KMS.KMSRef = valueOrDefault(kmsSignerKMSRef, data, logger)
+
+	cfg.Signers.X509.FulcioAddr = valueOrDefault(x509SignerFulcioAddr, data, logger)
 
 	// Build config
 	cfg.Builder.ID = valueOrDefault(builderIDKey, data, logger)
