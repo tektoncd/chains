@@ -7,7 +7,6 @@ import (
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -196,7 +195,6 @@ type ConfigStore struct {
 	name   string
 	config atomic.Value
 
-	c      <-chan watch.Event
 	logger *zap.SugaredLogger
 }
 
@@ -204,35 +202,41 @@ func (cs *ConfigStore) Config() Config {
 	return cs.config.Load().(Config)
 }
 
-func (cs *ConfigStore) watch() {
+func (cs *ConfigStore) watch(kc kubernetes.Interface, namespace string) error {
+	opts := metav1.SingleObject(metav1.ObjectMeta{Name: chainsConfig})
+	w, err := kc.CoreV1().ConfigMaps(namespace).Watch(context.TODO(), opts)
+	if err != nil {
+		return err
+	}
+
 	go func() {
-		for evt := range cs.c {
-			cm := evt.Object.(*corev1.ConfigMap)
-			cs.logger.Debugf("watch event %s on %s/%s", evt.Type, cm.Namespace, cm.Name)
-			config := parse(cm.Data, cs.logger)
-			// Swap the values!
-			cs.config.Store(config)
-			cs.logger.Infof("config store %s updated: %v", cs.name, cm.Data)
+		for {
+			cs.logger.Infof("Restarting config watcher for %s %s", namespace, chainsConfig)
+			for evt := range w.ResultChan() {
+				cm := evt.Object.(*corev1.ConfigMap)
+				cs.logger.Debugf("watch event %s on %s/%s", evt.Type, cm.Namespace, cm.Name)
+				config := parse(cm.Data, cs.logger)
+				// Swap the values!
+				cs.config.Store(config)
+				cs.logger.Infof("config store %s updated: %v", cs.name, cm.Data)
+			}
 		}
 	}()
+	return nil
 }
 
 // NewConfigStore returns a store that is configured to watch the configmap for changes.
 func NewConfigStore(kc kubernetes.Interface, namespace string, logger *zap.SugaredLogger) (*ConfigStore, error) {
-	opts := metav1.SingleObject(metav1.ObjectMeta{Name: chainsConfig})
-	w, err := kc.CoreV1().ConfigMaps(namespace).Watch(context.TODO(), opts)
-	if err != nil {
-		return nil, err
-	}
 	val := atomic.Value{}
 	val.Store(Config{})
 	cs := ConfigStore{
 		name:   chainsConfig,
-		c:      w.ResultChan(),
 		config: val,
 		logger: logger,
 	}
-	cs.logger.Debug("staring watch on configmap: %s/%s", namespace, chainsConfig)
-	cs.watch()
+	cs.logger.Debugf("staring watch on configmap: %s/%s", namespace, chainsConfig)
+	if err := cs.watch(kc, namespace); err != nil {
+		return nil, err
+	}
 	return &cs, nil
 }
