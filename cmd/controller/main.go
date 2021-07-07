@@ -53,7 +53,7 @@ func main() {
 			taskRunInformer := taskruninformer.Get(ctx)
 			kubeclientset := kubeclient.Get(ctx)
 			pipelineclientset := pipelineclient.Get(ctx)
-			cfgStore, err := config.NewConfigStore(kubeclientset, system.Namespace(), logger)
+			cfgStore, err := config.NewConfigStore(ctx, kubeclientset, system.Namespace(), logger)
 			if err != nil {
 				logger.Fatal(err)
 			}

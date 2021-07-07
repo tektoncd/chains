@@ -24,7 +24,7 @@ func TestNewConfigStore(t *testing.T) {
 	}
 	fakekubeclient := fakek8s.NewSimpleClientset(cm)
 
-	cs, err := NewConfigStore(fakekubeclient, ns, logtesting.TestLogger(t))
+	cs, err := NewConfigStore(ctx, fakekubeclient, ns, logtesting.TestLogger(t))
 	if err != nil {
 		t.Errorf("error creating new config store: %v", err)
 	}
