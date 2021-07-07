@@ -204,7 +204,7 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 			signerType := signableType.Signer(cfg)
 			signer, ok := signers[signerType]
 			if !ok {
-				ts.Logger.Warnf("No signer %s configured for object: %v", signerType, obj)
+				ts.Logger.Warnf("No signer %s configured for %s: %v", signerType, signableType.Type())
 				continue
 			}
 
@@ -217,7 +217,7 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 				signer = wrapped
 			}
 
-			ts.Logger.Infof("Signing object %s with %s", obj, signerType)
+			ts.Logger.Infof("Signing object with %s", signerType)
 			rawPayload, err := json.Marshal(payload)
 			if err != nil {
 				ts.Logger.Warnf("Unable to marshal payload: %v", signerType, obj)

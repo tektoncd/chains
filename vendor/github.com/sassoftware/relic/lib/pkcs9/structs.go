@@ -93,12 +93,16 @@ type TSTInfo struct {
 	Policy         asn1.ObjectIdentifier
 	MessageImprint MessageImprint
 	SerialNumber   *big.Int
-	GenTime        time.Time
+	GenTime        asn1.RawValue
 	Accuracy       Accuracy         `asn1:"optional"`
 	Ordering       bool             `asn1:"optional,default:false"`
 	Nonce          *big.Int         `asn1:"optional"`
 	TSA            GeneralName      `asn1:"optional,implicit,tag:0"`
 	Extensions     []pkix.Extension `asn1:"optional,implicit,tag:1"`
+}
+
+func (i *TSTInfo) SigningTime() (time.Time, error) {
+	return pkcs7.ParseTime(i.GenTime)
 }
 
 type Accuracy struct {

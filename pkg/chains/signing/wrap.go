@@ -17,9 +17,12 @@ import (
 	"context"
 	"crypto"
 	"encoding/json"
+	"io"
+	"io/ioutil"
 
 	"github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/in-toto/in-toto-golang/pkg/ssl"
+	"github.com/sigstore/sigstore/pkg/signature"
 )
 
 func Wrap(ctx context.Context, s Signer) (Signer, error) {
@@ -32,7 +35,7 @@ func Wrap(ctx context.Context, s Signer) (Signer, error) {
 		return nil, err
 	}
 
-	pub, err := s.PublicKey(ctx)
+	pub, err := s.PublicKey()
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +71,7 @@ type sslSigner struct {
 func (s *sslSigner) Type() string {
 	return s.typ
 }
-func (s *sslSigner) PublicKey(ctx context.Context) (crypto.PublicKey, error) {
+func (s *sslSigner) PublicKey(opts ...signature.PublicKeyOption) (crypto.PublicKey, error) {
 	return s.pub, nil
 }
 
@@ -82,4 +85,20 @@ func (s *sslSigner) Sign(ctx context.Context, payload []byte) ([]byte, []byte, e
 		return nil, nil, err
 	}
 	return b, []byte(env.Payload), nil
+}
+
+func (s *sslSigner) SignMessage(payload io.Reader, opts ...signature.SignOption) ([]byte, error) {
+	m, err := ioutil.ReadAll(payload)
+	if err != nil {
+		return nil, err
+	}
+	env, err := s.wrapper.SignPayload(in_toto.PayloadType, m)
+	if err != nil {
+		return nil, err
+	}
+	b, err := json.Marshal(env)
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
 }

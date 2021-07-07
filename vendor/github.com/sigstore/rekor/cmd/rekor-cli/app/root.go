@@ -22,16 +22,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/go-openapi/runtime"
-	httptransport "github.com/go-openapi/runtime/client"
-	"github.com/go-openapi/strfmt"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-
-	"github.com/sigstore/rekor/pkg/generated/client"
-	"github.com/sigstore/rekor/pkg/util"
 )
 
 var rootCmd = &cobra.Command{
@@ -112,23 +106,6 @@ func initConfig(cmd *cobra.Command) error {
 	}
 
 	return nil
-}
-
-func GetRekorClient(rekorServerURL string) (*client.Rekor, error) {
-	url, err := url.Parse(rekorServerURL)
-	if err != nil {
-		return nil, err
-	}
-
-	rt := httptransport.New(url.Host, client.DefaultBasePath, []string{url.Scheme})
-	rt.Consumers["application/yaml"] = util.YamlConsumer()
-	rt.Consumers["application/x-pem-file"] = runtime.TextConsumer()
-	rt.Producers["application/yaml"] = util.YamlProducer()
-
-	if viper.GetString("api-key") != "" {
-		rt.DefaultAuthentication = httptransport.APIKeyAuth("apiKey", "query", viper.GetString("api-key"))
-	}
-	return client.New(rt, strfmt.Default), nil
 }
 
 type urlFlag struct {

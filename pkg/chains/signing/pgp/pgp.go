@@ -18,10 +18,12 @@ import (
 	"context"
 	"crypto"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
+	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/tektoncd/chains/pkg/chains/signing"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/openpgp"
@@ -81,12 +83,20 @@ func (s *Signer) Sign(ctx context.Context, rawPayload []byte) ([]byte, []byte, e
 	return signature.Bytes(), rawPayload, nil
 }
 
+func (s *Signer) SignMessage(payload io.Reader, opts ...signature.SignOption) ([]byte, error) {
+	signature := bytes.Buffer{}
+	if err := openpgp.ArmoredDetachSignText(&signature, s.key, payload, nil); err != nil {
+		return nil, err
+	}
+	return signature.Bytes(), nil
+}
+
 func (s *Signer) Type() string {
 	return signing.TypePgp
 }
 
 // required for the signature.Signer interface
 // unimplemented, since we don't need the public key for signing
-func (s *Signer) PublicKey(ctx context.Context) (crypto.PublicKey, error) {
+func (s *Signer) PublicKey(opts ...signature.PublicKeyOption) (crypto.PublicKey, error) {
 	return nil, nil
 }

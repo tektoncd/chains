@@ -35,7 +35,7 @@ func Login(login LoginFunc, getter PasswordGetter, keyringService, keyringUser, 
 			if err == errNotFound {
 				continue
 			} else if err != nil {
-				return fmt.Errorf("keyring error: %s", err)
+				return fmt.Errorf("keyring error: %w", err)
 			}
 		} else if getter != nil {
 			password, err = getter.GetPasswd(prompt)
@@ -54,7 +54,7 @@ func Login(login LoginFunc, getter PasswordGetter, keyringService, keyringUser, 
 			if keyringService != "" {
 				err := keyringSet(keyringService, keyringUser, password)
 				if err != nil {
-					return fmt.Errorf("keyring error: %s", err)
+					return fmt.Errorf("keyring error: %w", err)
 				}
 			}
 			return nil

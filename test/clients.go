@@ -41,6 +41,7 @@ import (
 	"time"
 
 	"github.com/sigstore/cosign/pkg/cosign"
+	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/tektoncd/pipeline/pkg/names"
 
 	pipelineclientset "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
@@ -127,11 +128,6 @@ func createNamespace(ctx context.Context, t *testing.T, namespace string, kubeCl
 	}, metav1.CreateOptions{}); err != nil {
 		t.Fatalf("Failed to create namespace %s for tests: %s", namespace, err)
 	}
-}
-
-type secret struct {
-	x509Priv   *ecdsa.PrivateKey
-	cosignPriv *ecdsa.PrivateKey
 }
 
 func createRegistry(ctx context.Context, t *testing.T, namespace string, kubeClient kubernetes.Interface) (string, *corev1.Service) {
@@ -226,6 +222,11 @@ func getFreePort(t *testing.T) int {
 	return l.Addr().(*net.TCPAddr).Port
 }
 
+type secret struct {
+	x509priv   *signature.ECDSASignerVerifier
+	cosignPriv *signature.ECDSASignerVerifier
+}
+
 func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface, opts setupOpts) secret {
 	// Only overwrite the secret data if it isn't set.
 	namespace := "tekton-chains"
@@ -250,6 +251,11 @@ func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface, opts
 	_, priv := ecdsaKeyPair(t)
 	s.StringData["x509.pem"] = toPem(t, priv)
 
+	x509Priv, err := signature.LoadECDSASignerVerifier(priv, crypto.SHA256)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	// cosign
 	paths = []string{"cosign.key", "cosign.pub", "cosign.password"}
 	for _, p := range paths {
@@ -271,9 +277,10 @@ func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface, opts
 		t.Error(err)
 	}
 	time.Sleep(60 * time.Second)
+
 	return secret{
-		x509Priv:   priv,
-		cosignPriv: cosignPriv.Key,
+		cosignPriv: cosignPriv,
+		x509priv:   x509Priv,
 	}
 }
 

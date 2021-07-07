@@ -21,6 +21,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
+	"strings"
 )
 
 // Load a certificate pool from a file and set it as the root CA for a TLS
@@ -40,9 +41,15 @@ func LoadCertPool(path string, tconf *tls.Config) error {
 	} else {
 		tconf.RootCAs = x509.NewCertPool()
 	}
-	contents, err := ioutil.ReadFile(path)
-	if err != nil {
-		return err
+	var contents []byte
+	if strings.Contains(path, "-----BEGIN") {
+		contents = []byte(path)
+	} else {
+		var err error
+		contents, err = ioutil.ReadFile(path)
+		if err != nil {
+			return err
+		}
 	}
 	if !tconf.RootCAs.AppendCertsFromPEM(contents) {
 		return fmt.Errorf("no CA certificates in %s", path)

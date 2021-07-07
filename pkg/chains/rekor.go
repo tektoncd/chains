@@ -17,7 +17,7 @@ import (
 	"context"
 
 	"github.com/sigstore/cosign/pkg/cosign"
-	"github.com/sigstore/rekor/cmd/rekor-cli/app"
+	rc "github.com/sigstore/rekor/pkg/client"
 	"github.com/sigstore/rekor/pkg/generated/client"
 	"github.com/sigstore/rekor/pkg/generated/models"
 	"github.com/tektoncd/chains/pkg/chains/signing"
@@ -34,7 +34,7 @@ type rekorClient interface {
 }
 
 func (r *rekor) UploadTlog(ctx context.Context, signer signing.Signer, signature, rawPayload []byte) (*models.LogEntryAnon, error) {
-	pub, err := signer.PublicKey(ctx)
+	pub, err := signer.PublicKey()
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func (r *rekor) UploadTlog(ctx context.Context, signer signing.Signer, signature
 
 // for testing
 var getRekor = func(url string, l *zap.SugaredLogger) (rekorClient, error) {
-	rekorClient, err := app.GetRekorClient(url)
+	rekorClient, err := rc.GetRekorClient(url)
 	if err != nil {
 		return nil, err
 	}

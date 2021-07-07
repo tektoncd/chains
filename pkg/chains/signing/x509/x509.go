@@ -16,7 +16,6 @@ package x509
 import (
 	"crypto"
 	"crypto/ecdsa"
-	"crypto/ed25519"
 	cx509 "crypto/x509"
 	"encoding/pem"
 	"fmt"
@@ -42,7 +41,7 @@ func NewSigner(secretPath string, logger *zap.SugaredLogger) (*Signer, error) {
 	x509PrivateKeyPath := filepath.Join(secretPath, "x509.pem")
 	cosignPrivateKeypath := filepath.Join(secretPath, "cosign.key")
 
-	var signer *Signer
+	var signer *signature.ECDSASignerVerifier
 	if contents, err := ioutil.ReadFile(x509PrivateKeyPath); err == nil {
 		signer, err = x509Signer(contents, logger)
 		if err != nil {
@@ -56,12 +55,15 @@ func NewSigner(secretPath string, logger *zap.SugaredLogger) (*Signer, error) {
 	} else {
 		return nil, errors.New("no valid private key found, looked for: [x509.pem, cosign.key]")
 	}
-	return signer, nil
-
+	return &Signer{
+		Signer: signer,
+		logger: logger,
+	}, nil
 }
 
-func x509Signer(privateKey []byte, logger *zap.SugaredLogger) (*Signer, error) {
+func x509Signer(privateKey []byte, logger *zap.SugaredLogger) (*signature.ECDSASignerVerifier, error) {
 	logger.Info("Found x509 key...")
+
 	p, _ := pem.Decode(privateKey)
 	if p.Type != "PRIVATE KEY" {
 		return nil, fmt.Errorf("expected private key, found object of type %s", p.Type)
@@ -70,38 +72,17 @@ func x509Signer(privateKey []byte, logger *zap.SugaredLogger) (*Signer, error) {
 	if err != nil {
 		return nil, err
 	}
-	return signer(pk, logger)
+	return signature.LoadECDSASignerVerifier(pk.(*ecdsa.PrivateKey), crypto.SHA256)
 }
 
-func cosignSigner(secretPath string, privateKey []byte, logger *zap.SugaredLogger) (*Signer, error) {
+func cosignSigner(secretPath string, privateKey []byte, logger *zap.SugaredLogger) (*signature.ECDSASignerVerifier, error) {
 	logger.Info("Found cosign key...")
 	cosignPasswordPath := filepath.Join(secretPath, "cosign.password")
 	password, err := ioutil.ReadFile(cosignPasswordPath)
 	if err != nil {
 		return nil, errors.Wrap(err, "reading cosign.password file")
 	}
-	pk, err := cosign.LoadECDSAPrivateKey(privateKey, password)
-	if err != nil {
-		return nil, errors.Wrap(err, "cosign private key")
-	}
-	return signer(pk.Key, logger)
-}
-
-func signer(pk crypto.PrivateKey, logger *zap.SugaredLogger) (*Signer, error) {
-	var s signature.Signer
-	switch k := pk.(type) {
-	case *ecdsa.PrivateKey:
-		s = signature.NewECDSASignerVerifier(k, crypto.SHA256)
-	case ed25519.PrivateKey:
-		return nil, errors.New("still need to implement ed25519")
-	default:
-		return nil, errors.New("unsupported key type")
-	}
-
-	return &Signer{
-		Signer: s,
-		logger: logger,
-	}, nil
+	return cosign.LoadECDSAPrivateKey(privateKey, password)
 }
 
 func (s *Signer) Type() string {

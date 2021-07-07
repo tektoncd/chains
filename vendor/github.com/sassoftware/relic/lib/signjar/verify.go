@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"crypto"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"hash"
 	"io"
@@ -29,7 +30,6 @@ import (
 	"path"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/sassoftware/relic/lib/pkcs7"
 	"github.com/sassoftware/relic/lib/pkcs9"
 	"github.com/sassoftware/relic/lib/x509tools"
@@ -100,6 +100,7 @@ func Verify(inz *zip.Reader, skipDigests bool) ([]*JarSignature, error) {
 		if err != nil {
 			return nil, err
 		}
+		ts.Raw = pkcs
 		hdr, err := verifySigFile(sigfile, manifest)
 		if err != nil {
 			return nil, err
@@ -142,7 +143,7 @@ func verifyManifest(inz *zip.Reader, manifest []byte) error {
 			return err
 		}
 		if err := hashFile(keys, r, ""); err != nil {
-			return errors.Wrapf(err, "file \"%s\" in MANIFEST.MF", filename)
+			return fmt.Errorf("file \"%s\" in MANIFEST.MF: %w", filename, err)
 		}
 		if err := r.Close(); err != nil {
 			return err
@@ -204,7 +205,7 @@ func verifySigFile(sigfile, manifest []byte) (http.Header, error) {
 	}
 	if err := hashFile(sfParsed.Main, bytes.NewReader(manifest), "-Manifest"); err != nil {
 		if err != errNoDigests {
-			return nil, errors.Wrap(err, "manifest signature")
+			return nil, fmt.Errorf("manifest signature: %w", err)
 		}
 		// fall through and verify all the section digests
 	} else {
@@ -219,7 +220,7 @@ func verifySigFile(sigfile, manifest []byte) (http.Header, error) {
 	for i, section := range sections {
 		if i == 0 {
 			if err := hashFile(sfParsed.Main, bytes.NewReader(sections[0]), "-Manifest-Main-Attributes"); err != nil {
-				return nil, errors.Wrap(err, "manifest main attributes signature")
+				return nil, fmt.Errorf("manifest main attributes signature: %w", err)
 			}
 		} else {
 			hdr, err := parseSection(section)
@@ -239,7 +240,7 @@ func verifySigFile(sigfile, manifest []byte) (http.Header, error) {
 			return nil, fmt.Errorf("manifest is missing signed section \"%s\"", name)
 		}
 		if err := hashFile(keys, bytes.NewReader(section), ""); err != nil {
-			return nil, errors.Wrapf(err, "manifest signature over section \"%s\"", name)
+			return nil, fmt.Errorf("manifest signature over section \"%s\": %w", name, err)
 		}
 	}
 	return sfParsed.Main, nil

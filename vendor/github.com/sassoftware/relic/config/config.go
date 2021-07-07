@@ -102,8 +102,8 @@ type RemoteConfig struct {
 	URL            string `yaml:",omitempty"` // URL of remote server
 	DirectoryURL   string `yaml:",omitempty"` // URL of directory server
 	KeyFile        string `yaml:",omitempty"` // Path to TLS client key file
-	CertFile       string `yaml:",omitempty"` // Path to TLS client certificate
-	CaCert         string `yaml:",omitempty"` // Path to CA certificate
+	CertFile       string `yaml:",omitempty"` // Path to TLS client certificate or embedded certificate
+	CaCert         string `yaml:",omitempty"` // Path to CA certificate or embedded certificate
 	ConnectTimeout int    `yaml:",omitempty"` // Connection timeout in seconds
 	Retries        int    `yaml:",omitempty"` // Attempt an operation (at least) N times
 }
@@ -160,7 +160,7 @@ func (config *Config) Normalize(path string) error {
 		if client.Certificate != "" {
 			certs, err := certloader.ParseX509Certificates([]byte(client.Certificate))
 			if err != nil {
-				return fmt.Errorf("invalid certificate for client %s: %s", fingerprint, err)
+				return fmt.Errorf("invalid certificate for client %s: %w", fingerprint, err)
 			}
 			client.certs = x509.NewCertPool()
 			for _, cert := range certs {
@@ -176,11 +176,11 @@ func (config *Config) Normalize(path string) error {
 	if config.PinFile != "" {
 		contents, err := ioutil.ReadFile(config.PinFile)
 		if err != nil {
-			return fmt.Errorf("error reading PinFile: %s", err)
+			return fmt.Errorf("reading PinFile: %w", err)
 		}
 		pinMap := make(map[string]string)
 		if err := yaml.Unmarshal(contents, pinMap); err != nil {
-			return fmt.Errorf("error reading PinFile: %s", err)
+			return fmt.Errorf("reading PinFile: %w", err)
 		}
 		for token, pin := range pinMap {
 			tokenConf := config.Tokens[token]

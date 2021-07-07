@@ -107,9 +107,12 @@ func runInTotoFormatterTests(ctx context.Context, t *testing.T, ns string, c *cl
 			}
 
 			// verify signature
-			pub := &c.secret.x509Priv.PublicKey
+			pub, err := c.secret.x509priv.PublicKey()
+			if err != nil {
+				t.Fatal(err)
+			}
 			verifier := &verifier{
-				pub: pub,
+				pub: pub.(*ecdsa.PublicKey),
 			}
 			ev := ssl.NewEnvelopeVerifier(verifier)
 			env := ssl.Envelope{}

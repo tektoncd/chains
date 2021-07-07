@@ -24,9 +24,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
-	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/pkg/errors"
 	cremote "github.com/sigstore/cosign/pkg/cosign/remote"
@@ -51,34 +49,42 @@ type SignedPayload struct {
 // 	})
 // }
 
-func Munge(desc v1.Descriptor) string {
-	return signatureImageTagForDigest(desc.Digest.String())
+const (
+	SuffixSignature = ".sig"
+	SuffixSBOM      = ".sbom"
+)
+
+func AttachedImageTag(repo name.Repository, imgDesc *remote.Descriptor, suffix string) name.Tag {
+	// sha256:d34db33f -> sha256-d34db33f.sig
+	tagStr := strings.ReplaceAll(imgDesc.Digest.String(), ":", "-") + suffix
+	return repo.Tag(tagStr)
 }
 
-func signatureImageTagForDigest(digest string) string {
-	// sha256:... -> sha256-...
-	return strings.ReplaceAll(digest, ":", "-") + ".sig"
+func GetAttachedManifestForImage(imgDesc *remote.Descriptor, repo name.Repository, suffix string, opts ...remote.Option) (*remote.Descriptor, error) {
+	return remote.Get(AttachedImageTag(repo, imgDesc, suffix), opts...)
 }
 
-func FetchSignatures(ctx context.Context, ref name.Reference) ([]SignedPayload, *v1.Descriptor, error) {
-	targetDesc, err := remote.Get(ref, remote.WithAuthFromKeychain(authn.DefaultKeychain))
+func FetchSignaturesForImage(ctx context.Context, signedImgRef name.Reference, sigRepo name.Repository, opts ...remote.Option) ([]SignedPayload, error) {
+	signedImgDesc, err := remote.Get(signedImgRef, opts...)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
+	return FetchSignaturesForDescriptor(ctx, signedImgDesc, sigRepo, opts...)
+}
 
-	// first, see if signatures exist in an alternate location
-	dstRef, err := DestinationRef(ref, targetDesc)
+func FetchSignaturesForDescriptor(ctx context.Context, signedDescriptor *remote.Descriptor, sigRepo name.Repository, opts ...remote.Option) ([]SignedPayload, error) {
+	sigImgDesc, err := GetAttachedManifestForImage(signedDescriptor, sigRepo, SuffixSignature, opts...)
 	if err != nil {
-		return nil, nil, err
+		return nil, errors.Wrap(err, "getting signature manifest")
 	}
-	sigImg, err := remote.Image(dstRef, remote.WithAuthFromKeychain(authn.DefaultKeychain))
+	sigImg, err := sigImgDesc.Image()
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "remote image")
+		return nil, errors.Wrap(err, "remote image")
 	}
 
 	m, err := sigImg.Manifest()
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "manifest")
+		return nil, errors.Wrap(err, "manifest")
 	}
 
 	g, ctx := errgroup.WithContext(ctx)
@@ -146,9 +152,10 @@ func FetchSignatures(ctx context.Context, ref name.Reference) ([]SignedPayload, 
 		})
 	}
 	if err := g.Wait(); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	return signatures, &targetDesc.Descriptor, nil
+	return signatures, nil
+
 }
 
 func LoadCerts(pemStr string) ([]*x509.Certificate, error) {

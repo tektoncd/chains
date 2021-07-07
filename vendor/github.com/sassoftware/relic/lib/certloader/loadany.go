@@ -44,13 +44,13 @@ func LoadAnyCerts(paths []string) (any AnyCerts, err error) {
 			any.X509Certs = append(any.X509Certs, x509certs.Certificates...)
 			continue
 		} else if err != ErrNoCerts {
-			return any, fmt.Errorf("%s: %s", path, err)
+			return any, fmt.Errorf("%s: %w", path, err)
 		}
 		pgpcerts, err := parsePGP(blob)
 		if err == nil {
 			any.PGPCerts = append(any.PGPCerts, pgpcerts...)
 		} else {
-			return any, fmt.Errorf("%s: %s", path, err)
+			return any, fmt.Errorf("%s: %w", path, err)
 		}
 	}
 	return any, nil
