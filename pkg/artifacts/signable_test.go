@@ -260,6 +260,8 @@ func TestExtractOCIImagesFromResults(t *testing.T) {
 					{Name: "img1_IMAGE_DIGEST", Value: digest1},
 					{Name: "img2_IMAGE_URL", Value: "img2"},
 					{Name: "img2_IMAGE_DIGEST", Value: digest2},
+					{Name: "IMAGE_URL", Value: "img3"},
+					{Name: "IMAGE_DIGEST", Value: digest1},
 				},
 			},
 		},
@@ -267,6 +269,7 @@ func TestExtractOCIImagesFromResults(t *testing.T) {
 	want := []interface{}{
 		digest(t, fmt.Sprintf("img1@%s", digest1)),
 		digest(t, fmt.Sprintf("img2@%s", digest2)),
+		digest(t, fmt.Sprintf("img3@%s", digest1)),
 	}
 	got := ExtractOCIImagesFromResults(tr, logtesting.TestLogger(t))
 	if !reflect.DeepEqual(got, want) {
