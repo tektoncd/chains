@@ -15,15 +15,15 @@ require (
 	github.com/sigstore/cosign v0.5.0
 	github.com/sigstore/rekor v0.1.2-0.20210519014330-b5480728bde6
 	github.com/sigstore/sigstore v0.0.0-20210530211317-99216b8b86a6
-	github.com/tektoncd/pipeline v0.23.0
+	github.com/tektoncd/pipeline v0.25.0
 	github.com/tektoncd/plumbing v0.0.0-20210514044347-f8a9689d5bd5
 	go.uber.org/zap v1.16.0
 	gocloud.dev v0.23.0
 	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
-	k8s.io/api v0.19.7
+	k8s.io/api v0.20.7
 	k8s.io/apimachinery v0.21.1
-	k8s.io/client-go v0.19.7
-	knative.dev/pkg v0.0.0-20210127163530-0d31134d5f4e
+	k8s.io/client-go v0.20.7
+	knative.dev/pkg v0.0.0-20210510175900-4564797bf3b7
 )
 
 // Knative deps (release-0.20)
