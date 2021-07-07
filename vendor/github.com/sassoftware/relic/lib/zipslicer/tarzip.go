@@ -73,13 +73,13 @@ func ReadZipTar(r io.Reader) (*Directory, error) {
 	tr := tar.NewReader(r)
 	hdr, err := tr.Next()
 	if err != nil {
-		return nil, fmt.Errorf("error reading tar: %s", err)
+		return nil, fmt.Errorf("error reading tar: %w", err)
 	} else if hdr.Name != TarMemberCD {
 		return nil, errors.New("invalid tarzip")
 	}
 	zipdir, err := ioutil.ReadAll(tr)
 	if err != nil {
-		return nil, fmt.Errorf("error reading tar: %s", err)
+		return nil, fmt.Errorf("error reading tar: %w", err)
 	}
 	hdr, err = tr.Next()
 	if err != nil {

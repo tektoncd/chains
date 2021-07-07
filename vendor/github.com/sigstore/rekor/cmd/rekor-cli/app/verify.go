@@ -28,6 +28,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/sigstore/rekor/cmd/rekor-cli/app/format"
+	"github.com/sigstore/rekor/pkg/client"
 	"github.com/sigstore/rekor/pkg/generated/client/entries"
 	"github.com/sigstore/rekor/pkg/generated/models"
 	"github.com/sigstore/rekor/pkg/log"
@@ -84,7 +85,7 @@ var verifyCmd = &cobra.Command{
 		return nil
 	},
 	Run: format.WrapCmd(func(args []string) (interface{}, error) {
-		rekorClient, err := GetRekorClient(viper.GetString("rekor_server"))
+		rekorClient, err := client.GetRekorClient(viper.GetString("rekor_server"))
 		if err != nil {
 			return nil, err
 		}
@@ -113,6 +114,26 @@ var verifyCmd = &cobra.Command{
 				}
 			case "rpm":
 				entry, err = CreateRpmFromPFlags()
+				if err != nil {
+					return nil, err
+				}
+			case "jar":
+				entry, err = CreateJarFromPFlags()
+				if err != nil {
+					return nil, err
+				}
+			case "intoto":
+				entry, err = CreateIntotoFromPFlags()
+				if err != nil {
+					return nil, err
+				}
+			case "rfc3161":
+				entry, err = CreateRFC3161FromPFlags()
+				if err != nil {
+					return nil, err
+				}
+			case "alpine":
+				entry, err = CreateAlpineFromPFlags()
 				if err != nil {
 					return nil, err
 				}

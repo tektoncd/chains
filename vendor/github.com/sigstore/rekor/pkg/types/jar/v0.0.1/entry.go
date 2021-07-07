@@ -84,12 +84,8 @@ func (v V001Entry) IndexKeys() []string {
 	if err != nil {
 		log.Logger.Error(err)
 	} else {
-		hasher := sha256.New()
-		if _, err := hasher.Write(key); err != nil {
-			log.Logger.Error(err)
-		} else {
-			result = append(result, strings.ToLower(hex.EncodeToString(hasher.Sum(nil))))
-		}
+		keyHash := sha256.Sum256(key)
+		result = append(result, strings.ToLower(hex.EncodeToString(keyHash[:])))
 	}
 
 	if v.JARModel.Archive.Hash != nil {
@@ -315,4 +311,8 @@ func extractPKCS7SignatureFromJAR(inz *zip.Reader) ([]byte, error) {
 		}
 	}
 	return nil, errors.New("unable to locate signature in JAR file")
+}
+
+func (v V001Entry) Attestation() (string, []byte) {
+	return "", nil
 }

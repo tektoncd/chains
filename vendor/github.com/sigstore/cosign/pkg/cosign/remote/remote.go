@@ -19,7 +19,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -27,6 +26,7 @@ import (
 	"strconv"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
@@ -69,8 +69,8 @@ func DockerMediaTypes() bool {
 }
 
 // SignatureImage returns the existing destination image, or a new, empty one.
-func SignatureImage(dstTag name.Reference, opts ...remote.Option) (v1.Image, error) {
-	base, err := remote.Image(dstTag, opts...)
+func SignatureImage(ref name.Reference, opts ...remote.Option) (v1.Image, error) {
+	base, err := remote.Image(ref, opts...)
 	if err != nil {
 		if te, ok := err.(*transport.Error); ok {
 			if te.StatusCode != http.StatusNotFound {
@@ -93,10 +93,10 @@ func SignatureImage(dstTag name.Reference, opts ...remote.Option) (v1.Image, err
 	return base, nil
 }
 
-func findDuplicate(ctx context.Context, sigImage v1.Image, payload []byte, dupeDetector signature.Verifier, annotations map[string]string) ([]byte, error) {
+func findDuplicate(sigImage v1.Image, payload []byte, dupeDetector signature.Verifier, annotations map[string]string) ([]byte, error) {
 	l := &StaticLayer{
-		b:  payload,
-		mt: SimpleSigningMediaType,
+		B:  payload,
+		Mt: SimpleSigningMediaType,
 	}
 
 	sigDigest, err := l.Digest()
@@ -121,7 +121,7 @@ LayerLoop:
 			if err != nil {
 				return nil, err
 			}
-			if err := dupeDetector.Verify(ctx, payload, uploadedSig); err == nil {
+			if err := dupeDetector.VerifySignature(bytes.NewReader(uploadedSig), bytes.NewReader(payload)); err == nil {
 				// An equivalent signature has already been uploaded.
 				return uploadedSig, nil
 			}
@@ -130,12 +130,16 @@ LayerLoop:
 	return nil, nil
 }
 
+type BundlePayload struct {
+	Body           interface{} `json:"body"`
+	IntegratedTime int64       `json:"integratedTime"`
+	LogIndex       int64       `json:"logIndex"`
+	LogID          string      `json:"logID"`
+}
+
 type Bundle struct {
 	SignedEntryTimestamp strfmt.Base64
-	Body                 interface{}
-	IntegratedTime       int64
-	LogIndex             *int64
-	LogID                string
+	Payload              BundlePayload
 }
 
 type UploadOpts struct {
@@ -149,8 +153,8 @@ type UploadOpts struct {
 
 func UploadSignature(ctx context.Context, signature, payload []byte, dst name.Reference, opts UploadOpts) (uploadedSig []byte, err error) {
 	l := &StaticLayer{
-		b:  payload,
-		mt: SimpleSigningMediaType,
+		B:  payload,
+		Mt: SimpleSigningMediaType,
 	}
 
 	base, err := SignatureImage(dst, opts.RemoteOpts...)
@@ -159,7 +163,7 @@ func UploadSignature(ctx context.Context, signature, payload []byte, dst name.Re
 	}
 
 	if opts.DupeDetector != nil {
-		if uploadedSig, err = findDuplicate(ctx, base, payload, opts.DupeDetector, opts.AdditionalAnnotations); err != nil || uploadedSig != nil {
+		if uploadedSig, err = findDuplicate(base, payload, opts.DupeDetector, opts.AdditionalAnnotations); err != nil || uploadedSig != nil {
 			return uploadedSig, err
 		}
 	}
@@ -172,7 +176,7 @@ func UploadSignature(ctx context.Context, signature, payload []byte, dst name.Re
 		annotations[chainkey] = opts.Chain
 	}
 	if opts.Bundle != nil {
-		b, err := json.Marshal(opts.Bundle)
+		b, err := swag.WriteJSON(opts.Bundle)
 		if err != nil {
 			return nil, errors.Wrap(err, "marshaling bundle")
 		}
@@ -193,37 +197,37 @@ func UploadSignature(ctx context.Context, signature, payload []byte, dst name.Re
 }
 
 type StaticLayer struct {
-	b  []byte
-	mt types.MediaType
+	B  []byte
+	Mt types.MediaType
 }
 
 func (l *StaticLayer) Digest() (v1.Hash, error) {
-	h, _, err := v1.SHA256(bytes.NewReader(l.b))
+	h, _, err := v1.SHA256(bytes.NewReader(l.B))
 	return h, err
 }
 
 // DiffID returns the Hash of the uncompressed layer.
 func (l *StaticLayer) DiffID() (v1.Hash, error) {
-	h, _, err := v1.SHA256(bytes.NewReader(l.b))
+	h, _, err := v1.SHA256(bytes.NewReader(l.B))
 	return h, err
 }
 
 // Compressed returns an io.ReadCloser for the compressed layer contents.
 func (l *StaticLayer) Compressed() (io.ReadCloser, error) {
-	return ioutil.NopCloser(bytes.NewReader(l.b)), nil
+	return ioutil.NopCloser(bytes.NewReader(l.B)), nil
 }
 
 // Uncompressed returns an io.ReadCloser for the uncompressed layer contents.
 func (l *StaticLayer) Uncompressed() (io.ReadCloser, error) {
-	return ioutil.NopCloser(bytes.NewReader(l.b)), nil
+	return ioutil.NopCloser(bytes.NewReader(l.B)), nil
 }
 
 // Size returns the compressed size of the Layer.
 func (l *StaticLayer) Size() (int64, error) {
-	return int64(len(l.b)), nil
+	return int64(len(l.B)), nil
 }
 
 // MediaType returns the media type of the Layer.
 func (l *StaticLayer) MediaType() (types.MediaType, error) {
-	return l.mt, nil
+	return l.Mt, nil
 }

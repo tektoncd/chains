@@ -81,12 +81,8 @@ func (v V001Entry) IndexKeys() []string {
 	if err != nil {
 		log.Logger.Error(err)
 	} else {
-		hasher := sha256.New()
-		if _, err := hasher.Write(key); err != nil {
-			log.Logger.Error(err)
-		} else {
-			result = append(result, strings.ToLower(hex.EncodeToString(hasher.Sum(nil))))
-		}
+		keyHash := sha256.Sum256(key)
+		result = append(result, strings.ToLower(hex.EncodeToString(keyHash[:])))
 	}
 
 	result = append(result, v.keyObj.EmailAddresses()...)
@@ -327,12 +323,7 @@ func (v *V001Entry) Canonicalize(ctx context.Context) ([]byte, error) {
 	rpm.APIVersion = swag.String(APIVERSION)
 	rpm.Spec = &canonicalEntry
 
-	bytes, err := json.Marshal(&rpm)
-	if err != nil {
-		return nil, err
-	}
-
-	return bytes, nil
+	return json.Marshal(&rpm)
 }
 
 // Validate performs cross-field validation for fields in object
@@ -362,4 +353,8 @@ func (v V001Entry) Validate() error {
 	}
 
 	return nil
+}
+
+func (v V001Entry) Attestation() (string, []byte) {
+	return "", nil
 }

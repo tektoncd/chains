@@ -71,7 +71,7 @@ func TestSigner_SignECDSA(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pub, err := signer.PublicKey(ctx)
+	pub, err := signer.PublicKey()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -113,7 +113,7 @@ func TestSigner_SignED25519(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pub, err := signer.PublicKey(ctx)
+	pub, err := signer.PublicKey()
 	if err != nil {
 		t.Fatal(err)
 	}

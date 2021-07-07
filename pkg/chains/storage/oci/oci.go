@@ -81,11 +81,11 @@ func (b *Backend) StorePayload(rawPayload []byte, signature string, key string) 
 	if err != nil {
 		return errors.Wrap(err, "getting digest")
 	}
-	get, err := remote.Get(ref, b.auth)
+	desc, err := remote.Get(ref, b.auth)
 	if err != nil {
 		return errors.Wrap(err, "getting remote image")
 	}
-	cosignDst, err := cosign.DestinationRef(ref, get)
+	cosignDst := cosign.AttachedImageTag(ref.Repository, desc, cosign.SuffixSignature)
 	if err != nil {
 		return errors.Wrap(err, "destination ref")
 	}

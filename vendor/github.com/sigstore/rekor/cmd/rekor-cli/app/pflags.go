@@ -36,8 +36,11 @@ import (
 
 	"github.com/go-playground/validator"
 	"github.com/sigstore/rekor/pkg/generated/models"
+	alpine_v001 "github.com/sigstore/rekor/pkg/types/alpine/v0.0.1"
+	intoto_v001 "github.com/sigstore/rekor/pkg/types/intoto/v0.0.1"
 	jar_v001 "github.com/sigstore/rekor/pkg/types/jar/v0.0.1"
 	rekord_v001 "github.com/sigstore/rekor/pkg/types/rekord/v0.0.1"
+	rfc3161_v001 "github.com/sigstore/rekor/pkg/types/rfc3161/v0.0.1"
 	rpm_v001 "github.com/sigstore/rekor/pkg/types/rpm/v0.0.1"
 )
 
@@ -138,7 +141,7 @@ func validateArtifactPFlags(uuidValid, indexValid bool) error {
 		if signature == "" && typeStr == "rekord" {
 			return errors.New("--signature is required when --artifact is used")
 		}
-		if publicKey == "" && typeStr != "jar" {
+		if publicKey == "" && typeStr != "jar" && typeStr != "rfc3161" {
 			return errors.New("--public-key is required when --artifact is used")
 		}
 	}
@@ -215,6 +218,48 @@ func CreateJarFromPFlags() (models.ProposedEntry, error) {
 	return &returnVal, nil
 }
 
+func CreateIntotoFromPFlags() (models.ProposedEntry, error) {
+	//TODO: how to select version of item to create
+	returnVal := models.Intoto{}
+
+	intoto := viper.GetString("artifact")
+	b, err := ioutil.ReadFile(filepath.Clean(intoto))
+	if err != nil {
+		return nil, err
+	}
+	publicKey := viper.GetString("public-key")
+	keyBytes, err := ioutil.ReadFile(filepath.Clean(publicKey))
+	if err != nil {
+		return nil, fmt.Errorf("error reading public key file: %w", err)
+	}
+	kb := strfmt.Base64(keyBytes)
+
+	re := intoto_v001.V001Entry{
+		IntotoObj: models.IntotoV001Schema{
+			Content: &models.IntotoV001SchemaContent{
+				Envelope: string(b),
+			},
+			PublicKey: &kb,
+		},
+	}
+
+	returnVal.Spec = re.IntotoObj
+	returnVal.APIVersion = swag.String(re.APIVersion())
+
+	return &returnVal, nil
+}
+
+func CreateRFC3161FromPFlags() (models.ProposedEntry, error) {
+	//TODO: how to select version of item to create
+	rfc3161 := viper.GetString("artifact")
+	b, err := ioutil.ReadFile(filepath.Clean(rfc3161))
+	if err != nil {
+		return nil, fmt.Errorf("error reading public key file: %w", err)
+	}
+
+	return rfc3161_v001.NewEntryFromBytes(b), nil
+}
+
 func CreateRpmFromPFlags() (models.ProposedEntry, error) {
 	//TODO: how to select version of item to create
 	returnVal := models.Rpm{}
@@ -286,6 +331,82 @@ func CreateRpmFromPFlags() (models.ProposedEntry, error) {
 
 		returnVal.APIVersion = swag.String(re.APIVersion())
 		returnVal.Spec = re.RPMModel
+	}
+
+	return &returnVal, nil
+}
+
+func CreateAlpineFromPFlags() (models.ProposedEntry, error) {
+	//TODO: how to select version of item to create
+	returnVal := models.Alpine{}
+	re := new(alpine_v001.V001Entry)
+
+	apk := viper.GetString("entry")
+	if apk != "" {
+		var apkBytes []byte
+		apkURL, err := url.Parse(apk)
+		if err == nil && apkURL.IsAbs() {
+			/* #nosec G107 */
+			apkResp, err := http.Get(apk)
+			if err != nil {
+				return nil, fmt.Errorf("error fetching 'alpine': %w", err)
+			}
+			defer apkResp.Body.Close()
+			apkBytes, err = ioutil.ReadAll(apkResp.Body)
+			if err != nil {
+				return nil, fmt.Errorf("error fetching 'alpine': %w", err)
+			}
+		} else {
+			apkBytes, err = ioutil.ReadFile(filepath.Clean(apk))
+			if err != nil {
+				return nil, fmt.Errorf("error processing 'alpine' file: %w", err)
+			}
+		}
+		if err := json.Unmarshal(apkBytes, &returnVal); err != nil {
+			return nil, fmt.Errorf("error parsing alpine file: %w", err)
+		}
+	} else {
+		// we will need artifact, public-key, signature
+		re.AlpineModel = models.AlpineV001Schema{}
+		re.AlpineModel.Package = &models.AlpineV001SchemaPackage{}
+
+		artifact := viper.GetString("artifact")
+		dataURL, err := url.Parse(artifact)
+		if err == nil && dataURL.IsAbs() {
+			re.AlpineModel.Package.URL = strfmt.URI(artifact)
+		} else {
+			artifactBytes, err := ioutil.ReadFile(filepath.Clean(artifact))
+			if err != nil {
+				return nil, fmt.Errorf("error reading artifact file: %w", err)
+			}
+			re.AlpineModel.Package.Content = strfmt.Base64(artifactBytes)
+		}
+
+		re.AlpineModel.PublicKey = &models.AlpineV001SchemaPublicKey{}
+		publicKey := viper.GetString("public-key")
+		keyURL, err := url.Parse(publicKey)
+		if err == nil && keyURL.IsAbs() {
+			re.AlpineModel.PublicKey.URL = strfmt.URI(publicKey)
+		} else {
+			keyBytes, err := ioutil.ReadFile(filepath.Clean(publicKey))
+			if err != nil {
+				return nil, fmt.Errorf("error reading public key file: %w", err)
+			}
+			re.AlpineModel.PublicKey.Content = strfmt.Base64(keyBytes)
+		}
+
+		if err := re.Validate(); err != nil {
+			return nil, err
+		}
+
+		if re.HasExternalEntities() {
+			if err := re.FetchExternalEntities(context.Background()); err != nil {
+				return nil, fmt.Errorf("error retrieving external entities: %v", err)
+			}
+		}
+
+		returnVal.APIVersion = swag.String(re.APIVersion())
+		returnVal.Spec = re.AlpineModel
 	}
 
 	return &returnVal, nil
@@ -432,15 +553,22 @@ func (t *typeFlag) String() string {
 
 func (t *typeFlag) Set(s string) error {
 	set := map[string]struct{}{
-		"rekord": {},
-		"rpm":    {},
-		"jar":    {},
+		"rekord":  {},
+		"rpm":     {},
+		"jar":     {},
+		"intoto":  {},
+		"rfc3161": {},
+		"alpine":  {},
 	}
 	if _, ok := set[s]; ok {
 		t.value = s
 		return nil
 	}
-	return fmt.Errorf("value specified is invalid: [%s] supported values are: [rekord, rpm]", s)
+	var types []string
+	for typeStr := range set {
+		types = append(types, typeStr)
+	}
+	return fmt.Errorf("value specified is invalid: [%s] supported values are: [%v]", s, strings.Join(types, ", "))
 }
 
 type pkiFormatFlag struct {

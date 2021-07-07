@@ -60,11 +60,11 @@ func digestFiles(jar *zipslicer.Directory, hash crypto.Hash) (*JarDigest, error)
 		if f.Name == manifestName {
 			r, err := f.Open()
 			if err != nil {
-				return nil, fmt.Errorf("failed to read JAR manifest: %s", err)
+				return nil, fmt.Errorf("failed to read JAR manifest: %w", err)
 			}
 			jd.Manifest, err = ioutil.ReadAll(r)
 			if err != nil {
-				return nil, fmt.Errorf("failed to read JAR manifest: %s", err)
+				return nil, fmt.Errorf("failed to read JAR manifest: %w", err)
 			}
 		} else if (len(f.Name) > 0 && f.Name[len(f.Name)-1] == '/') || strings.HasPrefix(f.Name, "META-INF/") {
 			// not hashing
@@ -75,10 +75,10 @@ func digestFiles(jar *zipslicer.Directory, hash crypto.Hash) (*JarDigest, error)
 			}
 			d := hash.New()
 			if _, err := io.Copy(d, r); err != nil {
-				return nil, fmt.Errorf("failed to digest JAR file %s: %s", f.Name, err)
+				return nil, fmt.Errorf("failed to digest JAR file %s: %w", f.Name, err)
 			}
 			if err := r.Close(); err != nil {
-				return nil, fmt.Errorf("failed to digest JAR file %s: %s", f.Name, err)
+				return nil, fmt.Errorf("failed to digest JAR file %s: %w", f.Name, err)
 			}
 			jd.Digests[f.Name] = base64.StdEncoding.EncodeToString(d.Sum(nil))
 		}
@@ -86,7 +86,7 @@ func digestFiles(jar *zipslicer.Directory, hash crypto.Hash) (*JarDigest, error)
 		// digested, because if we're reading from a stream we can't go back
 		// and get it later.
 		if _, err := f.GetDataDescriptor(); err != nil {
-			return nil, fmt.Errorf("failed to read JAR manifest: %s", err)
+			return nil, fmt.Errorf("failed to read JAR manifest: %w", err)
 		}
 	}
 	return jd, nil

@@ -60,6 +60,7 @@ func (s Signature) CanonicalValue() ([]byte, error) {
 // Verify implements the pki.Signature interface
 func (s Signature) Verify(r io.Reader, k interface{}) error {
 	if len(s.signature) == 0 {
+		//lint:ignore ST1005 X509 is proper use of term
 		return fmt.Errorf("X509 signature has not been initialized")
 	}
 
@@ -73,7 +74,7 @@ func (s Signature) Verify(r io.Reader, k interface{}) error {
 
 	key, ok := k.(*PublicKey)
 	if !ok {
-		return fmt.Errorf("Invalid public key type for: %v", k)
+		return fmt.Errorf("invalid public key type for: %v", k)
 	}
 
 	p := key.key
@@ -174,6 +175,10 @@ func (k PublicKey) CanonicalValue() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+func (k PublicKey) CryptoPubKey() crypto.PublicKey {
+	return k.key
+}
+
 // EmailAddresses implements the pki.PublicKey interface
 func (k PublicKey) EmailAddresses() []string {
 	var names []string
@@ -187,4 +192,49 @@ func (k PublicKey) EmailAddresses() []string {
 		}
 	}
 	return names
+}
+
+func CertChainToPEM(certChain []*x509.Certificate) ([]byte, error) {
+	var pemBytes bytes.Buffer
+	for _, cert := range certChain {
+		if err := pem.Encode(&pemBytes, &pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw}); err != nil {
+			return nil, err
+		}
+	}
+	return pemBytes.Bytes(), nil
+}
+
+func ParseTimestampCertChain(pemBytes []byte) ([]*x509.Certificate, error) {
+	certChain := []*x509.Certificate{}
+	var block *pem.Block
+	block, pemBytes = pem.Decode(pemBytes)
+	for ; block != nil; block, pemBytes = pem.Decode(pemBytes) {
+		if block.Type == "CERTIFICATE" {
+			cert, err := x509.ParseCertificate(block.Bytes)
+			if err != nil {
+				return nil, err
+			}
+			certChain = append(certChain, cert)
+		} else {
+			return nil, errors.New("invalid block type")
+		}
+	}
+	if len(certChain) == 0 {
+		return nil, errors.New("no valid certificates in chain")
+	}
+	// Verify cert chain for timestamping
+	roots := x509.NewCertPool()
+	intermediates := x509.NewCertPool()
+	for _, cert := range certChain[1:(len(certChain) - 1)] {
+		intermediates.AddCert(cert)
+	}
+	roots.AddCert(certChain[len(certChain)-1])
+	if _, err := certChain[0].Verify(x509.VerifyOptions{
+		Roots:         roots,
+		KeyUsages:     []x509.ExtKeyUsage{x509.ExtKeyUsageTimeStamping},
+		Intermediates: intermediates,
+	}); err != nil {
+		return nil, err
+	}
+	return certChain, nil
 }

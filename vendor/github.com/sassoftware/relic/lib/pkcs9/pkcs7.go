@@ -51,11 +51,11 @@ func TimestampAndMarshal(ctx context.Context, psd *pkcs7.ContentInfoSignedData, 
 	}
 	verified, err := psd.Content.Verify(nil, false)
 	if err != nil {
-		return nil, fmt.Errorf("pkcs7: failed signature self-check: %s", err)
+		return nil, fmt.Errorf("pkcs7: failed signature self-check: %w", err)
 	}
 	ts, err := VerifyOptionalTimestamp(verified)
 	if err != nil {
-		return nil, fmt.Errorf("pkcs7: failed signature self-check: %s", err)
+		return nil, fmt.Errorf("pkcs7: failed signature self-check: %w", err)
 	}
 	blob, err := psd.Marshal()
 	if err != nil {
@@ -106,8 +106,8 @@ func VerifyPkcs7(sig pkcs7.Signature) (*CounterSignature, error) {
 		// that digests the parent signature blob
 		return Verify(&tst, sig.SignerInfo.EncryptedDigest, sig.Intermediates)
 	} else if _, ok := err.(pkcs7.ErrNoAttribute); ok {
-		var tsi pkcs7.SignerInfo
-		if err := sig.SignerInfo.UnauthenticatedAttributes.GetOne(OidAttributeCounterSign, &tsi); err != nil {
+		tsi := new(pkcs7.SignerInfo)
+		if err := sig.SignerInfo.UnauthenticatedAttributes.GetOne(OidAttributeCounterSign, tsi); err != nil {
 			if _, ok := err.(pkcs7.ErrNoAttribute); ok {
 				return nil, nil
 			}
@@ -117,7 +117,7 @@ func VerifyPkcs7(sig pkcs7.Signature) (*CounterSignature, error) {
 		// included in the parent structure, and the timestamp signs the
 		// signature blob from the parent signerinfo
 		imprintHash, _ = x509tools.PkixDigestToHash(sig.SignerInfo.DigestAlgorithm)
-		return finishVerify(&tsi, sig.SignerInfo.EncryptedDigest, sig.Intermediates, imprintHash)
+		return finishVerify(tsi, sig.SignerInfo.EncryptedDigest, sig.Intermediates, imprintHash, tsi, nil)
 	}
 	return nil, err
 }
@@ -138,21 +138,7 @@ func VerifyOptionalTimestamp(sig pkcs7.Signature) (TimestampedSignature, error) 
 
 // Verify that the timestamp token has a valid certificate chain
 func (cs CounterSignature) VerifyChain(roots *x509.CertPool, extraCerts []*x509.Certificate) error {
-	pool := x509.NewCertPool()
-	for _, cert := range extraCerts {
-		pool.AddCert(cert)
-	}
-	for _, cert := range cs.Intermediates {
-		pool.AddCert(cert)
-	}
-	opts := x509.VerifyOptions{
-		Intermediates: pool,
-		Roots:         roots,
-		CurrentTime:   cs.SigningTime,
-		KeyUsages:     []x509.ExtKeyUsage{x509.ExtKeyUsageTimeStamping},
-	}
-	_, err := cs.Certificate.Verify(opts)
-	return err
+	return cs.Signature.VerifyChain(roots, extraCerts, x509.ExtKeyUsageTimeStamping, cs.SigningTime)
 }
 
 // Verify the certificate chain of a PKCS#7 signature. If the signature has a
@@ -163,7 +149,7 @@ func (sig TimestampedSignature) VerifyChain(roots *x509.CertPool, extraCerts []*
 	var signingTime time.Time
 	if sig.CounterSignature != nil {
 		if err := sig.CounterSignature.VerifyChain(roots, extraCerts); err != nil {
-			return fmt.Errorf("validating timestamp: %s", err)
+			return fmt.Errorf("validating timestamp: %w", err)
 		}
 		signingTime = sig.CounterSignature.SigningTime
 	}
@@ -185,8 +171,8 @@ func VerifyMicrosoftToken(token *pkcs7.ContentInfoSignedData, encryptedDigest []
 		return nil, errors.New("timestamp does not match the enclosing signature")
 	}
 	hash, _ := x509tools.PkixDigestToHash(sig.SignerInfo.DigestAlgorithm)
-	var signingTime time.Time
-	if err := sig.SignerInfo.AuthenticatedAttributes.GetOne(pkcs7.OidAttributeSigningTime, &signingTime); err != nil {
+	signingTime, err := sig.SignerInfo.SigningTime()
+	if err != nil {
 		return nil, err
 	}
 	return &CounterSignature{

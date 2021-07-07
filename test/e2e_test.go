@@ -19,9 +19,7 @@ limitations under the License.
 package test
 
 import (
-	"crypto"
-	"crypto/ecdsa"
-	"crypto/sha256"
+	"bytes"
 	"encoding/base64"
 	"fmt"
 	"testing"
@@ -117,7 +115,7 @@ func TestOCISigning(t *testing.T) {
 			defer cleanup()
 
 			// Setup the right config.
-			resetConfig := setConfigMap(ctx, t, c, map[string]string{"artifacts.oci.storage": "tekton"})
+			resetConfig := setConfigMap(ctx, t, c, map[string]string{"artifacts.oci.storage": "tekton", "artifacts.taskrun.format": "tekton"})
 
 			defer resetConfig()
 
@@ -136,9 +134,9 @@ func TestOCISigning(t *testing.T) {
 			// Let's fetch the signature and body:
 			t.Log(tr.Annotations)
 
-			signature, body := tr.Annotations["chains.tekton.dev/signature-05f95b26ed10"], tr.Annotations["chains.tekton.dev/payload-05f95b26ed10"]
+			sig, body := tr.Annotations["chains.tekton.dev/signature-05f95b26ed10"], tr.Annotations["chains.tekton.dev/payload-05f95b26ed10"]
 			// base64 decode them
-			sigBytes, err := base64.StdEncoding.DecodeString(signature)
+			sigBytes, err := base64.StdEncoding.DecodeString(sig)
 			if err != nil {
 				t.Error(err)
 			}
@@ -147,13 +145,15 @@ func TestOCISigning(t *testing.T) {
 				t.Error(err)
 			}
 
-			pub := &c.secret.x509Priv.PublicKey
+			var verifier *signature.ECDSASignerVerifier
 			if test.name == "cosign" {
-				pub = &c.secret.cosignPriv.PublicKey
+				verifier = c.secret.cosignPriv
+			} else {
+				verifier = c.secret.x509priv
 			}
-			h := sha256.Sum256(bodyBytes)
-			if !ecdsa.VerifyASN1(pub, h[:], sigBytes) {
-				t.Error("invalid signature")
+
+			if err := verifier.VerifySignature(bytes.NewReader(sigBytes), bytes.NewReader(bodyBytes)); err != nil {
+				t.Fatal(err)
 			}
 		})
 	}
@@ -233,7 +233,6 @@ func TestOCIStorage(t *testing.T) {
 	// Give it a minute to complete.
 	waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, done, 60*time.Second)
 
-	pubKey := signature.ECDSAVerifier{Key: &c.secret.x509Priv.PublicKey, HashAlg: crypto.SHA256}
 	externalRef, err := name.ParseReference(fmt.Sprintf("%s/%s", c.externalRegistry, imageName), name.Insecure)
 	if err != nil {
 		t.Fatalf("parsing ref: %v", err)
@@ -249,8 +248,8 @@ func TestOCIStorage(t *testing.T) {
 	for {
 		select {
 		default:
-			if _, err = cosign.Verify(ctx, externalRef, &cosign.CheckOpts{
-				PubKey: pubKey,
+			if _, err = cosign.Verify(ctx, externalRef, externalRef.Context(), &cosign.CheckOpts{
+				PubKey: c.secret.x509priv,
 			}, ""); err != nil {
 				t.Log(err)
 			} else {

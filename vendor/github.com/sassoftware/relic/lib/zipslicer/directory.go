@@ -361,7 +361,7 @@ func (r *streamReaderAt) ReadAt(d []byte, p int64) (int, error) {
 	} else if p < r.pos {
 		return 0, fmt.Errorf("attempted to seek backwards: at %d, to %d", r.pos, p)
 	}
-	n, err := r.r.Read(d)
+	n, err := io.ReadFull(r.r, d)
 	r.pos += int64(n)
 	return n, err
 }
