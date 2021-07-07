@@ -202,13 +202,13 @@ func (cs *ConfigStore) Config() Config {
 	return cs.config.Load().(Config)
 }
 
-func (cs *ConfigStore) watch(kc kubernetes.Interface, namespace string) error {
+func (cs *ConfigStore) watch(ctx context.Context, kc kubernetes.Interface, namespace string) error {
 	opts := metav1.SingleObject(metav1.ObjectMeta{Name: chainsConfig})
-	w, err := kc.CoreV1().ConfigMaps(namespace).Watch(context.TODO(), opts)
+
+	w, err := kc.CoreV1().ConfigMaps(namespace).Watch(ctx, opts)
 	if err != nil {
 		return err
 	}
-
 	go func() {
 		for {
 			cs.logger.Infof("Restarting config watcher for %s %s", namespace, chainsConfig)
@@ -220,13 +220,17 @@ func (cs *ConfigStore) watch(kc kubernetes.Interface, namespace string) error {
 				cs.config.Store(config)
 				cs.logger.Infof("config store %s updated: %v", cs.name, cm.Data)
 			}
+			w, err = kc.CoreV1().ConfigMaps(namespace).Watch(ctx, opts)
+			if err != nil {
+				cs.logger.Errorf("error starting watcher: %s", err)
+			}
 		}
 	}()
 	return nil
 }
 
 // NewConfigStore returns a store that is configured to watch the configmap for changes.
-func NewConfigStore(kc kubernetes.Interface, namespace string, logger *zap.SugaredLogger) (*ConfigStore, error) {
+func NewConfigStore(ctx context.Context, kc kubernetes.Interface, namespace string, logger *zap.SugaredLogger) (*ConfigStore, error) {
 	val := atomic.Value{}
 	val.Store(Config{})
 	cs := ConfigStore{
@@ -235,7 +239,7 @@ func NewConfigStore(kc kubernetes.Interface, namespace string, logger *zap.Sugar
 		logger: logger,
 	}
 	cs.logger.Debugf("staring watch on configmap: %s/%s", namespace, chainsConfig)
-	if err := cs.watch(kc, namespace); err != nil {
+	if err := cs.watch(ctx, kc, namespace); err != nil {
 		return nil, err
 	}
 	return &cs, nil
