@@ -272,6 +272,11 @@ func TestExtractOCIImagesFromResults(t *testing.T) {
 		digest(t, fmt.Sprintf("img3@%s", digest1)),
 	}
 	got := ExtractOCIImagesFromResults(tr, logtesting.TestLogger(t))
+	sort.Slice(got, func(i, j int) bool {
+		a := got[i].(name.Digest)
+		b := got[j].(name.Digest)
+		return a.String() < b.String()
+	})
 	if !reflect.DeepEqual(got, want) {
 		t.Fatal("not the same")
 	}
