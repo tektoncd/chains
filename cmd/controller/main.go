@@ -27,7 +27,6 @@ var namespace = flag.String("namespace", "", "Namespace to restrict informer to.
 func main() {
 	flag.Parse()
 	ctx := injection.WithNamespaceScope(signals.NewContext(), *namespace)
-	ctx = sharedmain.WithHADisabled(ctx)
 
 	sharedmain.MainWithContext(ctx, "watcher", taskrun.NewController)
 }
