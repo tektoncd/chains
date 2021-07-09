@@ -15,10 +15,11 @@ package artifacts
 
 import (
 	"fmt"
-	"reflect"
 	"sort"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	logtesting "knative.dev/pkg/logging/testing"
@@ -28,6 +29,8 @@ const (
 	digest1 = "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5"
 	digest2 = "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b6"
 )
+
+var ignore = []cmp.Option{cmpopts.IgnoreUnexported(name.Registry{}, name.Repository{}, name.Digest{})}
 
 func TestOCIArtifact_ExtractObjects(t *testing.T) {
 
@@ -244,8 +247,8 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 				b := got[j].(name.Digest)
 				return a.DigestStr() < b.DigestStr()
 			})
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("OCIArtifact.ExtractObjects() = %v, want %v", got, tt.want)
+			if !cmp.Equal(got, tt.want, ignore...) {
+				t.Errorf("OCIArtifact.ExtractObjects() = %s", cmp.Diff(got, tt.want, ignore...))
 			}
 		})
 	}
@@ -277,8 +280,8 @@ func TestExtractOCIImagesFromResults(t *testing.T) {
 		b := got[j].(name.Digest)
 		return a.String() < b.String()
 	})
-	if !reflect.DeepEqual(got, want) {
-		t.Fatal("not the same")
+	if !cmp.Equal(got, want, ignore...) {
+		t.Fatalf("not the same %s", cmp.Diff(got, want, ignore...))
 	}
 }
 
