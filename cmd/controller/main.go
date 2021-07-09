@@ -14,69 +14,20 @@ limitations under the License.
 package main
 
 import (
-	"context"
 	"flag"
 
-	"github.com/tektoncd/chains/pkg/chains"
-	"github.com/tektoncd/chains/pkg/config"
-	tkcontroller "github.com/tektoncd/chains/pkg/controller"
-	pipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client"
-	taskruninformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/taskrun"
-	"k8s.io/client-go/tools/cache"
-	kubeclient "knative.dev/pkg/client/injection/kube/client"
-	"knative.dev/pkg/configmap"
-	"knative.dev/pkg/controller"
+	"github.com/tektoncd/chains/pkg/reconciler/taskrun"
 	"knative.dev/pkg/injection"
 	"knative.dev/pkg/injection/sharedmain"
-	"knative.dev/pkg/logging"
 	"knative.dev/pkg/signals"
-	"knative.dev/pkg/system"
 )
 
-var (
-	namespace = flag.String("namespace", "", "Namespace to restrict informer to. Optional, defaults to all namespaces.")
-)
-
-const (
-	controllerName = "chains"
-)
+var namespace = flag.String("namespace", "", "Namespace to restrict informer to. Optional, defaults to all namespaces.")
 
 func main() {
 	flag.Parse()
 	ctx := injection.WithNamespaceScope(signals.NewContext(), *namespace)
 	ctx = sharedmain.WithHADisabled(ctx)
 
-	sharedmain.MainWithContext(ctx, "watcher",
-		func(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
-			// TODO: store and use the cmw
-			logger := logging.FromContext(ctx)
-			taskRunInformer := taskruninformer.Get(ctx)
-			kubeclientset := kubeclient.Get(ctx)
-			pipelineclientset := pipelineclient.Get(ctx)
-			cfgStore, err := config.NewConfigStore(ctx, kubeclientset, system.Namespace(), logger)
-			if err != nil {
-				logger.Fatal(err)
-			}
-
-			c := &tkcontroller.Reconciler{
-				KubeClientSet:     kubeclientset,
-				PipelineClientSet: pipelineclientset,
-				Logger:            logger,
-				TaskRunLister:     taskRunInformer.Lister(),
-				TaskRunSigner: &chains.TaskRunSigner{
-					Pipelineclientset: pipelineclientset,
-					Logger:            logger,
-					SecretPath:        tkcontroller.SecretPath,
-					ConfigStore:       cfgStore,
-				},
-			}
-			impl := controller.NewImpl(c, c.Logger, controllerName)
-
-			taskRunInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-				AddFunc:    impl.Enqueue,
-				UpdateFunc: controller.PassNew(impl.Enqueue),
-			})
-
-			return impl
-		})
+	sharedmain.MainWithContext(ctx, "watcher", taskrun.NewController)
 }
