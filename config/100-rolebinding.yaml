@@ -92,3 +92,35 @@ metadata:
   labels:
     app.kubernetes.io/component: chains
     app.kubernetes.io/part-of: tekton-pipelines
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: tekton-chains-leader-election
+  namespace: tekton-chains
+  labels:
+    app.kubernetes.io/instance: default
+    app.kubernetes.io/part-of: tekton-pipelines
+rules:
+  # We uses leases for leaderelection
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "list", "create", "update", "delete", "patch", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: tekton-chains-controller-leaderelection
+  namespace: tekton-chains
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: default
+    app.kubernetes.io/part-of: tekton-pipelines
+subjects:
+  - kind: ServiceAccount
+    name: tekton-chains-controller
+    namespace: tekton-chains
+roleRef:
+  kind: Role
+  name: tekton-chains-leader-election
+  apiGroup: rbac.authorization.k8s.io
