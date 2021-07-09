@@ -18,12 +18,9 @@ import (
 
 	signing "github.com/tektoncd/chains/pkg/chains"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	"github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
-	informers "github.com/tektoncd/pipeline/pkg/client/listers/pipeline/v1beta1"
-	"go.uber.org/zap"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/cache"
+	taskrunreconciler "github.com/tektoncd/pipeline/pkg/client/injection/reconciler/pipeline/v1beta1/taskrun"
+	"knative.dev/pkg/logging"
+	pkgreconciler "knative.dev/pkg/reconciler"
 )
 
 const (
@@ -31,26 +28,24 @@ const (
 	SecretPath = "/etc/signing-secrets"
 )
 
-// Reconciler implements knative.dev/pkg/controller.Reconciler
 type Reconciler struct {
-	Logger            *zap.SugaredLogger
-	TaskRunLister     informers.TaskRunLister
-	TaskRunSigner     signing.Signer
-	KubeClientSet     kubernetes.Interface
-	PipelineClientSet versioned.Interface
+	TaskRunSigner signing.Signer
 }
 
-// handleTaskRun handles a changed or created TaskRun.
+// Check that our Reconciler implements taskrunreconciler.Interface
+var _ taskrunreconciler.Interface = (*Reconciler)(nil)
+
+// ReconcileKind  handles a changed or created TaskRun.
 // This is the main entrypoint for chains business logic.
-func (r *Reconciler) handleTaskRun(ctx context.Context, tr *v1beta1.TaskRun) error {
+func (r *Reconciler) ReconcileKind(ctx context.Context, tr *v1beta1.TaskRun) pkgreconciler.Event {
 	// Check to make sure the TaskRun is finished.
 	if !tr.IsDone() {
-		r.Logger.Infof("taskrun %s/%s is still running", tr.Namespace, tr.Name)
+		logging.FromContext(ctx).Infof("taskrun %s/%s is still running", tr.Namespace, tr.Name)
 		return nil
 	}
 	// Check to see if it has already been signed.
 	if signing.IsSigned(tr) {
-		r.Logger.Infof("taskrun %s/%s has already been signed", tr.Namespace, tr.Name)
+		logging.FromContext(ctx).Infof("taskrun %s/%s has already been signed", tr.Namespace, tr.Name)
 		return nil
 	}
 
@@ -58,30 +53,4 @@ func (r *Reconciler) handleTaskRun(ctx context.Context, tr *v1beta1.TaskRun) err
 		return err
 	}
 	return nil
-}
-
-// Reconcile is the main entrypoint called when a Task is created or changed
-func (r *Reconciler) Reconcile(ctx context.Context, key string) error {
-	// Figure out the namespace and name from the key.
-	r.Logger.Infof("reconciling resource key: %s", key)
-	namespace, name, err := cache.SplitMetaNamespaceKey(key)
-	if err != nil {
-		r.Logger.Errorf("invalid resource key: %s", key)
-		return nil
-	}
-	// Get the TaskRun resource with this namespace/name
-	tr, err := r.TaskRunLister.TaskRuns(namespace).Get(name)
-	if errors.IsNotFound(err) {
-		// The resource no longer exists, in which case we stop processing.
-		r.Logger.Infof("task run %q in work queue no longer exists", key)
-		return nil
-	} else if err != nil {
-		r.Logger.Errorf("Error retrieving TaskRun %q: %s", name, err)
-		return err
-	}
-
-	r.Logger.Infof("Sending update for %s/%s (uid %s)", namespace, name, tr.UID)
-
-	// Call the actual handler with a copy of the fetched TaskRun.
-	return r.handleTaskRun(ctx, tr.DeepCopy())
 }
