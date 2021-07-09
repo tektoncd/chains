@@ -67,7 +67,9 @@ func TestReconciler_Reconcile(t *testing.T) {
 			ctl := NewController(ctx, configMapWatcher)
 
 			if la, ok := ctl.Reconciler.(pkgreconciler.LeaderAware); ok {
-				la.Promote(pkgreconciler.UniversalBucket(), func(pkgreconciler.Bucket, types.NamespacedName) {})
+				if err := la.Promote(pkgreconciler.UniversalBucket(), func(pkgreconciler.Bucket, types.NamespacedName) {}); err != nil {
+					t.Fatalf("Promote() = %v", err)
+				}
 			}
 
 			if err := ctl.Reconciler.Reconcile(ctx, tt.key); err != nil {
