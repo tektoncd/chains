@@ -20,6 +20,7 @@ import (
 	"github.com/tektoncd/chains/pkg/config"
 	pipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client"
 	taskruninformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/taskrun"
+	taskrunreconciler "github.com/tektoncd/pipeline/pkg/client/injection/reconciler/pipeline/v1beta1/taskrun"
 	"k8s.io/client-go/tools/cache"
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
 	"knative.dev/pkg/configmap"
@@ -40,10 +41,6 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	}
 
 	c := &Reconciler{
-		KubeClientSet:     kubeclientset,
-		PipelineClientSet: pipelineclientset,
-		Logger:            logger,
-		TaskRunLister:     taskRunInformer.Lister(),
 		TaskRunSigner: &chains.TaskRunSigner{
 			Pipelineclientset: pipelineclientset,
 			Logger:            logger,
@@ -51,7 +48,12 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 			ConfigStore:       cfgStore,
 		},
 	}
-	impl := controller.NewImpl(c, c.Logger, "chains")
+	impl := taskrunreconciler.NewImpl(ctx, c, func(impl *controller.Impl) controller.Options {
+		return controller.Options{
+			// The chains reconciler shouldn't mutate the taskrun's status.
+			SkipStatusUpdates: true,
+		}
+	})
 
 	taskRunInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    impl.Enqueue,

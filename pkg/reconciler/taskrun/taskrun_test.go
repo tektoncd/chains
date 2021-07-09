@@ -23,10 +23,14 @@ import (
 	fakepipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client/fake"
 	faketaskruninformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/taskrun/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"knative.dev/pkg/apis"
 	duckv1beta1 "knative.dev/pkg/apis/duck/v1beta1"
-	logtesting "knative.dev/pkg/logging/testing"
+	fakekubeclient "knative.dev/pkg/client/injection/kube/client/fake"
+	cminformer "knative.dev/pkg/configmap/informer"
+	pkgreconciler "knative.dev/pkg/reconciler"
 	rtesting "knative.dev/pkg/reconciler/testing"
+	"knative.dev/pkg/system"
 )
 
 func TestReconciler_Reconcile(t *testing.T) {
@@ -57,12 +61,16 @@ func TestReconciler_Reconcile(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 
 			ctx, _ := rtesting.SetupFakeContext(t)
-			tri := setupData(ctx, t, tt.taskRuns)
-			r := &Reconciler{
-				Logger:        logtesting.TestLogger(t),
-				TaskRunLister: tri.Lister(),
+			setupData(ctx, t, tt.taskRuns)
+
+			configMapWatcher := cminformer.NewInformedWatcher(fakekubeclient.Get(ctx), system.Namespace())
+			ctl := NewController(ctx, configMapWatcher)
+
+			if la, ok := ctl.Reconciler.(pkgreconciler.LeaderAware); ok {
+				la.Promote(pkgreconciler.UniversalBucket(), func(pkgreconciler.Bucket, types.NamespacedName) {})
 			}
-			if err := r.Reconcile(ctx, tt.key); err != nil {
+
+			if err := ctl.Reconciler.Reconcile(ctx, tt.key); err != nil {
 				t.Errorf("Reconciler.Reconcile() error = %v", err)
 			}
 		})
@@ -134,14 +142,11 @@ func TestReconciler_handleTaskRun(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			signer := &mockSigner{}
 			ctx, _ := rtesting.SetupFakeContext(t)
-			c := fakepipelineclient.Get(ctx)
 
 			r := &Reconciler{
-				PipelineClientSet: c,
-				Logger:            logtesting.TestLogger(t),
-				TaskRunSigner:     signer,
+				TaskRunSigner: signer,
 			}
-			if err := r.handleTaskRun(ctx, tt.tr); err != nil {
+			if err := r.ReconcileKind(ctx, tt.tr); err != nil {
 				t.Errorf("Reconciler.handleTaskRun() error = %v", err)
 			}
 			if signer.signed != tt.shouldSign {
