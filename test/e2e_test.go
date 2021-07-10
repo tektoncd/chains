@@ -248,9 +248,10 @@ func TestOCIStorage(t *testing.T) {
 	for {
 		select {
 		default:
-			if _, err = cosign.Verify(ctx, externalRef, externalRef.Context(), &cosign.CheckOpts{
-				PubKey: c.secret.x509priv,
-			}, ""); err != nil {
+			if _, err = cosign.Verify(ctx, externalRef, &cosign.CheckOpts{
+				SignatureRepo: externalRef.Context(),
+				SigVerifier:   c.secret.x509priv,
+			}); err != nil {
 				t.Log(err)
 			} else {
 				return
