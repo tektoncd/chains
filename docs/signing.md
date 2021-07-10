@@ -95,6 +95,8 @@ where `location`, `keyring`, and `key` are filled in appropriately.
 
 For Vault, this should have the structure of `hashivault://<keyname>`, where the `keyname` is filled out appropriately.
 
+For AWS, this should have the structure of `awskms://[ENDPOINT]/[ID/ALIAS/ARN]` (endpoint optional).
+
 ## Authentication
 Most likely, you will need to set up some additional authentication so that the `chains-controller` deployment has access to your KMS service for signing.
 For GCP/GKE, we suggest enabling [Workload Identity](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity), and giving your service account `Cloud KMS Admin` permissions.

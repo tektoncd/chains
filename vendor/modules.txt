@@ -1,4 +1,4 @@
-# cloud.google.com/go v0.81.0
+# cloud.google.com/go v0.86.0
 ## explicit
 cloud.google.com/go
 cloud.google.com/go/compute/metadata
@@ -100,6 +100,7 @@ github.com/aws/aws-sdk-go/service/dynamodb
 github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute
 github.com/aws/aws-sdk-go/service/dynamodb/expression
 github.com/aws/aws-sdk-go/service/ecr
+github.com/aws/aws-sdk-go/service/kms
 github.com/aws/aws-sdk-go/service/sso
 github.com/aws/aws-sdk-go/service/sso/ssoiface
 github.com/aws/aws-sdk-go/service/sts
@@ -320,7 +321,7 @@ github.com/in-toto/in-toto-golang/in_toto
 github.com/in-toto/in-toto-golang/pkg/ssl
 # github.com/inconshreveable/mousetrap v1.0.0
 github.com/inconshreveable/mousetrap
-# github.com/jedisct1/go-minisign v0.0.0-20210414164026-819d7e2534ac
+# github.com/jedisct1/go-minisign v0.0.0-20210703085342-c1f07ee84431
 github.com/jedisct1/go-minisign
 # github.com/jmespath/go-jmespath v0.4.0
 github.com/jmespath/go-jmespath
@@ -407,11 +408,11 @@ github.com/sassoftware/relic/lib/x509tools
 github.com/sassoftware/relic/signers/sigerrors
 # github.com/shibumi/go-pathspec v1.2.0
 github.com/shibumi/go-pathspec
-# github.com/sigstore/cosign v0.5.1-0.20210707123827-04a0cf3ed4ee
+# github.com/sigstore/cosign v0.5.1-0.20210710010214-577485d73df9
 ## explicit
 github.com/sigstore/cosign/pkg/cosign
 github.com/sigstore/cosign/pkg/cosign/remote
-# github.com/sigstore/rekor v0.2.1-0.20210705133645-dbbbff597bc2
+# github.com/sigstore/rekor v0.2.1-0.20210709135953-5862799208a2
 ## explicit
 github.com/sigstore/rekor/pkg/client
 github.com/sigstore/rekor/pkg/generated/client
@@ -432,11 +433,12 @@ github.com/sigstore/rekor/pkg/types
 github.com/sigstore/rekor/pkg/types/rekord
 github.com/sigstore/rekor/pkg/types/rekord/v0.0.1
 github.com/sigstore/rekor/pkg/util
-# github.com/sigstore/sigstore v0.0.0-20210706214059-9f37c836c049
+# github.com/sigstore/sigstore v0.0.0-20210709190449-2ab5ec881a5f
 ## explicit
 github.com/sigstore/sigstore/pkg/cryptoutils
 github.com/sigstore/sigstore/pkg/signature
 github.com/sigstore/sigstore/pkg/signature/kms
+github.com/sigstore/sigstore/pkg/signature/kms/aws
 github.com/sigstore/sigstore/pkg/signature/kms/gcp
 github.com/sigstore/sigstore/pkg/signature/kms/hashivault
 github.com/sigstore/sigstore/pkg/signature/options
@@ -506,7 +508,7 @@ github.com/vdemeester/k8s-pkg-credentialprovider/aws
 github.com/vdemeester/k8s-pkg-credentialprovider/azure
 github.com/vdemeester/k8s-pkg-credentialprovider/gcp
 github.com/vdemeester/k8s-pkg-credentialprovider/secrets
-# go.mongodb.org/mongo-driver v1.5.3
+# go.mongodb.org/mongo-driver v1.5.4
 go.mongodb.org/mongo-driver/bson
 go.mongodb.org/mongo-driver/bson/bsoncodec
 go.mongodb.org/mongo-driver/bson/bsonoptions
@@ -614,8 +616,7 @@ golang.org/x/net/http2/hpack
 golang.org/x/net/idna
 golang.org/x/net/internal/timeseries
 golang.org/x/net/trace
-# golang.org/x/oauth2 v0.0.0-20210514164344-f6687ab2804c
-## explicit
+# golang.org/x/oauth2 v0.0.0-20210628180205-a41e5a781914
 golang.org/x/oauth2
 golang.org/x/oauth2/authhandler
 golang.org/x/oauth2/google
@@ -664,7 +665,7 @@ golang.org/x/xerrors
 golang.org/x/xerrors/internal
 # gomodules.xyz/jsonpatch/v2 v2.1.0
 gomodules.xyz/jsonpatch/v2
-# google.golang.org/api v0.46.0
+# google.golang.org/api v0.50.0
 google.golang.org/api/googleapi
 google.golang.org/api/googleapi/transport
 google.golang.org/api/internal
@@ -694,7 +695,7 @@ google.golang.org/appengine/internal/socket
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/socket
 google.golang.org/appengine/urlfetch
-# google.golang.org/genproto v0.0.0-20210701191553-46259e63a0a9
+# google.golang.org/genproto v0.0.0-20210707164411-8c882eb9abba
 google.golang.org/genproto/googleapis/api
 google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/api/distribution

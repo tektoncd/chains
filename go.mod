@@ -3,7 +3,7 @@ module github.com/tektoncd/chains
 go 1.16
 
 require (
-	cloud.google.com/go v0.81.0
+	cloud.google.com/go v0.86.0
 	cloud.google.com/go/storage v1.15.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/google/go-cmp v0.5.6
@@ -16,16 +16,15 @@ require (
 	github.com/onsi/gomega v1.11.0 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/statsd_exporter v0.20.3 // indirect
-	github.com/sigstore/cosign v0.5.1-0.20210707123827-04a0cf3ed4ee
-	github.com/sigstore/rekor v0.2.1-0.20210705133645-dbbbff597bc2
-	github.com/sigstore/sigstore v0.0.0-20210706214059-9f37c836c049
+	github.com/sigstore/cosign v0.5.1-0.20210710010214-577485d73df9
+	github.com/sigstore/rekor v0.2.1-0.20210709135953-5862799208a2
+	github.com/sigstore/sigstore v0.0.0-20210709190449-2ab5ec881a5f
 	github.com/tektoncd/pipeline v0.25.0
 	github.com/tektoncd/plumbing v0.0.0-20210514044347-f8a9689d5bd5
 	go.uber.org/zap v1.18.1
 	gocloud.dev v0.23.0
 	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e
 	golang.org/x/net v0.0.0-20210525063256-abc453219eb5 // indirect
-	golang.org/x/oauth2 v0.0.0-20210514164344-f6687ab2804c // indirect
 	k8s.io/api v0.21.2
 	k8s.io/apimachinery v0.21.2
 	k8s.io/client-go v0.21.2

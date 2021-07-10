@@ -89,7 +89,7 @@ func (b *Backend) StorePayload(rawPayload []byte, signature string, key string) 
 	if err != nil {
 		return errors.Wrap(err, "destination ref")
 	}
-	if _, err = cremote.UploadSignature(context.TODO(), []byte(signature), rawPayload, cosignDst, cremote.UploadOpts{RemoteOpts: []remote.Option{b.auth}}); err != nil {
+	if _, err = cremote.UploadSignature([]byte(signature), rawPayload, cosignDst, cremote.UploadOpts{RemoteOpts: []remote.Option{b.auth}}); err != nil {
 		return errors.Wrap(err, "uploading")
 	}
 	b.logger.Infof("Successfully uploaded signature for %s", imageName)

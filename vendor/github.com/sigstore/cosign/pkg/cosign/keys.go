@@ -100,8 +100,8 @@ func (k *Keys) Password() []byte {
 	return k.password
 }
 
-func PublicKeyPem(ctx context.Context, key signature.PublicKeyProvider) ([]byte, error) {
-	pub, err := key.PublicKey()
+func PublicKeyPem(key signature.PublicKeyProvider, pkOpts ...signature.PublicKeyOption) ([]byte, error) {
+	pub, err := key.PublicKey(pkOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -154,12 +154,7 @@ func LoadECDSAPrivateKey(key []byte, pass []byte) (*signature.ECDSASignerVerifie
 
 const pubKeyPemType = "PUBLIC KEY"
 
-type PublicKey interface {
-	signature.Verifier
-	signature.PublicKeyProvider
-}
-
-func LoadPublicKey(ctx context.Context, keyRef string) (pub PublicKey, err error) {
+func LoadPublicKey(ctx context.Context, keyRef string) (verifier signature.Verifier, err error) {
 	// The key could be plaintext, in a file, at a URL, or in KMS.
 	if kmsKey, err := kms.Get(ctx, keyRef, crypto.SHA256); err == nil {
 		// KMS specified
