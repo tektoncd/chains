@@ -19,10 +19,9 @@ limitations under the License.
 package test
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -32,7 +31,6 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	pipelineclientset "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
-	"golang.org/x/crypto/openpgp"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -147,17 +145,13 @@ func makeBucket(t *testing.T, client *storage.Client) (string, func()) {
 	}
 }
 
-func readObj(t *testing.T, bucket, name string, client *storage.Client) []byte {
+func readObj(t *testing.T, bucket, name string, client *storage.Client) io.Reader {
 	ctx := context.Background()
 	reader, err := client.Bucket(bucket).Object(name).NewReader(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	b, err := ioutil.ReadAll(reader)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return b
+	return reader
 }
 
 func setConfigMap(ctx context.Context, t *testing.T, c *clients, data map[string]string) func() {
@@ -196,21 +190,5 @@ func setConfigMap(ctx context.Context, t *testing.T, c *clients, data map[string
 		if _, err := c.KubeClient.CoreV1().ConfigMaps("tekton-chains").Update(ctx, cm, metav1.UpdateOptions{}); err != nil {
 			t.Log(err)
 		}
-	}
-}
-
-func checkPgpSignatures(t *testing.T, sig, body []byte) {
-	t.Helper()
-	pubKey, err := os.Open("./testdata/pgp.public-key")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	el, err := openpgp.ReadArmoredKeyRing(pubKey)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := openpgp.CheckArmoredDetachedSignature(el, bytes.NewReader(body), bytes.NewReader(sig)); err != nil {
-		t.Errorf("bad signatures: %v", err)
 	}
 }

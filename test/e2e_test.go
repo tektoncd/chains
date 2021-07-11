@@ -58,10 +58,11 @@ func TestTektonStorage(t *testing.T) {
 
 	// Setup the right config.
 	resetConfig := setConfigMap(ctx, t, c, map[string]string{
-		"artifacts.taskrun.signer": "pgp",
+		"artifacts.taskrun.signer": "x509",
 		"artifacts.oci.format":     "tekton",
+		"artifacts.taskrun.format": "tekton",
 		"artifacts.oci.storage":    "tekton",
-		"artifacts.oci.signer":     "pgp",
+		"artifacts.oci.signer":     "x509",
 	})
 	defer resetConfig()
 
@@ -91,7 +92,9 @@ func TestTektonStorage(t *testing.T) {
 		t.Error(err)
 	}
 
-	checkPgpSignatures(t, sigBytes, bodyBytes)
+	if err := c.secret.x509priv.VerifySignature(bytes.NewReader(sigBytes), bytes.NewReader(bodyBytes)); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestOCISigning(t *testing.T) {
@@ -177,7 +180,7 @@ func TestGCSStorage(t *testing.T) {
 	resetConfig := setConfigMap(ctx, t, c, map[string]string{
 		"artifacts.taskrun.storage": "gcs",
 		"storage.gcs.bucket":        bucketName,
-		"artifacts.taskrun.signer":  "pgp",
+		"artifacts.taskrun.signer":  "x509",
 	})
 	defer resetConfig()
 	time.Sleep(3 * time.Second)
@@ -199,7 +202,9 @@ func TestGCSStorage(t *testing.T) {
 	sigBytes := readObj(t, bucketName, sigName, client)
 	bodyBytes := readObj(t, bucketName, payloadName, client)
 
-	checkPgpSignatures(t, sigBytes, bodyBytes)
+	if err := c.secret.x509priv.VerifySignature(sigBytes, bodyBytes); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestOCIStorage(t *testing.T) {
