@@ -237,15 +237,6 @@ func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface, opts
 		},
 		StringData: map[string]string{},
 	}
-	// pgp
-	paths := []string{"pgp.private-key", "pgp.passphrase", "pgp.public-key"}
-	for _, p := range paths {
-		b, err := ioutil.ReadFile(filepath.Join("./testdata", p))
-		if err != nil {
-			t.Error(err)
-		}
-		s.StringData[p] = string(b)
-	}
 
 	// x509
 	_, priv := ecdsaKeyPair(t)
@@ -257,7 +248,7 @@ func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface, opts
 	}
 
 	// cosign
-	paths = []string{"cosign.key", "cosign.pub", "cosign.password"}
+	paths := []string{"cosign.key", "cosign.pub", "cosign.password"}
 	for _, p := range paths {
 		b, err := ioutil.ReadFile(filepath.Join("./testdata", p))
 		if err != nil {
