@@ -173,13 +173,13 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 			ts := &TaskRunSigner{
 				Logger:            logger,
 				Pipelineclientset: ps,
-				SecretPath:        "./signing/pgp/testdata/",
+				SecretPath:        "./signing/x509/testdata/",
 				ConfigStore: &mockConfig{cfg: config.Config{
 					Artifacts: config.ArtifactConfigs{
 						TaskRuns: config.Artifact{
 							Format:         "tekton",
 							StorageBackend: tt.configuredBackend,
-							Signer:         "pgp",
+							Signer:         "x509",
 						},
 					},
 				}},

@@ -26,7 +26,6 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/formats/tekton"
 	"github.com/tektoncd/chains/pkg/chains/signing"
 	"github.com/tektoncd/chains/pkg/chains/signing/kms"
-	"github.com/tektoncd/chains/pkg/chains/signing/pgp"
 	"github.com/tektoncd/chains/pkg/chains/signing/x509"
 	"github.com/tektoncd/chains/pkg/chains/storage"
 	"github.com/tektoncd/chains/pkg/config"
@@ -93,13 +92,6 @@ func allSigners(sp string, cfg config.Config, l *zap.SugaredLogger) map[string]s
 	all := map[string]signing.Signer{}
 	for _, s := range signing.AllSigners {
 		switch s {
-		case signing.TypePgp:
-			signer, err := pgp.NewSigner(sp, l)
-			if err != nil {
-				l.Warnf("error configuring pgp signer: %s", err)
-				continue
-			}
-			all[s] = signer
 		case signing.TypeX509:
 			signer, err := x509.NewSigner(sp, l)
 			if err != nil {
@@ -237,17 +229,13 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 			}
 
 			if cfg.Transparency.Enabled {
-				if signerType == signing.TypePgp {
-					ts.Logger.Info("PGP unsupported for transparency logs")
+				entry, err := rekorClient.UploadTlog(ctx, signer, signature, rawPayload)
+				if err != nil {
+					ts.Logger.Error(err)
+					merr = multierror.Append(merr, err)
 				} else {
-					entry, err := rekorClient.UploadTlog(ctx, signer, signature, rawPayload)
-					if err != nil {
-						ts.Logger.Error(err)
-						merr = multierror.Append(merr, err)
-					} else {
-						ts.Logger.Infof("Uploaded entry to %s with index %d", cfg.Transparency.URL, *entry.LogIndex)
-						extraAnnotations[ChainsTransparencyAnnotation] = fmt.Sprintf("%s/%d", cfg.Transparency.URL, *entry.LogIndex)
-					}
+					ts.Logger.Infof("Uploaded entry to %s with index %d", cfg.Transparency.URL, *entry.LogIndex)
+					extraAnnotations[ChainsTransparencyAnnotation] = fmt.Sprintf("%s/%d", cfg.Transparency.URL, *entry.LogIndex)
 				}
 			}
 		}

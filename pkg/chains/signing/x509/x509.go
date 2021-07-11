@@ -29,7 +29,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// Signer exposes methods to sign payloads using PGP
+// Signer exposes methods to sign payloads.
 type Signer struct {
 	signature.Signer
 	logger *zap.SugaredLogger
