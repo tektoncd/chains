@@ -3,50 +3,13 @@
 To get started signing things in Chains, you will need to generate a keypair and instruct Chains to sign with it via a Kubernetes secret.
 Chains expects a private key, and password if the key is encrypted, to exist in a Kubernetes secret `signing-secrets` in the `tekon-chains` namespace. 
 
-Chains supports a few different signature schemes, including PGP/GPG, x509 and KMS systems.
+Chains supports a few different signature schemes, including x509 and KMS systems.
 
 This doc explains how to generate keys and configure Chains for each type.
 Note, **only one** of the following keys needs to be set up for Chains to work:
-- [GPG/PGP](#GPG/PGP)
 - [x509](#x509)
 - [Cosign](#cosign)
 - [KMS](#KMS)
-
-
-# GPG/PGP
-
-For GPG/PGP, Chains expects the private key and passphrase to be stored in a secret called `signing-secrets` with the following structure:
-
-* pgp.private-key (the private key)
-* pgp.passphrase (the optional passphrase)
-
-## Generate GPG/PGP Key
-If you don't have a key already, you can create one with:
-```shell
-gpg --gen-key
-```
-Enter a passphrase (make sure you remember it!) and a name for the key.
-
-Next, export the public and private keys as files:
-
-```shell
-gpg --export-secret-key --armor $keyname > pgp.private-key
-gpg --export --armor $keyname > pgp.public-key
-```
-
-And save the passphrase (if you set one) in its own file:
-
-```shell
-echo -n $passphrase > pgp.passphrase
-```
-
-## Store Key as Kubernetes Secret
-
-You can store all of these files in the Kubernetes secret `signing-secrets`:
-
-```shell
-kubectl create secret generic signing-secrets -n tekton-chains --from-file=pgp.passphrase --from-file=pgp.private-key --from-file=pgp.public-key
-```
 
 # x509
 For x509, Chains expects the private key to be stored in a secret called `signing-secrets` with the following structure:

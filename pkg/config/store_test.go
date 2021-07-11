@@ -36,7 +36,7 @@ func TestNewConfigStore(t *testing.T) {
 
 	// Setup some config
 	cm.Data = map[string]string{}
-	cm.Data[taskrunSignerKey] = "pgp"
+	cm.Data[taskrunSignerKey] = "x509"
 
 	if cm, err = fakekubeclient.CoreV1().ConfigMaps(ns).Update(ctx, cm, metav1.UpdateOptions{}); err != nil {
 		t.Errorf("error updating configmap: %v", err)
@@ -45,7 +45,7 @@ func TestNewConfigStore(t *testing.T) {
 	// It should be updated by then...
 	time.Sleep(100 * time.Millisecond)
 	// Test that the values are set!
-	if diff := cmp.Diff("pgp", cs.Config().Artifacts.TaskRuns.Signer); diff != "" {
+	if diff := cmp.Diff("x509", cs.Config().Artifacts.TaskRuns.Signer); diff != "" {
 		t.Error(diff)
 	}
 
@@ -94,7 +94,7 @@ func TestParse(t *testing.T) {
 		},
 		{
 			name: "single",
-			data: map[string]string{taskrunSignerKey: "pgp"},
+			data: map[string]string{taskrunSignerKey: "x509"},
 			want: Config{
 				Builder: BuilderConfig{
 					"tekton-chains",
@@ -102,7 +102,7 @@ func TestParse(t *testing.T) {
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
 						Format:         "tekton",
-						Signer:         "pgp",
+						Signer:         "x509",
 						StorageBackend: "tekton",
 					},
 					OCI: Artifact{
@@ -118,7 +118,7 @@ func TestParse(t *testing.T) {
 		},
 		{
 			name: "extra",
-			data: map[string]string{taskrunSignerKey: "pgp", "other-key": "foo"},
+			data: map[string]string{taskrunSignerKey: "x509", "other-key": "foo"},
 			want: Config{
 				Builder: BuilderConfig{
 					"tekton-chains",
@@ -126,7 +126,7 @@ func TestParse(t *testing.T) {
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
 						Format:         "tekton",
-						Signer:         "pgp",
+						Signer:         "x509",
 						StorageBackend: "tekton",
 					},
 					OCI: Artifact{

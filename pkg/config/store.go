@@ -41,16 +41,12 @@ type StorageConfigs struct {
 
 // SigningConfig contains the configuration to instantiate different signers
 type SignerConfigs struct {
-	PGP  PGPSigner
 	X509 X509Signer
 	KMS  KMSSigner
 }
 
 type BuilderConfig struct {
 	ID string
-}
-
-type PGPSigner struct {
 }
 
 type X509Signer struct {
@@ -96,8 +92,6 @@ const (
 	docDBUrlKey              = "storage.docdb.url"
 	// No config needed for Tekton object storage
 
-	// No config needed for pgp signer
-
 	// No config needed for x509 signer
 
 	// KMS
@@ -127,10 +121,10 @@ var defaults = map[string]string{
 var supportedValues = map[string][]string{
 	taskrunFormatKey:  {"tekton", "in-toto"},
 	taskrunStorageKey: {"tekton", "oci", "gcs", "docdb"},
-	taskrunSignerKey:  {"pgp", "x509", "kms"},
+	taskrunSignerKey:  {"x509", "kms"},
 	ociFormatKey:      {"tekton", "simplesigning"},
 	ociStorageKey:     {"tekton", "oci", "gcs", "docdb"},
-	ociSignerKey:      {"pgp", "x509", "kms"},
+	ociSignerKey:      {"x509", "kms"},
 }
 
 func parse(data map[string]string, logger *zap.SugaredLogger) Config {

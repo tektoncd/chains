@@ -17,7 +17,7 @@ Chains then converts this snapshot to one or more standard payload formats, sign
 Current features include:
 * Signing `TaskRun` results with user provided cryptographic keys, including `TaskRun`s themselves and OCI Images
 * Attestation formats like [intoto](docs/intoto.md)
-* Signing with a variety of cryptograhic key types and services (PGP, x509, KMS)
+* Signing with a variety of cryptograhic key types and services (x509, KMS)
 * Support for multiple storage backends for signatures
 
 ### Installation
