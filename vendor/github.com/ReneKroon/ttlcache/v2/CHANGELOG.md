@@ -1,4 +1,26 @@
-# 2.4.0 (May 2021)
+# 2.7.0 (June 2021)
+
+#46 : got panic
+
+A panic occured in a line that checks the maximum amount of items in the cache. While not definite root cause has been found, there is indeed the possibility of crashing an empty cache if the cache limit is set to 'zero' which codes for infinite. This would lead to removal of the first item in the cache which would panic on an empty cache.
+
+Fixed this by applying the global cache lock to all configuration options as well.
+
+# 2.6.0 (May 2021)
+
+#44 : There are no API changes, but a contribution was made to use https://pkg.go.dev/golang.org/x/sync/singleflight as a way to provide everybody waiting for a key with that key when it's fetched. 
+
+This removes some complexity from the code and will make sure that all callers will get a return value even if there's high concurrency and low TTL (as proven by the test that was added).
+
+# 2.5.0 (May 2021)
+
+## API changes:
+
+* #39 : Allow custom loader function for each key via `GetByLoader`
+
+Introduce the `SimpleCache` interface for quick-start and basic usage.
+
+# 2.4.0 (April 2021)
 
 ## API changes:
 

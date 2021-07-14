@@ -14,6 +14,7 @@ limitations under the License.
 package chains
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -223,7 +224,7 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 				continue
 			}
 
-			signature, signed, err := signer.Sign(ctx, rawPayload)
+			signature, err := signer.SignMessage(bytes.NewReader(rawPayload))
 			if err != nil {
 				ts.Logger.Error(err)
 				continue
@@ -238,7 +239,7 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 
 			if cfg.Transparency.Enabled {
 				if payloadFormat == "in-toto" || payloadFormat == "tekton-provenance" {
-					entry, err := rekorClient.UploadTlog(ctx, signer, signature, signed)
+					entry, err := rekorClient.UploadTlog(ctx, signer, signature, rawPayload)
 					if err != nil {
 						ts.Logger.Error(err)
 						merr = multierror.Append(merr, err)
