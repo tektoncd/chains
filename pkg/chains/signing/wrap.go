@@ -14,6 +14,7 @@ limitations under the License.
 package signing
 
 import (
+	"bytes"
 	"context"
 	"crypto"
 	"encoding/json"
@@ -53,7 +54,7 @@ type sslAdapter struct {
 }
 
 func (w *sslAdapter) Sign(data []byte) ([]byte, string, error) {
-	sig, _, err := w.wrapped.Sign(context.Background(), data)
+	sig, err := w.wrapped.SignMessage(bytes.NewReader(data))
 	return sig, w.KeyID, err
 }
 
