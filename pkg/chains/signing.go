@@ -22,6 +22,7 @@ import (
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/formats"
 	"github.com/tektoncd/chains/pkg/chains/formats/intotoite6"
+	"github.com/tektoncd/chains/pkg/chains/formats/provenance"
 	"github.com/tektoncd/chains/pkg/chains/formats/simple"
 	"github.com/tektoncd/chains/pkg/chains/formats/tekton"
 	"github.com/tektoncd/chains/pkg/chains/signing"
@@ -137,6 +138,12 @@ func allFormatters(cfg config.Config, l *zap.SugaredLogger) map[formats.PayloadT
 				l.Warnf("error configuring intoto formatter: %s", err)
 			}
 			all[f] = formatter
+		case formats.PayloadTypeProvenance:
+			formatter, err := provenance.NewFormatter(cfg, l)
+			if err != nil {
+				l.Warnf("error configuring intoto formatter: %s", err)
+			}
+			all[f] = formatter
 		}
 	}
 
@@ -215,7 +222,8 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 				ts.Logger.Warnf("Unable to marshal payload: %v", signerType, obj)
 				continue
 			}
-			signature, _, err := signer.Sign(ctx, rawPayload)
+
+			signature, signed, err := signer.Sign(ctx, rawPayload)
 			if err != nil {
 				ts.Logger.Error(err)
 				continue
@@ -229,13 +237,15 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 			}
 
 			if cfg.Transparency.Enabled {
-				entry, err := rekorClient.UploadTlog(ctx, signer, signature, rawPayload)
-				if err != nil {
-					ts.Logger.Error(err)
-					merr = multierror.Append(merr, err)
-				} else {
-					ts.Logger.Infof("Uploaded entry to %s with index %d", cfg.Transparency.URL, *entry.LogIndex)
-					extraAnnotations[ChainsTransparencyAnnotation] = fmt.Sprintf("%s/%d", cfg.Transparency.URL, *entry.LogIndex)
+				if payloadFormat == "in-toto" || payloadFormat == "tekton-provenance" {
+					entry, err := rekorClient.UploadTlog(ctx, signer, signature, signed)
+					if err != nil {
+						ts.Logger.Error(err)
+						merr = multierror.Append(merr, err)
+					} else {
+						ts.Logger.Infof("Uploaded entry to %s with index %d", cfg.Transparency.URL, *entry.LogIndex)
+						extraAnnotations[ChainsTransparencyAnnotation] = fmt.Sprintf("%s/%d", cfg.Transparency.URL, *entry.LogIndex)
+					}
 				}
 			}
 		}
