@@ -14,6 +14,7 @@ limitations under the License.
 package chains
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -215,7 +216,7 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 				ts.Logger.Warnf("Unable to marshal payload: %v", signerType, obj)
 				continue
 			}
-			signature, _, err := signer.Sign(ctx, rawPayload)
+			signature, err := signer.SignMessage(bytes.NewReader(rawPayload))
 			if err != nil {
 				ts.Logger.Error(err)
 				continue
