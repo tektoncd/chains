@@ -239,7 +239,7 @@ func TestTaskRunSigner_Transparency(t *testing.T) {
 	cfgStore := &mockConfig{cfg: config.Config{
 		Artifacts: config.ArtifactConfigs{
 			TaskRuns: config.Artifact{
-				Format:         "tekton",
+				Format:         "in-toto",
 				StorageBackend: "mock",
 				Signer:         "x509",
 			},
