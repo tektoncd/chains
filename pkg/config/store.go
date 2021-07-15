@@ -119,7 +119,7 @@ var defaults = map[string]string{
 }
 
 var supportedValues = map[string][]string{
-	taskrunFormatKey:  {"tekton", "in-toto"},
+	taskrunFormatKey:  {"tekton", "in-toto", "tekton-provenance"},
 	taskrunStorageKey: {"tekton", "oci", "gcs", "docdb"},
 	taskrunSignerKey:  {"x509", "kms"},
 	ociFormatKey:      {"tekton", "simplesigning"},
