@@ -20,7 +20,7 @@ require (
 	github.com/prometheus/statsd_exporter v0.20.3 // indirect
 	github.com/sigstore/cosign v0.6.1-0.20210713195612-e68da418ca48
 	github.com/sigstore/rekor v0.2.1-0.20210714161159-53d71cd8de39
-	github.com/sigstore/sigstore v0.0.0-20210714122742-a9aeb218f4d1
+	github.com/sigstore/sigstore v0.0.0-20210718202323-1c1454ffa6b3
 	github.com/tektoncd/pipeline v0.25.0
 	github.com/tektoncd/plumbing v0.0.0-20210514044347-f8a9689d5bd5
 	go.uber.org/zap v1.18.1
@@ -39,7 +39,7 @@ require (
 // Knative deps (release-0.20)
 replace (
 	contrib.go.opencensus.io/exporter/stackdriver => contrib.go.opencensus.io/exporter/stackdriver v0.13.4
-	github.com/Azure/azure-sdk-for-go => github.com/Azure/azure-sdk-for-go v38.2.0+incompatible
+	github.com/Azure/azure-sdk-for-go => github.com/Azure/azure-sdk-for-go v55.0.0+incompatible
 	github.com/prometheus/common => github.com/prometheus/common v0.26.0
 	k8s.io/api => k8s.io/api v0.20.7
 	k8s.io/apimachinery => k8s.io/apimachinery v0.20.7
