@@ -227,69 +227,71 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 }
 
 func TestTaskRunSigner_Transparency(t *testing.T) {
-	rekor := &mockRekor{}
-	backends := []*mockBackend{{backendType: "mock"}}
-	cleanup := setupMocks(backends, rekor)
-	defer cleanup()
+	for _, format := range []string{"in-toto", "tekton"} {
+		rekor := &mockRekor{}
+		backends := []*mockBackend{{backendType: "mock"}}
+		cleanup := setupMocks(backends, rekor)
+		defer cleanup()
 
-	ctx, _ := rtesting.SetupFakeContext(t)
-	logger := logtesting.TestLogger(t)
-	ps := fakepipelineclient.Get(ctx)
+		ctx, _ := rtesting.SetupFakeContext(t)
+		logger := logtesting.TestLogger(t)
+		ps := fakepipelineclient.Get(ctx)
 
-	cfgStore := &mockConfig{cfg: config.Config{
-		Artifacts: config.ArtifactConfigs{
-			TaskRuns: config.Artifact{
-				Format:         "in-toto",
-				StorageBackend: "mock",
-				Signer:         "x509",
+		cfgStore := &mockConfig{cfg: config.Config{
+			Artifacts: config.ArtifactConfigs{
+				TaskRuns: config.Artifact{
+					Format:         format,
+					StorageBackend: "mock",
+					Signer:         "x509",
+				},
 			},
-		},
-		Transparency: config.TransparencyConfig{
-			Enabled: false,
-		},
-	}}
+			Transparency: config.TransparencyConfig{
+				Enabled: false,
+			},
+		}}
 
-	ts := &TaskRunSigner{
-		Logger:            logger,
-		Pipelineclientset: ps,
-		SecretPath:        "./signing/x509/testdata/",
-		ConfigStore:       cfgStore,
-	}
+		ts := &TaskRunSigner{
+			Logger:            logger,
+			Pipelineclientset: ps,
+			SecretPath:        "./signing/x509/testdata/",
+			ConfigStore:       cfgStore,
+		}
 
-	tr := &v1beta1.TaskRun{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "foo",
-		},
-	}
-	if _, err := ps.TektonV1beta1().TaskRuns(tr.Namespace).Create(ctx, tr, metav1.CreateOptions{}); err != nil {
-		t.Errorf("error creating fake taskrun: %v", err)
-	}
-	if err := ts.SignTaskRun(ctx, tr); err != nil {
-		t.Errorf("TaskRunSigner.SignTaskRun() error = %v", err)
-	}
+		tr := &v1beta1.TaskRun{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "foo",
+			},
+		}
+		if _, err := ps.TektonV1beta1().TaskRuns(tr.Namespace).Create(ctx, tr, metav1.CreateOptions{}); err != nil {
+			t.Errorf("error creating fake taskrun: %v", err)
+		}
+		if err := ts.SignTaskRun(ctx, tr); err != nil {
+			t.Errorf("TaskRunSigner.SignTaskRun() error = %v", err)
+		}
 
-	if len(rekor.entries) != 0 {
-		t.Error("expected no transparency log entries!")
-	}
+		if len(rekor.entries) != 0 {
+			t.Error("expected no transparency log entries!")
+		}
 
-	// Now enable and try again!
-	cfgStore.cfg.Transparency.Enabled = true
-	ts.ConfigStore = cfgStore
+		// Now enable and try again!
+		cfgStore.cfg.Transparency.Enabled = true
+		ts.ConfigStore = cfgStore
 
-	tr2 := &v1beta1.TaskRun{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "foobar",
-		},
-	}
-	if _, err := ps.TektonV1beta1().TaskRuns(tr.Namespace).Create(ctx, tr2, metav1.CreateOptions{}); err != nil {
-		t.Errorf("error creating fake taskrun: %v", err)
-	}
-	if err := ts.SignTaskRun(ctx, tr2); err != nil {
-		t.Errorf("TaskRunSigner.SignTaskRun() error = %v", err)
-	}
+		tr2 := &v1beta1.TaskRun{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "foobar",
+			},
+		}
+		if _, err := ps.TektonV1beta1().TaskRuns(tr.Namespace).Create(ctx, tr2, metav1.CreateOptions{}); err != nil {
+			t.Errorf("error creating fake taskrun: %v", err)
+		}
+		if err := ts.SignTaskRun(ctx, tr2); err != nil {
+			t.Errorf("TaskRunSigner.SignTaskRun() error = %v", err)
+		}
 
-	if len(rekor.entries) != 1 {
-		t.Error("expected transparency log entry!")
+		if len(rekor.entries) != 1 {
+			t.Error("expected transparency log entry!")
+		}
 	}
 }
 
@@ -318,7 +320,7 @@ type mockRekor struct {
 	entries [][]byte
 }
 
-func (r *mockRekor) UploadTlog(ctx context.Context, signer signing.Signer, signature, rawPayload []byte) (*models.LogEntryAnon, error) {
+func (r *mockRekor) UploadTlog(ctx context.Context, signer signing.Signer, signature, rawPayload []byte, cert, payloadFormat string) (*models.LogEntryAnon, error) {
 	r.entries = append(r.entries, signature)
 	index := int64(len(r.entries) - 1)
 	return &models.LogEntryAnon{
