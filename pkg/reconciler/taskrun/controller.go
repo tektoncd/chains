@@ -27,25 +27,20 @@ import (
 )
 
 func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
-	// TODO: store and use the cmw
 	logger := logging.FromContext(ctx)
 	taskRunInformer := taskruninformer.Get(ctx)
 	pipelineclientset := pipelineclient.Get(ctx)
 
-	// TODO(mattmoor): Move this into the callback below once the TaskRunSigner
-	// extracts the config off of the context.
-	cfgStore := config.NewConfigStore(logger)
-	cfgStore.WatchConfigs(cmw)
-
 	c := &Reconciler{
 		TaskRunSigner: &chains.TaskRunSigner{
 			Pipelineclientset: pipelineclientset,
-			Logger:            logger,
 			SecretPath:        SecretPath,
-			ConfigStore:       cfgStore,
 		},
 	}
 	impl := taskrunreconciler.NewImpl(ctx, c, func(impl *controller.Impl) controller.Options {
+		cfgStore := config.NewConfigStore(logger)
+		cfgStore.WatchConfigs(cmw)
+
 		return controller.Options{
 			// The chains reconciler shouldn't mutate the taskrun's status.
 			SkipStatusUpdates: true,

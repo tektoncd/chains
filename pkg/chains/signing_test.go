@@ -27,7 +27,6 @@ import (
 	fakepipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client/fake"
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	logtesting "knative.dev/pkg/logging/testing"
 	rtesting "knative.dev/pkg/reconciler/testing"
 )
 
@@ -167,22 +166,21 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 			defer cleanup()
 
 			ctx, _ := rtesting.SetupFakeContext(t)
-			logger := logtesting.TestLogger(t)
 			ps := fakepipelineclient.Get(ctx)
 
+			ctx = config.ToContext(ctx, &config.Config{
+				Artifacts: config.ArtifactConfigs{
+					TaskRuns: config.Artifact{
+						Format:         "tekton",
+						StorageBackend: tt.configuredBackend,
+						Signer:         "x509",
+					},
+				},
+			})
+
 			ts := &TaskRunSigner{
-				Logger:            logger,
 				Pipelineclientset: ps,
 				SecretPath:        "./signing/x509/testdata/",
-				ConfigStore: &mockConfig{cfg: config.Config{
-					Artifacts: config.ArtifactConfigs{
-						TaskRuns: config.Artifact{
-							Format:         "tekton",
-							StorageBackend: tt.configuredBackend,
-							Signer:         "x509",
-						},
-					},
-				}},
 			}
 
 			tr := &v1beta1.TaskRun{
@@ -234,10 +232,9 @@ func TestTaskRunSigner_Transparency(t *testing.T) {
 		defer cleanup()
 
 		ctx, _ := rtesting.SetupFakeContext(t)
-		logger := logtesting.TestLogger(t)
 		ps := fakepipelineclient.Get(ctx)
 
-		cfgStore := &mockConfig{cfg: config.Config{
+		cfg := &config.Config{
 			Artifacts: config.ArtifactConfigs{
 				TaskRuns: config.Artifact{
 					Format:         format,
@@ -248,13 +245,12 @@ func TestTaskRunSigner_Transparency(t *testing.T) {
 			Transparency: config.TransparencyConfig{
 				Enabled: false,
 			},
-		}}
+		}
+		ctx = config.ToContext(ctx, cfg.DeepCopy())
 
 		ts := &TaskRunSigner{
-			Logger:            logger,
 			Pipelineclientset: ps,
 			SecretPath:        "./signing/x509/testdata/",
-			ConfigStore:       cfgStore,
 		}
 
 		tr := &v1beta1.TaskRun{
@@ -274,8 +270,8 @@ func TestTaskRunSigner_Transparency(t *testing.T) {
 		}
 
 		// Now enable and try again!
-		cfgStore.cfg.Transparency.Enabled = true
-		ts.ConfigStore = cfgStore
+		cfg.Transparency.Enabled = true
+		ctx = config.ToContext(ctx, cfg.DeepCopy())
 
 		tr2 := &v1beta1.TaskRun{
 			ObjectMeta: metav1.ObjectMeta{

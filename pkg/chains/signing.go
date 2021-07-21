@@ -37,6 +37,7 @@ import (
 	"go.uber.org/zap"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"knative.dev/pkg/logging"
 )
 
 const (
@@ -49,15 +50,9 @@ type Signer interface {
 	SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) error
 }
 
-type configGetter interface {
-	Load() *config.Config
-}
-
 type TaskRunSigner struct {
-	Logger            *zap.SugaredLogger
 	Pipelineclientset versioned.Interface
 	SecretPath        string
-	ConfigStore       configGetter
 }
 
 // IsSigned determines whether a TaskRun has already been signed.
@@ -154,24 +149,25 @@ func allFormatters(cfg config.Config, l *zap.SugaredLogger) map[formats.PayloadT
 // SignTaskRun signs a TaskRun, and marks it as signed.
 func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) error {
 	// Get all the things we might need (storage backends, signers and formatters)
-	cfg := *ts.ConfigStore.Load()
+	cfg := *config.FromContext(ctx)
+	logger := logging.FromContext(ctx)
 
 	// TODO: Hook this up to config.
 	enabledSignableTypes := []artifacts.Signable{
-		&artifacts.TaskRunArtifact{Logger: ts.Logger},
-		&artifacts.OCIArtifact{Logger: ts.Logger},
+		&artifacts.TaskRunArtifact{Logger: logger},
+		&artifacts.OCIArtifact{Logger: logger},
 	}
 
 	// Storage
-	allBackends, err := getBackends(ts.Pipelineclientset, ts.Logger, tr, cfg)
+	allBackends, err := getBackends(ts.Pipelineclientset, logger, tr, cfg)
 	if err != nil {
 		return err
 	}
 
-	signers := allSigners(ts.SecretPath, cfg, ts.Logger)
-	allFormats := allFormatters(cfg, ts.Logger)
+	signers := allSigners(ts.SecretPath, cfg, logger)
+	allFormats := allFormatters(cfg, logger)
 
-	rekorClient, err := getRekor(cfg.Transparency.URL, ts.Logger)
+	rekorClient, err := getRekor(cfg.Transparency.URL, logger)
 	if err != nil {
 		return err
 	}
@@ -190,21 +186,21 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 			// Find the right payload format and format the object
 			payloader, ok := allFormats[payloadFormat]
 			if !ok {
-				ts.Logger.Warnf("Format %s configured for object: %v %s was not found", payloadFormat, obj, signableType.Type())
+				logger.Warnf("Format %s configured for object: %v %s was not found", payloadFormat, obj, signableType.Type())
 				continue
 			}
 			payload, err := payloader.CreatePayload(obj)
 			if err != nil {
-				ts.Logger.Error(err)
+				logger.Error(err)
 				continue
 			}
-			ts.Logger.Infof("Created payload of type %s for TaskRun %s/%s", string(payloadFormat), tr.Namespace, tr.Name)
+			logger.Infof("Created payload of type %s for TaskRun %s/%s", string(payloadFormat), tr.Namespace, tr.Name)
 
 			// Sign it!
 			signerType := signableType.Signer(cfg)
 			signer, ok := signers[signerType]
 			if !ok {
-				ts.Logger.Warnf("No signer %s configured for %s: %v", signerType, signableType.Type())
+				logger.Warnf("No signer %s configured for %s: %v", signerType, signableType.Type())
 				continue
 			}
 
@@ -213,20 +209,20 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 				if err != nil {
 					return err
 				}
-				ts.Logger.Infof("Using wrapped envelope signer for %s", payloader.Type())
+				logger.Infof("Using wrapped envelope signer for %s", payloader.Type())
 				signer = wrapped
 			}
 
-			ts.Logger.Infof("Signing object with %s", signerType)
+			logger.Infof("Signing object with %s", signerType)
 			rawPayload, err := json.Marshal(payload)
 			if err != nil {
-				ts.Logger.Warnf("Unable to marshal payload: %v", signerType, obj)
+				logger.Warnf("Unable to marshal payload: %v", signerType, obj)
 				continue
 			}
 
 			signature, err := signer.SignMessage(bytes.NewReader(rawPayload))
 			if err != nil {
-				ts.Logger.Error(err)
+				logger.Error(err)
 				continue
 			}
 
@@ -238,17 +234,17 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 				Chain: signer.Chain(),
 			}
 			if err := b.StorePayload(rawPayload, string(signature), storageOpts); err != nil {
-				ts.Logger.Error(err)
+				logger.Error(err)
 				merr = multierror.Append(merr, err)
 			}
 
 			if cfg.Transparency.Enabled {
 				entry, err := rekorClient.UploadTlog(ctx, signer, signature, rawPayload, signer.Cert(), string(payloadFormat))
 				if err != nil {
-					ts.Logger.Error(err)
+					logger.Error(err)
 					merr = multierror.Append(merr, err)
 				} else {
-					ts.Logger.Infof("Uploaded entry to %s with index %d", cfg.Transparency.URL, *entry.LogIndex)
+					logger.Infof("Uploaded entry to %s with index %d", cfg.Transparency.URL, *entry.LogIndex)
 					extraAnnotations[ChainsTransparencyAnnotation] = fmt.Sprintf("%s/%d", cfg.Transparency.URL, *entry.LogIndex)
 				}
 			}
