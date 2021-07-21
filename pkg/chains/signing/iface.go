@@ -18,6 +18,8 @@ import "github.com/sigstore/sigstore/pkg/signature"
 type Signer interface {
 	signature.Signer
 	Type() string
+	Cert() string
+	Chain() string
 }
 
 const (

@@ -56,13 +56,13 @@ func NewStorageBackend(logger *zap.SugaredLogger, tr *v1beta1.TaskRun, cfg confi
 }
 
 // StorePayload implements the Payloader interface.
-func (b *Backend) StorePayload(rawPayload []byte, signature string, key string) error {
+func (b *Backend) StorePayload(rawPayload []byte, signature string, opts config.StorageOpts) error {
 	// We need two object names: the signature and the payload. We want to make these unique to the UID, but easy to find based on the
 	// name/namespace as well.
 	// $bucket/taskrun-$namespace-$name-$uid/$key.signature
 	// $bucket/taskrun-$namespace-$name-$uid/$key.payload
 	root := fmt.Sprintf("taskrun-%s-%s-%s", b.tr.Namespace, b.tr.Name, b.tr.UID)
-	sigName := path.Join(root, fmt.Sprintf("%s.signature", key))
+	sigName := path.Join(root, fmt.Sprintf("%s.signature", opts.Key))
 	b.logger.Infof("Storing payload at %s", sigName)
 
 	sigObj := b.writer.GetWriter(sigName)
@@ -73,7 +73,7 @@ func (b *Backend) StorePayload(rawPayload []byte, signature string, key string) 
 		return err
 	}
 
-	payloadName := path.Join(root, fmt.Sprintf("%s.payload", key))
+	payloadName := path.Join(root, fmt.Sprintf("%s.payload", opts.Key))
 	payloadObj := b.writer.GetWriter(payloadName)
 	defer payloadObj.Close()
 	if _, err := payloadObj.Write(rawPayload); err != nil {
@@ -82,6 +82,30 @@ func (b *Backend) StorePayload(rawPayload []byte, signature string, key string) 
 	if err := payloadObj.Close(); err != nil {
 		return err
 	}
+
+	if opts.Cert == "" {
+		return nil
+	}
+	certName := path.Join(root, fmt.Sprintf("%s.cert", opts.Key))
+	certObj := b.writer.GetWriter(certName)
+	defer certObj.Close()
+	if _, err := certObj.Write([]byte(opts.Cert)); err != nil {
+		return err
+	}
+	if err := certObj.Close(); err != nil {
+		return err
+	}
+
+	chainName := path.Join(root, fmt.Sprintf("%s.chain", opts.Key))
+	chainObj := b.writer.GetWriter(chainName)
+	defer chainObj.Close()
+	if _, err := chainObj.Write([]byte(opts.Chain)); err != nil {
+		return err
+	}
+	if err := chainObj.Close(); err != nil {
+		return err
+	}
+
 	return nil
 }
 

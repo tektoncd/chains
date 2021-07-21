@@ -333,7 +333,7 @@ type mockBackend struct {
 }
 
 // StorePayload implements the Payloader interface.
-func (b *mockBackend) StorePayload(signed []byte, signature string, key string) error {
+func (b *mockBackend) StorePayload(signed []byte, signature string, opts config.StorageOpts) error {
 	if b.shouldErr {
 		return errors.New("mock error storing")
 	}

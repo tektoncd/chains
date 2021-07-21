@@ -95,7 +95,7 @@ func allSigners(sp string, cfg config.Config, l *zap.SugaredLogger) map[string]s
 	for _, s := range signing.AllSigners {
 		switch s {
 		case signing.TypeX509:
-			signer, err := x509.NewSigner(sp, l)
+			signer, err := x509.NewSigner(sp, cfg, l)
 			if err != nil {
 				l.Warnf("error configuring x509 signer: %s", err)
 				continue
@@ -232,7 +232,12 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 
 			// Now store those!
 			b := allBackends[signableType.StorageBackend(cfg)]
-			if err := b.StorePayload(rawPayload, string(signature), signableType.Key(obj)); err != nil {
+			storageOpts := config.StorageOpts{
+				Key:   signableType.Key(obj),
+				Cert:  signer.Cert(),
+				Chain: signer.Chain(),
+			}
+			if err := b.StorePayload(rawPayload, string(signature), storageOpts); err != nil {
 				ts.Logger.Error(err)
 				merr = multierror.Append(merr, err)
 			}

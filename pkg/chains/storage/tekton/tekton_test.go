@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	fakepipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -66,7 +67,7 @@ func TestBackend_StorePayload(t *testing.T) {
 			if err != nil {
 				t.Errorf("error marshaling json: %v", err)
 			}
-			if err := b.StorePayload(payload, "mocksignature", "mockpayload"); (err != nil) != tt.wantErr {
+			if err := b.StorePayload(payload, "mocksignature", config.StorageOpts{Key: "mockpayload"}); (err != nil) != tt.wantErr {
 				t.Errorf("Backend.StorePayload() error = %v, wantErr %v", err, tt.wantErr)
 			}
 

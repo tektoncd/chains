@@ -64,7 +64,7 @@ func TestBackend_StorePayload(t *testing.T) {
 				writer: mockGcs,
 				cfg:    config.Config{Storage: config.StorageConfigs{GCS: config.GCSStorageConfig{Bucket: "foo"}}},
 			}
-			if err := b.StorePayload(tt.args.signed, tt.args.signature, tt.args.key); (err != nil) != tt.wantErr {
+			if err := b.StorePayload(tt.args.signed, tt.args.signature, config.StorageOpts{Key: tt.args.key}); (err != nil) != tt.wantErr {
 				t.Errorf("Backend.StorePayload() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			got := mockGcs.objects["taskrun-foo-bar-uid/foo.signature"].String()
