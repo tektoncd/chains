@@ -1,6 +1,5 @@
-// +build tools
 /*
-Copyright 2019 The Tekton Authors
+Copyright 2021 The Tekton Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,12 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package tools
+// +k8s:deepcopy-gen=package
 
-// This is needed to force "go mod" to vendor these modules, which we only use for scripts.
-import (
-	_ "k8s.io/code-generator/cmd/deepcopy-gen"
-
-	_ "github.com/tektoncd/plumbing"
-	_ "github.com/tektoncd/plumbing/scripts"
-)
+// Package config defines the configuration used by the chains
+// controller to guide what it does.
+package config

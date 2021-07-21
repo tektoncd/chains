@@ -664,6 +664,7 @@ golang.org/x/tools/cmd/goimports
 golang.org/x/tools/go/ast/astutil
 golang.org/x/tools/go/gcexportdata
 golang.org/x/tools/go/internal/gcimporter
+golang.org/x/tools/imports
 golang.org/x/tools/internal/event
 golang.org/x/tools/internal/event/core
 golang.org/x/tools/internal/event/keys
@@ -1167,8 +1168,21 @@ k8s.io/client-go/util/jsonpath
 k8s.io/client-go/util/keyutil
 k8s.io/client-go/util/retry
 k8s.io/client-go/util/workqueue
+# k8s.io/code-generator v0.19.7
+## explicit
+k8s.io/code-generator/cmd/deepcopy-gen
+k8s.io/code-generator/cmd/deepcopy-gen/args
+k8s.io/code-generator/pkg/util
 # k8s.io/component-base v0.19.7
 k8s.io/component-base/version
+# k8s.io/gengo v0.0.0-20201214224949-b6c5ce23f027
+k8s.io/gengo/args
+k8s.io/gengo/examples/deepcopy-gen/generators
+k8s.io/gengo/examples/set-gen/sets
+k8s.io/gengo/generator
+k8s.io/gengo/namer
+k8s.io/gengo/parser
+k8s.io/gengo/types
 # k8s.io/klog v1.0.0
 k8s.io/klog
 # k8s.io/klog/v2 v2.8.0
@@ -1194,7 +1208,6 @@ knative.dev/pkg/apis/duck/v1
 knative.dev/pkg/apis/duck/v1beta1
 knative.dev/pkg/changeset
 knative.dev/pkg/client/injection/kube/client
-knative.dev/pkg/client/injection/kube/client/fake
 knative.dev/pkg/configmap
 knative.dev/pkg/configmap/informer
 knative.dev/pkg/controller

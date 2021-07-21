@@ -21,23 +21,21 @@ import (
 	pipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client"
 	taskruninformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/taskrun"
 	taskrunreconciler "github.com/tektoncd/pipeline/pkg/client/injection/reconciler/pipeline/v1beta1/taskrun"
-	kubeclient "knative.dev/pkg/client/injection/kube/client"
 	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/logging"
-	"knative.dev/pkg/system"
 )
 
 func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
 	// TODO: store and use the cmw
 	logger := logging.FromContext(ctx)
 	taskRunInformer := taskruninformer.Get(ctx)
-	kubeclientset := kubeclient.Get(ctx)
 	pipelineclientset := pipelineclient.Get(ctx)
-	cfgStore, err := config.NewConfigStore(ctx, kubeclientset, system.Namespace(), logger)
-	if err != nil {
-		logger.Fatal(err)
-	}
+
+	// TODO(mattmoor): Move this into the callback below once the TaskRunSigner
+	// extracts the config off of the context.
+	cfgStore := config.NewConfigStore(logger)
+	cfgStore.WatchConfigs(cmw)
 
 	c := &Reconciler{
 		TaskRunSigner: &chains.TaskRunSigner{
@@ -51,6 +49,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		return controller.Options{
 			// The chains reconciler shouldn't mutate the taskrun's status.
 			SkipStatusUpdates: true,
+			ConfigStore:       cfgStore,
 		}
 	})
 
