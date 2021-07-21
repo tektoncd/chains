@@ -125,6 +125,8 @@ github.com/cespare/xxhash/v2
 # github.com/containerd/stargz-snapshotter/estargz v0.4.1
 github.com/containerd/stargz-snapshotter/estargz
 github.com/containerd/stargz-snapshotter/estargz/errorutil
+# github.com/coreos/go-oidc/v3 v3.0.0
+github.com/coreos/go-oidc/v3/oidc
 # github.com/cyberphone/json-canonicalization v0.0.0-20210303052042-6bc126869bf4
 github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer
 # github.com/davecgh/go-spew v1.1.1
@@ -406,12 +408,19 @@ github.com/sassoftware/relic/lib/pkcs7
 github.com/sassoftware/relic/lib/pkcs9
 github.com/sassoftware/relic/lib/x509tools
 github.com/sassoftware/relic/signers/sigerrors
+# github.com/segmentio/ksuid v1.0.3
+github.com/segmentio/ksuid
 # github.com/shibumi/go-pathspec v1.2.0
 github.com/shibumi/go-pathspec
 # github.com/sigstore/cosign v0.6.1-0.20210713195612-e68da418ca48
 ## explicit
 github.com/sigstore/cosign/pkg/cosign
+github.com/sigstore/cosign/pkg/cosign/fulcio
 github.com/sigstore/cosign/pkg/cosign/remote
+# github.com/sigstore/fulcio v0.0.0-20210713152059-19d934df64c7
+github.com/sigstore/fulcio/pkg/generated/client
+github.com/sigstore/fulcio/pkg/generated/client/operations
+github.com/sigstore/fulcio/pkg/generated/models
 # github.com/sigstore/rekor v0.2.1-0.20210714161159-53d71cd8de39
 ## explicit
 github.com/sigstore/rekor/pkg/client
@@ -438,6 +447,7 @@ github.com/sigstore/rekor/pkg/util
 # github.com/sigstore/sigstore v0.0.0-20210714122742-a9aeb218f4d1
 ## explicit
 github.com/sigstore/sigstore/pkg/cryptoutils
+github.com/sigstore/sigstore/pkg/oauthflow
 github.com/sigstore/sigstore/pkg/signature
 github.com/sigstore/sigstore/pkg/signature/kms
 github.com/sigstore/sigstore/pkg/signature/kms/aws
@@ -447,6 +457,8 @@ github.com/sigstore/sigstore/pkg/signature/options
 github.com/sigstore/sigstore/pkg/signature/payload
 # github.com/sirupsen/logrus v1.8.1
 github.com/sirupsen/logrus
+# github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
+github.com/skratchdot/open-golang/open
 # github.com/spf13/afero v1.6.0
 github.com/spf13/afero
 github.com/spf13/afero/mem
@@ -667,8 +679,10 @@ golang.org/x/xerrors/internal
 # gomodules.xyz/jsonpatch/v2 v2.1.0
 gomodules.xyz/jsonpatch/v2
 # google.golang.org/api v0.50.0
+## explicit
 google.golang.org/api/googleapi
 google.golang.org/api/googleapi/transport
+google.golang.org/api/idtoken
 google.golang.org/api/internal
 google.golang.org/api/internal/gensupport
 google.golang.org/api/internal/impersonate

@@ -63,7 +63,7 @@ func NewStorageBackend(logger *zap.SugaredLogger, tr *v1beta1.TaskRun, cfg confi
 }
 
 // StorePayload implements the Payloader interface.
-func (b *Backend) StorePayload(rawPayload []byte, signature string, key string) error {
+func (b *Backend) StorePayload(rawPayload []byte, signature string, storageOpts config.StorageOpts) error {
 	b.logger.Infof("Storing payload on TaskRun %s/%s", b.tr.Namespace, b.tr.Name)
 
 	format := simple.NewSimpleStruct()
@@ -89,7 +89,11 @@ func (b *Backend) StorePayload(rawPayload []byte, signature string, key string) 
 	if err != nil {
 		return errors.Wrap(err, "destination ref")
 	}
-	if _, err = cremote.UploadSignature([]byte(signature), rawPayload, cosignDst, cremote.UploadOpts{RemoteOpts: []remote.Option{b.auth}}); err != nil {
+	if _, err = cremote.UploadSignature([]byte(signature), rawPayload, cosignDst, cremote.UploadOpts{
+		RemoteOpts: []remote.Option{b.auth},
+		Cert:       storageOpts.Cert,
+		Chain:      storageOpts.Chain,
+	}); err != nil {
 		return errors.Wrap(err, "uploading")
 	}
 	b.logger.Infof("Successfully uploaded signature for %s", imageName)
