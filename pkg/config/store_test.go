@@ -45,7 +45,9 @@ func TestNewConfigStore(t *testing.T) {
 
 	cs := NewConfigStore(logtesting.TestLogger(t))
 	cs.WatchConfigs(cmw)
-	cmw.Start(ctx.Done())
+	if err := cmw.Start(ctx.Done()); err != nil {
+		t.Fatalf("Error starting configmap.Watcher %v", err)
+	}
 
 	// Check that with an empty configmap we get the default values.
 	if diff := cmp.Diff(cs.Load(), defaultConfig()); diff != "" {
