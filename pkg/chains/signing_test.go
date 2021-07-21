@@ -351,6 +351,6 @@ type mockConfig struct {
 	cfg config.Config
 }
 
-func (m *mockConfig) Config() config.Config {
-	return m.cfg
+func (m *mockConfig) Load() *config.Config {
+	return &m.cfg
 }

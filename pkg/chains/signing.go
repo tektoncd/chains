@@ -50,7 +50,7 @@ type Signer interface {
 }
 
 type configGetter interface {
-	Config() config.Config
+	Load() *config.Config
 }
 
 type TaskRunSigner struct {
@@ -154,7 +154,7 @@ func allFormatters(cfg config.Config, l *zap.SugaredLogger) map[formats.PayloadT
 // SignTaskRun signs a TaskRun, and marks it as signed.
 func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) error {
 	// Get all the things we might need (storage backends, signers and formatters)
-	cfg := ts.ConfigStore.Config()
+	cfg := *ts.ConfigStore.Load()
 
 	// TODO: Hook this up to config.
 	enabledSignableTypes := []artifacts.Signable{

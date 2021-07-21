@@ -18,16 +18,17 @@ import (
 	"testing"
 
 	signing "github.com/tektoncd/chains/pkg/chains"
+	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	informers "github.com/tektoncd/pipeline/pkg/client/informers/externalversions/pipeline/v1beta1"
 	fakepipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client/fake"
 	faketaskruninformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/taskrun/fake"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"knative.dev/pkg/apis"
 	duckv1beta1 "knative.dev/pkg/apis/duck/v1beta1"
-	fakekubeclient "knative.dev/pkg/client/injection/kube/client/fake"
-	cminformer "knative.dev/pkg/configmap/informer"
+	"knative.dev/pkg/configmap"
 	pkgreconciler "knative.dev/pkg/reconciler"
 	rtesting "knative.dev/pkg/reconciler/testing"
 	"knative.dev/pkg/system"
@@ -63,7 +64,12 @@ func TestReconciler_Reconcile(t *testing.T) {
 			ctx, _ := rtesting.SetupFakeContext(t)
 			setupData(ctx, t, tt.taskRuns)
 
-			configMapWatcher := cminformer.NewInformedWatcher(fakekubeclient.Get(ctx), system.Namespace())
+			configMapWatcher := configmap.NewStaticWatcher(&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: system.Namespace(),
+					Name:      config.ChainsConfig,
+				},
+			})
 			ctl := NewController(ctx, configMapWatcher)
 
 			if la, ok := ctl.Reconciler.(pkgreconciler.LeaderAware); ok {
