@@ -15,11 +15,11 @@ package chains
 
 import (
 	"context"
-	"errors"
 	"strings"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/pkg/errors"
 	"github.com/sigstore/cosign/pkg/cosign"
 	rc "github.com/sigstore/rekor/pkg/client"
 	"github.com/sigstore/rekor/pkg/generated/client"
@@ -36,26 +36,33 @@ type rekor struct {
 }
 
 type rekorClient interface {
-	UploadTlog(ctx context.Context, signer signing.Signer, signature, rawPayload []byte) (*models.LogEntryAnon, error)
+	UploadTlog(ctx context.Context, signer signing.Signer, signature, rawPayload []byte, cert, payloadFormat string) (*models.LogEntryAnon, error)
 }
 
-func (r *rekor) UploadTlog(ctx context.Context, signer signing.Signer, signature, rawPayload []byte) (*models.LogEntryAnon, error) {
-	pub, err := signer.PublicKey()
+func (r *rekor) UploadTlog(ctx context.Context, signer signing.Signer, signature, rawPayload []byte, cert, payloadFormat string) (*models.LogEntryAnon, error) {
+	pkoc, err := publicKeyOrCert(signer, cert)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "public key or cert")
 	}
-	pem, err := cosign.KeyToPem(pub)
-	if err != nil {
-		return nil, err
+	if payloadFormat == "in-toto" || payloadFormat == "tekton-provenance" {
+		return r.uploadTlogAttestation(ctx, signature, rawPayload, pkoc)
 	}
+	return r.uploadTlog(ctx, signature, rawPayload, pkoc)
+}
 
-	pubKey := strfmt.Base64(pem)
+func (r *rekor) uploadTlog(ctx context.Context, signature, rawPayload, certOrPublicKey []byte) (*models.LogEntryAnon, error) {
+	return cosign.UploadTLog(r.c, signature, rawPayload, certOrPublicKey)
+}
+
+func (r *rekor) uploadTlogAttestation(ctx context.Context, signature, rawPayload, certOrPublicKey []byte) (*models.LogEntryAnon, error) {
+	copk := strfmt.Base64(certOrPublicKey)
+
 	e := intoto_v001.V001Entry{
 		IntotoObj: models.IntotoV001Schema{
 			Content: &models.IntotoV001SchemaContent{
 				Envelope: string(signature),
 			},
-			PublicKey: &pubKey,
+			PublicKey: &copk,
 		},
 	}
 
@@ -70,7 +77,6 @@ func (r *rekor) UploadTlog(ctx context.Context, signer signing.Signer, signature
 		// If the entry already exists, we get a specific error.
 		// Here, we display the proof and succeed.
 		if existsErr, ok := err.(*entries.CreateLogEntryConflict); ok {
-
 			r.logger.Info("Signature already exists")
 			uriSplit := strings.Split(existsErr.Location.String(), "/")
 			uuid := uriSplit[len(uriSplit)-1]
@@ -83,6 +89,22 @@ func (r *rekor) UploadTlog(ctx context.Context, signer signing.Signer, signature
 		return &p, nil
 	}
 	return nil, errors.New("bad response from server")
+}
+
+// return the cert if we have it, otherwise return public key
+func publicKeyOrCert(signer signing.Signer, cert string) ([]byte, error) {
+	if cert != "" {
+		return []byte(cert), nil
+	}
+	pub, err := signer.PublicKey()
+	if err != nil {
+		return nil, errors.Wrap(err, "getting public key")
+	}
+	pem, err := cosign.KeyToPem(pub)
+	if err != nil {
+		return nil, errors.Wrap(err, "key to pem")
+	}
+	return pem, nil
 }
 
 // for testing

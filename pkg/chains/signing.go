@@ -243,15 +243,13 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 			}
 
 			if cfg.Transparency.Enabled {
-				if payloadFormat == "in-toto" || payloadFormat == "tekton-provenance" {
-					entry, err := rekorClient.UploadTlog(ctx, signer, signature, rawPayload)
-					if err != nil {
-						ts.Logger.Error(err)
-						merr = multierror.Append(merr, err)
-					} else {
-						ts.Logger.Infof("Uploaded entry to %s with index %d", cfg.Transparency.URL, *entry.LogIndex)
-						extraAnnotations[ChainsTransparencyAnnotation] = fmt.Sprintf("%s/%d", cfg.Transparency.URL, *entry.LogIndex)
-					}
+				entry, err := rekorClient.UploadTlog(ctx, signer, signature, rawPayload, signer.Cert(), string(payloadFormat))
+				if err != nil {
+					ts.Logger.Error(err)
+					merr = multierror.Append(merr, err)
+				} else {
+					ts.Logger.Infof("Uploaded entry to %s with index %d", cfg.Transparency.URL, *entry.LogIndex)
+					extraAnnotations[ChainsTransparencyAnnotation] = fmt.Sprintf("%s/%d", cfg.Transparency.URL, *entry.LogIndex)
 				}
 			}
 		}
