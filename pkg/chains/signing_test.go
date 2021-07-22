@@ -342,11 +342,3 @@ func (b *mockBackend) StorePayload(signed []byte, signature string, opts config.
 func (b *mockBackend) Type() string {
 	return b.backendType
 }
-
-type mockConfig struct {
-	cfg config.Config
-}
-
-func (m *mockConfig) Load() *config.Config {
-	return &m.cfg
-}
