@@ -144,6 +144,27 @@ func ExtractOCIImagesFromResults(tr *v1beta1.TaskRun, logger *zap.SugaredLogger)
 			objs = append(objs, dgst)
 		}
 	}
+
+	// look for a comma separated list of images
+	for _, key := range tr.Status.TaskRunResults {
+		if key.Name != "IMAGES" {
+			continue
+		}
+		imgs := strings.Split(key.Value, ",")
+		for _, img := range imgs {
+			trimmed := strings.TrimSpace(img)
+			if trimmed == "" {
+				continue
+			}
+			dgst, err := name.NewDigest(trimmed)
+			if err != nil {
+				logger.Errorf("error getting digest for img %s: %v", trimmed, err)
+				continue
+			}
+			objs = append(objs, dgst)
+		}
+	}
+
 	return objs
 }
 
