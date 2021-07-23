@@ -46,6 +46,7 @@ import (
 	"github.com/sigstore/rekor/pkg/generated/client/entries"
 	"github.com/sigstore/rekor/pkg/generated/client/pubkey"
 	"github.com/sigstore/rekor/pkg/generated/models"
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/payload"
 )
@@ -164,12 +165,13 @@ func VerifyTLogEntry(rekorClient *client.Rekor, uuid string) (*models.LogEntryAn
 
 // CheckOpts are the options for checking
 type CheckOpts struct {
-	SignatureRepo      name.Repository
-	RegistryClientOpts []remote.Option
+	SignatureRepo        name.Repository
+	SigTagSuffixOverride string
+	RegistryClientOpts   []remote.Option
 
-	Annotations  map[string]interface{}
-	Claims       bool
-	VerifyBundle bool
+	Annotations   map[string]interface{}
+	ClaimVerifier func(SignedPayload, *v1.Descriptor, map[string]interface{}) error
+	VerifyBundle  bool
 
 	RekorURL string
 
@@ -197,7 +199,11 @@ func Verify(ctx context.Context, signedImgRef name.Reference, co *CheckOpts) ([]
 	if (sigRepo == name.Repository{}) {
 		sigRepo = signedImgRef.Context()
 	}
-	allSignatures, err := FetchSignaturesForDescriptor(ctx, signedImgDesc, sigRepo, co.RegistryClientOpts...)
+	tagSuffix := SignatureTagSuffix
+	if co.SigTagSuffixOverride != "" {
+		tagSuffix = co.SigTagSuffixOverride
+	}
+	allSignatures, err := FetchSignaturesForDescriptor(ctx, signedImgDesc, sigRepo, tagSuffix, co.RegistryClientOpts...)
 	if err != nil {
 		return nil, errors.Wrap(err, "fetching signatures")
 	}
@@ -225,35 +231,22 @@ func Verify(ctx context.Context, signedImgRef name.Reference, co *CheckOpts) ([]
 				validationErrs = append(validationErrs, "invalid certificate found on signature")
 				continue
 			}
-			// Now verify the signature, then the cert.
-			if err := sp.VerifySignature(pub); err != nil {
+			// Now verify the cert, then the signature.
+			if err := sp.TrustedCert(co.RootCerts); err != nil {
 				validationErrs = append(validationErrs, err.Error())
 				continue
 			}
-			if err := sp.TrustedCert(co.RootCerts); err != nil {
+			if err := sp.VerifySignature(pub); err != nil {
 				validationErrs = append(validationErrs, err.Error())
 				continue
 			}
 		}
 
 		// We can't check annotations without claims, both require unmarshalling the payload.
-		if co.Claims {
-			ss := &payload.SimpleContainerImage{}
-			if err := json.Unmarshal(sp.Payload, ss); err != nil {
+		if co.ClaimVerifier != nil {
+			if err := co.ClaimVerifier(sp, &signedImgDesc.Descriptor, co.Annotations); err != nil {
 				validationErrs = append(validationErrs, err.Error())
 				continue
-			}
-
-			if err := sp.VerifyClaims(&signedImgDesc.Descriptor, ss); err != nil {
-				validationErrs = append(validationErrs, err.Error())
-				continue
-			}
-
-			if co.Annotations != nil {
-				if !correctAnnotations(co.Annotations, ss.Optional) {
-					validationErrs = append(validationErrs, "missing or incorrect annotation")
-					continue
-				}
 			}
 		}
 
@@ -276,12 +269,12 @@ func Verify(ctx context.Context, signedImgRef name.Reference, co *CheckOpts) ([]
 			var pemBytes []byte
 			if co.SigVerifier != nil {
 				pemBytes, err = PublicKeyPem(co.SigVerifier, co.PKOpts...)
-				if err != nil {
-					validationErrs = append(validationErrs, err.Error())
-					continue
-				}
 			} else {
-				pemBytes = CertToPem(sp.Cert)
+				pemBytes, err = cryptoutils.MarshalCertificateToPEM(sp.Cert)
+			}
+			if err != nil {
+				validationErrs = append(validationErrs, err.Error())
+				continue
 			}
 
 			// Find the uuid then the entry.

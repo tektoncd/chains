@@ -85,14 +85,14 @@ func (b *Backend) StorePayload(rawPayload []byte, signature string, storageOpts 
 	if err != nil {
 		return errors.Wrap(err, "getting remote image")
 	}
-	cosignDst := cosign.AttachedImageTag(ref.Repository, desc, cosign.SuffixSignature)
+	cosignDst := cosign.AttachedImageTag(ref.Repository, desc, cosign.SignatureTagSuffix)
 	if err != nil {
 		return errors.Wrap(err, "destination ref")
 	}
 	if _, err = cremote.UploadSignature([]byte(signature), rawPayload, cosignDst, cremote.UploadOpts{
 		RemoteOpts: []remote.Option{b.auth},
-		Cert:       storageOpts.Cert,
-		Chain:      storageOpts.Chain,
+		Cert:       []byte(storageOpts.Cert),
+		Chain:      []byte(storageOpts.Chain),
 	}); err != nil {
 		return errors.Wrap(err, "uploading")
 	}

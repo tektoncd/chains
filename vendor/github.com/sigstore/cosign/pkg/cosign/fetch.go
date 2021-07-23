@@ -16,10 +16,10 @@
 package cosign
 
 import (
+	"bytes"
 	"context"
 	"crypto/x509"
 	"encoding/json"
-	"encoding/pem"
 	"io/ioutil"
 	"runtime"
 	"strings"
@@ -28,6 +28,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/pkg/errors"
 	cremote "github.com/sigstore/cosign/pkg/cosign/remote"
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 )
@@ -50,30 +51,27 @@ type SignedPayload struct {
 // }
 
 const (
-	SuffixSignature = ".sig"
-	SuffixSBOM      = ".sbom"
+	SignatureTagSuffix   = ".sig"
+	SBOMTagSuffix        = ".sbom"
+	AttestationTagSuffix = ".att"
 )
 
-func AttachedImageTag(repo name.Repository, imgDesc *remote.Descriptor, suffix string) name.Tag {
-	// sha256:d34db33f -> sha256-d34db33f.sig
-	tagStr := strings.ReplaceAll(imgDesc.Digest.String(), ":", "-") + suffix
+func AttachedImageTag(repo name.Repository, imgDesc *remote.Descriptor, tagSuffix string) name.Tag {
+	// sha256:d34db33f -> sha256-d34db33f.suffix
+	tagStr := strings.ReplaceAll(imgDesc.Digest.String(), ":", "-") + tagSuffix
 	return repo.Tag(tagStr)
 }
 
-func GetAttachedManifestForImage(imgDesc *remote.Descriptor, repo name.Repository, suffix string, opts ...remote.Option) (*remote.Descriptor, error) {
-	return remote.Get(AttachedImageTag(repo, imgDesc, suffix), opts...)
-}
-
-func FetchSignaturesForImage(ctx context.Context, signedImgRef name.Reference, sigRepo name.Repository, opts ...remote.Option) ([]SignedPayload, error) {
-	signedImgDesc, err := remote.Get(signedImgRef, opts...)
+func FetchSignaturesForImage(ctx context.Context, signedImgRef name.Reference, sigRepo name.Repository, sigTagSuffix string, registryOpts ...remote.Option) ([]SignedPayload, error) {
+	signedImgDesc, err := remote.Get(signedImgRef, registryOpts...)
 	if err != nil {
 		return nil, err
 	}
-	return FetchSignaturesForDescriptor(ctx, signedImgDesc, sigRepo, opts...)
+	return FetchSignaturesForDescriptor(ctx, signedImgDesc, sigRepo, sigTagSuffix, registryOpts...)
 }
 
-func FetchSignaturesForDescriptor(ctx context.Context, signedDescriptor *remote.Descriptor, sigRepo name.Repository, opts ...remote.Option) ([]SignedPayload, error) {
-	sigImgDesc, err := GetAttachedManifestForImage(signedDescriptor, sigRepo, SuffixSignature, opts...)
+func FetchSignaturesForDescriptor(ctx context.Context, signedDescriptor *remote.Descriptor, sigRepo name.Repository, sigTagSuffix string, registryOpts ...remote.Option) ([]SignedPayload, error) {
+	sigImgDesc, err := remote.Get(AttachedImageTag(sigRepo, signedDescriptor, sigTagSuffix), registryOpts...)
 	if err != nil {
 		return nil, errors.Wrap(err, "getting signature manifest")
 	}
@@ -123,7 +121,7 @@ func FetchSignaturesForDescriptor(ctx context.Context, signedDescriptor *remote.
 			// We may have a certificate and chain
 			certPem := desc.Annotations[certkey]
 			if certPem != "" {
-				certs, err := LoadCerts(certPem)
+				certs, err := cryptoutils.LoadCertificatesFromPEM(bytes.NewReader([]byte(certPem)))
 				if err != nil {
 					return err
 				}
@@ -131,7 +129,7 @@ func FetchSignaturesForDescriptor(ctx context.Context, signedDescriptor *remote.
 			}
 			chainPem := desc.Annotations[chainkey]
 			if chainPem != "" {
-				certs, err := LoadCerts(chainPem)
+				certs, err := cryptoutils.LoadCertificatesFromPEM(bytes.NewReader([]byte(chainPem)))
 				if err != nil {
 					return err
 				}
@@ -156,29 +154,4 @@ func FetchSignaturesForDescriptor(ctx context.Context, signedDescriptor *remote.
 	}
 	return signatures, nil
 
-}
-
-func LoadCerts(pemStr string) ([]*x509.Certificate, error) {
-	blocks := []*pem.Block{}
-	pemBytes := []byte(pemStr)
-	for {
-		block, rest := pem.Decode(pemBytes)
-		if block == nil {
-			break
-		}
-		if block.Type == "CERTIFICATE" {
-			blocks = append(blocks, block)
-		}
-		pemBytes = rest
-	}
-
-	certs := []*x509.Certificate{}
-	for _, block := range blocks {
-		cert, err := x509.ParseCertificate(block.Bytes)
-		if err != nil {
-			return nil, err
-		}
-		certs = append(certs, cert)
-	}
-	return certs, nil
 }
