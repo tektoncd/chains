@@ -76,7 +76,7 @@ func fulcioSigner(auth, addr string, logger *zap.SugaredLogger) (*Signer, error)
 	if err != nil {
 		return nil, errors.Wrap(err, "new fulcio client")
 	}
-	k, err := fulcio.NewSigner(context.Background(), tok.AccessToken, "", "", client)
+	k, err := fulcio.NewSigner(context.Background(), tok.AccessToken, "https://oauth2.sigstore.dev/auth", "sigstore", client)
 	if err != nil {
 		return nil, err
 	}
