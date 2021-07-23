@@ -133,7 +133,7 @@ func materials(tr *v1beta1.TaskRun) []provenance.ProvenanceMaterial {
 
 	// check for a Git PipelineResource
 	for _, input := range tr.Spec.Resources.Inputs {
-		if input.ResourceSpec.Type != v1alpha1.PipelineResourceTypeGit {
+		if input.ResourceSpec == nil || input.ResourceSpec.Type != v1alpha1.PipelineResourceTypeGit {
 			continue
 		}
 
@@ -317,6 +317,9 @@ func getSubjectDigests(tr *v1beta1.TaskRun, logger *zap.SugaredLogger) []in_toto
 	// go through resourcesResult
 	for _, output := range tr.Spec.Resources.Outputs {
 		name := output.Name
+		if output.PipelineResourceBinding.ResourceSpec == nil {
+			continue
+		}
 		// similarly, we could do this for other pipeline resources or whatever thing replaces them
 		if output.PipelineResourceBinding.ResourceSpec.Type == v1alpha1.PipelineResourceTypeImage {
 			// get the url and digest, and save as a subject

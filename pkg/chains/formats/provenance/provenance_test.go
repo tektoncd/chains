@@ -72,6 +72,7 @@ kind: TaskRun
 spec:
   resources:
     inputs:
+    - name: nil-resource-spec
     - name: repo
       resourceSpec:
         params:
@@ -252,6 +253,10 @@ func TestGetSubjectDigests(t *testing.T) {
 			Resources: &v1beta1.TaskRunResources{
 				Outputs: []v1beta1.TaskResourceBinding{
 					{
+						PipelineResourceBinding: v1beta1.PipelineResourceBinding{
+							Name: "nil-check",
+						},
+					}, {
 						PipelineResourceBinding: v1beta1.PipelineResourceBinding{
 							Name: "built-image",
 							ResourceSpec: &v1alpha1.PipelineResourceSpec{
