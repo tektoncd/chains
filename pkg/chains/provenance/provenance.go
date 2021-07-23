@@ -60,7 +60,7 @@ type ProvenanceMetadata struct {
 	BuildStartedOn  *time.Time `json:"buildStartedOn,omitempty"`
 	BuildFinishedOn *time.Time `json:"buildFinishedOn,omitempty"`
 	// removed: Completeness
-	Reproducible bool `json:"reproducible"`
+	Reproducible bool `json:"reproducible,omitempty"`
 }
 
 // ProvenanceMaterial defines the materials used to build an artifact.
