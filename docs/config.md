@@ -17,6 +17,15 @@ For example, if **both** `MYIMAGE_IMAGE_URL` AND `MYIMAGE_IMAGE_DIGEST` are corr
 
 Multiple images can be specified by using different prefixes in place of `*`.
 
+Multiple images can also be specified by using the `IMAGES` Result.
+The value of the `IMAGES` result is a list of comma-separates images, each qualified by digest.
+
+```
+- name: IMAGES
+  value: img1@sha256:digest1, img2@sha256:digest2
+```
+
+Chains will parse through the list and sign each image.
 
 For in-toto attestations, see [INTOTO.md](INTOTO.md) for description
 of in-toto specific type hinting.
