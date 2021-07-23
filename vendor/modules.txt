@@ -25,7 +25,7 @@ contrib.go.opencensus.io/exporter/stackdriver
 contrib.go.opencensus.io/exporter/stackdriver/monitoredresource
 contrib.go.opencensus.io/exporter/stackdriver/monitoredresource/aws
 contrib.go.opencensus.io/exporter/stackdriver/monitoredresource/gcp
-# github.com/Azure/azure-sdk-for-go v55.0.0+incompatible => github.com/Azure/azure-sdk-for-go v55.0.0+incompatible
+# github.com/Azure/azure-sdk-for-go v55.7.0+incompatible => github.com/Azure/azure-sdk-for-go v55.0.0+incompatible
 github.com/Azure/azure-sdk-for-go/services/containerregistry/mgmt/2019-05-01/containerregistry
 github.com/Azure/azure-sdk-for-go/services/keyvault/auth
 github.com/Azure/azure-sdk-for-go/services/keyvault/v7.1/keyvault
@@ -35,7 +35,7 @@ github.com/Azure/go-autorest
 # github.com/Azure/go-autorest/autorest v0.11.19
 github.com/Azure/go-autorest/autorest
 github.com/Azure/go-autorest/autorest/azure
-# github.com/Azure/go-autorest/autorest/adal v0.9.13
+# github.com/Azure/go-autorest/autorest/adal v0.9.14
 github.com/Azure/go-autorest/autorest/adal
 # github.com/Azure/go-autorest/autorest/azure/auth v0.5.8
 github.com/Azure/go-autorest/autorest/azure/auth
@@ -62,9 +62,11 @@ github.com/alecthomas/template
 github.com/alecthomas/template/parse
 # github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d
 github.com/alecthomas/units
+# github.com/alvaroloes/enumer v1.1.2
+## explicit
 # github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d
 github.com/asaskevich/govalidator
-# github.com/aws/aws-sdk-go v1.39.6
+# github.com/aws/aws-sdk-go v1.40.4
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/awserr
 github.com/aws/aws-sdk-go/aws/awsutil
@@ -119,6 +121,8 @@ github.com/blang/semver
 github.com/blang/semver/v4
 # github.com/blendle/zapdriver v1.3.1
 github.com/blendle/zapdriver
+# github.com/cenkalti/backoff/v3 v3.2.2
+github.com/cenkalti/backoff/v3
 # github.com/census-instrumentation/opencensus-proto v0.3.0
 github.com/census-instrumentation/opencensus-proto/gen-go/agent/common/v1
 github.com/census-instrumentation/opencensus-proto/gen-go/agent/metrics/v1
@@ -133,6 +137,8 @@ github.com/containerd/stargz-snapshotter/estargz
 github.com/containerd/stargz-snapshotter/estargz/errorutil
 # github.com/coreos/go-oidc/v3 v3.0.0
 github.com/coreos/go-oidc/v3/oidc
+# github.com/coreos/go-systemd v0.0.0-20190620071333-e64a0ec8b42a
+## explicit
 # github.com/cyberphone/json-canonicalization v0.0.0-20210303052042-6bc126869bf4
 github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer
 # github.com/davecgh/go-spew v1.1.1
@@ -197,10 +203,8 @@ github.com/go-openapi/runtime/yamlpc
 # github.com/go-openapi/spec v0.20.3
 github.com/go-openapi/spec
 # github.com/go-openapi/strfmt v0.20.1
-## explicit
 github.com/go-openapi/strfmt
 # github.com/go-openapi/swag v0.19.15
-## explicit
 github.com/go-openapi/swag
 # github.com/go-openapi/validate v0.20.2
 github.com/go-openapi/validate
@@ -232,6 +236,8 @@ github.com/golang/protobuf/ptypes/timestamp
 github.com/golang/protobuf/ptypes/wrappers
 # github.com/golang/snappy v0.0.4
 github.com/golang/snappy
+# github.com/golangci/golangci-lint v1.17.2-0.20190910081718-bad04bb7378f
+## explicit
 # github.com/google/go-cmp v0.5.6
 ## explicit
 github.com/google/go-cmp/cmp
@@ -268,10 +274,14 @@ github.com/google/go-containerregistry/pkg/authn/k8schain
 # github.com/google/gofuzz v1.2.0
 github.com/google/gofuzz
 github.com/google/gofuzz/bytesource
+# github.com/google/monologue v0.0.0-20190606152607-4b11a32b5934
+## explicit
 # github.com/google/trillian v1.3.14-0.20210713114448-df474653733c
 github.com/google/trillian/merkle/hashers
 github.com/google/trillian/merkle/logverifier
 github.com/google/trillian/merkle/rfc6962/hasher
+# github.com/google/trillian-examples v0.0.0-20190603134952-4e75ba15216c
+## explicit
 # github.com/google/uuid v1.3.0
 github.com/google/uuid
 # github.com/google/wire v0.5.0
@@ -314,9 +324,9 @@ github.com/hashicorp/hcl/hcl/token
 github.com/hashicorp/hcl/json/parser
 github.com/hashicorp/hcl/json/scanner
 github.com/hashicorp/hcl/json/token
-# github.com/hashicorp/vault/api v1.1.0
+# github.com/hashicorp/vault/api v1.1.1
 github.com/hashicorp/vault/api
-# github.com/hashicorp/vault/sdk v0.2.0
+# github.com/hashicorp/vault/sdk v0.2.1
 github.com/hashicorp/vault/sdk/helper/compressutil
 github.com/hashicorp/vault/sdk/helper/consts
 github.com/hashicorp/vault/sdk/helper/hclutil
@@ -347,12 +357,16 @@ github.com/jstemmer/go-junit-report/parser
 github.com/kelseyhightower/envconfig
 # github.com/leodido/go-urn v1.2.1
 github.com/leodido/go-urn
+# github.com/letsencrypt/pkcs11key v2.0.1-0.20170608213348-396559074696+incompatible
+## explicit
 # github.com/magiconair/properties v1.8.5
 github.com/magiconair/properties
 # github.com/mailru/easyjson v0.7.7
 github.com/mailru/easyjson/buffer
 github.com/mailru/easyjson/jlexer
 github.com/mailru/easyjson/jwriter
+# github.com/mattn/go-sqlite3 v1.10.0
+## explicit
 # github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369
 github.com/matttproud/golang_protobuf_extensions/pbutil
 # github.com/mitchellh/go-homedir v1.1.0
@@ -416,20 +430,20 @@ github.com/sassoftware/relic/lib/pkcs7
 github.com/sassoftware/relic/lib/pkcs9
 github.com/sassoftware/relic/lib/x509tools
 github.com/sassoftware/relic/signers/sigerrors
-# github.com/segmentio/ksuid v1.0.3
+# github.com/segmentio/ksuid v1.0.4
 github.com/segmentio/ksuid
 # github.com/shibumi/go-pathspec v1.2.0
 github.com/shibumi/go-pathspec
-# github.com/sigstore/cosign v0.6.1-0.20210713195612-e68da418ca48
+# github.com/sigstore/cosign v0.6.1-0.20210723014001-364cadc9e41f
 ## explicit
 github.com/sigstore/cosign/pkg/cosign
 github.com/sigstore/cosign/pkg/cosign/fulcio
 github.com/sigstore/cosign/pkg/cosign/remote
-# github.com/sigstore/fulcio v0.0.0-20210713152059-19d934df64c7
+# github.com/sigstore/fulcio v0.0.0-20210720153316-846105495d38
 github.com/sigstore/fulcio/pkg/generated/client
 github.com/sigstore/fulcio/pkg/generated/client/operations
 github.com/sigstore/fulcio/pkg/generated/models
-# github.com/sigstore/rekor v0.2.1-0.20210714161159-53d71cd8de39
+# github.com/sigstore/rekor v0.2.1-0.20210714185543-38d532d5c0b1
 ## explicit
 github.com/sigstore/rekor/pkg/client
 github.com/sigstore/rekor/pkg/generated/client
@@ -452,7 +466,7 @@ github.com/sigstore/rekor/pkg/types/intoto/v0.0.1
 github.com/sigstore/rekor/pkg/types/rekord
 github.com/sigstore/rekor/pkg/types/rekord/v0.0.1
 github.com/sigstore/rekor/pkg/util
-# github.com/sigstore/sigstore v0.0.0-20210718202323-1c1454ffa6b3
+# github.com/sigstore/sigstore v0.0.0-20210722023421-fd3b69438dba
 ## explicit
 github.com/sigstore/sigstore/pkg/cryptoutils
 github.com/sigstore/sigstore/pkg/oauthflow
@@ -531,6 +545,8 @@ github.com/vdemeester/k8s-pkg-credentialprovider/aws
 github.com/vdemeester/k8s-pkg-credentialprovider/azure
 github.com/vdemeester/k8s-pkg-credentialprovider/gcp
 github.com/vdemeester/k8s-pkg-credentialprovider/secrets
+# go.etcd.io/etcd v3.3.13+incompatible
+## explicit
 # go.mongodb.org/mongo-driver v1.6.0
 go.mongodb.org/mongo-driver/bson
 go.mongodb.org/mongo-driver/bson/bsoncodec
@@ -627,7 +643,7 @@ golang.org/x/lint/golint
 golang.org/x/mod/module
 golang.org/x/mod/semver
 golang.org/x/mod/sumdb/note
-# golang.org/x/net v0.0.0-20210614182718-04defd469f4e
+# golang.org/x/net v0.0.0-20210716203947-853a461950ff
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
 golang.org/x/net/http/httpguts
@@ -720,7 +736,7 @@ google.golang.org/appengine/internal/socket
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/socket
 google.golang.org/appengine/urlfetch
-# google.golang.org/genproto v0.0.0-20210713002101-d411969a0d9a
+# google.golang.org/genproto v0.0.0-20210719143636-1d5a45f8e492
 google.golang.org/genproto/googleapis/api
 google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/api/distribution
@@ -854,7 +870,7 @@ gopkg.in/square/go-jose.v2/jwt
 gopkg.in/yaml.v2
 # gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 gopkg.in/yaml.v3
-# k8s.io/api v0.21.2 => k8s.io/api v0.20.7
+# k8s.io/api v0.21.3 => k8s.io/api v0.20.7
 ## explicit
 k8s.io/api/admission/v1
 k8s.io/api/admissionregistration/v1
@@ -903,7 +919,7 @@ k8s.io/api/storage/v1beta1
 # k8s.io/apiextensions-apiserver v0.19.7
 k8s.io/apiextensions-apiserver/pkg/apis/apiextensions
 k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1
-# k8s.io/apimachinery v0.21.2 => k8s.io/apimachinery v0.20.7
+# k8s.io/apimachinery v0.21.3 => k8s.io/apimachinery v0.20.7
 ## explicit
 k8s.io/apimachinery/pkg/api/equality
 k8s.io/apimachinery/pkg/api/errors
@@ -952,7 +968,7 @@ k8s.io/apimachinery/pkg/version
 k8s.io/apimachinery/pkg/watch
 k8s.io/apimachinery/third_party/forked/golang/json
 k8s.io/apimachinery/third_party/forked/golang/reflect
-# k8s.io/client-go v0.21.2 => k8s.io/client-go v0.20.7
+# k8s.io/client-go v0.21.3 => k8s.io/client-go v0.20.7
 ## explicit
 k8s.io/client-go/discovery
 k8s.io/client-go/discovery/fake

@@ -15,17 +15,13 @@ package chains
 
 import (
 	"context"
-	"strings"
 
-	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
 	"github.com/pkg/errors"
 	"github.com/sigstore/cosign/pkg/cosign"
 	rc "github.com/sigstore/rekor/pkg/client"
 	"github.com/sigstore/rekor/pkg/generated/client"
-	"github.com/sigstore/rekor/pkg/generated/client/entries"
 	"github.com/sigstore/rekor/pkg/generated/models"
-	intoto_v001 "github.com/sigstore/rekor/pkg/types/intoto/v0.0.1"
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/tektoncd/chains/pkg/chains/signing"
 	"go.uber.org/zap"
 )
@@ -45,50 +41,9 @@ func (r *rekor) UploadTlog(ctx context.Context, signer signing.Signer, signature
 		return nil, errors.Wrap(err, "public key or cert")
 	}
 	if payloadFormat == "in-toto" || payloadFormat == "tekton-provenance" {
-		return r.uploadTlogAttestation(ctx, signature, rawPayload, pkoc)
+		return cosign.UploadAttestationTLog(r.c, signature, pkoc)
 	}
-	return r.uploadTlog(ctx, signature, rawPayload, pkoc)
-}
-
-func (r *rekor) uploadTlog(ctx context.Context, signature, rawPayload, certOrPublicKey []byte) (*models.LogEntryAnon, error) {
-	return cosign.UploadTLog(r.c, signature, rawPayload, certOrPublicKey)
-}
-
-func (r *rekor) uploadTlogAttestation(ctx context.Context, signature, rawPayload, certOrPublicKey []byte) (*models.LogEntryAnon, error) {
-	copk := strfmt.Base64(certOrPublicKey)
-
-	e := intoto_v001.V001Entry{
-		IntotoObj: models.IntotoV001Schema{
-			Content: &models.IntotoV001SchemaContent{
-				Envelope: string(signature),
-			},
-			PublicKey: &copk,
-		},
-	}
-
-	entry := models.Intoto{
-		APIVersion: swag.String(e.APIVersion()),
-		Spec:       e.IntotoObj,
-	}
-	params := entries.NewCreateLogEntryParams()
-	params.SetProposedEntry(&entry)
-	resp, err := r.c.Entries.CreateLogEntry(params)
-	if err != nil {
-		// If the entry already exists, we get a specific error.
-		// Here, we display the proof and succeed.
-		if existsErr, ok := err.(*entries.CreateLogEntryConflict); ok {
-			r.logger.Info("Signature already exists")
-			uriSplit := strings.Split(existsErr.Location.String(), "/")
-			uuid := uriSplit[len(uriSplit)-1]
-			return cosign.VerifyTLogEntry(r.c, uuid)
-		}
-		return nil, err
-	}
-	// UUID is at the end of location
-	for _, p := range resp.Payload {
-		return &p, nil
-	}
-	return nil, errors.New("bad response from server")
+	return cosign.UploadTLog(r.c, signature, rawPayload, pkoc)
 }
 
 // return the cert if we have it, otherwise return public key
@@ -100,7 +55,7 @@ func publicKeyOrCert(signer signing.Signer, cert string) ([]byte, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "getting public key")
 	}
-	pem, err := cosign.KeyToPem(pub)
+	pem, err := cryptoutils.MarshalPublicKeyToPEM(pub)
 	if err != nil {
 		return nil, errors.Wrap(err, "key to pem")
 	}

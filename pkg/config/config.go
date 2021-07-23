@@ -65,6 +65,7 @@ type BuilderConfig struct {
 
 type X509Signer struct {
 	FulcioEnabled bool
+	FulcioAddr    string
 	FulcioAuth    string
 }
 
@@ -115,6 +116,7 @@ const (
 	// Fulcio
 	x509SignerFulcioEnabled = "signers.x509.fulcio.enabled"
 	x509SignerFulcioAuth    = "signers.x509.fulcio.auth"
+	x509SignerFulcioAddr    = "signers.x509.fulcio.address"
 
 	// Builder config
 	builderIDKey = "builder.id"
@@ -145,6 +147,7 @@ func defaultConfig() *Config {
 		Signers: SignerConfigs{
 			X509: X509Signer{
 				FulcioAuth: "google",
+				FulcioAddr: "https://fulcio.sigstore.dev",
 			},
 		},
 		Builder: BuilderConfig{
@@ -181,6 +184,7 @@ func NewConfigFromMap(data map[string]string) (*Config, error) {
 
 		cm.AsBool(x509SignerFulcioEnabled, &cfg.Signers.X509.FulcioEnabled),
 		asString(x509SignerFulcioAuth, &cfg.Signers.X509.FulcioAuth),
+		asString(x509SignerFulcioAddr, &cfg.Signers.X509.FulcioAddr),
 
 		// Build config
 		asString(builderIDKey, &cfg.Builder.ID),
