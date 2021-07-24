@@ -200,7 +200,7 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 			signerType := signableType.Signer(cfg)
 			signer, ok := signers[signerType]
 			if !ok {
-				logger.Warnf("No signer %s configured for %s: %v", signerType, signableType.Type())
+				logger.Warnf("No signer %s configured for %s", signerType, signableType.Type())
 				continue
 			}
 
