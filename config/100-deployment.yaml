@@ -73,8 +73,6 @@ spec:
       - name: tekton-chains-controller
         image: ko://github.com/tektoncd/chains/cmd/controller
         volumeMounts:
-        - name: config-logging
-          mountPath: /etc/config-logging
         - name: signing-secrets
           mountPath: /etc/signing-secrets
         env:
@@ -85,9 +83,6 @@ spec:
         - name: METRICS_DOMAIN
           value: tekton.dev/chains
       volumes:
-      - name: config-logging
-        configMap:
-          name: config-logging
       - name: signing-secrets
         secret:
           secretName: signing-secrets
