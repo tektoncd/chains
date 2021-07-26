@@ -29,7 +29,6 @@ import (
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"go.uber.org/zap"
 	"k8s.io/client-go/kubernetes"
-	"knative.dev/pkg/system"
 )
 
 const (
@@ -49,7 +48,7 @@ type Backend struct {
 // NewStorageBackend returns a new OCI StorageBackend that stores signatures in an OCI registry
 func NewStorageBackend(logger *zap.SugaredLogger, client kubernetes.Interface, tr *v1beta1.TaskRun, cfg config.Config) (*Backend, error) {
 	kc, err := k8schain.New(context.TODO(), client,
-		k8schain.Options{Namespace: system.Namespace(), ServiceAccountName: "tekton-chains-controller"})
+		k8schain.Options{Namespace: tr.Namespace, ServiceAccountName: tr.Spec.ServiceAccountName})
 	if err != nil {
 		return nil, err
 	}
