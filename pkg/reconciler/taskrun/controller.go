@@ -21,6 +21,7 @@ import (
 	pipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client"
 	taskruninformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/taskrun"
 	taskrunreconciler "github.com/tektoncd/pipeline/pkg/client/injection/reconciler/pipeline/v1beta1/taskrun"
+	kubeclient "knative.dev/pkg/client/injection/kube/client"
 	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/logging"
@@ -29,11 +30,11 @@ import (
 func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
 	logger := logging.FromContext(ctx)
 	taskRunInformer := taskruninformer.Get(ctx)
-	pipelineclientset := pipelineclient.Get(ctx)
 
 	c := &Reconciler{
 		TaskRunSigner: &chains.TaskRunSigner{
-			Pipelineclientset: pipelineclientset,
+			KubeClient:        kubeclient.Get(ctx),
+			Pipelineclientset: pipelineclient.Get(ctx),
 			SecretPath:        SecretPath,
 		},
 	}

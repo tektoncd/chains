@@ -5,19 +5,12 @@ go 1.16
 require (
 	cloud.google.com/go v0.87.0
 	cloud.google.com/go/storage v1.16.0
-	github.com/alvaroloes/enumer v1.1.2 // indirect
-	github.com/coreos/go-systemd v0.0.0-20190620071333-e64a0ec8b42a // indirect
 	github.com/ghodss/yaml v1.0.0
-	github.com/golangci/golangci-lint v1.17.2-0.20190910081718-bad04bb7378f // indirect
 	github.com/google/go-cmp v0.5.6
 	github.com/google/go-containerregistry v0.5.1
 	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20210216200643-d81088d9983e
-	github.com/google/monologue v0.0.0-20190606152607-4b11a32b5934 // indirect
-	github.com/google/trillian-examples v0.0.0-20190603134952-4e75ba15216c // indirect
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/in-toto/in-toto-golang v0.2.1-0.20210627200632-886210ae2ab9
-	github.com/letsencrypt/pkcs11key v2.0.1-0.20170608213348-396559074696+incompatible // indirect
-	github.com/mattn/go-sqlite3 v1.10.0 // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/onsi/ginkgo v1.15.0 // indirect
 	github.com/onsi/gomega v1.11.0 // indirect
@@ -28,7 +21,6 @@ require (
 	github.com/sigstore/sigstore v0.0.0-20210722023421-fd3b69438dba
 	github.com/tektoncd/pipeline v0.25.0
 	github.com/tektoncd/plumbing v0.0.0-20210514044347-f8a9689d5bd5
-	go.etcd.io/etcd v3.3.13+incompatible // indirect
 	go.uber.org/zap v1.18.1
 	gocloud.dev v0.23.0
 	google.golang.org/api v0.50.0

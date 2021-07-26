@@ -27,6 +27,7 @@ import (
 	fakepipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client/fake"
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	rtesting "knative.dev/pkg/reconciler/testing"
 )
 
@@ -293,7 +294,7 @@ func TestTaskRunSigner_Transparency(t *testing.T) {
 
 func setupMocks(backends []*mockBackend, rekor *mockRekor) func() {
 	oldGet := getBackends
-	getBackends = func(ps versioned.Interface, logger *zap.SugaredLogger, _ *v1beta1.TaskRun, _ config.Config) (map[string]storage.Backend, error) {
+	getBackends = func(ps versioned.Interface, _ kubernetes.Interface, logger *zap.SugaredLogger, _ *v1beta1.TaskRun, _ config.Config) (map[string]storage.Backend, error) {
 		newBackends := map[string]storage.Backend{}
 		for _, m := range backends {
 			newBackends[m.backendType] = m
