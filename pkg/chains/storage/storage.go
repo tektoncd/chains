@@ -22,6 +22,7 @@ import (
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	"go.uber.org/zap"
+	"k8s.io/client-go/kubernetes"
 )
 
 // Backend is an interface to store a chains Payload
@@ -31,7 +32,7 @@ type Backend interface {
 }
 
 // InitializeBackends creates and initializes every configured storage backend.
-func InitializeBackends(ps versioned.Interface, logger *zap.SugaredLogger, tr *v1beta1.TaskRun, cfg config.Config) (map[string]Backend, error) {
+func InitializeBackends(ps versioned.Interface, kc kubernetes.Interface, logger *zap.SugaredLogger, tr *v1beta1.TaskRun, cfg config.Config) (map[string]Backend, error) {
 	// Add an entry here for every configured backend
 	configuredBackends := []string{
 		cfg.Artifacts.TaskRuns.StorageBackend,
@@ -50,7 +51,7 @@ func InitializeBackends(ps versioned.Interface, logger *zap.SugaredLogger, tr *v
 		case tekton.StorageBackendTekton:
 			backends[backendType] = tekton.NewStorageBackend(ps, logger, tr)
 		case oci.StorageBackendOCI:
-			ociBackend, err := oci.NewStorageBackend(logger, tr, cfg)
+			ociBackend, err := oci.NewStorageBackend(logger, kc, tr, cfg)
 			if err != nil {
 				return nil, err
 			}

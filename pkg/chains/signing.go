@@ -37,6 +37,7 @@ import (
 	"go.uber.org/zap"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 	"knative.dev/pkg/logging"
 )
 
@@ -51,6 +52,7 @@ type Signer interface {
 }
 
 type TaskRunSigner struct {
+	KubeClient        kubernetes.Interface
 	Pipelineclientset versioned.Interface
 	SecretPath        string
 }
@@ -159,7 +161,7 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 	}
 
 	// Storage
-	allBackends, err := getBackends(ts.Pipelineclientset, logger, tr, cfg)
+	allBackends, err := getBackends(ts.Pipelineclientset, ts.KubeClient, logger, tr, cfg)
 	if err != nil {
 		return err
 	}
