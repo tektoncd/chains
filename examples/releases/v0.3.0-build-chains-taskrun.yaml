@@ -1,0 +1,37 @@
+apiVersion: tekton.dev/v1beta1
+kind: TaskRun
+metadata:
+  generateName: build-chains-
+  labels:
+    build: chains
+spec:
+  resources:
+    inputs:
+      - name: repo
+        resourceSpec:
+          type: git
+          params:
+            - name: url
+              value: https://github.com/tektoncd/chains
+            - name: revision
+              value: v0.3.0
+  taskSpec:
+    resources:
+      inputs:
+      - name: repo
+        type: git
+    results:
+      - name: IMAGES
+    steps:
+    - name: ko
+      image: gcr.io/tekton-releases/dogfooding/ko:latest
+      workingDir: $(inputs.resources.repo.path)
+      env:
+      - name: KO_DOCKER_REPO
+        value: myrepo
+      script: |
+        #!/usr/bin/env sh
+        set -ex
+
+        ko publish github.com/tektoncd/chains/cmd/controller --tarball image.tar.gz --push=false > $(results.IMAGES.path)
+
