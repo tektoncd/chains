@@ -2,11 +2,30 @@
 
 ## Overview
 
-In-toto attestation spec is defined
-[here](https://github.com/in-toto/attestation/tree/v0.1.0/spec).
+The in-toto attestation spec is defined [here](https://github.com/in-toto/attestation/tree/v0.1.0/spec).
 
-The in-toto format can be enabled by configuring Chains to use format
-`in-toto`.
+In-toto attestations can be generated for TaskRuns. 
+Currently, two predicate formats are supported by Tekton Chains:
+1. A custom [Tekton Chains predicate](../PROVENANCE_SPEC.md)
+1. The standard [in-toto predicate](https://github.com/in-toto/attestation/blob/v0.1.0/spec/predicates/provenance.md)
+
+### Custom Tekton Chains predicate
+The custom Chains predicate can be enabled by running:
+
+```
+kubectl patch configmap chains-config -n tekton-chains -p='{"data":{"artifacts.taskrun.format": "tekton-provenance"}}'
+```
+
+For more details around this custom predicate, see [PROVENANCE_SPEC.md](../PROVENANCE_SPEC.md)
+
+
+### Standard in-toto predicate
+
+The in-toto format can be enabled by running:
+
+```
+kubectl patch configmap chains-config -n tekton-chains -p='{"data":{"artifacts.taskrun.format": "in-toto"}}'
+```
 
 To provide a git URL/commit as material, add a parameter named
 `CHAINS-GIT_COMMIT` and `CHAINS-GIT_URL`. The value of these

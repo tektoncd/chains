@@ -50,6 +50,8 @@ To finish setting up Chains, please complete the following steps:
 ## Tutorial
 To get started with Chains, try out our getting started [tutorial](docs/tutorial.md)!
 
+## Experimental Features
+To learn more about experimental features, check out [experimental.md](docs/experimental.md)
 
 ## Want to contribute
 
