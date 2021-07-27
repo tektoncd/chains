@@ -10,6 +10,7 @@ Note, **only one** of the following keys needs to be set up for Chains to work:
 - [x509](#x509)
 - [Cosign](#cosign)
 - [KMS](#KMS)
+- [EXPERIMENTAL: Keyless signing](experimental.md#Keyless-Signing-Mode)
 
 # x509
 For x509, Chains expects the private key to be stored in a secret called `signing-secrets` with the following structure:
