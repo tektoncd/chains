@@ -20,13 +20,19 @@ package test
 
 import (
 	"bytes"
+	"crypto"
+	"crypto/ecdsa"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
 
 	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/in-toto/in-toto-golang/in_toto"
+	"github.com/in-toto/in-toto-golang/pkg/ssl"
 	"github.com/sigstore/cosign/pkg/cosign"
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature"
 
 	"cloud.google.com/go/compute/metadata"
@@ -205,6 +211,82 @@ func TestGCSStorage(t *testing.T) {
 	if err := c.secret.x509priv.VerifySignature(sigBytes, bodyBytes); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestFulcio(t *testing.T) {
+	ctx := logtesting.TestContextWithLogger(t)
+	if metadata.OnGCE() {
+		t.Skip("Skipping, integration tests do not support workload identity yet.")
+	}
+	c, ns, cleanup := setup(ctx, t, setupOpts{ns: "default"})
+	defer cleanup()
+	resetConfig := setConfigMap(ctx, t, c, map[string]string{
+		"artifacts.taskrun.signer":    "x509",
+		"artifacts.taskrun.format":    "tekton-provenance",
+		"artifacts.oci.signer":        "x509",
+		"signers.x509.fulcio.enabled": "true",
+		"transparency.enabled":        "false",
+	})
+
+	defer resetConfig()
+	time.Sleep(3 * time.Second)
+
+	tr, err := c.PipelineClient.TektonV1beta1().TaskRuns(ns).Create(ctx, &simpleTaskRun, metav1.CreateOptions{})
+	if err != nil {
+		t.Errorf("error creating taskrun: %s", err)
+	}
+
+	// Give it a minute to complete.
+	waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, done, 60*time.Second)
+	tr = waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, signed, 120*time.Second)
+
+	// verify the cert against the signature and payload
+
+	sigKey := fmt.Sprintf("chains.tekton.dev/signature-taskrun-%s", tr.UID)
+	payloadKey := fmt.Sprintf("chains.tekton.dev/payload-taskrun-%s", tr.UID)
+	certKey := fmt.Sprintf("chains.tekton.dev/cert-taskrun-%s", tr.UID)
+
+	envelopeBytes := base64Decode(t, tr.Annotations[sigKey])
+	payload := base64Decode(t, tr.Annotations[payloadKey])
+	certPEM := base64Decode(t, tr.Annotations[certKey])
+
+	certs, err := cryptoutils.LoadCertificatesFromPEM(bytes.NewReader(certPEM))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(certs) == 0 {
+		t.Fatal("there are no certs -- make sure you have workload identity set up on the default service account in the default ns")
+	}
+	cert := certs[0]
+	pubKey, err := signature.LoadECDSAVerifier(cert.PublicKey.(*ecdsa.PublicKey), crypto.SHA256)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// verify the signature
+	var envelope ssl.Envelope
+	if err := json.Unmarshal(envelopeBytes, &envelope); err != nil {
+		t.Fatal(err)
+	}
+
+	paeEnc := ssl.PAE(in_toto.PayloadType, string(payload))
+	sigEncoded := envelope.Signatures[0].Sig
+	sig := base64Decode(t, sigEncoded)
+
+	if err := pubKey.VerifySignature(bytes.NewReader([]byte(sig)), bytes.NewReader(paeEnc)); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func base64Decode(t *testing.T, s string) []byte {
+	b, err := base64.StdEncoding.DecodeString(s)
+	if err != nil {
+		b, err = base64.URLEncoding.DecodeString(s)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	return b
 }
 
 func TestOCIStorage(t *testing.T) {

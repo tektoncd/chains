@@ -65,11 +65,11 @@ func fulcioSigner(auth, addr string, logger *zap.SugaredLogger) (*Signer, error)
 
 	ts, err := idtoken.NewTokenSource(context.Background(), "sigstore")
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "new token source")
 	}
 	tok, err := ts.Token()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "getting token")
 	}
 
 	client, err := fulcio.NewClient(addr)
@@ -78,7 +78,7 @@ func fulcioSigner(auth, addr string, logger *zap.SugaredLogger) (*Signer, error)
 	}
 	k, err := fulcio.NewSigner(context.Background(), tok.AccessToken, "https://oauth2.sigstore.dev/auth", "sigstore", client)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "new signer")
 	}
 	return &Signer{
 		Signer: k.ECDSASignerVerifier,

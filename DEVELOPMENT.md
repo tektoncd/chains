@@ -9,7 +9,7 @@
 1. Set up your [shell environment](#environment-setup)
 1. Install [requirements](#requirements)
 1. [Set up a Kubernetes cluster](#kubernetes-cluster)
-1. [Running Tests](#ruunning-tests)
+1. [Running Tests](#Running-Tests)
 
 Then you can [iterate](#iterating).
 
