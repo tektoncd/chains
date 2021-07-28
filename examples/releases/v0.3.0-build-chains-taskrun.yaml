@@ -20,18 +20,43 @@ spec:
       inputs:
       - name: repo
         type: git
+        targetPath: /go/src/github.com/tektoncd/chains
     results:
-      - name: IMAGES
+      - name: IMAGE_DIGEST
     steps:
     - name: ko
-      image: gcr.io/tekton-releases/dogfooding/ko:latest
-      workingDir: $(inputs.resources.repo.path)
+      image: gcr.io/tekton-releases/dogfooding/ko@sha256:ff918ec2c8bbe416d5a9b6f9d25dfe9012dce673922fe7b2d5d69a99b02df0ac
+      workingDir: /workspace/go/src/github.com/tektoncd/chains
       env:
       - name: KO_DOCKER_REPO
         value: myrepo
+      - name: GO111MODULE
+        value: "off"
+      - name: GOFLAGS
+        value: "-mod=vendor"
+      - name: GOPATH
+        value: /workspace/go
       script: |
         #!/usr/bin/env sh
         set -ex
 
-        ko publish github.com/tektoncd/chains/cmd/controller --tarball image.tar.gz --push=false > $(results.IMAGES.path)
+        # For each cmd/* directory, include a full gzipped tar of all source in
+        # vendor/. This is overkill. Some deps' licenses require the source to be
+        # included in the container image when they're used as a dependency.
+        # Rather than trying to determine which deps have this requirement (an(params.imageRegistryd
+        # probably get it wrong), we'll just targz up the whole vendor tree and
+        # include it. As of 9/20/2019, this amounts to about 11MB of additional
+        # data in each image.
+        TMPDIR=$(mktemp -d)
+        tar cfz ${TMPDIR}/source.tar.gz vendor/
+        for d in cmd/*; do
+          if [ -d ${d}/kodata/ ]; then
+            ln -s ${TMPDIR}/source.tar.gz ${d}/kodata/
+          fi
+        done
 
+        # Rewrite "devel" to params.versionTag
+        sed -i -e 's/\(chains.tekton.dev\/release\): "devel"/\1: "v0.3.0"/g' -e 's/\(app.kubernetes.io\/version\): "devel"/\1: "v0.3.0"/g' -e 's/\(version\): "devel"/\1: "v0.3.0"/g' ./config/*.yaml
+
+        ko resolve '--platform=linux/amd64,linux/arm64' --preserve-import-paths -t v0.3.0 -f ./config > release.yaml
+        grep image: ./release.yaml | cut -d '@' -f 2 > $(results.IMAGE_DIGEST.path)
