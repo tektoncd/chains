@@ -92,14 +92,18 @@ func newClients(t *testing.T, configPath, clusterName string) *clients {
 type setupOpts struct {
 	useCosignSigner bool
 	registry        bool
+	ns              string
 }
 
 func setup(ctx context.Context, t *testing.T, opts setupOpts) (*clients, string, func()) {
 	t.Helper()
-	namespace := names.SimpleNameGenerator.RestrictLengthWithRandomSuffix("earth")
 
 	c := newClients(t, knativetest.Flags.Kubeconfig, knativetest.Flags.Cluster)
-	createNamespace(ctx, t, namespace, c.KubeClient)
+	namespace := "default"
+	if opts.ns == "" {
+		namespace = names.SimpleNameGenerator.RestrictLengthWithRandomSuffix("earth")
+		createNamespace(ctx, t, namespace, c.KubeClient)
+	}
 
 	c.secret = setupSecret(ctx, t, c.KubeClient, opts)
 	if opts.registry {
@@ -109,6 +113,9 @@ func setup(ctx context.Context, t *testing.T, opts setupOpts) (*clients, string,
 	}
 
 	var cleanup = func() {
+		if namespace == "default" {
+			return
+		}
 		t.Logf("Deleting namespace %s", namespace)
 		if err := c.KubeClient.CoreV1().Namespaces().Delete(ctx, namespace, metav1.DeleteOptions{}); err != nil {
 			t.Fatalf("Failed to delete namespace %s for tests: %s", namespace, err)

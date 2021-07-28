@@ -44,6 +44,8 @@ func Wrap(ctx context.Context, s Signer) (Signer, error) {
 		wrapper: envelope,
 		typ:     s.Type(),
 		pub:     pub,
+		cert:    s.Cert(),
+		chain:   s.Chain(),
 	}, nil
 }
 
@@ -67,6 +69,8 @@ type sslSigner struct {
 	wrapper *ssl.EnvelopeSigner
 	typ     string
 	pub     crypto.PublicKey
+	cert    string
+	chain   string
 }
 
 func (s *sslSigner) Type() string {
@@ -104,12 +108,10 @@ func (s *sslSigner) SignMessage(payload io.Reader, opts ...signature.SignOption)
 	return b, nil
 }
 
-// there is no cert, return nothing
 func (w *sslSigner) Cert() string {
-	return ""
+	return w.cert
 }
 
-// there is no cert or chain, return nothing
 func (w *sslSigner) Chain() string {
-	return ""
+	return w.chain
 }
