@@ -21,13 +21,15 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"path/filepath"
 
 	"google.golang.org/api/idtoken"
 
 	"github.com/pkg/errors"
+	"github.com/sigstore/cosign/cmd/cosign/cli/fulcio"
 	"github.com/sigstore/cosign/pkg/cosign"
-	"github.com/sigstore/cosign/pkg/cosign/fulcio"
+	"github.com/sigstore/fulcio/pkg/client"
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/tektoncd/chains/pkg/chains/signing"
 	"github.com/tektoncd/chains/pkg/config"
@@ -72,10 +74,11 @@ func fulcioSigner(auth, addr string, logger *zap.SugaredLogger) (*Signer, error)
 		return nil, errors.Wrap(err, "getting token")
 	}
 
-	client, err := fulcio.NewClient(addr)
+	u, err := url.Parse(addr)
 	if err != nil {
 		return nil, errors.Wrap(err, "new fulcio client")
 	}
+	client := client.New(u)
 	k, err := fulcio.NewSigner(context.Background(), tok.AccessToken, "https://oauth2.sigstore.dev/auth", "sigstore", client)
 	if err != nil {
 		return nil, errors.Wrap(err, "new signer")
