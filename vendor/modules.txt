@@ -1,4 +1,4 @@
-# cloud.google.com/go v0.87.0
+# cloud.google.com/go v0.88.0
 ## explicit
 cloud.google.com/go
 cloud.google.com/go/compute/metadata
@@ -420,12 +420,14 @@ github.com/sassoftware/relic/signers/sigerrors
 github.com/segmentio/ksuid
 # github.com/shibumi/go-pathspec v1.2.0
 github.com/shibumi/go-pathspec
-# github.com/sigstore/cosign v0.6.1-0.20210723014001-364cadc9e41f
+# github.com/sigstore/cosign v1.0.1-0.20210728181701-5f1f18426dc3
 ## explicit
+github.com/sigstore/cosign/cmd/cosign/cli/fulcio
 github.com/sigstore/cosign/pkg/cosign
-github.com/sigstore/cosign/pkg/cosign/fulcio
 github.com/sigstore/cosign/pkg/cosign/remote
-# github.com/sigstore/fulcio v0.0.0-20210720153316-846105495d38
+# github.com/sigstore/fulcio v0.1.1
+## explicit
+github.com/sigstore/fulcio/pkg/client
 github.com/sigstore/fulcio/pkg/generated/client
 github.com/sigstore/fulcio/pkg/generated/client/operations
 github.com/sigstore/fulcio/pkg/generated/models
@@ -720,7 +722,7 @@ google.golang.org/appengine/internal/socket
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/socket
 google.golang.org/appengine/urlfetch
-# google.golang.org/genproto v0.0.0-20210719143636-1d5a45f8e492
+# google.golang.org/genproto v0.0.0-20210721163202-f1cecdd8b78a
 google.golang.org/genproto/googleapis/api
 google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/api/distribution

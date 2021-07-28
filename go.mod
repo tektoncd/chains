@@ -3,7 +3,7 @@ module github.com/tektoncd/chains
 go 1.16
 
 require (
-	cloud.google.com/go v0.87.0
+	cloud.google.com/go v0.88.0
 	cloud.google.com/go/storage v1.16.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/google/go-cmp v0.5.6
@@ -16,7 +16,8 @@ require (
 	github.com/onsi/gomega v1.11.0 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/statsd_exporter v0.20.3 // indirect
-	github.com/sigstore/cosign v0.6.1-0.20210723014001-364cadc9e41f
+	github.com/sigstore/cosign v1.0.1-0.20210728181701-5f1f18426dc3
+	github.com/sigstore/fulcio v0.1.1
 	github.com/sigstore/rekor v0.2.1-0.20210714185543-38d532d5c0b1
 	github.com/sigstore/sigstore v0.0.0-20210722023421-fd3b69438dba
 	github.com/tektoncd/pipeline v0.25.0

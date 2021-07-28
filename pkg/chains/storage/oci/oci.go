@@ -20,6 +20,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/authn/k8schain"
 	"github.com/google/go-containerregistry/pkg/name"
+	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/pkg/errors"
 	"github.com/sigstore/cosign/pkg/cosign"
@@ -81,11 +82,11 @@ func (b *Backend) StorePayload(rawPayload []byte, signature string, storageOpts 
 	if err != nil {
 		return errors.Wrap(err, "getting digest")
 	}
-	desc, err := remote.Get(ref, b.auth)
+	dgst, err := v1.NewHash(ref.DigestStr())
 	if err != nil {
-		return errors.Wrap(err, "getting remote image")
+		return errors.Wrap(err, "parsing digest")
 	}
-	cosignDst := cosign.AttachedImageTag(ref.Repository, desc, cosign.SignatureTagSuffix)
+	cosignDst := cosign.AttachedImageTag(ref.Repository, dgst, cosign.SignatureTagSuffix)
 	if err != nil {
 		return errors.Wrap(err, "destination ref")
 	}
