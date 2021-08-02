@@ -118,6 +118,8 @@ spec:
       value: $(params.platforms)
     - name: serviceAccountPath
       value: $(params.serviceAccountPath)
+    - name: CHAINS-GIT_COMMIT
+      value: $(tasks.git-clone.results.commit)
     workspaces:
     - name: source
       workspace: workarea
