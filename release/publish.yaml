@@ -31,7 +31,6 @@ spec:
     description: The name of the service account path within the release-secret workspace
   - name: CHAINS-GIT_COMMIT
   - name: CHAINS-GIT_URL
-    default: https://github.com/tektoncd/chains
   results:
   - name: IMAGES
   workspaces:
