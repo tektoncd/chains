@@ -37,6 +37,7 @@ import (
 
 	"cloud.google.com/go/compute/metadata"
 	"cloud.google.com/go/storage"
+	"github.com/tektoncd/chains/pkg/chains"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -82,6 +83,57 @@ func TestTektonStorage(t *testing.T) {
 
 	// It can take up to a minute for the secret data to be updated!
 	tr = waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, signed, 120*time.Second)
+
+	// Let's fetch the signature and body:
+
+	sigKey := fmt.Sprintf("chains.tekton.dev/signature-taskrun-%s", tr.UID)
+	payloadKey := fmt.Sprintf("chains.tekton.dev/payload-taskrun-%s", tr.UID)
+	signature, body := tr.Annotations[sigKey], tr.Annotations[payloadKey]
+	// base64 decode them
+	sigBytes, err := base64.StdEncoding.DecodeString(signature)
+	if err != nil {
+		t.Error(err)
+	}
+	bodyBytes, err := base64.StdEncoding.DecodeString(body)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if err := c.secret.x509priv.VerifySignature(bytes.NewReader(sigBytes), bytes.NewReader(bodyBytes)); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestRekor(t *testing.T) {
+	ctx := logtesting.TestContextWithLogger(t)
+	c, ns, cleanup := setup(ctx, t, setupOpts{})
+	defer cleanup()
+
+	// Setup the right config.
+	resetConfig := setConfigMap(ctx, t, c, map[string]string{
+		"artifacts.taskrun.signer": "x509",
+		"artifacts.oci.format":     "tekton",
+		"artifacts.taskrun.format": "tekton",
+		"artifacts.oci.storage":    "tekton",
+		"artifacts.oci.signer":     "x509",
+		"transparency.enabled":     "manual",
+	})
+	defer resetConfig()
+
+	tr, err := c.PipelineClient.TektonV1beta1().TaskRuns(ns).Create(ctx, &imageTaskRun, metav1.CreateOptions{})
+	if err != nil {
+		t.Errorf("error creating taskrun: %s", err)
+	}
+
+	// Give it a minute to complete.
+	waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, done, 60*time.Second)
+
+	// It can take up to a minute for the secret data to be updated!
+	tr = waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, signed, 120*time.Second)
+
+	if v, ok := tr.Annotations[chains.ChainsTransparencyAnnotation]; !ok || v == "" {
+		t.Fatal("failed to upload to tlog")
+	}
 
 	// Let's fetch the signature and body:
 
@@ -385,6 +437,7 @@ cat <<EOF > $(outputs.resources.image.path)/index.json
 var imageTaskRun = v1beta1.TaskRun{
 	ObjectMeta: metav1.ObjectMeta{
 		GenerateName: "image-task",
+		Annotations:  map[string]string{chains.RekorAnnotation: "true"},
 	},
 	Spec: v1beta1.TaskRunSpec{
 		TaskSpec: &imageTaskSpec,

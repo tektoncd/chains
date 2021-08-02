@@ -3,6 +3,8 @@ apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
   name: publish-chains-release
+  annotations:
+    chains.tekton.dev/transparency-upload: "true"
 spec:
   params:
   - name: package

@@ -240,7 +240,7 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 				merr = multierror.Append(merr, err)
 			}
 
-			if cfg.Transparency.Enabled {
+			if shouldUploadTlog(cfg, tr) {
 				entry, err := rekorClient.UploadTlog(ctx, signer, signature, rawPayload, signer.Cert(), string(payloadFormat))
 				if err != nil {
 					logger.Error(err)

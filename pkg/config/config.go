@@ -18,6 +18,7 @@ package config
 
 import (
 	"fmt"
+	"strconv"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -90,8 +91,9 @@ type DocDBStorageConfig struct {
 }
 
 type TransparencyConfig struct {
-	Enabled bool
-	URL     string
+	Enabled          bool
+	VerifyAnnotation bool
+	URL              string
 }
 
 const (
@@ -174,15 +176,16 @@ func NewConfigFromMap(data map[string]string) (*Config, error) {
 		// Storage level configs
 		asString(gcsBucketKey, &cfg.Storage.GCS.Bucket),
 		asString(ociRepositoryKey, &cfg.Storage.OCI.Repository),
-		cm.AsBool(ociRepositoryInsecureKey, &cfg.Storage.OCI.Insecure),
+		asBool(ociRepositoryInsecureKey, &cfg.Storage.OCI.Insecure),
 		asString(docDBUrlKey, &cfg.Storage.DocDB.URL),
 
-		cm.AsBool(transparencyEnabledKey, &cfg.Transparency.Enabled),
+		asBool(transparencyEnabledKey, &cfg.Transparency.Enabled, "manual"),
+		asBool(transparencyEnabledKey, &cfg.Transparency.VerifyAnnotation, "manual"),
 		asString(transparencyURLKey, &cfg.Transparency.URL),
 
 		asString(kmsSignerKMSRef, &cfg.Signers.KMS.KMSRef),
 
-		cm.AsBool(x509SignerFulcioEnabled, &cfg.Signers.X509.FulcioEnabled),
+		asBool(x509SignerFulcioEnabled, &cfg.Signers.X509.FulcioEnabled),
 		asString(x509SignerFulcioAuth, &cfg.Signers.X509.FulcioAuth),
 		asString(x509SignerFulcioAddr, &cfg.Signers.X509.FulcioAddr),
 
@@ -198,6 +201,30 @@ func NewConfigFromMap(data map[string]string) (*Config, error) {
 // NewConfigFromConfigMap creates a Config from the supplied ConfigMap
 func NewConfigFromConfigMap(configMap *corev1.ConfigMap) (*Config, error) {
 	return NewConfigFromMap(configMap.Data)
+}
+
+// allow additional supported values for a "true" decision
+// in additional to the usual ones provided by strconv.ParseBool
+func asBool(key string, target *bool, values ...string) cm.ParseFunc {
+	return func(data map[string]string) error {
+		raw, ok := data[key]
+		if !ok {
+			return nil
+		}
+		val, err := strconv.ParseBool(raw)
+		if err == nil {
+			*target = val
+			return nil
+		}
+		if len(values) > 0 {
+			for _, v := range values {
+				if v == raw {
+					*target = true
+				}
+			}
+		}
+		return nil
+	}
 }
 
 // asString passes the value at key through into the target, if it exists.
