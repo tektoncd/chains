@@ -18,6 +18,8 @@ apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
   name: chains-release
+  annotations:
+    chains.tekton.dev/transparency-upload: "true"
 spec:
   params:
   - name: package

@@ -289,6 +289,36 @@ func TestTaskRunSigner_Transparency(t *testing.T) {
 		if len(rekor.entries) != 1 {
 			t.Error("expected transparency log entry!")
 		}
+
+		// Now enable verifying the annotation
+		cfg.Transparency.VerifyAnnotation = true
+		ctx = config.ToContext(ctx, cfg.DeepCopy())
+
+		tr3 := &v1beta1.TaskRun{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "mytaskrun",
+			},
+		}
+
+		if _, err := ps.TektonV1beta1().TaskRuns(tr.Namespace).Create(ctx, tr3, metav1.CreateOptions{}); err != nil {
+			t.Errorf("error creating fake taskrun: %v", err)
+		}
+		if err := ts.SignTaskRun(ctx, tr3); err != nil {
+			t.Errorf("TaskRunSigner.SignTaskRun() error = %v", err)
+		}
+
+		if len(rekor.entries) != 1 {
+			t.Error("expected no new transparency log entries!")
+		}
+		// add in the annotation
+		tr3.Annotations = map[string]string{RekorAnnotation: "true"}
+		if err := ts.SignTaskRun(ctx, tr3); err != nil {
+			t.Errorf("TaskRunSigner.SignTaskRun() error = %v", err)
+		}
+
+		if len(rekor.entries) != 2 {
+			t.Error("expected two transparency log entries!")
+		}
 	}
 }
 

@@ -82,9 +82,15 @@ Supported keys include:
 
 | Key | Description | Supported Values | Default |
 | :--- | :--- | :--- | :--- |
-| `transparency.enabled` | EXPERIMENTAL. Whether to enable automatic binary transparency uploads. | `true`, `false` | `false` |
+| `transparency.enabled` | EXPERIMENTAL. Whether to enable automatic binary transparency uploads. | `true`, `false`, `manual` | `false` |
 | `transparency.url` | EXPERIMENTAL. The URL to upload binary transparency attestations to, if enabled. | |`https://rekor.sigstore.dev`|
 
+
+**Note**: If `transparency.enabled` is set to `manual`, then only TaskRuns with the following annotation will be uploaded to the transparency log:
+
+```yaml
+chains.tekton.dev/transparency-upload: "true"
+```
 
 #### Keyless Signing with Fulcio
 

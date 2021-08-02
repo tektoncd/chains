@@ -147,6 +147,33 @@ func TestParse(t *testing.T) {
 			},
 		},
 		{
+			name: "manual transparency",
+			data: map[string]string{transparencyEnabledKey: "manual"},
+			want: Config{
+				Builder: BuilderConfig{
+					"tekton-chains",
+				},
+				Artifacts: ArtifactConfigs{
+					TaskRuns: Artifact{
+						Format:         "tekton",
+						Signer:         "x509",
+						StorageBackend: "tekton",
+					},
+					OCI: Artifact{
+						Format:         "simplesigning",
+						StorageBackend: "oci",
+						Signer:         "x509",
+					},
+				},
+				Signers: defaultSigners,
+				Transparency: TransparencyConfig{
+					Enabled:          true,
+					VerifyAnnotation: true,
+					URL:              "https://rekor.sigstore.dev",
+				},
+			},
+		},
+		{
 			name: "extra",
 			data: map[string]string{taskrunSignerKey: "x509", "other-key": "foo"},
 			want: Config{

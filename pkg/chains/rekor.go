@@ -23,7 +23,13 @@ import (
 	"github.com/sigstore/rekor/pkg/generated/models"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/tektoncd/chains/pkg/chains/signing"
+	"github.com/tektoncd/chains/pkg/config"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"go.uber.org/zap"
+)
+
+const (
+	RekorAnnotation = "chains.tekton.dev/transparency-upload"
 )
 
 type rekor struct {
@@ -72,4 +78,22 @@ var getRekor = func(url string, l *zap.SugaredLogger) (rekorClient, error) {
 		c:      rekorClient,
 		logger: l,
 	}, nil
+}
+
+func shouldUploadTlog(cfg config.Config, tr *v1beta1.TaskRun) bool {
+	// if transparency isn't enabled, return false
+	if !cfg.Transparency.Enabled {
+		return false
+	}
+	// if transparency is enabled and verification is disabled, return true
+	if !cfg.Transparency.VerifyAnnotation {
+		return true
+	}
+	// verify the annotation
+	for k, v := range tr.Annotations {
+		if k == RekorAnnotation && v == "true" {
+			return true
+		}
+	}
+	return false
 }
