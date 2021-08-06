@@ -32,12 +32,21 @@ type Reconciler struct {
 	TaskRunSigner signing.Signer
 }
 
-// Check that our Reconciler implements taskrunreconciler.Interface
+// Check that our Reconciler implements taskrunreconciler.Interface and taskrunreconciler.Finalizer
 var _ taskrunreconciler.Interface = (*Reconciler)(nil)
+var _ taskrunreconciler.Finalizer = (*Reconciler)(nil)
 
 // ReconcileKind  handles a changed or created TaskRun.
 // This is the main entrypoint for chains business logic.
 func (r *Reconciler) ReconcileKind(ctx context.Context, tr *v1beta1.TaskRun) pkgreconciler.Event {
+	return r.FinalizeKind(ctx, tr)
+}
+
+// FinalizeKind implements taskrunreconciler.Finalizer
+// We utilize finalizers to ensure that we get a crack at signing every taskrun
+// that we see flowing through the system.  If we don't add a finalizer, it could
+// get cleaned up before we see the final state and sign it.
+func (r *Reconciler) FinalizeKind(ctx context.Context, tr *v1beta1.TaskRun) pkgreconciler.Event {
 	// Check to make sure the TaskRun is finished.
 	if !tr.IsDone() {
 		logging.FromContext(ctx).Infof("taskrun %s/%s is still running", tr.Namespace, tr.Name)
