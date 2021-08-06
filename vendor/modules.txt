@@ -340,7 +340,6 @@ github.com/josharian/intern
 # github.com/json-iterator/go v1.1.11
 github.com/json-iterator/go
 # github.com/jstemmer/go-junit-report v0.9.1
-## explicit
 github.com/jstemmer/go-junit-report
 github.com/jstemmer/go-junit-report/formatter
 github.com/jstemmer/go-junit-report/parser
@@ -857,7 +856,7 @@ gopkg.in/square/go-jose.v2/jwt
 gopkg.in/yaml.v2
 # gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 gopkg.in/yaml.v3
-# k8s.io/api v0.21.3 => k8s.io/api v0.20.7
+# k8s.io/api v0.22.0 => k8s.io/api v0.20.7
 ## explicit
 k8s.io/api/admission/v1
 k8s.io/api/admissionregistration/v1

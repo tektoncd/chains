@@ -11,7 +11,6 @@ require (
 	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20210216200643-d81088d9983e
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/in-toto/in-toto-golang v0.2.1-0.20210627200632-886210ae2ab9
-	github.com/jstemmer/go-junit-report v0.9.1 // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/onsi/ginkgo v1.15.0 // indirect
 	github.com/onsi/gomega v1.11.0 // indirect
@@ -26,7 +25,7 @@ require (
 	go.uber.org/zap v1.18.1
 	gocloud.dev v0.23.0
 	google.golang.org/api v0.50.0
-	k8s.io/api v0.21.3
+	k8s.io/api v0.22.0
 	k8s.io/apimachinery v0.21.3
 	k8s.io/client-go v0.21.3
 	k8s.io/code-generator v0.19.7
