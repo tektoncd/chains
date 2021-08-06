@@ -340,7 +340,6 @@ github.com/josharian/intern
 # github.com/json-iterator/go v1.1.11
 github.com/json-iterator/go
 # github.com/jstemmer/go-junit-report v0.9.1
-## explicit
 github.com/jstemmer/go-junit-report
 github.com/jstemmer/go-junit-report/formatter
 github.com/jstemmer/go-junit-report/parser
@@ -955,7 +954,7 @@ k8s.io/apimachinery/pkg/version
 k8s.io/apimachinery/pkg/watch
 k8s.io/apimachinery/third_party/forked/golang/json
 k8s.io/apimachinery/third_party/forked/golang/reflect
-# k8s.io/client-go v0.21.3 => k8s.io/client-go v0.20.7
+# k8s.io/client-go v0.22.0 => k8s.io/client-go v0.20.7
 ## explicit
 k8s.io/client-go/discovery
 k8s.io/client-go/discovery/fake
