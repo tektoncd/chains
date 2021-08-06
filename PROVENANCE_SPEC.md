@@ -28,9 +28,9 @@ If a build pipeline outputs multiple artifacts, each will have its own attestati
   "predicate": {
     "invocation": {
       "parameters": null,
-      "uri": "",
+      "recipe_uri": "",
       "event_id": "",
-      "id": "",
+      "builder.id": "",
     },
     "recipe": {
       "steps": [
