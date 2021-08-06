@@ -46,6 +46,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 			// The chains reconciler shouldn't mutate the taskrun's status.
 			SkipStatusUpdates: true,
 			ConfigStore:       cfgStore,
+			FinalizerName:     "chains.tekton.dev",
 		}
 	})
 
