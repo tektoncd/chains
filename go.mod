@@ -19,7 +19,7 @@ require (
 	github.com/sigstore/fulcio v0.1.1
 	github.com/sigstore/rekor v0.2.1-0.20210714185543-38d532d5c0b1
 	github.com/sigstore/sigstore v0.0.0-20210722023421-fd3b69438dba
-	github.com/tektoncd/pipeline v0.25.0
+	github.com/tektoncd/pipeline v0.26.0
 	github.com/tektoncd/plumbing v0.0.0-20210514044347-f8a9689d5bd5
 	go.uber.org/zap v1.18.1
 	gocloud.dev v0.23.0
@@ -27,7 +27,7 @@ require (
 	k8s.io/api v0.21.3
 	k8s.io/apimachinery v0.21.3
 	k8s.io/client-go v0.21.3
-	k8s.io/code-generator v0.19.7
+	k8s.io/code-generator v0.20.7
 	k8s.io/klog/v2 v2.8.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20210305001622-591a79e4bda7 // indirect
 	knative.dev/pkg v0.0.0-20210510175900-4564797bf3b7
