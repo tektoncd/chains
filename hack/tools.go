@@ -23,6 +23,7 @@ import (
 	_ "k8s.io/code-generator/cmd/deepcopy-gen"
 
 	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
+	_ "github.com/google/addlicense"
 	_ "github.com/google/go-licenses/licenses"
 	_ "github.com/tektoncd/plumbing"
 	_ "github.com/tektoncd/plumbing/scripts"

@@ -7,6 +7,7 @@ require (
 	cloud.google.com/go/storage v1.16.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/golangci/golangci-lint v1.41.1
+	github.com/google/addlicense v0.0.0-20210809195240-d43bb61fdfda
 	github.com/google/go-cmp v0.5.6
 	github.com/google/go-containerregistry v0.5.1
 	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20210216200643-d81088d9983e
