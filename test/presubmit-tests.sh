@@ -37,10 +37,19 @@ function post_build_tests() {
   # deadline of 10m, and show all the issues
   golangci-lint --color=never --timeout 10m run
 
+  go_mod_update
 
   header "copyright licenses check"
   addlicense -ignore "vendor/**"  -l apache -c 'The Tekton Authors' -v *
   git diff --exit-code
+}
+
+function go_mod_update(){
+  set -e
+  export GO111MODULE=on && \
+		go mod tidy && \
+		go mod vendor && \
+		go mod verify
 }
 
 # We use the default build, unit and integration test runners.
