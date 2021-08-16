@@ -1,1 +1,0 @@
-../pkg/signing/pgp/testdata/README.md
