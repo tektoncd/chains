@@ -25,9 +25,9 @@ require (
 	go.uber.org/zap v1.18.1
 	gocloud.dev v0.23.0
 	google.golang.org/api v0.50.0
-	k8s.io/api v0.21.3
+	k8s.io/api v0.22.0
 	k8s.io/apimachinery v0.21.3
-	k8s.io/client-go v0.21.3
+	k8s.io/client-go v0.22.0
 	k8s.io/code-generator v0.20.7
 	k8s.io/klog/v2 v2.8.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20210305001622-591a79e4bda7 // indirect
