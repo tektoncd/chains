@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/tektoncd/chains/pkg/artifacts"
@@ -44,7 +45,10 @@ import (
 const (
 	// ChainsAnnotation is the standard annotation to indicate a TR has been signed.
 	ChainsAnnotation             = "chains.tekton.dev/signed"
+	ChainsRetriesAnnotation      = "chains.tekton.dev/retries"
 	ChainsTransparencyAnnotation = "chains.tekton.dev/transparency"
+	Failed                       = "failed"
+	MaxRetries                   = 3
 )
 
 type Signer interface {
@@ -58,21 +62,47 @@ type TaskRunSigner struct {
 }
 
 // IsSigned determines whether a TaskRun has already been signed.
-func IsSigned(tr *v1beta1.TaskRun) bool {
+func IsSigned(tr *v1beta1.TaskRun) (bool, string) {
+	const signed = "true"
 	signature, ok := tr.ObjectMeta.Annotations[ChainsAnnotation]
 	if !ok {
-		return false
+		return false, ""
 	}
-	return signature == "true"
+	return signature == signed, signature
+}
+
+// returns true if:
+// the signed annotation isn't there, the failed annotation isn't there, and retries<3
+func RetryAgain(tr *v1beta1.TaskRun) (bool, string) {
+	retries, ok := tr.ObjectMeta.Annotations[ChainsRetriesAnnotation]
+	if !ok {
+		return false, ""
+	}
+	return true, retries
 }
 
 // MarkSigned marks a TaskRun as signed.
-func MarkSigned(tr *v1beta1.TaskRun, ps versioned.Interface, annotations map[string]string) error {
+func MarkSigned(tr *v1beta1.TaskRun, ps versioned.Interface, annotations map[string]string,
+	state string) error {
+	return markannotation(tr, ps, annotations, ChainsAnnotation, state)
+}
+
+// AddRetries marks a TaskRun as retrying.
+func AddRetries(tr *v1beta1.TaskRun, ps versioned.Interface, annotations map[string]string,
+	value int) error {
+	if value > MaxRetries {
+		return fmt.Errorf("The retries cannot be greater than %d", MaxRetries)
+	}
+	return markannotation(tr, ps, annotations, ChainsRetriesAnnotation, strconv.Itoa(value))
+}
+
+func markannotation(tr *v1beta1.TaskRun, ps versioned.Interface, annotations map[string]string,
+	key, value string) error {
 	// Use patch instead of update to help prevent race conditions.
 	if annotations == nil {
 		annotations = map[string]string{}
 	}
-	annotations[ChainsAnnotation] = "true"
+	annotations[key] = value
 	patchBytes, err := patch.GetAnnotationsPatch(annotations)
 	if err != nil {
 		return err
@@ -252,10 +282,34 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 			}
 		}
 		if merr.ErrorOrNil() != nil {
+			if err := HandleRetries(tr, ts, extraAnnotations); err != nil {
+				merr = multierror.Append(merr, err)
+			}
 			return merr
 		}
 	}
 
 	// Now mark the TaskRun as signed
-	return MarkSigned(tr, ts.Pipelineclientset, extraAnnotations)
+	return MarkSigned(tr, ts.Pipelineclientset, extraAnnotations, "true")
+}
+
+// HandleRetries adds retry annotation to keep track of retries and marks the job as failed
+// if retries have reached MaxRetries.
+func HandleRetries(tr *v1beta1.TaskRun, ts *TaskRunSigner, extraAnnotations map[string]string) error {
+	ok, s := RetryAgain(tr)
+	if !ok {
+		return AddRetries(tr, ts.Pipelineclientset, extraAnnotations, 1)
+	}
+
+	count, err := strconv.Atoi(s)
+	if err != nil {
+		return err
+	}
+
+	if count <= MaxRetries {
+		return AddRetries(tr, ts.Pipelineclientset, extraAnnotations, count+1)
+	}
+
+	// Marking it failed after retrying MaxRetries
+	return MarkSigned(tr, ts.Pipelineclientset, extraAnnotations, Failed)
 }

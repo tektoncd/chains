@@ -50,7 +50,7 @@ func TestMarkSigned(t *testing.T) {
 	}
 
 	// Now mark it as signed.
-	if err := MarkSigned(tr, c, nil); err != nil {
+	if err := MarkSigned(tr, c, nil, "true"); err != nil {
 		t.Errorf("MarkSigned() error = %v", err)
 	}
 
@@ -69,7 +69,7 @@ func TestMarkSigned(t *testing.T) {
 	extra := map[string]string{
 		"foo": "bar",
 	}
-	if err := MarkSigned(tr, c, extra); err != nil {
+	if err := MarkSigned(tr, c, extra, "true"); err != nil {
 		t.Errorf("MarkSigned() error = %v", err)
 	}
 
@@ -83,6 +83,43 @@ func TestMarkSigned(t *testing.T) {
 	}
 	if signed.Annotations["foo"] != "bar" {
 		t.Error("Extra annotations not applied")
+	}
+}
+
+func TestAddRetries(t *testing.T) {
+	ctx, _ := rtesting.SetupFakeContext(t)
+	// Create a TR for testing
+	c := fakepipelineclient.Get(ctx)
+	tr := &v1beta1.TaskRun{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "my-taskrun",
+		},
+		Spec: v1beta1.TaskRunSpec{
+			TaskRef: &v1beta1.TaskRef{
+				Name: "foo",
+			},
+		},
+	}
+	if _, err := c.TektonV1beta1().
+		TaskRuns(tr.Namespace).Create(ctx, tr, metav1.CreateOptions{}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Marking the taskrun for retries
+	if err := AddRetries(tr, c, nil, 1); err != nil {
+		t.Errorf("MarkSigned() error = %v", err)
+	}
+
+	// Now check the signature.
+	retry, err := c.TektonV1beta1().TaskRuns(tr.Namespace).Get(ctx, tr.Name, metav1.GetOptions{})
+	if err != nil {
+		t.Errorf("Get() error = %v", err)
+	}
+	if _, ok := retry.Annotations[ChainsRetriesAnnotation]; !ok {
+		t.Error("Taskrun does not have retry")
+	}
+	if err := AddRetries(tr, c, nil, MaxRetries+1); err == nil {
+		t.Errorf("MarkSigned() error = %v", err)
 	}
 }
 
@@ -100,12 +137,12 @@ func TestIsSigned(t *testing.T) {
 		{
 			name:       "signed with other string",
 			want:       false,
-			annotation: "baz",
+			annotation: "failed",
 		},
 		{
 			name:       "not signed",
 			want:       false,
-			annotation: "",
+			annotation: "failed",
 		},
 	}
 	for _, tt := range tests {
@@ -117,9 +154,43 @@ func TestIsSigned(t *testing.T) {
 					},
 				},
 			}
-			got := IsSigned(tr)
+			got, _ := IsSigned(tr)
 			if got != tt.want {
 				t.Errorf("IsSigned() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIsRetrying(t *testing.T) {
+	tests := []struct {
+		name       string
+		want       bool
+		annotation string
+		state      string
+	}{
+		{
+			name:       "retrying",
+			want:       true,
+			annotation: "1",
+			state:      "1",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tr := &v1beta1.TaskRun{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						ChainsRetriesAnnotation: tt.annotation,
+					},
+				},
+			}
+			got, got1 := RetryAgain(tr)
+			if got != tt.want {
+				t.Errorf("IsRetrying() got = %v, want %v", got, tt.want)
+			}
+			if got1 != tt.state {
+				t.Errorf("IsRetrying() got1 = %v, want %v", got1, tt.state)
 			}
 		})
 	}
@@ -203,8 +274,9 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 			}
 			// Check it is marked as signed
 			shouldBeSigned := !tt.wantErr
-			if IsSigned(tr) != shouldBeSigned {
-				t.Errorf("IsSigned()=%t, wanted %t", IsSigned(tr), shouldBeSigned)
+			signed, _ := IsSigned(tr)
+			if signed != shouldBeSigned {
+				t.Errorf("IsSigned()=%t, wanted %t", signed, shouldBeSigned)
 			}
 			// Check the payloads were stored in all the backends.
 			for _, b := range tt.backends {
@@ -220,7 +292,6 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 					t.Error("error, expected payload to be stored.")
 				}
 			}
-
 		})
 	}
 }
