@@ -1,7 +1,5 @@
-// +build tools
-
 /*
-Copyright 2019 The Tekton Authors
+Copyright 2016 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,16 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package tools
+package auth
 
-// This is needed to force "go mod" to vendor these modules, which we only use for scripts.
 import (
-	_ "k8s.io/code-generator/cmd/deepcopy-gen"
-
-	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
-	_ "github.com/google/addlicense"
-	_ "github.com/google/go-licenses/licenses"
-	_ "github.com/sigstore/cosign/cmd/cosign"
-	_ "github.com/tektoncd/plumbing"
-	_ "github.com/tektoncd/plumbing/scripts"
+	// Initialize all known client auth plugins.
+	_ "k8s.io/client-go/plugin/pkg/client/auth/azure"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/openstack"
 )

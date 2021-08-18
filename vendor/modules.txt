@@ -156,6 +156,8 @@ github.com/cespare/xxhash/v2
 github.com/charithe/durationcheck
 # github.com/chavacava/garif v0.0.0-20210405164556-e8a0a408d6af
 github.com/chavacava/garif
+# github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
+github.com/chzyer/readline
 # github.com/containerd/stargz-snapshotter/estargz v0.4.1
 github.com/containerd/stargz-snapshotter/estargz
 github.com/containerd/stargz-snapshotter/estargz/errorutil
@@ -256,6 +258,8 @@ github.com/go-openapi/strfmt
 github.com/go-openapi/swag
 # github.com/go-openapi/validate v0.20.2
 github.com/go-openapi/validate
+# github.com/go-piv/piv-go v1.8.0
+github.com/go-piv/piv-go/piv
 # github.com/go-playground/locales v0.13.0
 github.com/go-playground/locales
 github.com/go-playground/locales/currency
@@ -510,6 +514,9 @@ github.com/json-iterator/go
 github.com/jstemmer/go-junit-report
 github.com/jstemmer/go-junit-report/formatter
 github.com/jstemmer/go-junit-report/parser
+# github.com/juju/ansiterm v0.0.0-20180109212912-720a0952cc2a
+github.com/juju/ansiterm
+github.com/juju/ansiterm/tabwriter
 # github.com/julz/importas v0.0.0-20210419104244-841f0c0fe66d
 github.com/julz/importas
 # github.com/kelseyhightower/envconfig v1.4.0
@@ -533,12 +540,18 @@ github.com/ldez/gomoddirectives
 github.com/ldez/tagliatelle
 # github.com/leodido/go-urn v1.2.1
 github.com/leodido/go-urn
+# github.com/lunixbochs/vtclean v0.0.0-20180621232353-2d01aacdc34a
+github.com/lunixbochs/vtclean
 # github.com/magiconair/properties v1.8.5
 github.com/magiconair/properties
 # github.com/mailru/easyjson v0.7.7
 github.com/mailru/easyjson/buffer
 github.com/mailru/easyjson/jlexer
 github.com/mailru/easyjson/jwriter
+# github.com/manifoldco/promptui v0.8.0
+github.com/manifoldco/promptui
+github.com/manifoldco/promptui/list
+github.com/manifoldco/promptui/screenbuf
 # github.com/maratori/testpackage v1.0.1
 github.com/maratori/testpackage/pkg/testpackage
 # github.com/matoous/godox v0.0.0-20210227103229-6504466cf951
@@ -605,6 +618,9 @@ github.com/opentracing/opentracing-go/log
 github.com/openzipkin/zipkin-go/model
 # github.com/pelletier/go-toml v1.9.3
 github.com/pelletier/go-toml
+# github.com/peterbourgon/ff/v3 v3.1.0
+github.com/peterbourgon/ff/v3
+github.com/peterbourgon/ff/v3/ffcli
 # github.com/phayes/checkstyle v0.0.0-20170904204023-bfd46e6a821d
 github.com/phayes/checkstyle
 # github.com/pierrec/lz4 v2.6.1+incompatible
@@ -675,8 +691,16 @@ github.com/shazow/go-diff/difflib
 github.com/shibumi/go-pathspec
 # github.com/sigstore/cosign v1.0.1-0.20210728181701-5f1f18426dc3
 ## explicit
+github.com/sigstore/cosign/cmd/cosign
+github.com/sigstore/cosign/cmd/cosign/cli
+github.com/sigstore/cosign/cmd/cosign/cli/attach
+github.com/sigstore/cosign/cmd/cosign/cli/download
 github.com/sigstore/cosign/cmd/cosign/cli/fulcio
+github.com/sigstore/cosign/cmd/cosign/cli/pivcli
+github.com/sigstore/cosign/cmd/cosign/cli/upload
 github.com/sigstore/cosign/pkg/cosign
+github.com/sigstore/cosign/pkg/cosign/kubernetes
+github.com/sigstore/cosign/pkg/cosign/pivkey
 github.com/sigstore/cosign/pkg/cosign/remote
 # github.com/sigstore/fulcio v0.1.1
 ## explicit
@@ -712,6 +736,7 @@ github.com/sigstore/rekor/pkg/util
 github.com/sigstore/sigstore/pkg/cryptoutils
 github.com/sigstore/sigstore/pkg/oauthflow
 github.com/sigstore/sigstore/pkg/signature
+github.com/sigstore/sigstore/pkg/signature/dsse
 github.com/sigstore/sigstore/pkg/signature/kms
 github.com/sigstore/sigstore/pkg/signature/kms/aws
 github.com/sigstore/sigstore/pkg/signature/kms/azure
@@ -1579,8 +1604,12 @@ k8s.io/client-go/pkg/apis/clientauthentication
 k8s.io/client-go/pkg/apis/clientauthentication/v1alpha1
 k8s.io/client-go/pkg/apis/clientauthentication/v1beta1
 k8s.io/client-go/pkg/version
+k8s.io/client-go/plugin/pkg/client/auth
+k8s.io/client-go/plugin/pkg/client/auth/azure
 k8s.io/client-go/plugin/pkg/client/auth/exec
 k8s.io/client-go/plugin/pkg/client/auth/gcp
+k8s.io/client-go/plugin/pkg/client/auth/oidc
+k8s.io/client-go/plugin/pkg/client/auth/openstack
 k8s.io/client-go/rest
 k8s.io/client-go/rest/fake
 k8s.io/client-go/rest/watch
