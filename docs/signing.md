@@ -22,13 +22,6 @@ Chains also has the following requirements:
 * The key is of type `ed25519` or `ecdsa`
 
 
-## Generate x509 Keypair
-
-To create a valid x509 keypair, you can run [gen-keys.sh](../gen-keys.sh).
-This script will take care of creating the keypair (`x509.pem` and `x509.pub`), and storing the private key correctly in the `signing-secrets` Kubernetes Secret.
-
-_Note: requires `openssl` is installed_
-
 
 # Cosign
 For cosign, Chains expects the encrypted private key to be stored in a secret called `signing-secrets` with the following structure:
@@ -43,7 +36,7 @@ Chains also has the following requirements:
 
 To create a cosign keypair, `cosign.key` and `cosign.pub`, install [cosign](https://github.com/sigstore/cosign) and run the following:
 ```shell
-cosign generate-key-pair -k8s tekton-chains/signing-secrets
+cosign generate-key-pair tekton-chains/signing-secrets
 ```
 
 Cosign will prompt you for a password, and create the Kubernetes secret for you.
