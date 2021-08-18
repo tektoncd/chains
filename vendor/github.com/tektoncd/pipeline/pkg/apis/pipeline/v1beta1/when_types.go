@@ -17,6 +17,8 @@ limitations under the License.
 package v1beta1
 
 import (
+	"fmt"
+
 	"github.com/tektoncd/pipeline/pkg/substitution"
 	"k8s.io/apimachinery/pkg/selection"
 )
@@ -52,19 +54,19 @@ func (we *WhenExpression) isTrue() bool {
 	return !we.isInputInValues()
 }
 
-func (we *WhenExpression) hasVariable() bool {
-	if _, hasVariable := we.GetVarSubstitutionExpressions(); hasVariable {
-		return true
-	}
-	return false
-}
-
-func (we *WhenExpression) applyReplacements(replacements map[string]string) WhenExpression {
+func (we *WhenExpression) applyReplacements(replacements map[string]string, arrayReplacements map[string][]string) WhenExpression {
 	replacedInput := substitution.ApplyReplacements(we.Input, replacements)
 
 	var replacedValues []string
 	for _, val := range we.Values {
-		replacedValues = append(replacedValues, substitution.ApplyReplacements(val, replacements))
+		// arrayReplacements holds a list of array parameters with a pattern - params.arrayParam1
+		// array params are referenced using $(params.arrayParam1[*])
+		// check if the param exist in the arrayReplacements to replace it with a list of values
+		if _, ok := arrayReplacements[fmt.Sprintf("%s.%s", ParamsPrefix, ArrayReference(val))]; ok {
+			replacedValues = append(replacedValues, substitution.ApplyArrayReplacements(val, replacements, arrayReplacements)...)
+		} else {
+			replacedValues = append(replacedValues, substitution.ApplyReplacements(val, replacements))
+		}
 	}
 
 	return WhenExpression{Input: replacedInput, Operator: we.Operator, Values: replacedValues}
@@ -96,23 +98,12 @@ func (wes WhenExpressions) AllowsExecution() bool {
 	return true
 }
 
-// HaveVariables indicates whether When Expressions contains variables, such as Parameters
-// or Results in the Inputs or Values.
-func (wes WhenExpressions) HaveVariables() bool {
-	for _, we := range wes {
-		if we.hasVariable() {
-			return true
-		}
-	}
-	return false
-}
-
 // ReplaceWhenExpressionsVariables interpolates variables, such as Parameters and Results, in
 // the Input and Values.
-func (wes WhenExpressions) ReplaceWhenExpressionsVariables(replacements map[string]string) WhenExpressions {
+func (wes WhenExpressions) ReplaceWhenExpressionsVariables(replacements map[string]string, arrayReplacements map[string][]string) WhenExpressions {
 	replaced := wes
 	for i := range wes {
-		replaced[i] = wes[i].applyReplacements(replacements)
+		replaced[i] = wes[i].applyReplacements(replacements, arrayReplacements)
 	}
 	return replaced
 }
