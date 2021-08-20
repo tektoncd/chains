@@ -63,6 +63,15 @@ func TestShouldUploadTlog(t *testing.T) {
 			annotations: map[string]string{RekorAnnotation: "true"},
 			expected:    true,
 		},
+		{
+			description: "already uploaded",
+			cfg: config.TransparencyConfig{
+				Enabled:          true,
+				VerifyAnnotation: true,
+			},
+			annotations: map[string]string{ChainsTransparencyAnnotation: "foo"},
+			expected:    false,
+		},
 	}
 
 	for _, test := range tests {
