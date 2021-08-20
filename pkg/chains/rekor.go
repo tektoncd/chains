@@ -89,6 +89,11 @@ func shouldUploadTlog(cfg config.Config, tr *v1beta1.TaskRun) bool {
 	if !cfg.Transparency.VerifyAnnotation {
 		return true
 	}
+
+	// Already uploaded, don't do it again
+	if _, ok := tr.Annotations[ChainsTransparencyAnnotation]; ok {
+		return false
+	}
 	// verify the annotation
 	for k, v := range tr.Annotations {
 		if k == RekorAnnotation && v == "true" {
