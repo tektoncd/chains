@@ -53,8 +53,8 @@ func (r *Reconciler) FinalizeKind(ctx context.Context, tr *v1beta1.TaskRun) pkgr
 		return nil
 	}
 	// Check to see if it has already been signed.
-	if signing.IsSigned(tr) {
-		logging.FromContext(ctx).Infof("taskrun %s/%s has already been signed", tr.Namespace, tr.Name)
+	if signing.Reconciled(tr) {
+		logging.FromContext(ctx).Infof("taskrun %s/%s has been reconciled", tr.Namespace, tr.Name)
 		return nil
 	}
 
