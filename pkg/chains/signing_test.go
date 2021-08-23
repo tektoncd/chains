@@ -50,7 +50,7 @@ func TestMarkSigned(t *testing.T) {
 	}
 
 	// Now mark it as signed.
-	if err := MarkSigned(tr, c, nil, "true"); err != nil {
+	if err := MarkSigned(tr, c, nil); err != nil {
 		t.Errorf("MarkSigned() error = %v", err)
 	}
 
@@ -69,7 +69,7 @@ func TestMarkSigned(t *testing.T) {
 	extra := map[string]string{
 		"foo": "bar",
 	}
-	if err := MarkSigned(tr, c, extra, "true"); err != nil {
+	if err := MarkSigned(tr, c, extra); err != nil {
 		t.Errorf("MarkSigned() error = %v", err)
 	}
 
@@ -106,7 +106,7 @@ func TestAddRetries(t *testing.T) {
 	}
 
 	// Marking the taskrun for retries
-	if err := AddRetries(tr, c, nil, 1); err != nil {
+	if err := AddRetries(tr, c, nil); err != nil {
 		t.Errorf("MarkSigned() error = %v", err)
 	}
 
@@ -118,31 +118,33 @@ func TestAddRetries(t *testing.T) {
 	if _, ok := retry.Annotations[ChainsRetriesAnnotation]; !ok {
 		t.Error("Taskrun does not have retry")
 	}
-	if err := AddRetries(tr, c, nil, MaxRetries+1); err == nil {
-		t.Errorf("MarkSigned() error = %v", err)
-	}
 }
 
 func TestIsSigned(t *testing.T) {
 	tests := []struct {
 		name       string
 		annotation string
-		want       bool
+		want       State
 	}{
 		{
 			name:       "signed",
-			want:       true,
+			want:       Passed,
 			annotation: "true",
 		},
 		{
-			name:       "signed with other string",
-			want:       false,
+			name:       "failed",
+			want:       Failed,
 			annotation: "failed",
 		},
 		{
-			name:       "not signed",
-			want:       false,
-			annotation: "failed",
+			name:       "retrying ",
+			want:       Retrying,
+			annotation: Retry,
+		},
+		{
+			name:       "unknown state ",
+			want:       Unknown,
+			annotation: "foo",
 		},
 	}
 	for _, tt := range tests {
@@ -154,7 +156,7 @@ func TestIsSigned(t *testing.T) {
 					},
 				},
 			}
-			got, _ := IsSigned(tr)
+			got := SignedState(tr)
 			if got != tt.want {
 				t.Errorf("IsSigned() got = %v, want %v", got, tt.want)
 			}
@@ -167,13 +169,11 @@ func TestIsRetrying(t *testing.T) {
 		name       string
 		want       bool
 		annotation string
-		state      string
 	}{
 		{
 			name:       "retrying",
 			want:       true,
 			annotation: "1",
-			state:      "1",
 		},
 	}
 	for _, tt := range tests {
@@ -185,12 +185,9 @@ func TestIsRetrying(t *testing.T) {
 					},
 				},
 			}
-			got, got1 := RetryAgain(tr)
+			got := RetryAgain(tr)
 			if got != tt.want {
 				t.Errorf("IsRetrying() got = %v, want %v", got, tt.want)
-			}
-			if got1 != tt.state {
-				t.Errorf("IsRetrying() got1 = %v, want %v", got1, tt.state)
 			}
 		})
 	}
@@ -271,12 +268,6 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 			tr, err := ps.TektonV1beta1().TaskRuns(tr.Namespace).Get(ctx, tr.Name, metav1.GetOptions{})
 			if err != nil {
 				t.Errorf("error fetching fake taskrun: %v", err)
-			}
-			// Check it is marked as signed
-			shouldBeSigned := !tt.wantErr
-			signed, _ := IsSigned(tr)
-			if signed != shouldBeSigned {
-				t.Errorf("IsSigned()=%t, wanted %t", signed, shouldBeSigned)
 			}
 			// Check the payloads were stored in all the backends.
 			for _, b := range tt.backends {

@@ -47,9 +47,26 @@ const (
 	ChainsAnnotation             = "chains.tekton.dev/signed"
 	ChainsRetriesAnnotation      = "chains.tekton.dev/retries"
 	ChainsTransparencyAnnotation = "chains.tekton.dev/transparency"
-	Failed                       = "failed"
+	Fail                         = "failed"
+	Pass                         = "true"
+	Retry                        = "retries"
 	MaxRetries                   = 3
 )
+
+type State int
+
+const (
+	Passed State = iota
+	Failed
+	Retrying
+	Unknown
+)
+
+var signedStates = map[string]State{
+	Pass:  Passed,
+	Fail:  Failed,
+	Retry: Retrying,
+}
 
 type Signer interface {
 	SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) error
@@ -61,39 +78,49 @@ type TaskRunSigner struct {
 	SecretPath        string
 }
 
-// IsSigned determines whether a TaskRun has already been signed.
-func IsSigned(tr *v1beta1.TaskRun) (bool, string) {
-	const signed = "true"
+// SignedState returns TaskRun state.
+func SignedState(tr *v1beta1.TaskRun) State {
 	signature, ok := tr.ObjectMeta.Annotations[ChainsAnnotation]
 	if !ok {
-		return false, ""
+		return Unknown
 	}
-	return signature == signed, signature
+
+	if value, ok := signedStates[signature]; !ok {
+		return Unknown
+	} else {
+		return value
+	}
 }
 
 // returns true if:
 // the signed annotation isn't there, the failed annotation isn't there, and retries<3
-func RetryAgain(tr *v1beta1.TaskRun) (bool, string) {
-	retries, ok := tr.ObjectMeta.Annotations[ChainsRetriesAnnotation]
-	if !ok {
-		return false, ""
-	}
-	return true, retries
+func RetryAgain(tr *v1beta1.TaskRun) bool {
+	_, ok := tr.ObjectMeta.Annotations[ChainsRetriesAnnotation]
+	return ok
 }
 
 // MarkSigned marks a TaskRun as signed.
-func MarkSigned(tr *v1beta1.TaskRun, ps versioned.Interface, annotations map[string]string,
-	state string) error {
-	return markannotation(tr, ps, annotations, ChainsAnnotation, state)
+func MarkSigned(tr *v1beta1.TaskRun, ps versioned.Interface, annotations map[string]string) error {
+	return markannotation(tr, ps, annotations, ChainsAnnotation, Pass)
+}
+
+// MarkFailed marks a TaskRun as signed.
+func MarkFailed(tr *v1beta1.TaskRun, ps versioned.Interface, annotations map[string]string) error {
+	return markannotation(tr, ps, annotations, ChainsAnnotation, Fail)
 }
 
 // AddRetries marks a TaskRun as retrying.
-func AddRetries(tr *v1beta1.TaskRun, ps versioned.Interface, annotations map[string]string,
-	value int) error {
-	if value > MaxRetries {
-		return fmt.Errorf("The retries cannot be greater than %d", MaxRetries)
+func AddRetries(tr *v1beta1.TaskRun, ps versioned.Interface, annotations map[string]string) error {
+	s := "1"
+	if RetryAgain(tr) {
+		s = tr.ObjectMeta.Annotations[ChainsRetriesAnnotation]
+		if v, err := strconv.Atoi(s); err != nil {
+			return fmt.Errorf("invalid value for chain retries %s", s)
+		} else {
+			s = strconv.Itoa(v + 1)
+		}
 	}
-	return markannotation(tr, ps, annotations, ChainsRetriesAnnotation, strconv.Itoa(value))
+	return markannotation(tr, ps, annotations, ChainsRetriesAnnotation, s)
 }
 
 func markannotation(tr *v1beta1.TaskRun, ps versioned.Interface, annotations map[string]string,
@@ -290,26 +317,26 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 	}
 
 	// Now mark the TaskRun as signed
-	return MarkSigned(tr, ts.Pipelineclientset, extraAnnotations, "true")
+	return MarkSigned(tr, ts.Pipelineclientset, extraAnnotations)
 }
 
 // HandleRetries adds retry annotation to keep track of retries and marks the job as failed
 // if retries have reached MaxRetries.
 func HandleRetries(tr *v1beta1.TaskRun, ts *TaskRunSigner, extraAnnotations map[string]string) error {
-	ok, s := RetryAgain(tr)
+	ok := RetryAgain(tr)
 	if !ok {
-		return AddRetries(tr, ts.Pipelineclientset, extraAnnotations, 1)
+		return AddRetries(tr, ts.Pipelineclientset, extraAnnotations)
 	}
-
+	s := tr.ObjectMeta.Annotations[ChainsRetriesAnnotation]
 	count, err := strconv.Atoi(s)
 	if err != nil {
 		return err
 	}
 
 	if count <= MaxRetries {
-		return AddRetries(tr, ts.Pipelineclientset, extraAnnotations, count+1)
+		return AddRetries(tr, ts.Pipelineclientset, extraAnnotations)
 	}
 
 	// Marking it failed after retrying MaxRetries
-	return MarkSigned(tr, ts.Pipelineclientset, extraAnnotations, Failed)
+	return MarkFailed(tr, ts.Pipelineclientset, extraAnnotations)
 }
