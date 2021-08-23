@@ -401,6 +401,39 @@ func TestOCIStorage(t *testing.T) {
 	}
 }
 
+func TestRetryFailed(t *testing.T) {
+	ctx := logtesting.TestContextWithLogger(t)
+	c, ns, cleanup := setup(ctx, t, setupOpts{registry: true})
+	defer cleanup()
+
+	resetConfig := setConfigMap(ctx, t, c, map[string]string{
+		// don't set insecure repository, forcing signature upload to fail
+		"artifacts.oci.storage":     "oci",
+		"artifacts.taskrun.storage": "tekton",
+		"storage.oci.repository":    "gcr.io/not-real",
+	})
+	defer resetConfig()
+	time.Sleep(3 * time.Second)
+
+	// create necessary resources
+	imageName := "chains-test-retry"
+	image := fmt.Sprintf("%s/%s", c.internalRegistry, imageName)
+	task := kanikoTask(t, ns, image)
+
+	if _, err := c.PipelineClient.TektonV1beta1().Tasks(ns).Create(ctx, task, metav1.CreateOptions{}); err != nil {
+		t.Fatalf("error creating task: %s", err)
+	}
+
+	taskRun := kanikoTaskRun(ns)
+	tr, err := c.PipelineClient.TektonV1beta1().TaskRuns(ns).Create(ctx, taskRun, metav1.CreateOptions{})
+	if err != nil {
+		t.Errorf("error creating taskrun: %s", err)
+	}
+
+	// Give it a minute to complete.
+	waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, failed, 60*time.Second)
+}
+
 var imageTaskSpec = v1beta1.TaskSpec{
 	Steps: []v1beta1.Step{
 		{

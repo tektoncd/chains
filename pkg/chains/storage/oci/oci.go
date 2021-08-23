@@ -86,7 +86,14 @@ func (b *Backend) StorePayload(rawPayload []byte, signature string, storageOpts 
 	if err != nil {
 		return errors.Wrap(err, "parsing digest")
 	}
-	cosignDst := cosign.AttachedImageTag(ref.Repository, dgst, cosign.SignatureTagSuffix)
+	repo := ref.Repository
+	if b.cfg.Storage.OCI.Repository != "" {
+		repo, err = name.NewRepository(b.cfg.Storage.OCI.Repository)
+		if err != nil {
+			return errors.Wrapf(err, "%s is not a valid repository", b.cfg.Storage.OCI.Repository)
+		}
+	}
+	cosignDst := cosign.AttachedImageTag(repo, dgst, cosign.SignatureTagSuffix)
 	if err != nil {
 		return errors.Wrap(err, "destination ref")
 	}
@@ -97,7 +104,7 @@ func (b *Backend) StorePayload(rawPayload []byte, signature string, storageOpts 
 	}); err != nil {
 		return errors.Wrap(err, "uploading")
 	}
-	b.logger.Infof("Successfully uploaded signature for %s", imageName)
+	b.logger.Infof("Successfully uploaded signature for %s to %s", imageName, cosignDst)
 	return nil
 }
 

@@ -86,45 +86,6 @@ func TestMarkSigned(t *testing.T) {
 	}
 }
 
-func TestIsSigned(t *testing.T) {
-	tests := []struct {
-		name       string
-		annotation string
-		want       bool
-	}{
-		{
-			name:       "signed",
-			want:       true,
-			annotation: "true",
-		},
-		{
-			name:       "signed with other string",
-			want:       false,
-			annotation: "baz",
-		},
-		{
-			name:       "not signed",
-			want:       false,
-			annotation: "",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tr := &v1beta1.TaskRun{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						ChainsAnnotation: tt.annotation,
-					},
-				},
-			}
-			got := IsSigned(tr)
-			if got != tt.want {
-				t.Errorf("IsSigned() got = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 	// SignTaskRun does three main things:
 	// - generates payloads
@@ -203,8 +164,8 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 			}
 			// Check it is marked as signed
 			shouldBeSigned := !tt.wantErr
-			if IsSigned(tr) != shouldBeSigned {
-				t.Errorf("IsSigned()=%t, wanted %t", IsSigned(tr), shouldBeSigned)
+			if Reconciled(tr) != shouldBeSigned {
+				t.Errorf("IsSigned()=%t, wanted %t", Reconciled(tr), shouldBeSigned)
 			}
 			// Check the payloads were stored in all the backends.
 			for _, b := range tt.backends {

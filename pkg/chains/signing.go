@@ -31,20 +31,11 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/signing/x509"
 	"github.com/tektoncd/chains/pkg/chains/storage"
 	"github.com/tektoncd/chains/pkg/config"
-	"github.com/tektoncd/chains/pkg/patch"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	versioned "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	"go.uber.org/zap"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"knative.dev/pkg/logging"
-)
-
-const (
-	// ChainsAnnotation is the standard annotation to indicate a TR has been signed.
-	ChainsAnnotation             = "chains.tekton.dev/signed"
-	ChainsTransparencyAnnotation = "chains.tekton.dev/transparency"
 )
 
 type Signer interface {
@@ -55,33 +46,6 @@ type TaskRunSigner struct {
 	KubeClient        kubernetes.Interface
 	Pipelineclientset versioned.Interface
 	SecretPath        string
-}
-
-// IsSigned determines whether a TaskRun has already been signed.
-func IsSigned(tr *v1beta1.TaskRun) bool {
-	signature, ok := tr.ObjectMeta.Annotations[ChainsAnnotation]
-	if !ok {
-		return false
-	}
-	return signature == "true"
-}
-
-// MarkSigned marks a TaskRun as signed.
-func MarkSigned(tr *v1beta1.TaskRun, ps versioned.Interface, annotations map[string]string) error {
-	// Use patch instead of update to help prevent race conditions.
-	if annotations == nil {
-		annotations = map[string]string{}
-	}
-	annotations[ChainsAnnotation] = "true"
-	patchBytes, err := patch.GetAnnotationsPatch(annotations)
-	if err != nil {
-		return err
-	}
-	if _, err := ps.TektonV1beta1().TaskRuns(tr.Namespace).Patch(
-		context.TODO(), tr.Name, types.MergePatchType, patchBytes, v1.PatchOptions{}); err != nil {
-		return err
-	}
-	return nil
 }
 
 // Set this as a var for mocking.
@@ -252,10 +216,20 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 			}
 		}
 		if merr.ErrorOrNil() != nil {
+			if err := HandleRetry(tr, ts.Pipelineclientset, extraAnnotations); err != nil {
+				merr = multierror.Append(merr, err)
+			}
 			return merr
 		}
 	}
 
 	// Now mark the TaskRun as signed
 	return MarkSigned(tr, ts.Pipelineclientset, extraAnnotations)
+}
+
+func HandleRetry(tr *v1beta1.TaskRun, ps versioned.Interface, annotations map[string]string) error {
+	if RetryAvailable(tr) {
+		return AddRetry(tr, ps, annotations)
+	}
+	return MarkFailed(tr, ps, annotations)
 }
