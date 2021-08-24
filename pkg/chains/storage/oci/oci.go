@@ -16,6 +16,9 @@ package oci
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+
+	"github.com/in-toto/in-toto-golang/in_toto"
 
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/authn/k8schain"
@@ -23,6 +26,7 @@ import (
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/pkg/errors"
+	"github.com/sigstore/cosign/cmd/cosign/cli"
 	"github.com/sigstore/cosign/pkg/cosign"
 	cremote "github.com/sigstore/cosign/pkg/cosign/remote"
 	"github.com/tektoncd/chains/pkg/chains/formats/simple"
@@ -68,9 +72,19 @@ func (b *Backend) StorePayload(rawPayload []byte, signature string, storageOpts 
 	b.logger.Infof("Storing payload on TaskRun %s/%s", b.tr.Namespace, b.tr.Name)
 
 	format := simple.NewSimpleStruct()
-	if err := json.Unmarshal(rawPayload, &format); err != nil {
-		return errors.Wrap(err, "only OCI artifacts can be stored in an OCI registry")
+	if err := json.Unmarshal(rawPayload, &format); err == nil {
+		return b.uploadSignature(format, rawPayload, signature, storageOpts)
 	}
+
+	attestation := in_toto.Statement{}
+	if err := json.Unmarshal(rawPayload, &attestation); err == nil {
+		return b.uploadAttestation(attestation, rawPayload, signature, storageOpts)
+	}
+
+	return errors.New("OCI storage backend is only supported for OCI images and in-toto attestations")
+}
+
+func (b *Backend) uploadSignature(format simple.Simple, rawPayload []byte, signature string, storageOpts config.StorageOpts) error {
 	imageName := format.ImageName()
 
 	b.logger.Infof("Uploading %s signature", imageName)
@@ -105,6 +119,48 @@ func (b *Backend) StorePayload(rawPayload []byte, signature string, storageOpts 
 		return errors.Wrap(err, "uploading")
 	}
 	b.logger.Infof("Successfully uploaded signature for %s to %s", imageName, cosignDst)
+	return nil
+}
+
+func (b *Backend) uploadAttestation(attestation in_toto.Statement, rawPayload []byte, signature string, storageOpts config.StorageOpts) error {
+	// upload an attestation for each subject
+	b.logger.Info("Starting to upload attestations to OCI ...")
+	for _, subj := range attestation.Subject {
+		imageName := fmt.Sprintf("%s:sha256@%s", subj.Name, subj.Digest["sha256"])
+		b.logger.Infof("Starting attestation upload to OCI for %s...", imageName)
+		var opts []name.Option
+		if b.cfg.Storage.OCI.Insecure {
+			opts = append(opts, name.Insecure)
+		}
+		ref, err := name.NewDigest(imageName, opts...)
+		if err != nil {
+			return errors.Wrapf(err, "getting digest for subj %s", imageName)
+		}
+		dgst, err := v1.NewHash(ref.DigestStr())
+		if err != nil {
+			return errors.Wrapf(err, "parsing digest for %s", imageName)
+		}
+		repo := ref.Repository
+		if b.cfg.Storage.OCI.Repository != "" {
+			repo, err = name.NewRepository(b.cfg.Storage.OCI.Repository)
+			if err != nil {
+				return errors.Wrapf(err, "%s is not a valid repository", b.cfg.Storage.OCI.Repository)
+			}
+		}
+		attRef := cosign.AttachedImageTag(repo, dgst, cosign.AttestationTagSuffix)
+		if err != nil {
+			return errors.Wrapf(err, "destination ref for %s", imageName)
+		}
+		if _, err = cremote.UploadSignature([]byte(signature), rawPayload, attRef, cremote.UploadOpts{
+			RemoteOpts: []remote.Option{b.auth},
+			Cert:       []byte(storageOpts.Cert),
+			Chain:      []byte(storageOpts.Chain),
+			MediaType:  cli.DssePayloadType,
+		}); err != nil {
+			return errors.Wrap(err, "uploading")
+		}
+		b.logger.Infof("Successfully uploaded attestation for %s to %s", imageName, attRef.String())
+	}
 	return nil
 }
 

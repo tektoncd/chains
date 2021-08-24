@@ -349,7 +349,8 @@ func TestOCIStorage(t *testing.T) {
 	resetConfig := setConfigMap(ctx, t, c, map[string]string{
 		"storage.oci.repository.insecure": "true",
 		"artifacts.oci.storage":           "oci",
-		"artifacts.taskrun.storage":       "tekton",
+		"artifacts.taskrun.storage":       "oci",
+		"artifacts.taskrun.format":        "tekton-provenance",
 	})
 	defer resetConfig()
 	time.Sleep(3 * time.Second)
@@ -387,14 +388,22 @@ func TestOCIStorage(t *testing.T) {
 	for {
 		select {
 		default:
+			// verify the image
 			if _, err = cosign.Verify(ctx, externalRef, &cosign.CheckOpts{
 				SignatureRepo: externalRef.Context(),
 				SigVerifier:   c.secret.x509priv,
 			}); err != nil {
 				t.Log(err)
-			} else {
-				return
 			}
+			// verify the attestation
+			if _, err = cosign.Verify(ctx, externalRef, &cosign.CheckOpts{
+				SigTagSuffixOverride: cosign.AttestationTagSuffix,
+				SignatureRepo:        externalRef.Context(),
+				SigVerifier:          c.secret.x509priv,
+			}); err != nil {
+				t.Log(err)
+			}
+			return
 		case <-timeoutChan:
 			t.Fatal("time out")
 		}

@@ -3,31 +3,31 @@ module github.com/tektoncd/chains
 go 1.16
 
 require (
-	cloud.google.com/go v0.88.0
+	cloud.google.com/go v0.90.0
 	cloud.google.com/go/storage v1.16.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/golangci/golangci-lint v1.41.1
 	github.com/google/addlicense v0.0.0-20210809195240-d43bb61fdfda
 	github.com/google/go-cmp v0.5.6
-	github.com/google/go-containerregistry v0.5.1
+	github.com/google/go-containerregistry v0.6.0
 	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20210216200643-d81088d9983e
 	github.com/google/go-licenses v0.0.0-20210329231322-ce1d9163b77d
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/in-toto/in-toto-golang v0.2.1-0.20210627200632-886210ae2ab9
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/statsd_exporter v0.20.3 // indirect
-	github.com/sigstore/cosign v1.0.1-0.20210728181701-5f1f18426dc3
+	github.com/sigstore/cosign v1.0.2-0.20210824191708-7b08e21cf07f
 	github.com/sigstore/fulcio v0.1.1
-	github.com/sigstore/rekor v0.2.1-0.20210714185543-38d532d5c0b1
-	github.com/sigstore/sigstore v0.0.0-20210722023421-fd3b69438dba
+	github.com/sigstore/rekor v0.3.0
+	github.com/sigstore/sigstore v0.0.0-20210729211320-56a91f560f44
 	github.com/tektoncd/pipeline v0.27.1-0.20210818181609-67b318ba62d9
 	github.com/tektoncd/plumbing v0.0.0-20210514044347-f8a9689d5bd5
 	go.uber.org/zap v1.18.1
 	gocloud.dev v0.23.0
-	google.golang.org/api v0.50.0
-	k8s.io/api v0.22.0
-	k8s.io/apimachinery v0.21.3
-	k8s.io/client-go v0.22.0
+	google.golang.org/api v0.54.0
+	k8s.io/api v0.22.1
+	k8s.io/apimachinery v0.22.1
+	k8s.io/client-go v0.22.1
 	k8s.io/code-generator v0.20.7
 	k8s.io/klog/v2 v2.8.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20210305001622-591a79e4bda7 // indirect

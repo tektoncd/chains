@@ -40,7 +40,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sigstore/cosign/pkg/cosign"
+	"github.com/sigstore/cosign/cmd/cosign/cli"
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/tektoncd/pipeline/pkg/names"
 
@@ -263,7 +263,7 @@ func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface, opts
 		}
 		s.StringData[p] = string(b)
 	}
-	cosignPriv, err := cosign.LoadECDSAPrivateKey([]byte(s.StringData["cosign.key"]), []byte(s.StringData["cosign.password"]))
+	cosignPriv, err := cli.LoadECDSAPrivateKey([]byte(s.StringData["cosign.key"]), []byte(s.StringData["cosign.password"]))
 	if err != nil {
 		t.Error(err)
 	}
