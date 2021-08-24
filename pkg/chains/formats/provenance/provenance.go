@@ -38,6 +38,7 @@ const (
 	commitParam                  = "CHAINS-GIT_COMMIT"
 	urlParam                     = "CHAINS-GIT_URL"
 	ChainsReproducibleAnnotation = "chains.tekton.dev/reproducible"
+	PredicateType                = "https://tekton.dev/chains/provenance"
 )
 
 type Provenance struct {
@@ -83,7 +84,7 @@ func (i *Provenance) generateProvenanceFromSubject(tr *v1beta1.TaskRun, subjects
 		StatementHeader: in_toto.StatementHeader{
 			Type:          name,
 			Subject:       subjects,
-			PredicateType: "https://tekton.dev/chains/provenance",
+			PredicateType: PredicateType,
 		},
 	}
 
