@@ -24,19 +24,29 @@ import (
 	"github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/in-toto/in-toto-golang/pkg/ssl"
 	"github.com/sigstore/sigstore/pkg/signature"
+
+	"golang.org/x/crypto/ssh"
 )
 
 func Wrap(ctx context.Context, s Signer) (Signer, error) {
-	adapter := sslAdapter{
-		wrapped: s,
-	}
-
-	envelope, err := ssl.NewEnvelopeSigner(&adapter)
+	pub, err := s.PublicKey()
 	if err != nil {
 		return nil, err
 	}
 
-	pub, err := s.PublicKey()
+	// Generate public key fingerprint
+	sshpk, err := ssh.NewPublicKey(pub)
+	if err != nil {
+		return nil, err
+	}
+	fingerprint := ssh.FingerprintSHA256(sshpk)
+
+	adapter := sslAdapter{
+		wrapped: s,
+		KeyID:   fingerprint,
+	}
+
+	envelope, err := ssl.NewEnvelopeSigner(&adapter)
 	if err != nil {
 		return nil, err
 	}
