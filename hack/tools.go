@@ -20,11 +20,12 @@ package tools
 
 // This is needed to force "go mod" to vendor these modules, which we only use for scripts.
 import (
+	_ "github.com/tektoncd/plumbing"
+	_ "github.com/tektoncd/plumbing/scripts"
+
 	_ "k8s.io/code-generator/cmd/deepcopy-gen"
 
 	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
 	_ "github.com/google/addlicense"
 	_ "github.com/google/go-licenses/licenses"
-	_ "github.com/tektoncd/plumbing"
-	_ "github.com/tektoncd/plumbing/scripts"
 )
