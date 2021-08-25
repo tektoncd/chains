@@ -39,7 +39,7 @@ function post_build_tests() {
 
 
   header "copyright licenses check"
-  addlicense -ignore "vendor/**"  -l apache -c 'The Tekton Authors' -v *
+  addlicense -ignore "vendor/**" -ignore "third_party/**"  -l apache -c 'The Tekton Authors' -v *
   git diff --exit-code
 }
 
