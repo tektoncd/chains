@@ -61,7 +61,7 @@ func (b *Backend) StorePayload(rawPayload []byte, signature string, opts config.
 	// name/namespace as well.
 	// $bucket/taskrun-$namespace-$name-$uid/$key.signature
 	// $bucket/taskrun-$namespace-$name-$uid/$key.payload
-	root := fmt.Sprintf("taskrun-%s-%s-%s", b.tr.Namespace, b.tr.Name, b.tr.UID)
+	root := fmt.Sprintf("taskrun-%s-%s", b.tr.Namespace, b.tr.Name)
 	sigName := path.Join(root, fmt.Sprintf("%s.signature", opts.Key))
 	b.logger.Infof("Storing payload at %s", sigName)
 

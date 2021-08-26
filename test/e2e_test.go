@@ -25,6 +25,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"path"
 	"testing"
 	"time"
 
@@ -225,8 +226,6 @@ func TestGCSStorage(t *testing.T) {
 	if metadata.OnGCE() {
 		t.Skip("Skipping, integration tests do not support GCS secrets yet.")
 	}
-	c, ns, cleanup := setup(ctx, t, setupOpts{})
-	defer cleanup()
 
 	client, err := storage.NewClient(ctx)
 	if err != nil {
@@ -234,6 +233,9 @@ func TestGCSStorage(t *testing.T) {
 	}
 	bucketName, rmBucket := makeBucket(t, client)
 	defer rmBucket()
+
+	c, ns, cleanup := setup(ctx, t, setupOpts{})
+	defer cleanup()
 
 	resetConfig := setConfigMap(ctx, t, c, map[string]string{
 		"artifacts.taskrun.storage": "gcs",
@@ -254,8 +256,13 @@ func TestGCSStorage(t *testing.T) {
 	// It can take up to a minute for the secret data to be updated!
 	tr = waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, signed, 120*time.Second)
 
-	sigName := fmt.Sprintf("taskrun-%s-%s-%s/taskrun.signature", tr.Namespace, tr.Name, tr.UID)
-	payloadName := fmt.Sprintf("taskrun-%s-%s-%s/taskrun.payload", tr.Namespace, tr.Name, tr.UID)
+	root := fmt.Sprintf("taskrun-%s-%s", tr.Namespace, tr.Name)
+	key := "taskrun-" + string(tr.UID)
+
+	sigName := path.Join(root, fmt.Sprintf("%s.signature", key))
+	payloadName := path.Join(root, fmt.Sprintf("%s.payload", key))
+
+	t.Log(sigName)
 
 	sigBytes := readObj(t, bucketName, sigName, client)
 	bodyBytes := readObj(t, bucketName, payloadName, client)

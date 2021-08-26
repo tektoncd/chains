@@ -50,7 +50,7 @@ func TestBackend_StorePayload(t *testing.T) {
 				},
 				signed:    []byte("signed"),
 				signature: "signature",
-				key:       "foo",
+				key:       "foo-uid",
 			},
 		},
 	}
@@ -67,11 +67,11 @@ func TestBackend_StorePayload(t *testing.T) {
 			if err := b.StorePayload(tt.args.signed, tt.args.signature, config.StorageOpts{Key: tt.args.key}); (err != nil) != tt.wantErr {
 				t.Errorf("Backend.StorePayload() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			got := mockGcs.objects["taskrun-foo-bar-uid/foo.signature"].String()
+			got := mockGcs.objects["taskrun-foo-bar/foo-uid.signature"].String()
 			if got != tt.args.signature {
 				t.Errorf("wrong signature, expected %s, got %s", tt.args.signature, got)
 			}
-			got = mockGcs.objects["taskrun-foo-bar-uid/foo.payload"].String()
+			got = mockGcs.objects["taskrun-foo-bar/foo-uid.payload"].String()
 			if got != string(tt.args.signed) {
 				t.Errorf("wrong signature, expected %s, got %s", tt.args.signed, got)
 			}

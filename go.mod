@@ -32,6 +32,7 @@ require (
 	github.com/tektoncd/plumbing v0.0.0-20210514044347-f8a9689d5bd5
 	go.uber.org/zap v1.18.1
 	gocloud.dev v0.23.0
+	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97
 	google.golang.org/api v0.54.0
 	k8s.io/api v0.22.1
 	k8s.io/apimachinery v0.22.1
