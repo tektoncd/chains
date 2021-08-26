@@ -31,22 +31,14 @@ func TestInitializeBackends(t *testing.T) {
 		name string
 		cfg  config.Config
 		want []string
-	}{
-		{
-			name: "none",
-			want: []string{},
-		},
-		{
-			name: "tekton",
-			want: []string{"tekton"},
-			cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: "tekton"}}},
-		},
-		{
-			name: "gcs",
-			want: []string{"gcs"},
-			cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: "gcs"}}},
-		},
-	}
+	}{{
+		name: "none",
+		want: []string{},
+	}, {
+		name: "tekton",
+		want: []string{"tekton"},
+		cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: "tekton"}}},
+	}}
 	logger := logtesting.TestLogger(t)
 	ctx, _ := rtesting.SetupFakeContext(t)
 	ps := fakepipelineclient.Get(ctx)
