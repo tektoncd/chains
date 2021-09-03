@@ -71,13 +71,19 @@ func NewStorageBackend(logger *zap.SugaredLogger, client kubernetes.Interface, t
 func (b *Backend) StorePayload(rawPayload []byte, signature string, storageOpts config.StorageOpts) error {
 	b.logger.Infof("Storing payload on TaskRun %s/%s", b.tr.Namespace, b.tr.Name)
 
-	format := simple.NewSimpleStruct()
-	if err := json.Unmarshal(rawPayload, &format); err == nil {
+	if storageOpts.PayloadFormat == "simplesigning" {
+		format := simple.NewSimpleStruct()
+		if err := json.Unmarshal(rawPayload, &format); err != nil {
+			return errors.Wrap(err, "unmarshal simplesigning")
+		}
 		return b.uploadSignature(format, rawPayload, signature, storageOpts)
 	}
 
-	attestation := in_toto.Statement{}
-	if err := json.Unmarshal(rawPayload, &attestation); err == nil {
+	if storageOpts.PayloadFormat == "in-toto" || storageOpts.PayloadFormat == "tekton-provenance" {
+		attestation := in_toto.Statement{}
+		if err := json.Unmarshal(rawPayload, &attestation); err != nil {
+			return errors.Wrap(err, "unmarshal attestation")
+		}
 		return b.uploadAttestation(attestation, rawPayload, signature, storageOpts)
 	}
 
@@ -126,7 +132,7 @@ func (b *Backend) uploadAttestation(attestation in_toto.Statement, rawPayload []
 	// upload an attestation for each subject
 	b.logger.Info("Starting to upload attestations to OCI ...")
 	for _, subj := range attestation.Subject {
-		imageName := fmt.Sprintf("%s:sha256@%s", subj.Name, subj.Digest["sha256"])
+		imageName := fmt.Sprintf("%s@sha256:%s", subj.Name, subj.Digest["sha256"])
 		b.logger.Infof("Starting attestation upload to OCI for %s...", imageName)
 		var opts []name.Option
 		if b.cfg.Storage.OCI.Insecure {
