@@ -3,16 +3,18 @@ module github.com/tektoncd/chains
 go 1.16
 
 require (
-	cloud.google.com/go v0.90.0
-	cloud.google.com/go/storage v1.16.0
+	cloud.google.com/go v0.94.1
+	cloud.google.com/go/storage v1.16.1
+	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
 	github.com/ghodss/yaml v1.0.0
+	github.com/go-openapi/runtime v0.19.30 // indirect
 	github.com/golang/snappy v0.0.4
-	github.com/golangci/golangci-lint v1.41.1
-	github.com/google/addlicense v0.0.0-20210809195240-d43bb61fdfda
+	github.com/golangci/golangci-lint v1.42.0
+	github.com/google/addlicense v1.0.0
 	github.com/google/go-cmp v0.5.6
 	github.com/google/go-containerregistry v0.6.0
-	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20210216200643-d81088d9983e
-	github.com/google/go-licenses v0.0.0-20210329231322-ce1d9163b77d
+	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20210830114045-7e0ed51a7bb1
+	github.com/google/go-licenses v0.0.0-20210816172045-3099c18c36e1
 	github.com/hashicorp/errwrap v1.1.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-sockaddr v1.0.2
@@ -23,16 +25,16 @@ require (
 	github.com/pierrec/lz4 v2.6.1+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/ryanuber/go-glob v1.0.0
-	github.com/sigstore/cosign v1.0.2-0.20210824191708-7b08e21cf07f
+	github.com/sigstore/cosign v1.1.0
 	github.com/sigstore/fulcio v0.1.1
 	github.com/sigstore/rekor v0.3.0
 	github.com/sigstore/sigstore v0.0.0-20210729211320-56a91f560f44
 	github.com/tektoncd/pipeline v0.27.1-0.20210830150214-8afd1563782d
-	github.com/tektoncd/plumbing v0.0.0-20210514044347-f8a9689d5bd5
+	github.com/tektoncd/plumbing v0.0.0-20210902122415-a65b22d5f63b
 	go.uber.org/zap v1.19.0
-	gocloud.dev v0.23.0
+	gocloud.dev v0.24.0
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
-	google.golang.org/api v0.54.0
+	google.golang.org/api v0.56.0
 	k8s.io/api v0.22.1
 	k8s.io/apimachinery v0.22.1
 	k8s.io/client-go v0.22.1

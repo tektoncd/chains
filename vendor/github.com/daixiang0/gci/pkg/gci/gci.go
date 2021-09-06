@@ -32,7 +32,7 @@ import (
 )
 
 type FlagSet struct {
-	LocalFlag       string
+	LocalFlag       []string
 	DoWrite, DoDiff *bool
 }
 
@@ -42,7 +42,15 @@ type pkg struct {
 	alias   map[string]string
 }
 
-func newPkg(data [][]byte, localFlag string) *pkg {
+// ParseLocalFlag takes a comma-separated list of
+// package-name-prefixes (as passed to the "-local" flag), and splits
+// it in to a list.  This is different than strings.Split in that it
+// handles the empty string and empty entries in the list.
+func ParseLocalFlag(str string) []string {
+	return strings.FieldsFunc(str, func(c rune) bool { return c == ',' })
+}
+
+func newPkg(data [][]byte, localFlag []string) *pkg {
 	listMap := make(map[int][]string)
 	commentMap := make(map[string]string)
 	aliasMap := make(map[string]string)
@@ -126,7 +134,7 @@ func (p *pkg) fmt() []byte {
 			ret = append(ret, linebreak)
 		}
 	}
-	if ret[len(ret)-1] == linebreak {
+	if len(ret) > 0 && ret[len(ret)-1] == linebreak {
 		ret = ret[:len(ret)-1]
 	}
 
@@ -156,11 +164,13 @@ func getPkgInfo(line string, comment bool) (string, string, string) {
 	}
 }
 
-func getPkgType(line, localFlag string) int {
+func getPkgType(line string, localFlag []string) int {
 	pkgName := strings.Trim(line, "\"\\`")
 
-	if localFlag != "" && strings.HasPrefix(pkgName, localFlag) {
-		return local
+	for _, localPkg := range localFlag {
+		if strings.HasPrefix(pkgName, localPkg) {
+			return local
+		}
 	}
 
 	if isStandardPackage(pkgName) {
@@ -353,6 +363,11 @@ func Run(filename string, set *FlagSet) ([]byte, []byte, error) {
 		return nil, nil, nil
 	}
 	end := bytes.Index(src[start:], importEndFlag) + start
+	
+	// in case import flags are part of a codegen template, or otherwise "wrong"
+	if start+len(importStartFlag) > end {
+		return nil, nil, nil
+	}
 
 	ret := bytes.Split(src[start+len(importStartFlag):end], []byte(linebreak))
 

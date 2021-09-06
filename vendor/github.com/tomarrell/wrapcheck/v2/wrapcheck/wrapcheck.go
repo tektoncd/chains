@@ -4,19 +4,26 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
+	"log"
+	"os"
 	"strings"
 
+	"github.com/gobwas/glob"
 	"golang.org/x/tools/go/analysis"
 )
 
-var DefaultIgnoreSigs = []string{
-	".Errorf(",
-	"errors.New(",
-	"errors.Unwrap(",
-	".Wrap(",
-	".Wrapf(",
-	".WithMessage(",
-}
+var (
+	DefaultIgnoreSigs = []string{
+		".Errorf(",
+		"errors.New(",
+		"errors.Unwrap(",
+		".Wrap(",
+		".Wrapf(",
+		".WithMessage(",
+		".WithMessagef(",
+		".WithStack(",
+	}
+)
 
 // WrapcheckConfig is the set of configuration values which configure the
 // behaviour of the linter.
@@ -36,12 +43,26 @@ type WrapcheckConfig struct {
 	// Note: Setting this value will intentionally override the default ignored
 	// sigs. To achieve the same behaviour as default, you should add the default
 	// list to your config.
-	IgnoreSigs []string `mapstructure:"ignoreSigs"`
+	IgnoreSigs []string `mapstructure:"ignoreSigs" yaml:"ignoreSigs"`
+
+	// IgnorePackageGlobs defines a list of globs which, if matching the package
+	// of the function returning the error, will ignore the error when doing
+	// wrapcheck analysis.
+	//
+	// This is useful for broadly ignoring packages and subpackages from wrapcheck
+	// analysis. For example, to ignore all errors from all packages and
+	// subpackages of "encoding" you may include the configuration:
+	//
+	// -- .wrapcheck.yaml
+	// ignorePackageGlobs:
+	// - encoding/*
+	IgnorePackageGlobs []string `mapstructure:"ignorePackageGlobs" yaml:"ignorePackageGlobs"`
 }
 
 func NewDefaultConfig() WrapcheckConfig {
 	return WrapcheckConfig{
-		IgnoreSigs: DefaultIgnoreSigs,
+		IgnoreSigs:         DefaultIgnoreSigs,
+		IgnorePackageGlobs: []string{},
 	}
 }
 
@@ -80,7 +101,7 @@ func run(cfg WrapcheckConfig) func(*analysis.Pass) (interface{}, error) {
 						// match an error within multiple return values, for that, the below
 						// tuple check is required.
 						if isError(pass.TypesInfo.TypeOf(expr)) {
-							reportUnwrapped(pass, retFn, retFn.Pos(), cfg.IgnoreSigs)
+							reportUnwrapped(pass, retFn, retFn.Pos(), cfg)
 							return true
 						}
 
@@ -98,7 +119,7 @@ func run(cfg WrapcheckConfig) func(*analysis.Pass) (interface{}, error) {
 								return true
 							}
 							if isError(v.Type()) {
-								reportUnwrapped(pass, retFn, expr.Pos(), cfg.IgnoreSigs)
+								reportUnwrapped(pass, retFn, expr.Pos(), cfg)
 								return true
 							}
 						}
@@ -162,7 +183,7 @@ func run(cfg WrapcheckConfig) func(*analysis.Pass) (interface{}, error) {
 						return true
 					}
 
-					reportUnwrapped(pass, call, ident.NamePos, cfg.IgnoreSigs)
+					reportUnwrapped(pass, call, ident.NamePos, cfg)
 				}
 
 				return true
@@ -175,7 +196,7 @@ func run(cfg WrapcheckConfig) func(*analysis.Pass) (interface{}, error) {
 
 // Report unwrapped takes a call expression and an identifier and reports
 // if the call is unwrapped.
-func reportUnwrapped(pass *analysis.Pass, call *ast.CallExpr, tokenPos token.Pos, ignoreSigs []string) {
+func reportUnwrapped(pass *analysis.Pass, call *ast.CallExpr, tokenPos token.Pos, cfg WrapcheckConfig) {
 	sel, ok := call.Fun.(*ast.SelectorExpr)
 	if !ok {
 		return
@@ -183,13 +204,13 @@ func reportUnwrapped(pass *analysis.Pass, call *ast.CallExpr, tokenPos token.Pos
 
 	// Check for ignored signatures
 	fnSig := pass.TypesInfo.ObjectOf(sel.Sel).String()
-	if contains(ignoreSigs, fnSig) {
+	if contains(cfg.IgnoreSigs, fnSig) {
 		return
 	}
 
 	// Check if the underlying type of the "x" in x.y.z is an interface, as
 	// errors returned from interface types should be wrapped.
-	if isInterface(pass, sel, ignoreSigs) {
+	if isInterface(pass, sel) {
 		pass.Reportf(tokenPos, "error returned from interface method should be wrapped: sig: %s", fnSig)
 		return
 	}
@@ -197,22 +218,34 @@ func reportUnwrapped(pass *analysis.Pass, call *ast.CallExpr, tokenPos token.Pos
 	// Check whether the function being called comes from another package,
 	// as functions called across package boundaries which returns errors
 	// should be wrapped
-	if isFromOtherPkg(pass, sel, ignoreSigs) {
+	if isFromOtherPkg(pass, sel, cfg) {
 		pass.Reportf(tokenPos, "error returned from external package is unwrapped: sig: %s", fnSig)
 		return
 	}
 }
 
 // isInterface returns whether the function call is one defined on an interface.
-func isInterface(pass *analysis.Pass, sel *ast.SelectorExpr, ignoreSigs []string) bool {
+func isInterface(pass *analysis.Pass, sel *ast.SelectorExpr) bool {
 	_, ok := pass.TypesInfo.TypeOf(sel.X).Underlying().(*types.Interface)
 
 	return ok
 }
 
-func isFromOtherPkg(pass *analysis.Pass, sel *ast.SelectorExpr, ignoreSigs []string) bool {
+func isFromOtherPkg(pass *analysis.Pass, sel *ast.SelectorExpr, config WrapcheckConfig) bool {
 	// The package of the function that we are calling which returns the error
 	fn := pass.TypesInfo.ObjectOf(sel.Sel)
+
+	for _, globString := range config.IgnorePackageGlobs {
+		g, err := glob.Compile(globString)
+		if err != nil {
+			log.Printf("unable to parse glob: %s\n", globString)
+			os.Exit(1)
+		}
+
+		if g.Match(fn.Pkg().Path()) {
+			return false
+		}
+	}
 
 	// If it's not a package name, then we should check the selector to make sure
 	// that it's an identifier from the same package

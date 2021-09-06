@@ -20,7 +20,6 @@ var defaultRules = []lint.Rule{
 	&rule.ExportedRule{},
 	&rule.VarNamingRule{},
 	&rule.IndentErrorFlowRule{},
-	&rule.IfReturnRule{},
 	&rule.RangeRule{},
 	&rule.ErrorfRule{},
 	&rule.ErrorNamingRule{},
@@ -79,6 +78,9 @@ var allRules = append([]lint.Rule{
 	&rule.DeferRule{},
 	&rule.UnexportedNamingRule{},
 	&rule.FunctionLength{},
+	&rule.NestedStructs{},
+	&rule.IfReturnRule{},
+	&rule.UselessBreak{},
 }, defaultRules...)
 
 var allFormatters = []lint.Formatter{
