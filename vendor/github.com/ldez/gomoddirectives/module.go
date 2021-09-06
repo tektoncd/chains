@@ -21,7 +21,7 @@ type modInfo struct {
 // GetModuleFile gets module file.
 func GetModuleFile() (*modfile.File, error) {
 	// https://github.com/golang/go/issues/44753#issuecomment-790089020
-	cmd := exec.Command("go", "list", "-m", "-json", "-f", "{{.GoMod}}")
+	cmd := exec.Command("go", "list", "-m", "-json")
 
 	raw, err := cmd.CombinedOutput()
 	if err != nil {

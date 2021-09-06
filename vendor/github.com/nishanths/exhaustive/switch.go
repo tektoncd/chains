@@ -7,6 +7,7 @@ import (
 	"go/printer"
 	"go/token"
 	"go/types"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -23,9 +24,18 @@ func isDefaultCase(c *ast.CaseClause) bool {
 func checkSwitchStatements(
 	pass *analysis.Pass,
 	inspect *inspector.Inspector,
+) error {
+	comments := make(map[*ast.File]ast.CommentMap) // CommentMap per package file, lazily populated by reference
+	generated := make(map[*ast.File]bool)
+	return checkSwitchStatements_(pass, inspect, comments, generated)
+}
+
+func checkSwitchStatements_(
+	pass *analysis.Pass,
+	inspect *inspector.Inspector,
 	comments map[*ast.File]ast.CommentMap,
 	generated map[*ast.File]bool,
-) {
+) error {
 	inspect.WithStack([]ast.Node{&ast.SwitchStmt{}}, func(n ast.Node, push bool, stack []ast.Node) bool {
 		if !push {
 			return true
@@ -99,18 +109,16 @@ func checkSwitchStatements(
 		samePkg := tagPkg == pass.Pkg
 		checkUnexported := samePkg
 
-		hitlist := hitlistFromEnumMembers(em, checkUnexported)
+		hitlist := hitlistFromEnumMembers(em, tagPkg, checkUnexported, fIgnorePattern.Get().(*regexp.Regexp))
 		if len(hitlist) == 0 {
-			// can happen if external package and enum consists only of
-			// unexported members
 			return true
 		}
 
-		defaultCaseExists := false
+		var defaultCase *ast.CaseClause
 		for _, stmt := range sw.Body.List {
 			caseCl := stmt.(*ast.CaseClause)
 			if isDefaultCase(caseCl) {
-				defaultCaseExists = true
+				defaultCase = caseCl
 				continue // nothing more to do if it's the default case
 			}
 			for _, e := range caseCl.List {
@@ -141,14 +149,16 @@ func checkSwitchStatements(
 			}
 		}
 
-		defaultSuffices := fDefaultSignifiesExhaustive && defaultCaseExists
+		defaultSuffices := fDefaultSignifiesExhaustive && defaultCase != nil
 		shouldReport := len(hitlist) > 0 && !defaultSuffices
 
 		if shouldReport {
-			reportSwitch(pass, sw, samePkg, tagType, em, hitlist, defaultCaseExists, file)
+			reportSwitch(pass, sw, defaultCase, samePkg, tagType, em, hitlist, file)
 		}
 		return true
 	})
+
+	return nil
 }
 
 func updateHitlist(hitlist map[string]struct{}, em *enumMembers, foundName string) {
@@ -175,17 +185,20 @@ func isPackageNameIdentifier(pass *analysis.Pass, ident *ast.Ident) bool {
 	return ok
 }
 
-func hitlistFromEnumMembers(em *enumMembers, checkUnexported bool) map[string]struct{} {
+func hitlistFromEnumMembers(em *enumMembers, enumPkg *types.Package, checkUnexported bool, ignorePattern *regexp.Regexp) map[string]struct{} {
 	hitlist := make(map[string]struct{})
-	for _, m := range em.OrderedNames {
-		if m == "_" {
+	for _, name := range em.OrderedNames {
+		if name == "_" {
 			// blank identifier is often used to skip entries in iota lists
 			continue
 		}
-		if !ast.IsExported(m) && !checkUnexported {
+		if ignorePattern != nil && ignorePattern.MatchString(enumPkg.Path()+"."+name) {
 			continue
 		}
-		hitlist[m] = struct{}{}
+		if !ast.IsExported(name) && !checkUnexported {
+			continue
+		}
+		hitlist[name] = struct{}{}
 	}
 	return hitlist
 }
@@ -215,20 +228,18 @@ func determineMissingOutput(missingMembers map[string]struct{}, em *enumMembers)
 func reportSwitch(
 	pass *analysis.Pass,
 	sw *ast.SwitchStmt,
+	defaultCase *ast.CaseClause,
 	samePkg bool,
 	enumType *types.Named,
 	em *enumMembers,
 	missingMembers map[string]struct{},
-	defaultCaseExists bool,
 	f *ast.File,
 ) {
 	missingOutput := determineMissingOutput(missingMembers, em)
 
 	var fixes []analysis.SuggestedFix
-	if !defaultCaseExists {
-		if fix, ok := computeFix(pass, pass.Fset, f, sw, enumType, samePkg, missingMembers); ok {
-			fixes = append(fixes, fix)
-		}
+	if fix, ok := computeFix(pass, pass.Fset, f, sw, defaultCase, enumType, samePkg, missingMembers); ok {
+		fixes = append(fixes, fix)
 	}
 
 	pass.Report(analysis.Diagnostic{
@@ -239,7 +250,7 @@ func reportSwitch(
 	})
 }
 
-func computeFix(pass *analysis.Pass, fset *token.FileSet, f *ast.File, sw *ast.SwitchStmt, enumType *types.Named, samePkg bool, missingMembers map[string]struct{}) (analysis.SuggestedFix, bool) {
+func computeFix(pass *analysis.Pass, fset *token.FileSet, f *ast.File, sw *ast.SwitchStmt, defaultCase *ast.CaseClause, enumType *types.Named, samePkg bool, missingMembers map[string]struct{}) (analysis.SuggestedFix, bool) {
 	// Function and method calls may be mutative, so we don't want to reuse the
 	// call expression in the about-to-be-inserted case clause body. So we just
 	// don't suggest a fix in such situations.
@@ -253,9 +264,7 @@ func computeFix(pass *analysis.Pass, fset *token.FileSet, f *ast.File, sw *ast.S
 		return analysis.SuggestedFix{}, false
 	}
 
-	textEdits := []analysis.TextEdit{
-		missingCasesTextEdit(fset, f, samePkg, sw, enumType, missingMembers),
-	}
+	textEdits := []analysis.TextEdit{missingCasesTextEdit(fset, f, samePkg, sw, defaultCase, enumType, missingMembers)}
 
 	// need to add "fmt" import if "fmt" import doesn't already exist
 	if !hasImportWithPath(fset, f, `"fmt"`) {
@@ -269,7 +278,7 @@ func computeFix(pass *analysis.Pass, fset *token.FileSet, f *ast.File, sw *ast.S
 	sort.Strings(missing)
 
 	return analysis.SuggestedFix{
-		Message:   fmt.Sprintf("add case clause for: %s?", strings.Join(missing, ", ")),
+		Message:   fmt.Sprintf("add case clause for: %s", strings.Join(missing, ", ")),
 		TextEdits: textEdits,
 	}, true
 }
@@ -376,24 +385,23 @@ func fmtImportTextEdit(fset *token.FileSet, f *ast.File) analysis.TextEdit {
 	}
 }
 
-func missingCasesTextEdit(fset *token.FileSet, f *ast.File, samePkg bool, sw *ast.SwitchStmt, enumType *types.Named, missingMembers map[string]struct{}) analysis.TextEdit {
+func missingCasesTextEdit(fset *token.FileSet, f *ast.File, samePkg bool, sw *ast.SwitchStmt, defaultCase *ast.CaseClause, enumType *types.Named, missingMembers map[string]struct{}) analysis.TextEdit {
 	// ... Construct insertion text for case clause and its body ...
 
 	var tag bytes.Buffer
 	printer.Fprint(&tag, fset, sw.Tag)
 
-	// If possible and if necessary, determine the package identifier based on the AST of other `case` clauses.
+	// If possible and if necessary, determine the package identifier based on
+	// the AST of other `case` clauses.
 	var pkgIdent *ast.Ident
 	if !samePkg {
 		for _, stmt := range sw.Body.List {
 			caseCl := stmt.(*ast.CaseClause)
-			// At least one expression must exist in List at this point.
-			// List cannot be nil because we only arrive here if the "default" clause
-			// does not exist. Additionally, a syntactically valid case clause must
-			// have at least one expression.
-			if sel, ok := caseCl.List[0].(*ast.SelectorExpr); ok {
-				pkgIdent = sel.X.(*ast.Ident)
-				break
+			if len(caseCl.List) != 0 { // guard against default case
+				if sel, ok := caseCl.List[0].(*ast.SelectorExpr); ok {
+					pkgIdent = sel.X.(*ast.Ident)
+					break
+				}
 			}
 		}
 	}
@@ -423,9 +431,14 @@ func missingCasesTextEdit(fset *token.FileSet, f *ast.File, samePkg bool, sw *as
 
 	// ... Create the text edit ...
 
+	pos := sw.Body.Rbrace - 1 // put it as last case
+	if defaultCase != nil {
+		pos = defaultCase.Case - 2 // put it before the default case (why -2?)
+	}
+
 	return analysis.TextEdit{
-		Pos:     sw.Body.Rbrace - 1,
-		End:     sw.Body.Rbrace - 1,
+		Pos:     pos,
+		End:     pos,
 		NewText: []byte(insert),
 	}
 }
