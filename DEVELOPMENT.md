@@ -29,7 +29,7 @@ To check out this repository:
 mkdir -p ${GOPATH}/src/github.com/tektoncd
 cd ${GOPATH}/src/github.com/tektoncd
 git clone git@github.com:${YOUR_GITHUB_USERNAME}/chains.git
-cd cli
+cd chains
 git remote add upstream git@github.com:tektoncd/chains.git
 git remote set-url --push upstream no_push
 ```
