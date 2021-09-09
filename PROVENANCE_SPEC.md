@@ -3,11 +3,11 @@
 ## Model
 
 This provenance model has the following properties:
-* Each attestation has exaclty one `subject`, which is the same as an artifact or output of the build pipeline (e.g. OCI Images)
+* Each attestation has exactly one `subject`, which is the same as an artifact or output of the build pipeline (e.g. OCI Images)
 * `materials` defines the inputs to the build system (e.g. Git repos)
 * `recipe` is the set of steps executed to build the `subject`, typically each container run by the TaskRun is a step in the `recipe`
 
-In this model, there can be multiple `materials` and multiple steps in the `recipe`. 
+In this model, there can be multiple `materials` and multiple steps in the `recipe`.
 However, there is exactly one `subject`.
 If a build pipeline outputs multiple artifacts, each will have its own attestation.
 
