@@ -32,7 +32,7 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// Rpm RPM object
+// Rpm RPM package
 //
 // swagger:model rpm
 type Rpm struct {

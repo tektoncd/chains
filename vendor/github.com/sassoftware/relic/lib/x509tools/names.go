@@ -18,19 +18,13 @@ package x509tools
 
 import (
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/binary"
 	"fmt"
 	"strings"
 	"unicode/utf16"
 )
-
-type rdnAttr struct {
-	Type  asn1.ObjectIdentifier
-	Value asn1.RawValue
-}
-
-type rdnNameSet []rdnAttr
 
 type NameStyle int
 
@@ -46,47 +40,47 @@ type attrName struct {
 }
 
 var nameStyleLdap = []attrName{
-	attrName{asn1.ObjectIdentifier{2, 5, 4, 3}, "CN"},
-	attrName{asn1.ObjectIdentifier{2, 5, 4, 4}, "surname"},
-	attrName{asn1.ObjectIdentifier{2, 5, 4, 5}, "serialNumber"},
-	attrName{asn1.ObjectIdentifier{2, 5, 4, 6}, "C"},
-	attrName{asn1.ObjectIdentifier{2, 5, 4, 7}, "L"},
-	attrName{asn1.ObjectIdentifier{2, 5, 4, 8}, "ST"},
-	attrName{asn1.ObjectIdentifier{2, 5, 4, 9}, "street"},
-	attrName{asn1.ObjectIdentifier{2, 5, 4, 10}, "O"},
-	attrName{asn1.ObjectIdentifier{2, 5, 4, 11}, "OU"},
-	attrName{asn1.ObjectIdentifier{2, 5, 4, 12}, "title"},
-	attrName{asn1.ObjectIdentifier{2, 5, 4, 13}, "description"},
-	attrName{asn1.ObjectIdentifier{2, 5, 4, 17}, "postalCode"},
-	attrName{asn1.ObjectIdentifier{2, 5, 4, 18}, "postOfficeBox"},
-	attrName{asn1.ObjectIdentifier{2, 5, 4, 20}, "telephoneNumber"},
-	attrName{asn1.ObjectIdentifier{2, 5, 4, 42}, "givenName"},
-	attrName{asn1.ObjectIdentifier{2, 5, 4, 43}, "initials"},
-	attrName{asn1.ObjectIdentifier{0, 9, 2342, 19200300, 100, 1, 25}, "dc"},
-	attrName{asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 1}, "emailAddress"},
+	{asn1.ObjectIdentifier{2, 5, 4, 3}, "CN"},
+	{asn1.ObjectIdentifier{2, 5, 4, 4}, "surname"},
+	{asn1.ObjectIdentifier{2, 5, 4, 5}, "serialNumber"},
+	{asn1.ObjectIdentifier{2, 5, 4, 6}, "C"},
+	{asn1.ObjectIdentifier{2, 5, 4, 7}, "L"},
+	{asn1.ObjectIdentifier{2, 5, 4, 8}, "ST"},
+	{asn1.ObjectIdentifier{2, 5, 4, 9}, "street"},
+	{asn1.ObjectIdentifier{2, 5, 4, 10}, "O"},
+	{asn1.ObjectIdentifier{2, 5, 4, 11}, "OU"},
+	{asn1.ObjectIdentifier{2, 5, 4, 12}, "title"},
+	{asn1.ObjectIdentifier{2, 5, 4, 13}, "description"},
+	{asn1.ObjectIdentifier{2, 5, 4, 17}, "postalCode"},
+	{asn1.ObjectIdentifier{2, 5, 4, 18}, "postOfficeBox"},
+	{asn1.ObjectIdentifier{2, 5, 4, 20}, "telephoneNumber"},
+	{asn1.ObjectIdentifier{2, 5, 4, 42}, "givenName"},
+	{asn1.ObjectIdentifier{2, 5, 4, 43}, "initials"},
+	{asn1.ObjectIdentifier{0, 9, 2342, 19200300, 100, 1, 25}, "dc"},
+	{asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 1}, "emailAddress"},
 }
 
 // Per [MS-OSCO]
 // https://msdn.microsoft.com/en-us/library/dd947276(v=office.12).aspx
 var nameStyleMsOsco = []attrName{
-	attrName{asn1.ObjectIdentifier{2, 5, 4, 3}, "CN"},
-	attrName{asn1.ObjectIdentifier{2, 5, 4, 7}, "L"},
-	attrName{asn1.ObjectIdentifier{2, 5, 4, 10}, "O"},
-	attrName{asn1.ObjectIdentifier{2, 5, 4, 11}, "OU"},
-	attrName{asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 1}, "E"},
-	attrName{asn1.ObjectIdentifier{2, 5, 4, 6}, "C"},
-	attrName{asn1.ObjectIdentifier{2, 5, 4, 8}, "S"},
-	attrName{asn1.ObjectIdentifier{2, 5, 4, 9}, "STREET"},
-	attrName{asn1.ObjectIdentifier{2, 5, 4, 12}, "T"},
-	attrName{asn1.ObjectIdentifier{2, 5, 4, 42}, "G"},
-	attrName{asn1.ObjectIdentifier{2, 5, 4, 43}, "I"},
-	attrName{asn1.ObjectIdentifier{2, 5, 4, 4}, "SN"},
-	attrName{asn1.ObjectIdentifier{2, 5, 4, 5}, "SERIALNUMBER"},
-	attrName{asn1.ObjectIdentifier{0, 9, 2342, 19200300, 100, 1, 25}, "DC"},
-	attrName{asn1.ObjectIdentifier{2, 5, 4, 13}, "Description"},
-	attrName{asn1.ObjectIdentifier{2, 5, 4, 17}, "PostalCode"},
-	attrName{asn1.ObjectIdentifier{2, 5, 4, 18}, "POBox"},
-	attrName{asn1.ObjectIdentifier{2, 5, 4, 20}, "Phone"},
+	{asn1.ObjectIdentifier{2, 5, 4, 3}, "CN"},
+	{asn1.ObjectIdentifier{2, 5, 4, 7}, "L"},
+	{asn1.ObjectIdentifier{2, 5, 4, 10}, "O"},
+	{asn1.ObjectIdentifier{2, 5, 4, 11}, "OU"},
+	{asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 1}, "E"},
+	{asn1.ObjectIdentifier{2, 5, 4, 6}, "C"},
+	{asn1.ObjectIdentifier{2, 5, 4, 8}, "S"},
+	{asn1.ObjectIdentifier{2, 5, 4, 9}, "STREET"},
+	{asn1.ObjectIdentifier{2, 5, 4, 12}, "T"},
+	{asn1.ObjectIdentifier{2, 5, 4, 42}, "G"},
+	{asn1.ObjectIdentifier{2, 5, 4, 43}, "I"},
+	{asn1.ObjectIdentifier{2, 5, 4, 4}, "SN"},
+	{asn1.ObjectIdentifier{2, 5, 4, 5}, "SERIALNUMBER"},
+	{asn1.ObjectIdentifier{0, 9, 2342, 19200300, 100, 1, 25}, "DC"},
+	{asn1.ObjectIdentifier{2, 5, 4, 13}, "Description"},
+	{asn1.ObjectIdentifier{2, 5, 4, 17}, "PostalCode"},
+	{asn1.ObjectIdentifier{2, 5, 4, 18}, "POBox"},
+	{asn1.ObjectIdentifier{2, 5, 4, 20}, "Phone"},
 }
 
 // returned by the Format* functions in case there's something cripplingly
@@ -95,39 +89,38 @@ const InvalidName = "<invalid>"
 
 // Format the name (RDN sequence) from its raw DER to a readable style.
 func FormatPkixName(der []byte, style NameStyle) string {
-	var seq asn1.RawValue
+	var seq pkix.RDNSequence
 	if _, err := asn1.Unmarshal(der, &seq); err != nil {
 		return InvalidName
 	}
-	seqbytes := seq.Bytes
-	var formatted []string
-	for len(seqbytes) > 0 {
-		var rdnSet rdnNameSet
-		var err error
-		seqbytes, err = asn1.UnmarshalWithParams(seqbytes, &rdnSet, "set")
-		if err != nil {
-			return InvalidName
+	var b strings.Builder
+	if style == NameStyleOpenSsl {
+		for _, rdnSet := range seq {
+			for _, attr := range rdnSet {
+				b.WriteByte('/')
+				b.WriteString(attName(attr.Type, style))
+				b.WriteByte('=')
+				b.WriteString(attValue(attr.Value, style))
+			}
 		}
-		for _, attr := range rdnSet {
-			formatted = append(formatted, fmt.Sprintf("%s=%s", attName(attr.Type, style), attValue(attr.Value, style)))
-		}
-	}
-	if len(formatted) == 0 {
-		return ""
-	}
-	switch style {
-	case NameStyleOpenSsl:
-		return "/" + strings.Join(formatted, "/") + "/"
-	case NameStyleLdap, NameStyleMsOsco:
+	} else {
 		// Per RFC 2253 2.1, reverse the order
-		for i := 0; i < len(formatted)/2; i++ {
-			j := len(formatted) - i - 1
-			formatted[i], formatted[j] = formatted[j], formatted[i]
+		for i := len(seq) - 1; i >= 0; i-- {
+			if i < len(seq)-1 {
+				b.WriteString(", ")
+			}
+			rdnSet := seq[i]
+			for j, attr := range rdnSet {
+				if j > 0 {
+					b.WriteString(" + ")
+				}
+				b.WriteString(attName(attr.Type, style))
+				b.WriteByte('=')
+				b.WriteString(attValue(attr.Value, style))
+			}
 		}
-		return strings.Join(formatted, ", ")
-	default:
-		panic("invalid style argument")
 	}
+	return b.String()
 }
 
 func attName(t asn1.ObjectIdentifier, style NameStyle) string {
@@ -150,17 +143,15 @@ func attName(t asn1.ObjectIdentifier, style NameStyle) string {
 	return defaultPrefix + t.String()
 }
 
-func attValue(raw asn1.RawValue, style NameStyle) string {
+func attValue(raw interface{}, style NameStyle) string {
 	var value string
-	switch raw.Tag {
-	case asn1.TagUTF8String, asn1.TagIA5String, asn1.TagPrintableString:
-		var ret interface{}
-		if _, err := asn1.Unmarshal(raw.FullBytes, &ret); err != nil {
-			return InvalidName
-		}
-		value = ret.(string)
-	case Asn1TagBMPString:
-		value = ParseBMPString(raw)
+	switch v := raw.(type) {
+	case string:
+		value = v
+	case fmt.Stringer:
+		value = v.String()
+	case int64:
+		value = fmt.Sprint(v)
 	default:
 		return InvalidName
 	}
@@ -186,12 +177,10 @@ func attValue(raw asn1.RawValue, style NameStyle) string {
 	return value
 }
 
-func ParseBMPString(raw asn1.RawValue) string {
-	runes := make([]uint16, len(raw.Bytes)/2)
-	for i := range runes {
-		runes[i] = binary.BigEndian.Uint16(raw.Bytes[i*2:])
-	}
-	return string(utf16.Decode(runes))
+// DEPRECATED - Use asn1.Unmarshal
+func ParseBMPString(raw asn1.RawValue) (s string) {
+	asn1.Unmarshal(raw.FullBytes, &s)
+	return
 }
 
 func ToBMPString(value string) asn1.RawValue {
@@ -200,7 +189,7 @@ func ToBMPString(value string) asn1.RawValue {
 	for i, r := range runes {
 		binary.BigEndian.PutUint16(raw[i*2:], r)
 	}
-	return asn1.RawValue{Tag: Asn1TagBMPString, Bytes: raw}
+	return asn1.RawValue{Tag: asn1.TagBMPString, Bytes: raw}
 }
 
 // Format the certificate subject name in LDAP style

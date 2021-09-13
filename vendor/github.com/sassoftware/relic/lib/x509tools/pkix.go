@@ -50,9 +50,9 @@ var (
 	// RFC 4055
 	OidMGF1            = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 8}
 	OidSignatureRSAPSS = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 10}
-
-	Asn1TagBMPString = 30
 )
+
+const Asn1TagBMPString = asn1.TagBMPString
 
 type sigAlgInfo struct {
 	oid        asn1.ObjectIdentifier

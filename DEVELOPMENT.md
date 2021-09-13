@@ -9,7 +9,7 @@
 1. Set up your [shell environment](#environment-setup)
 1. Install [requirements](#requirements)
 1. [Set up a Kubernetes cluster](#kubernetes-cluster)
-1. [Running Tests](#ruunning-tests)
+1. [Running Tests](#Running-Tests)
 
 Then you can [iterate](#iterating).
 
@@ -29,7 +29,7 @@ To check out this repository:
 mkdir -p ${GOPATH}/src/github.com/tektoncd
 cd ${GOPATH}/src/github.com/tektoncd
 git clone git@github.com:${YOUR_GITHUB_USERNAME}/chains.git
-cd cli
+cd chains
 git remote add upstream git@github.com:tektoncd/chains.git
 git remote set-url --push upstream no_push
 ```

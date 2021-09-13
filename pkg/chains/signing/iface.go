@@ -18,12 +18,13 @@ import "github.com/sigstore/sigstore/pkg/signature"
 type Signer interface {
 	signature.Signer
 	Type() string
+	Cert() string
+	Chain() string
 }
 
 const (
-	TypePgp  = "pgp"
 	TypeX509 = "x509"
 	TypeKMS  = "kms"
 )
 
-var AllSigners = []string{TypePgp, TypeX509, TypeKMS}
+var AllSigners = []string{TypeX509, TypeKMS}

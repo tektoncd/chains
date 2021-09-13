@@ -14,25 +14,39 @@ limitations under the License.
 package signing
 
 import (
+	"bytes"
 	"context"
 	"crypto"
 	"encoding/json"
+	"io"
+	"io/ioutil"
 
 	"github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/in-toto/in-toto-golang/pkg/ssl"
+	"github.com/sigstore/sigstore/pkg/signature"
+
+	"golang.org/x/crypto/ssh"
 )
 
 func Wrap(ctx context.Context, s Signer) (Signer, error) {
-	adapter := sslAdapter{
-		wrapped: s,
-	}
-
-	envelope, err := ssl.NewEnvelopeSigner(&adapter)
+	pub, err := s.PublicKey()
 	if err != nil {
 		return nil, err
 	}
 
-	pub, err := s.PublicKey(ctx)
+	// Generate public key fingerprint
+	sshpk, err := ssh.NewPublicKey(pub)
+	if err != nil {
+		return nil, err
+	}
+	fingerprint := ssh.FingerprintSHA256(sshpk)
+
+	adapter := sslAdapter{
+		wrapped: s,
+		KeyID:   fingerprint,
+	}
+
+	envelope, err := ssl.NewEnvelopeSigner(&adapter)
 	if err != nil {
 		return nil, err
 	}
@@ -40,6 +54,8 @@ func Wrap(ctx context.Context, s Signer) (Signer, error) {
 		wrapper: envelope,
 		typ:     s.Type(),
 		pub:     pub,
+		cert:    s.Cert(),
+		chain:   s.Chain(),
 	}, nil
 }
 
@@ -50,11 +66,11 @@ type sslAdapter struct {
 }
 
 func (w *sslAdapter) Sign(data []byte) ([]byte, string, error) {
-	sig, _, err := w.wrapped.Sign(context.Background(), data)
+	sig, err := w.wrapped.SignMessage(bytes.NewReader(data))
 	return sig, w.KeyID, err
 }
 
-func (w *sslAdapter) Verify(keyID string, data, sig []byte) (bool, error) {
+func (w *sslAdapter) Verify(keyID string, data, sig []byte) error {
 	panic("unimplemented")
 }
 
@@ -63,12 +79,14 @@ type sslSigner struct {
 	wrapper *ssl.EnvelopeSigner
 	typ     string
 	pub     crypto.PublicKey
+	cert    string
+	chain   string
 }
 
 func (s *sslSigner) Type() string {
 	return s.typ
 }
-func (s *sslSigner) PublicKey(ctx context.Context) (crypto.PublicKey, error) {
+func (s *sslSigner) PublicKey(opts ...signature.PublicKeyOption) (crypto.PublicKey, error) {
 	return s.pub, nil
 }
 
@@ -82,4 +100,28 @@ func (s *sslSigner) Sign(ctx context.Context, payload []byte) ([]byte, []byte, e
 		return nil, nil, err
 	}
 	return b, []byte(env.Payload), nil
+}
+
+func (s *sslSigner) SignMessage(payload io.Reader, opts ...signature.SignOption) ([]byte, error) {
+	m, err := ioutil.ReadAll(payload)
+	if err != nil {
+		return nil, err
+	}
+	env, err := s.wrapper.SignPayload(in_toto.PayloadType, m)
+	if err != nil {
+		return nil, err
+	}
+	b, err := json.Marshal(env)
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
+}
+
+func (w *sslSigner) Cert() string {
+	return w.cert
+}
+
+func (w *sslSigner) Chain() string {
+	return w.chain
 }

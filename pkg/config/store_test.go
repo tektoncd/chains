@@ -1,3 +1,19 @@
+/*
+Copyright 2021 The Tekton Authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package config
 
 import (
@@ -8,14 +24,16 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	fakek8s "k8s.io/client-go/kubernetes/fake"
+	"knative.dev/pkg/configmap/informer"
 	logtesting "knative.dev/pkg/logging/testing"
 	rtesting "knative.dev/pkg/reconciler/testing"
+	"knative.dev/pkg/system"
 )
 
 func TestNewConfigStore(t *testing.T) {
 	ctx, _ := rtesting.SetupFakeContext(t)
 
-	ns := "my-namespace"
+	ns := system.Namespace()
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "chains-config",
@@ -23,21 +41,24 @@ func TestNewConfigStore(t *testing.T) {
 		},
 	}
 	fakekubeclient := fakek8s.NewSimpleClientset(cm)
+	cmw := informer.NewInformedWatcher(fakekubeclient, system.Namespace())
 
-	cs, err := NewConfigStore(fakekubeclient, ns, logtesting.TestLogger(t))
-	if err != nil {
-		t.Errorf("error creating new config store: %v", err)
+	cs := NewConfigStore(logtesting.TestLogger(t))
+	cs.WatchConfigs(cmw)
+	if err := cmw.Start(ctx.Done()); err != nil {
+		t.Fatalf("Error starting configmap.Watcher %v", err)
 	}
 
-	// Test that there's nothing with an empty configmap
-	if cs.Config().Artifacts.TaskRuns.Format != "" {
-		t.Errorf("unexpected data: %v", cs.Config().Artifacts.TaskRuns.Format)
+	// Check that with an empty configmap we get the default values.
+	if diff := cmp.Diff(cs.Load(), defaultConfig()); diff != "" {
+		t.Errorf("unexpected data: %v", diff)
 	}
 
 	// Setup some config
 	cm.Data = map[string]string{}
-	cm.Data[taskrunSignerKey] = "pgp"
+	cm.Data[taskrunSignerKey] = "x509"
 
+	var err error
 	if cm, err = fakekubeclient.CoreV1().ConfigMaps(ns).Update(ctx, cm, metav1.UpdateOptions{}); err != nil {
 		t.Errorf("error updating configmap: %v", err)
 	}
@@ -45,7 +66,7 @@ func TestNewConfigStore(t *testing.T) {
 	// It should be updated by then...
 	time.Sleep(100 * time.Millisecond)
 	// Test that the values are set!
-	if diff := cmp.Diff("pgp", cs.Config().Artifacts.TaskRuns.Signer); diff != "" {
+	if diff := cmp.Diff("x509", cs.Load().Artifacts.TaskRuns.Signer); diff != "" {
 		t.Error(diff)
 	}
 
@@ -57,9 +78,16 @@ func TestNewConfigStore(t *testing.T) {
 	}
 	time.Sleep(100 * time.Millisecond)
 	// Test that the values are set!
-	if diff := cmp.Diff("kms", cs.Config().Artifacts.TaskRuns.Signer); diff != "" {
+	if diff := cmp.Diff("kms", cs.Load().Artifacts.TaskRuns.Signer); diff != "" {
 		t.Error(diff)
 	}
+}
+
+var defaultSigners = SignerConfigs{
+	X509: X509Signer{
+		FulcioAuth: "google",
+		FulcioAddr: "https://fulcio.sigstore.dev",
+	},
 }
 
 func TestParse(t *testing.T) {
@@ -87,6 +115,7 @@ func TestParse(t *testing.T) {
 						Signer:         "x509",
 					},
 				},
+				Signers: defaultSigners,
 				Transparency: TransparencyConfig{
 					URL: "https://rekor.sigstore.dev",
 				},
@@ -94,7 +123,7 @@ func TestParse(t *testing.T) {
 		},
 		{
 			name: "single",
-			data: map[string]string{taskrunSignerKey: "pgp"},
+			data: map[string]string{taskrunSignerKey: "x509"},
 			want: Config{
 				Builder: BuilderConfig{
 					"tekton-chains",
@@ -102,7 +131,7 @@ func TestParse(t *testing.T) {
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
 						Format:         "tekton",
-						Signer:         "pgp",
+						Signer:         "x509",
 						StorageBackend: "tekton",
 					},
 					OCI: Artifact{
@@ -111,14 +140,15 @@ func TestParse(t *testing.T) {
 						Signer:         "x509",
 					},
 				},
+				Signers: defaultSigners,
 				Transparency: TransparencyConfig{
 					URL: "https://rekor.sigstore.dev",
 				},
 			},
 		},
 		{
-			name: "extra",
-			data: map[string]string{taskrunSignerKey: "pgp", "other-key": "foo"},
+			name: "manual transparency",
+			data: map[string]string{transparencyEnabledKey: "manual"},
 			want: Config{
 				Builder: BuilderConfig{
 					"tekton-chains",
@@ -126,13 +156,75 @@ func TestParse(t *testing.T) {
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
 						Format:         "tekton",
-						Signer:         "pgp",
+						Signer:         "x509",
 						StorageBackend: "tekton",
 					},
 					OCI: Artifact{
 						Format:         "simplesigning",
 						StorageBackend: "oci",
 						Signer:         "x509",
+					},
+				},
+				Signers: defaultSigners,
+				Transparency: TransparencyConfig{
+					Enabled:          true,
+					VerifyAnnotation: true,
+					URL:              "https://rekor.sigstore.dev",
+				},
+			},
+		},
+		{
+			name: "extra",
+			data: map[string]string{taskrunSignerKey: "x509", "other-key": "foo"},
+			want: Config{
+				Builder: BuilderConfig{
+					"tekton-chains",
+				},
+				Artifacts: ArtifactConfigs{
+					TaskRuns: Artifact{
+						Format:         "tekton",
+						Signer:         "x509",
+						StorageBackend: "tekton",
+					},
+					OCI: Artifact{
+						Format:         "simplesigning",
+						StorageBackend: "oci",
+						Signer:         "x509",
+					},
+				},
+				Signers: defaultSigners,
+				Transparency: TransparencyConfig{
+					URL: "https://rekor.sigstore.dev",
+				},
+			},
+		}, {
+			name: "fulcio",
+			data: map[string]string{
+				taskrunSignerKey:              "x509",
+				"signers.x509.fulcio.enabled": "true",
+				"signers.x509.fulcio.address": "fulcio-address",
+			},
+			want: Config{
+				Builder: BuilderConfig{
+					"tekton-chains",
+				},
+				Artifacts: ArtifactConfigs{
+					TaskRuns: Artifact{
+						Format:         "tekton",
+						Signer:         "x509",
+						StorageBackend: "tekton",
+					},
+					OCI: Artifact{
+						Format:         "simplesigning",
+						StorageBackend: "oci",
+						Signer:         "x509",
+					},
+				},
+				Signers: SignerConfigs{
+					X509: X509Signer{
+						FulcioEnabled: true,
+						FulcioAuth:    "google",
+						FulcioAddr:    "fulcio-address",
 					},
 				},
 				Transparency: TransparencyConfig{
@@ -143,48 +235,12 @@ func TestParse(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := parse(tt.data, logtesting.TestLogger(t))
-			if diff := cmp.Diff(got, tt.want); diff != "" {
-				t.Errorf("parse() = %v", diff)
+			got, err := NewConfigFromMap(tt.data)
+			if err != nil {
+				t.Fatalf("NewConfigFromMap() = %v", err)
 			}
-		})
-	}
-}
-
-func TestValueOrDefault(t *testing.T) {
-	tests := []struct {
-		description string
-		key         string
-		value       string
-		expected    string
-	}{
-		{
-			description: "valid key set to default",
-			key:         ociFormatKey,
-			value:       "simplesigning",
-			expected:    "simplesigning",
-		}, {
-			description: "valid key not set to default",
-			key:         ociFormatKey,
-			value:       "tekton",
-			expected:    "tekton",
-		}, {
-			description: "invalid value with default",
-			key:         ociFormatKey,
-			value:       "invalid",
-			expected:    "simplesigning",
-		}, {
-			description: "key with no default",
-			key:         gcsBucketKey,
-			value:       "bucket",
-			expected:    "bucket",
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.description, func(t *testing.T) {
-			got := valueOrDefault(test.key, map[string]string{test.key: test.value}, logtesting.TestLogger(t))
-			if got != test.expected {
-				t.Fatalf("got (%s) is not expected (%s)", got, test.expected)
+			if diff := cmp.Diff(*got, tt.want); diff != "" {
+				t.Errorf("parse() = %v", diff)
 			}
 		})
 	}

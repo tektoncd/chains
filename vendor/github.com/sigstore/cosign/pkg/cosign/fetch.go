@@ -16,20 +16,20 @@
 package cosign
 
 import (
+	"bytes"
 	"context"
 	"crypto/x509"
 	"encoding/json"
-	"encoding/pem"
 	"io/ioutil"
 	"runtime"
 	"strings"
 
-	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/pkg/errors"
 	cremote "github.com/sigstore/cosign/pkg/cosign/remote"
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 )
@@ -40,6 +40,7 @@ type SignedPayload struct {
 	Cert            *x509.Certificate
 	Chain           []*x509.Certificate
 	Bundle          *cremote.Bundle
+	bundleVerified  bool
 }
 
 // TODO: marshal the cert correctly.
@@ -51,34 +52,39 @@ type SignedPayload struct {
 // 	})
 // }
 
-func Munge(desc v1.Descriptor) string {
-	return signatureImageTagForDigest(desc.Digest.String())
+const (
+	SignatureTagSuffix   = ".sig"
+	SBOMTagSuffix        = ".sbom"
+	AttestationTagSuffix = ".att"
+)
+
+func AttachedImageTag(repo name.Repository, digest v1.Hash, tagSuffix string) name.Tag {
+	// sha256:d34db33f -> sha256-d34db33f.suffix
+	tagStr := strings.ReplaceAll(digest.String(), ":", "-") + tagSuffix
+	return repo.Tag(tagStr)
 }
 
-func signatureImageTagForDigest(digest string) string {
-	// sha256:... -> sha256-...
-	return strings.ReplaceAll(digest, ":", "-") + ".sig"
+func FetchSignaturesForImage(ctx context.Context, signedImgRef name.Reference, sigRepo name.Repository, sigTagSuffix string, registryOpts ...remote.Option) ([]SignedPayload, error) {
+	signedImgDesc, err := remote.Get(signedImgRef, registryOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return FetchSignaturesForImageDigest(ctx, signedImgDesc.Descriptor.Digest, sigRepo, sigTagSuffix, registryOpts...)
 }
 
-func FetchSignatures(ctx context.Context, ref name.Reference) ([]SignedPayload, *v1.Descriptor, error) {
-	targetDesc, err := remote.Get(ref, remote.WithAuthFromKeychain(authn.DefaultKeychain))
+func FetchSignaturesForImageDigest(ctx context.Context, signedImageDigest v1.Hash, sigRepo name.Repository, sigTagSuffix string, registryOpts ...remote.Option) ([]SignedPayload, error) {
+	sigImgDesc, err := remote.Get(AttachedImageTag(sigRepo, signedImageDigest, sigTagSuffix), registryOpts...)
 	if err != nil {
-		return nil, nil, err
+		return nil, errors.Wrap(err, "getting signature manifest")
 	}
-
-	// first, see if signatures exist in an alternate location
-	dstRef, err := DestinationRef(ref, targetDesc)
+	sigImg, err := sigImgDesc.Image()
 	if err != nil {
-		return nil, nil, err
-	}
-	sigImg, err := remote.Image(dstRef, remote.WithAuthFromKeychain(authn.DefaultKeychain))
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "remote image")
+		return nil, errors.Wrap(err, "remote image")
 	}
 
 	m, err := sigImg.Manifest()
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "manifest")
+		return nil, errors.Wrap(err, "manifest")
 	}
 
 	g, ctx := errgroup.WithContext(ctx)
@@ -117,7 +123,7 @@ func FetchSignatures(ctx context.Context, ref name.Reference) ([]SignedPayload, 
 			// We may have a certificate and chain
 			certPem := desc.Annotations[certkey]
 			if certPem != "" {
-				certs, err := LoadCerts(certPem)
+				certs, err := cryptoutils.LoadCertificatesFromPEM(bytes.NewReader([]byte(certPem)))
 				if err != nil {
 					return err
 				}
@@ -125,7 +131,7 @@ func FetchSignatures(ctx context.Context, ref name.Reference) ([]SignedPayload, 
 			}
 			chainPem := desc.Annotations[chainkey]
 			if chainPem != "" {
-				certs, err := LoadCerts(chainPem)
+				certs, err := cryptoutils.LoadCertificatesFromPEM(bytes.NewReader([]byte(chainPem)))
 				if err != nil {
 					return err
 				}
@@ -146,32 +152,8 @@ func FetchSignatures(ctx context.Context, ref name.Reference) ([]SignedPayload, 
 		})
 	}
 	if err := g.Wait(); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	return signatures, &targetDesc.Descriptor, nil
-}
+	return signatures, nil
 
-func LoadCerts(pemStr string) ([]*x509.Certificate, error) {
-	blocks := []*pem.Block{}
-	pemBytes := []byte(pemStr)
-	for {
-		block, rest := pem.Decode(pemBytes)
-		if block == nil {
-			break
-		}
-		if block.Type == "CERTIFICATE" {
-			blocks = append(blocks, block)
-		}
-		pemBytes = rest
-	}
-
-	certs := []*x509.Certificate{}
-	for _, block := range blocks {
-		cert, err := x509.ParseCertificate(block.Bytes)
-		if err != nil {
-			return nil, err
-		}
-		certs = append(certs, cert)
-	}
-	return certs, nil
 }

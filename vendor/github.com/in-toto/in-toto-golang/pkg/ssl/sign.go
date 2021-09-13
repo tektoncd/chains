@@ -6,10 +6,9 @@ https://github.com/secure-systems-lab/signing-spec
 package ssl
 
 import (
-	"bytes"
 	"encoding/base64"
-	"encoding/binary"
 	"errors"
+	"fmt"
 )
 
 // ErrUnknownKey indicates that the implementation does not recognize the
@@ -47,31 +46,13 @@ type Signature struct {
 }
 
 /*
-PAE implementes PASETO Pre-Authentic Encoding
-https://github.com/paragonie/paseto/blob/master/docs/01-Protocol-Versions/Common.md#authentication-padding
+PAE implementes the DSSE Pre-Authentic Encoding
+https://github.com/secure-systems-lab/dsse/blob/master/protocol.md#signature-definition
 */
-func PAE(data [][]byte) ([]byte, error) {
-	var buf = bytes.Buffer{}
-	var l = len(data)
-	var err error
-
-	if err = binary.Write(&buf, binary.LittleEndian, uint64(l)); err != nil {
-		return nil, err
-	}
-
-	for _, b := range data {
-		l = len(b)
-
-		if err = binary.Write(&buf, binary.LittleEndian, uint64(l)); err != nil {
-			return nil, err
-		}
-
-		if _, err = buf.Write(b); err != nil {
-			return nil, err
-		}
-	}
-
-	return buf.Bytes(), nil
+func PAE(payloadType, payload string) []byte {
+	return []byte(fmt.Sprintf("DSSEv1 %d %s %d %s",
+		len(payloadType), payloadType,
+		len(payload), payload))
 }
 
 /*
@@ -144,13 +125,7 @@ func (es *EnvelopeSigner) SignPayload(payloadType string, body []byte) (*Envelop
 		PayloadType: payloadType,
 	}
 
-	paeEnc, err := PAE([][]byte{
-		[]byte(payloadType),
-		body,
-	})
-	if err != nil {
-		return nil, err
-	}
+	paeEnc := PAE(payloadType, string(body))
 
 	for _, signer := range es.providers {
 		sig, keyID, err := signer.Sign(paeEnc)
@@ -172,7 +147,7 @@ Verify decodes the payload and verifies the signature.
 Any domain specific validation such as parsing the decoded body and
 validating the payload type is left out to the caller.
 */
-func (es *EnvelopeSigner) Verify(e *Envelope) (bool, error) {
+func (es *EnvelopeSigner) Verify(e *Envelope) error {
 	return es.ev.Verify(e)
 }
 

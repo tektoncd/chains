@@ -25,7 +25,6 @@ import (
 
 	"github.com/kelseyhightower/envconfig"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 
@@ -79,11 +78,6 @@ type Config struct {
 	LeaseDuration time.Duration
 	RenewDeadline time.Duration
 	RetryPeriod   time.Duration
-
-	// This field is deprecated and will be removed once downstream
-	// repositories have removed their validation of it.
-	// TODO(https://github.com/knative/pkg/issues/1478): Remove this field.
-	EnabledComponents sets.String
 }
 
 func (c *Config) GetComponentConfig(name string) ComponentConfig {
@@ -134,8 +128,8 @@ type statefulSetID struct {
 
 func (ssID *statefulSetID) Decode(v string) error {
 	if i := strings.LastIndex(v, "-"); i != -1 {
-		ui, err := strconv.ParseUint(v[i+1:], 10, 64)
-		ssID.ordinal = int(ui)
+		ui, err := strconv.Atoi(v[i+1:])
+		ssID.ordinal = ui
 		ssID.ssName = v[:i]
 		return err
 	}
