@@ -30,6 +30,7 @@ type Config struct {
 	Storage      StorageConfigs
 	Signers      SignerConfigs
 	Builder      BuilderConfig
+	Service      ServiceConfig
 	Transparency TransparencyConfig
 	SPIRE        SPIREConfig
 }
@@ -101,6 +102,11 @@ type TransparencyConfig struct {
 	URL              string
 }
 
+type ServiceConfig struct {
+	Enabled bool
+	Port    int
+}
+
 const (
 	taskrunFormatKey  = "artifacts.taskrun.format"
 	taskrunStorageKey = "artifacts.taskrun.storage"
@@ -131,6 +137,8 @@ const (
 	transparencyEnabledKey = "transparency.enabled"
 	transparencyURLKey     = "transparency.url"
 
+	// Chains API Config
+	apiEnabledKey = "chains.api.enabled"
 	// SPIRE config
 	spireEnabledKey = "spire.enabled"
 
@@ -162,6 +170,10 @@ func defaultConfig() *Config {
 		},
 		Builder: BuilderConfig{
 			ID: "tekton-chains",
+		},
+		Service: ServiceConfig{
+			Port:    9000,
+			Enabled: false,
 		},
 	}
 }
@@ -201,6 +213,9 @@ func NewConfigFromMap(data map[string]string) (*Config, error) {
 
 		// Build config
 		asString(builderIDKey, &cfg.Builder.ID),
+
+		// Service config
+		asBool(apiEnabledKey, &cfg.Service.Enabled),
 	); err != nil {
 		return nil, fmt.Errorf("failed to parse data: %w", err)
 	}

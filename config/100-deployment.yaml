@@ -96,7 +96,29 @@ spec:
               fieldPath: metadata.namespace
         - name: METRICS_DOMAIN
           value: tekton.dev/chains
+      - name: tekton-chains-api
+        image: ko://github.com/tektoncd/chains/cmd/server
+        env:
+        - name: SYSTEM_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: METRICS_DOMAIN
+          value: tekton.dev/chains
       volumes:
       - name: signing-secrets
         secret:
           secretName: signing-secrets
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tekton-chains-api
+  namespace: tekton-chains
+spec:
+  selector:
+    app: tekton-chains-controller
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 9000

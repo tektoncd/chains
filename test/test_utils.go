@@ -84,6 +84,10 @@ func waitForCondition(ctx context.Context, t *testing.T, c pipelineclientset.Int
 	}
 }
 
+func successful(tr *v1beta1.TaskRun) bool {
+	return tr.IsSuccessful()
+}
+
 func failed(tr *v1beta1.TaskRun) bool {
 	failed, ok := tr.Annotations["chains.tekton.dev/signed"]
 	return ok && failed == "failed" && tr.Annotations["chains.tekton.dev/retries"] == "3"
