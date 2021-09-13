@@ -32,6 +32,7 @@ type Config struct {
 	Builder      BuilderConfig
 	Service      ServiceConfig
 	Transparency TransparencyConfig
+	SPIRE        SPIREConfig
 }
 
 // ArtifactConfig contains the configuration for how to sign/store/format the signatures for each artifact type
@@ -63,6 +64,10 @@ type SignerConfigs struct {
 
 type BuilderConfig struct {
 	ID string
+}
+
+type SPIREConfig struct {
+	Enabled bool
 }
 
 type X509Signer struct {
@@ -134,6 +139,8 @@ const (
 
 	// Chains API Config
 	apiEnabledKey = "chains.api.enabled"
+	// SPIRE config
+	spireEnabledKey = "spire.enabled"
 
 	ChainsConfig = "chains-config"
 )
@@ -197,6 +204,8 @@ func NewConfigFromMap(data map[string]string) (*Config, error) {
 		asString(transparencyURLKey, &cfg.Transparency.URL),
 
 		asString(kmsSignerKMSRef, &cfg.Signers.KMS.KMSRef),
+
+		asBool(spireEnabledKey, &cfg.SPIRE.Enabled),
 
 		asBool(x509SignerFulcioEnabled, &cfg.Signers.X509.FulcioEnabled),
 		asString(x509SignerFulcioAuth, &cfg.Signers.X509.FulcioAuth),

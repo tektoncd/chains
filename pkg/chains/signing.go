@@ -83,7 +83,7 @@ func allFormatters(cfg config.Config, l *zap.SugaredLogger) map[formats.PayloadT
 	for _, f := range formats.AllFormatters {
 		switch f {
 		case formats.PayloadTypeTekton:
-			formatter, err := tekton.NewFormatter()
+			formatter, err := tekton.NewFormatter(cfg, l)
 			if err != nil {
 				l.Warnf("error configuring tekton formatter: %s", err)
 			}
