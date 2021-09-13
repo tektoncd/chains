@@ -35,30 +35,77 @@ type Digester interface {
 	Digest() (v1.Hash, error)
 }
 
-type File struct {
-	Path     string
-	Platform *v1.Platform
+type File interface {
+	Contents() ([]byte, error)
+	Platform() *v1.Platform
+	String() string
+	Path() string
 }
 
-func (f *File) String() string {
-	r := f.Path
-	if f.Platform == nil {
+func FileFromFlag(s string) File {
+	split := strings.Split(s, ":")
+	f := file{
+		path: split[0],
+	}
+	if len(split) > 1 {
+		split = strings.Split(split[1], "/")
+		f.platform = &v1.Platform{
+			OS: split[0],
+		}
+		if len(split) > 1 {
+			f.platform.Architecture = split[1]
+		}
+	}
+	return &f
+}
+
+type file struct {
+	path     string
+	platform *v1.Platform
+}
+
+func (f *file) Path() string {
+	return f.path
+}
+
+func (f *file) Contents() ([]byte, error) {
+	return ioutil.ReadFile(f.path)
+}
+func (f *file) Platform() *v1.Platform {
+	return f.platform
+}
+
+func (f *file) String() string {
+	r := f.path
+	if f.platform == nil {
 		return r
 	}
-	r += ":" + f.Platform.OS
-	if f.Platform.Architecture == "" {
+	r += ":" + f.platform.OS
+	if f.platform.Architecture == "" {
 		return r
 	}
-	r += "/" + f.Platform.Architecture
+	r += "/" + f.platform.Architecture
 	return r
 }
 
-func UploadFiles(ref name.Reference, files []File) (Digester, error) {
+type MediaTypeGetter func(b []byte) types.MediaType
+
+func DefaultMediaTypeGetter(b []byte) types.MediaType {
+	return types.MediaType(strings.Split(http.DetectContentType(b), ";")[0])
+}
+
+func UploadFiles(ref name.Reference, files []File, getMt MediaTypeGetter, remoteOpts ...remote.Option) (Digester, error) {
 	var img v1.Image
 	var idx v1.ImageIndex = empty.Index
 
 	for _, f := range files {
-		_img, err := UploadFile(f.Path, ref, authn.DefaultKeychain)
+		b, err := f.Contents()
+		if err != nil {
+			return nil, err
+		}
+		mt := getMt(b)
+		fmt.Fprintf(os.Stderr, "Uploading file from [%s] to [%s] with media type [%s]\n", f.Path(), ref.Name(), mt)
+		_img, err := UploadFile(b, ref, mt, types.OCIConfigJSON, remoteOpts...)
 		if err != nil {
 			return nil, err
 		}
@@ -72,12 +119,12 @@ func UploadFiles(ref name.Reference, files []File) (Digester, error) {
 			return nil, err
 		}
 		blobURL := ref.Context().Registry.RegistryStr() + "/v2/" + ref.Context().RepositoryStr() + "/blobs/sha256:" + dgst.Hex
-		fmt.Fprintf(os.Stderr, "File [%s] is available directly at [%s]\n", f.Path, blobURL)
-		if f.Platform != nil {
+		fmt.Fprintf(os.Stderr, "File [%s] is available directly at [%s]\n", f.Path(), blobURL)
+		if f.Platform() != nil {
 			idx = mutate.AppendManifests(idx, mutate.IndexAddendum{
 				Add: img,
 				Descriptor: v1.Descriptor{
-					Platform: f.Platform,
+					Platform: f.Platform(),
 				},
 			})
 		}
@@ -92,17 +139,11 @@ func UploadFiles(ref name.Reference, files []File) (Digester, error) {
 	return img, nil
 }
 
-func UploadFile(fileRef string, ref name.Reference, kc authn.Keychain) (v1.Image, error) {
-	b, err := ioutil.ReadFile(fileRef)
-	if err != nil {
-		return nil, err
-	}
-	mt := strings.Split(http.DetectContentType(b), ";")[0]
-	l := &StaticLayer{
+func UploadFile(b []byte, ref name.Reference, layerMt, configMt types.MediaType, remoteOpts ...remote.Option) (v1.Image, error) {
+	l := &staticLayer{
 		b:  b,
-		mt: types.MediaType(mt),
+		mt: layerMt,
 	}
-	fmt.Fprintf(os.Stderr, "Uploading file from [%s] to [%s] with media type [%s]\n", fileRef, ref.Name(), mt)
 
 	emptyOci := mutate.MediaType(empty.Image, types.OCIManifestSchema1)
 	img, err := mutate.Append(emptyOci, mutate.Addendum{
@@ -111,7 +152,12 @@ func UploadFile(fileRef string, ref name.Reference, kc authn.Keychain) (v1.Image
 	if err != nil {
 		return nil, err
 	}
-	if err := remote.Write(ref, img, remote.WithAuthFromKeychain(kc)); err != nil {
+	mfst, err := img.Manifest()
+	if err != nil {
+		return nil, err
+	}
+	mfst.Config.MediaType = configMt
+	if err := remote.Write(ref, img, remoteOpts...); err != nil {
 		return nil, err
 	}
 	return img, nil

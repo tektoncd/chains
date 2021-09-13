@@ -27,7 +27,7 @@ import (
 	fakepipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client/fake"
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	logtesting "knative.dev/pkg/logging/testing"
+	"k8s.io/client-go/kubernetes"
 	rtesting "knative.dev/pkg/reconciler/testing"
 )
 
@@ -86,45 +86,6 @@ func TestMarkSigned(t *testing.T) {
 	}
 }
 
-func TestIsSigned(t *testing.T) {
-	tests := []struct {
-		name       string
-		annotation string
-		want       bool
-	}{
-		{
-			name:       "signed",
-			want:       true,
-			annotation: "true",
-		},
-		{
-			name:       "signed with other string",
-			want:       false,
-			annotation: "baz",
-		},
-		{
-			name:       "not signed",
-			want:       false,
-			annotation: "",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tr := &v1beta1.TaskRun{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						ChainsAnnotation: tt.annotation,
-					},
-				},
-			}
-			got := IsSigned(tr)
-			if got != tt.want {
-				t.Errorf("IsSigned() got = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 	// SignTaskRun does three main things:
 	// - generates payloads
@@ -167,22 +128,21 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 			defer cleanup()
 
 			ctx, _ := rtesting.SetupFakeContext(t)
-			logger := logtesting.TestLogger(t)
 			ps := fakepipelineclient.Get(ctx)
 
-			ts := &TaskRunSigner{
-				Logger:            logger,
-				Pipelineclientset: ps,
-				SecretPath:        "./signing/pgp/testdata/",
-				ConfigStore: &mockConfig{cfg: config.Config{
-					Artifacts: config.ArtifactConfigs{
-						TaskRuns: config.Artifact{
-							Format:         "tekton",
-							StorageBackend: tt.configuredBackend,
-							Signer:         "pgp",
-						},
+			ctx = config.ToContext(ctx, &config.Config{
+				Artifacts: config.ArtifactConfigs{
+					TaskRuns: config.Artifact{
+						Format:         "tekton",
+						StorageBackend: tt.configuredBackend,
+						Signer:         "x509",
 					},
-				}},
+				},
+			})
+
+			ts := &TaskRunSigner{
+				Pipelineclientset: ps,
+				SecretPath:        "./signing/x509/testdata/",
 			}
 
 			tr := &v1beta1.TaskRun{
@@ -204,8 +164,8 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 			}
 			// Check it is marked as signed
 			shouldBeSigned := !tt.wantErr
-			if IsSigned(tr) != shouldBeSigned {
-				t.Errorf("IsSigned()=%t, wanted %t", IsSigned(tr), shouldBeSigned)
+			if Reconciled(tr) != shouldBeSigned {
+				t.Errorf("IsSigned()=%t, wanted %t", Reconciled(tr), shouldBeSigned)
 			}
 			// Check the payloads were stored in all the backends.
 			for _, b := range tt.backends {
@@ -227,75 +187,105 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 }
 
 func TestTaskRunSigner_Transparency(t *testing.T) {
-	rekor := &mockRekor{}
-	backends := []*mockBackend{{backendType: "mock"}}
-	cleanup := setupMocks(backends, rekor)
-	defer cleanup()
+	for _, format := range []string{"in-toto", "tekton"} {
+		rekor := &mockRekor{}
+		backends := []*mockBackend{{backendType: "mock"}}
+		cleanup := setupMocks(backends, rekor)
+		defer cleanup()
 
-	ctx, _ := rtesting.SetupFakeContext(t)
-	logger := logtesting.TestLogger(t)
-	ps := fakepipelineclient.Get(ctx)
+		ctx, _ := rtesting.SetupFakeContext(t)
+		ps := fakepipelineclient.Get(ctx)
 
-	cfgStore := &mockConfig{cfg: config.Config{
-		Artifacts: config.ArtifactConfigs{
-			TaskRuns: config.Artifact{
-				Format:         "tekton",
-				StorageBackend: "mock",
-				Signer:         "x509",
+		cfg := &config.Config{
+			Artifacts: config.ArtifactConfigs{
+				TaskRuns: config.Artifact{
+					Format:         format,
+					StorageBackend: "mock",
+					Signer:         "x509",
+				},
 			},
-		},
-		Transparency: config.TransparencyConfig{
-			Enabled: false,
-		},
-	}}
+			Transparency: config.TransparencyConfig{
+				Enabled: false,
+			},
+		}
+		ctx = config.ToContext(ctx, cfg.DeepCopy())
 
-	ts := &TaskRunSigner{
-		Logger:            logger,
-		Pipelineclientset: ps,
-		SecretPath:        "./signing/x509/testdata/",
-		ConfigStore:       cfgStore,
-	}
+		ts := &TaskRunSigner{
+			Pipelineclientset: ps,
+			SecretPath:        "./signing/x509/testdata/",
+		}
 
-	tr := &v1beta1.TaskRun{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "foo",
-		},
-	}
-	if _, err := ps.TektonV1beta1().TaskRuns(tr.Namespace).Create(ctx, tr, metav1.CreateOptions{}); err != nil {
-		t.Errorf("error creating fake taskrun: %v", err)
-	}
-	if err := ts.SignTaskRun(ctx, tr); err != nil {
-		t.Errorf("TaskRunSigner.SignTaskRun() error = %v", err)
-	}
+		tr := &v1beta1.TaskRun{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "foo",
+			},
+		}
+		if _, err := ps.TektonV1beta1().TaskRuns(tr.Namespace).Create(ctx, tr, metav1.CreateOptions{}); err != nil {
+			t.Errorf("error creating fake taskrun: %v", err)
+		}
+		if err := ts.SignTaskRun(ctx, tr); err != nil {
+			t.Errorf("TaskRunSigner.SignTaskRun() error = %v", err)
+		}
 
-	if len(rekor.entries) != 0 {
-		t.Error("expected no transparency log entries!")
-	}
+		if len(rekor.entries) != 0 {
+			t.Error("expected no transparency log entries!")
+		}
 
-	// Now enable and try again!
-	cfgStore.cfg.Transparency.Enabled = true
-	ts.ConfigStore = cfgStore
+		// Now enable and try again!
+		cfg.Transparency.Enabled = true
+		ctx = config.ToContext(ctx, cfg.DeepCopy())
 
-	tr2 := &v1beta1.TaskRun{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "foobar",
-		},
-	}
-	if _, err := ps.TektonV1beta1().TaskRuns(tr.Namespace).Create(ctx, tr2, metav1.CreateOptions{}); err != nil {
-		t.Errorf("error creating fake taskrun: %v", err)
-	}
-	if err := ts.SignTaskRun(ctx, tr2); err != nil {
-		t.Errorf("TaskRunSigner.SignTaskRun() error = %v", err)
-	}
+		tr2 := &v1beta1.TaskRun{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "foobar",
+			},
+		}
+		if _, err := ps.TektonV1beta1().TaskRuns(tr.Namespace).Create(ctx, tr2, metav1.CreateOptions{}); err != nil {
+			t.Errorf("error creating fake taskrun: %v", err)
+		}
+		if err := ts.SignTaskRun(ctx, tr2); err != nil {
+			t.Errorf("TaskRunSigner.SignTaskRun() error = %v", err)
+		}
 
-	if len(rekor.entries) != 1 {
-		t.Error("expected transparency log entry!")
+		if len(rekor.entries) != 1 {
+			t.Error("expected transparency log entry!")
+		}
+
+		// Now enable verifying the annotation
+		cfg.Transparency.VerifyAnnotation = true
+		ctx = config.ToContext(ctx, cfg.DeepCopy())
+
+		tr3 := &v1beta1.TaskRun{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "mytaskrun",
+			},
+		}
+
+		if _, err := ps.TektonV1beta1().TaskRuns(tr.Namespace).Create(ctx, tr3, metav1.CreateOptions{}); err != nil {
+			t.Errorf("error creating fake taskrun: %v", err)
+		}
+		if err := ts.SignTaskRun(ctx, tr3); err != nil {
+			t.Errorf("TaskRunSigner.SignTaskRun() error = %v", err)
+		}
+
+		if len(rekor.entries) != 1 {
+			t.Error("expected no new transparency log entries!")
+		}
+		// add in the annotation
+		tr3.Annotations = map[string]string{RekorAnnotation: "true"}
+		if err := ts.SignTaskRun(ctx, tr3); err != nil {
+			t.Errorf("TaskRunSigner.SignTaskRun() error = %v", err)
+		}
+
+		if len(rekor.entries) != 2 {
+			t.Error("expected two transparency log entries!")
+		}
 	}
 }
 
 func setupMocks(backends []*mockBackend, rekor *mockRekor) func() {
 	oldGet := getBackends
-	getBackends = func(ps versioned.Interface, logger *zap.SugaredLogger, _ *v1beta1.TaskRun, _ config.Config) (map[string]storage.Backend, error) {
+	getBackends = func(ps versioned.Interface, _ kubernetes.Interface, logger *zap.SugaredLogger, _ *v1beta1.TaskRun, _ config.Config) (map[string]storage.Backend, error) {
 		newBackends := map[string]storage.Backend{}
 		for _, m := range backends {
 			newBackends[m.backendType] = m
@@ -318,7 +308,7 @@ type mockRekor struct {
 	entries [][]byte
 }
 
-func (r *mockRekor) UploadTlog(ctx context.Context, signer signing.Signer, signature, rawPayload []byte) (*models.LogEntryAnon, error) {
+func (r *mockRekor) UploadTlog(ctx context.Context, signer signing.Signer, signature, rawPayload []byte, cert, payloadFormat string) (*models.LogEntryAnon, error) {
 	r.entries = append(r.entries, signature)
 	index := int64(len(r.entries) - 1)
 	return &models.LogEntryAnon{
@@ -333,7 +323,7 @@ type mockBackend struct {
 }
 
 // StorePayload implements the Payloader interface.
-func (b *mockBackend) StorePayload(signed []byte, signature string, key string) error {
+func (b *mockBackend) StorePayload(signed []byte, signature string, opts config.StorageOpts) error {
 	if b.shouldErr {
 		return errors.New("mock error storing")
 	}
@@ -343,12 +333,4 @@ func (b *mockBackend) StorePayload(signed []byte, signature string, key string) 
 
 func (b *mockBackend) Type() string {
 	return b.backendType
-}
-
-type mockConfig struct {
-	cfg config.Config
-}
-
-func (m *mockConfig) Config() config.Config {
-	return m.cfg
 }

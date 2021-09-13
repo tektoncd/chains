@@ -1,8 +1,24 @@
+# Copyright 2021 The Tekton Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # Modifed for chains from tekton triggers: https://github.com/tektoncd/triggers/blob/main/tekton/publish.yaml
 apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
   name: publish-chains-release
+  annotations:
+    chains.tekton.dev/transparency-upload: "true"
 spec:
   params:
   - name: package
@@ -29,6 +45,10 @@ spec:
     default: linux/amd64,linux/arm64,linux/s390x,linux/ppc64le
   - name: serviceAccountPath
     description: The name of the service account path within the release-secret workspace
+  - name: CHAINS-GIT_COMMIT
+  - name: CHAINS-GIT_URL
+  results:
+  - name: IMAGES
   workspaces:
   - name: source
     description: >-
@@ -90,7 +110,7 @@ spec:
       # Setup docker-auth
       DOCKER_CONFIG=~/.docker
       mkdir -p ${DOCKER_CONFIG}
-      cp /workspace/docker-config.json ${DOCKER_CONFIG}/
+      cp /workspace/docker-config.json ${DOCKER_CONFIG}/config.json
 
       # Change to directory with our .ko.yaml
       cd ${PROJECT_ROOT}
@@ -150,7 +170,7 @@ spec:
       # Setup docker-auth
       DOCKER_CONFIG=~/.docker
       mkdir -p ${DOCKER_CONFIG}
-      cp /workspace/docker-config.json ${DOCKER_CONFIG}/
+      cp /workspace/docker-config.json ${DOCKER_CONFIG}/config.json
 
       REGIONS="us eu asia"
 
@@ -160,6 +180,8 @@ spec:
         IMAGE_WITHOUT_SHA=${IMAGE%%@*}
         IMAGE_WITHOUT_SHA_AND_TAG=${IMAGE_WITHOUT_SHA%%:*}
         IMAGE_WITH_SHA=${IMAGE_WITHOUT_SHA_AND_TAG}@${IMAGE##*@}
+
+        echo $IMAGE_WITH_SHA, >> $(results.IMAGES.path)
 
         if [[ "$(params.releaseAsLatest)" == "true" ]]
         then
@@ -177,6 +199,7 @@ spec:
           else
             TAG="$(params.versionTag)"
             crane cp ${IMAGE_WITH_SHA} ${REGION}.${IMAGE_WITHOUT_SHA_AND_TAG}:$TAG
+            echo ${REGION}.$IMAGE_WITH_SHA, >> $(results.IMAGES.path)
           fi
         done
       done

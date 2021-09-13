@@ -15,11 +15,12 @@ package kms
 
 import (
 	"context"
+	"crypto"
 
 	"github.com/tektoncd/chains/pkg/config"
 
-	"github.com/sigstore/sigstore/pkg/kms"
 	"github.com/sigstore/sigstore/pkg/signature"
+	"github.com/sigstore/sigstore/pkg/signature/kms"
 
 	"github.com/tektoncd/chains/pkg/chains/signing"
 	"go.uber.org/zap"
@@ -33,7 +34,7 @@ type Signer struct {
 
 // NewSigner returns a configured Signer
 func NewSigner(cfg config.KMSSigner, logger *zap.SugaredLogger) (*Signer, error) {
-	k, err := kms.Get(context.Background(), cfg.KMSRef)
+	k, err := kms.Get(context.Background(), cfg.KMSRef, crypto.SHA256)
 	if err != nil {
 		return nil, err
 	}
@@ -45,4 +46,14 @@ func NewSigner(cfg config.KMSSigner, logger *zap.SugaredLogger) (*Signer, error)
 
 func (s *Signer) Type() string {
 	return signing.TypeKMS
+}
+
+// there is no cert, return nothing
+func (s *Signer) Cert() string {
+	return ""
+}
+
+// there is no cert or chain, return nothing
+func (s *Signer) Chain() string {
+	return ""
 }

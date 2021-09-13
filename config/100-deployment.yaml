@@ -1,3 +1,17 @@
+# Copyright 2021 The Tekton Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 kind: Namespace
 apiVersion: v1
 metadata:
@@ -19,10 +33,6 @@ metadata:
     version: "devel"
 # The data is populated at install time.
 # data:
-  # This contains the private key to use for PGP signing
-  # pgp.private-key:
-  # This contains the passphrase to use for the pgp private key
-  # pgp.passphrase:
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -77,8 +87,6 @@ spec:
       - name: tekton-chains-controller
         image: ko://github.com/tektoncd/chains/cmd/controller
         volumeMounts:
-        - name: config-logging
-          mountPath: /etc/config-logging
         - name: signing-secrets
           mountPath: /etc/signing-secrets
         env:
@@ -89,9 +97,6 @@ spec:
         - name: METRICS_DOMAIN
           value: tekton.dev/chains
       volumes:
-      - name: config-logging
-        configMap:
-          name: config-logging
       - name: signing-secrets
         secret:
           secretName: signing-secrets

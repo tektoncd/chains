@@ -7,7 +7,7 @@ linters-settings:
     - goimports
     - gosec
     - gocritic
-    - golint
+    - revive
   output:
     uniq-by-line: false
   issues:

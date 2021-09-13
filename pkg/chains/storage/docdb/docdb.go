@@ -22,6 +22,7 @@ import (
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"go.uber.org/zap"
 	"gocloud.dev/docstore"
+	_ "gocloud.dev/docstore/awsdynamodb"
 	_ "gocloud.dev/docstore/gcpfirestore"
 )
 
@@ -40,6 +41,8 @@ type Backend struct {
 type SignedDocument struct {
 	Signed    []byte
 	Signature string
+	Cert      string
+	Chain     string
 	Object    interface{}
 	Name      string
 }
@@ -64,7 +67,7 @@ func newStorageBackendWithColl(logger *zap.SugaredLogger, tr *v1beta1.TaskRun, c
 }
 
 // StorePayload implements the Payloader interface.
-func (b *Backend) StorePayload(signed []byte, signature string, key string) error {
+func (b *Backend) StorePayload(signed []byte, signature string, opts config.StorageOpts) error {
 	var obj interface{}
 	if err := json.Unmarshal(signed, &obj); err != nil {
 		return err
@@ -74,10 +77,12 @@ func (b *Backend) StorePayload(signed []byte, signature string, key string) erro
 		Signed:    signed,
 		Signature: base64.StdEncoding.EncodeToString([]byte(signature)),
 		Object:    obj,
-		Name:      key,
+		Name:      opts.Key,
+		Cert:      opts.Cert,
+		Chain:     opts.Chain,
 	}
 
-	if err := b.coll.Create(context.Background(), &entry); err != nil {
+	if err := b.coll.Put(context.Background(), &entry); err != nil {
 		return err
 	}
 

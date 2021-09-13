@@ -104,23 +104,67 @@ func (oa *OCIArtifact) ExtractObjects(tr *v1beta1.TaskRun) []interface{} {
 	}
 
 	// Now check TaskResults
-	taskResultImage := image{}
+	resultImages := ExtractOCIImagesFromResults(tr, oa.Logger)
+	objs = append(objs, resultImages...)
+
+	return objs
+}
+
+func ExtractOCIImagesFromResults(tr *v1beta1.TaskRun, logger *zap.SugaredLogger) []interface{} {
+	taskResultImages := map[string]*image{}
+	var objs []interface{}
+	urlSuffix := "IMAGE_URL"
+	digestSuffix := "IMAGE_DIGEST"
 	for _, res := range tr.Status.TaskRunResults {
-		if res.Name == "IMAGE_URL" {
-			taskResultImage.url = strings.Trim(res.Value, "\n")
-		} else if res.Name == "IMAGE_DIGEST" {
-			taskResultImage.digest = strings.Trim(res.Value, "\n")
+		if strings.HasSuffix(res.Name, urlSuffix) || res.Name == urlSuffix {
+			p := strings.TrimSuffix(res.Name, urlSuffix)
+			if v, ok := taskResultImages[p]; ok {
+				v.url = strings.Trim(res.Value, "\n")
+			} else {
+				taskResultImages[p] = &image{url: strings.Trim(res.Value, "\n")}
+			}
+		}
+		if strings.HasSuffix(res.Name, digestSuffix) || res.Name == digestSuffix {
+			p := strings.TrimSuffix(res.Name, digestSuffix)
+			if v, ok := taskResultImages[p]; ok {
+				v.digest = strings.Trim(res.Value, "\n")
+			} else {
+				taskResultImages[p] = &image{digest: strings.Trim(res.Value, "\n")}
+			}
 		}
 	}
 	// Only add it if we got both the URL and digest.
-	if taskResultImage.url != "" && taskResultImage.digest != "" {
-		dgst, err := name.NewDigest(fmt.Sprintf("%s@%s", taskResultImage.url, taskResultImage.digest))
-		if err != nil {
-			oa.Logger.Error(err)
-			return nil
+	for _, img := range taskResultImages {
+		if img != nil && img.url != "" && img.digest != "" {
+			dgst, err := name.NewDigest(fmt.Sprintf("%s@%s", img.url, img.digest))
+			if err != nil {
+				logger.Errorf("error getting digest: %v", err)
+				return nil
+			}
+			objs = append(objs, dgst)
 		}
-		objs = append(objs, dgst)
 	}
+
+	// look for a comma separated list of images
+	for _, key := range tr.Status.TaskRunResults {
+		if key.Name != "IMAGES" {
+			continue
+		}
+		imgs := strings.Split(key.Value, ",")
+		for _, img := range imgs {
+			trimmed := strings.TrimSpace(img)
+			if trimmed == "" {
+				continue
+			}
+			dgst, err := name.NewDigest(trimmed)
+			if err != nil {
+				logger.Errorf("error getting digest for img %s: %v", trimmed, err)
+				continue
+			}
+			objs = append(objs, dgst)
+		}
+	}
+
 	return objs
 }
 

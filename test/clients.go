@@ -40,7 +40,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sigstore/cosign/pkg/cosign"
+	"github.com/sigstore/cosign/cmd/cosign/cli"
+	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/tektoncd/pipeline/pkg/names"
 
 	pipelineclientset "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
@@ -91,14 +92,18 @@ func newClients(t *testing.T, configPath, clusterName string) *clients {
 type setupOpts struct {
 	useCosignSigner bool
 	registry        bool
+	ns              string
 }
 
 func setup(ctx context.Context, t *testing.T, opts setupOpts) (*clients, string, func()) {
 	t.Helper()
-	namespace := names.SimpleNameGenerator.RestrictLengthWithRandomSuffix("earth")
 
 	c := newClients(t, knativetest.Flags.Kubeconfig, knativetest.Flags.Cluster)
-	createNamespace(ctx, t, namespace, c.KubeClient)
+	namespace := "default"
+	if opts.ns == "" {
+		namespace = names.SimpleNameGenerator.RestrictLengthWithRandomSuffix("earth")
+		createNamespace(ctx, t, namespace, c.KubeClient)
+	}
 
 	c.secret = setupSecret(ctx, t, c.KubeClient, opts)
 	if opts.registry {
@@ -108,6 +113,9 @@ func setup(ctx context.Context, t *testing.T, opts setupOpts) (*clients, string,
 	}
 
 	var cleanup = func() {
+		if namespace == "default" {
+			return
+		}
 		t.Logf("Deleting namespace %s", namespace)
 		if err := c.KubeClient.CoreV1().Namespaces().Delete(ctx, namespace, metav1.DeleteOptions{}); err != nil {
 			t.Fatalf("Failed to delete namespace %s for tests: %s", namespace, err)
@@ -127,11 +135,6 @@ func createNamespace(ctx context.Context, t *testing.T, namespace string, kubeCl
 	}, metav1.CreateOptions{}); err != nil {
 		t.Fatalf("Failed to create namespace %s for tests: %s", namespace, err)
 	}
-}
-
-type secret struct {
-	x509Priv   *ecdsa.PrivateKey
-	cosignPriv *ecdsa.PrivateKey
 }
 
 func createRegistry(ctx context.Context, t *testing.T, namespace string, kubeClient kubernetes.Interface) (string, *corev1.Service) {
@@ -226,6 +229,11 @@ func getFreePort(t *testing.T) int {
 	return l.Addr().(*net.TCPAddr).Port
 }
 
+type secret struct {
+	x509priv   *signature.ECDSASignerVerifier
+	cosignPriv *signature.ECDSASignerVerifier
+}
+
 func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface, opts setupOpts) secret {
 	// Only overwrite the secret data if it isn't set.
 	namespace := "tekton-chains"
@@ -236,22 +244,18 @@ func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface, opts
 		},
 		StringData: map[string]string{},
 	}
-	// pgp
-	paths := []string{"pgp.private-key", "pgp.passphrase", "pgp.public-key"}
-	for _, p := range paths {
-		b, err := ioutil.ReadFile(filepath.Join("./testdata", p))
-		if err != nil {
-			t.Error(err)
-		}
-		s.StringData[p] = string(b)
-	}
 
 	// x509
 	_, priv := ecdsaKeyPair(t)
 	s.StringData["x509.pem"] = toPem(t, priv)
 
+	x509Priv, err := signature.LoadECDSASignerVerifier(priv, crypto.SHA256)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	// cosign
-	paths = []string{"cosign.key", "cosign.pub", "cosign.password"}
+	paths := []string{"cosign.key", "cosign.pub", "cosign.password"}
 	for _, p := range paths {
 		b, err := ioutil.ReadFile(filepath.Join("./testdata", p))
 		if err != nil {
@@ -259,7 +263,7 @@ func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface, opts
 		}
 		s.StringData[p] = string(b)
 	}
-	cosignPriv, err := cosign.LoadECDSAPrivateKey([]byte(s.StringData["cosign.key"]), []byte(s.StringData["cosign.password"]))
+	cosignPriv, err := cli.LoadECDSAPrivateKey([]byte(s.StringData["cosign.key"]), []byte(s.StringData["cosign.password"]))
 	if err != nil {
 		t.Error(err)
 	}
@@ -271,9 +275,10 @@ func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface, opts
 		t.Error(err)
 	}
 	time.Sleep(60 * time.Second)
+
 	return secret{
-		x509Priv:   priv,
-		cosignPriv: cosignPriv.Key,
+		cosignPriv: cosignPriv,
+		x509priv:   x509Priv,
 	}
 }
 

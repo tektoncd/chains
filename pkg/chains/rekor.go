@@ -16,12 +16,20 @@ package chains
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"github.com/sigstore/cosign/pkg/cosign"
-	"github.com/sigstore/rekor/cmd/rekor-cli/app"
+	rc "github.com/sigstore/rekor/pkg/client"
 	"github.com/sigstore/rekor/pkg/generated/client"
 	"github.com/sigstore/rekor/pkg/generated/models"
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/tektoncd/chains/pkg/chains/signing"
+	"github.com/tektoncd/chains/pkg/config"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"go.uber.org/zap"
+)
+
+const (
+	RekorAnnotation = "chains.tekton.dev/transparency-upload"
 )
 
 type rekor struct {
@@ -30,26 +38,39 @@ type rekor struct {
 }
 
 type rekorClient interface {
-	UploadTlog(ctx context.Context, signer signing.Signer, signature, rawPayload []byte) (*models.LogEntryAnon, error)
+	UploadTlog(ctx context.Context, signer signing.Signer, signature, rawPayload []byte, cert, payloadFormat string) (*models.LogEntryAnon, error)
 }
 
-func (r *rekor) UploadTlog(ctx context.Context, signer signing.Signer, signature, rawPayload []byte) (*models.LogEntryAnon, error) {
-	pub, err := signer.PublicKey(ctx)
+func (r *rekor) UploadTlog(ctx context.Context, signer signing.Signer, signature, rawPayload []byte, cert, payloadFormat string) (*models.LogEntryAnon, error) {
+	pkoc, err := publicKeyOrCert(signer, cert)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "public key or cert")
 	}
-	pem, err := cosign.KeyToPem(pub)
+	if payloadFormat == "in-toto" || payloadFormat == "tekton-provenance" {
+		return cosign.TLogUploadInTotoAttestation(r.c, signature, pkoc)
+	}
+	return cosign.TLogUpload(r.c, signature, rawPayload, pkoc)
+}
+
+// return the cert if we have it, otherwise return public key
+func publicKeyOrCert(signer signing.Signer, cert string) ([]byte, error) {
+	if cert != "" {
+		return []byte(cert), nil
+	}
+	pub, err := signer.PublicKey()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "getting public key")
 	}
-
-	return cosign.UploadTLog(r.c, signature, rawPayload, pem)
-
+	pem, err := cryptoutils.MarshalPublicKeyToPEM(pub)
+	if err != nil {
+		return nil, errors.Wrap(err, "key to pem")
+	}
+	return pem, nil
 }
 
 // for testing
 var getRekor = func(url string, l *zap.SugaredLogger) (rekorClient, error) {
-	rekorClient, err := app.GetRekorClient(url)
+	rekorClient, err := rc.GetRekorClient(url)
 	if err != nil {
 		return nil, err
 	}
@@ -57,4 +78,27 @@ var getRekor = func(url string, l *zap.SugaredLogger) (rekorClient, error) {
 		c:      rekorClient,
 		logger: l,
 	}, nil
+}
+
+func shouldUploadTlog(cfg config.Config, tr *v1beta1.TaskRun) bool {
+	// if transparency isn't enabled, return false
+	if !cfg.Transparency.Enabled {
+		return false
+	}
+	// if transparency is enabled and verification is disabled, return true
+	if !cfg.Transparency.VerifyAnnotation {
+		return true
+	}
+
+	// Already uploaded, don't do it again
+	if _, ok := tr.Annotations[ChainsTransparencyAnnotation]; ok {
+		return false
+	}
+	// verify the annotation
+	for k, v := range tr.Annotations {
+		if k == RekorAnnotation && v == "true" {
+			return true
+		}
+	}
+	return false
 }

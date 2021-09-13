@@ -25,6 +25,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"io/ioutil"
@@ -106,9 +107,12 @@ func runInTotoFormatterTests(ctx context.Context, t *testing.T, ns string, c *cl
 			}
 
 			// verify signature
-			pub := &c.secret.x509Priv.PublicKey
+			pub, err := c.secret.x509priv.PublicKey()
+			if err != nil {
+				t.Fatal(err)
+			}
 			verifier := &verifier{
-				pub: pub,
+				pub: pub.(*ecdsa.PublicKey),
 			}
 			ev := ssl.NewEnvelopeVerifier(verifier)
 			env := ssl.Envelope{}
@@ -116,11 +120,7 @@ func runInTotoFormatterTests(ctx context.Context, t *testing.T, ns string, c *cl
 				t.Fatal(err)
 			}
 
-			ok, err := ev.Verify(&env)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if !ok {
+			if err := ev.Verify(&env); err != nil {
 				t.Fatal(err)
 			}
 		})
@@ -131,9 +131,12 @@ type verifier struct {
 	pub *ecdsa.PublicKey
 }
 
-func (v *verifier) Verify(_ string, data, sig []byte) (bool, error) {
+func (v *verifier) Verify(_ string, data, sig []byte) error {
 	h := sha256.Sum256(data)
-	return ecdsa.VerifyASN1(v.pub, h[:], sig), nil
+	if ecdsa.VerifyASN1(v.pub, h[:], sig) {
+		return nil
+	}
+	return errors.New("validation error")
 }
 
 func expectedProvenance(t *testing.T, example string, tr *v1beta1.TaskRun) intoto.ProvenanceStatement {

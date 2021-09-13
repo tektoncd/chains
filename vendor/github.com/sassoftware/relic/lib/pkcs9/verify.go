@@ -20,10 +20,10 @@ import (
 	"crypto"
 	"crypto/hmac"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/sassoftware/relic/lib/pkcs7"
 	"github.com/sassoftware/relic/lib/x509tools"
 )
@@ -32,7 +32,7 @@ import (
 func (i MessageImprint) Verify(data []byte) error {
 	hash, err := x509tools.PkixDigestToHashE(i.HashAlgorithm)
 	if err != nil {
-		return errors.Wrap(err, "pkcs9")
+		return fmt.Errorf("pkcs9: %w", err)
 	}
 	w := hash.New()
 	w.Write(data)
@@ -49,10 +49,8 @@ func Verify(tst *pkcs7.ContentInfoSignedData, data []byte, certs []*x509.Certifi
 		return nil, errors.New("timestamp should have exactly one SignerInfo")
 	}
 	tsi := tst.Content.SignerInfos[0]
-	tsicerts, err := tst.Content.Certificates.Parse()
-	if err != nil {
-		return nil, err
-	} else if len(tsicerts) != 0 {
+	tsicerts, certErr := tst.Content.Certificates.Parse()
+	if len(tsicerts) != 0 {
 		// keep both sets of certs just in case
 		certs = append(certs, tsicerts...)
 	}
@@ -62,7 +60,7 @@ func Verify(tst *pkcs7.ContentInfoSignedData, data []byte, certs []*x509.Certifi
 		return nil, err
 	}
 	if err := tstinfo.MessageImprint.Verify(data); err != nil {
-		return nil, fmt.Errorf("failed to verify timestamp imprint: %s", err)
+		return nil, fmt.Errorf("verifying timestamp imprint: %w", err)
 	}
 	imprintHash, _ := x509tools.PkixDigestToHash(tstinfo.MessageImprint.HashAlgorithm)
 	// now the signature is over the TSTInfo blob
@@ -70,23 +68,33 @@ func Verify(tst *pkcs7.ContentInfoSignedData, data []byte, certs []*x509.Certifi
 	if err != nil {
 		return nil, err
 	}
-	return finishVerify(&tsi, verifyBlob, certs, imprintHash)
+
+	return finishVerify(&tsi, verifyBlob, certs, imprintHash, tstinfo, certErr)
 }
 
-func finishVerify(tsi *pkcs7.SignerInfo, blob []byte, certs []*x509.Certificate, hash crypto.Hash) (*CounterSignature, error) {
+type timeSource interface {
+	SigningTime() (time.Time, error)
+}
+
+func finishVerify(tsi *pkcs7.SignerInfo, blob []byte, certs []*x509.Certificate, hash crypto.Hash, timeSource timeSource, certErr error) (*CounterSignature, error) {
 	cert, err := tsi.Verify(blob, false, certs)
 	if err != nil {
+		if errors.As(err, &pkcs7.MissingCertificateError{}) && certErr != nil {
+			// surface saved parse error
+			return nil, certErr
+		}
 		return nil, err
 	}
-	var signingTime time.Time
-	if err := tsi.AuthenticatedAttributes.GetOne(pkcs7.OidAttributeSigningTime, &signingTime); err != nil {
-		return nil, err
+	signingTime, err := timeSource.SigningTime()
+	if err != nil {
+		return nil, fmt.Errorf("parsing timestamp: %w", err)
 	}
 	return &CounterSignature{
 		Signature: pkcs7.Signature{
 			SignerInfo:    tsi,
 			Certificate:   cert,
 			Intermediates: certs,
+			CertError:     certErr,
 		},
 		Hash:        hash,
 		SigningTime: signingTime,

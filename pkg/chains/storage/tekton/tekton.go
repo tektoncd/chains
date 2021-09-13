@@ -18,6 +18,8 @@ import (
 	"encoding/base64"
 	"fmt"
 
+	"github.com/tektoncd/chains/pkg/config"
+
 	"github.com/tektoncd/chains/pkg/patch"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	versioned "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
@@ -30,6 +32,8 @@ const (
 	StorageBackendTekton      = "tekton"
 	PayloadAnnotationFormat   = "chains.tekton.dev/payload-%s"
 	SignatureAnnotationFormat = "chains.tekton.dev/signature-%s"
+	CertAnnotationsFormat     = "chains.tekton.dev/cert-%s"
+	ChainAnnotationFormat     = "chains.tekton.dev/chain-%s"
 )
 
 // Backend is a storage backend that stores signed payloads in the TaskRun metadata as an annotation.
@@ -50,14 +54,16 @@ func NewStorageBackend(ps versioned.Interface, logger *zap.SugaredLogger, tr *v1
 }
 
 // StorePayload implements the Payloader interface.
-func (b *Backend) StorePayload(rawPayload []byte, signature string, key string) error {
+func (b *Backend) StorePayload(rawPayload []byte, signature string, opts config.StorageOpts) error {
 	b.logger.Infof("Storing payload on TaskRun %s/%s", b.tr.Namespace, b.tr.Name)
 
 	// Use patch instead of update to prevent race conditions.
 	patchBytes, err := patch.GetAnnotationsPatch(map[string]string{
 		// Base64 encode both the signature and the payload
-		fmt.Sprintf(PayloadAnnotationFormat, key):   base64.StdEncoding.EncodeToString(rawPayload),
-		fmt.Sprintf(SignatureAnnotationFormat, key): base64.StdEncoding.EncodeToString([]byte(signature)),
+		fmt.Sprintf(PayloadAnnotationFormat, opts.Key):   base64.StdEncoding.EncodeToString(rawPayload),
+		fmt.Sprintf(SignatureAnnotationFormat, opts.Key): base64.StdEncoding.EncodeToString([]byte(signature)),
+		fmt.Sprintf(CertAnnotationsFormat, opts.Key):     base64.StdEncoding.EncodeToString([]byte(opts.Cert)),
+		fmt.Sprintf(ChainAnnotationFormat, opts.Key):     base64.StdEncoding.EncodeToString([]byte(opts.Chain)),
 	})
 	if err != nil {
 		return err

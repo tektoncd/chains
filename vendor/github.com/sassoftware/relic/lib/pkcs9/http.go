@@ -62,14 +62,14 @@ func NewRequest(url string, hash crypto.Hash, hashValue []byte) (msg *TimeStampR
 func (req *TimeStampReq) ParseResponse(body []byte) (*pkcs7.ContentInfoSignedData, error) {
 	respmsg := new(TimeStampResp)
 	if rest, err := asn1.Unmarshal(body, respmsg); err != nil {
-		return nil, fmt.Errorf("pkcs9: unmarshalling response: %s", err)
+		return nil, fmt.Errorf("pkcs9: unmarshalling response: %w", err)
 	} else if len(rest) != 0 {
 		return nil, errors.New("pkcs9: trailing bytes in response")
 	} else if respmsg.Status.Status > StatusGrantedWithMods {
 		return nil, fmt.Errorf("pkcs9: request denied: status=%d failureInfo=%x", respmsg.Status.Status, respmsg.Status.FailInfo.Bytes)
 	}
 	if err := req.SanityCheckToken(&respmsg.TimeStampToken); err != nil {
-		return nil, fmt.Errorf("pkcs9: token sanity check failed: %s", err)
+		return nil, fmt.Errorf("pkcs9: token sanity check failed: %w", err)
 	}
 	return &respmsg.TimeStampToken, nil
 }
@@ -96,17 +96,17 @@ func (req *TimeStampReq) SanityCheckToken(psd *pkcs7.ContentInfoSignedData) erro
 func unpackTokenInfo(psd *pkcs7.ContentInfoSignedData) (*TSTInfo, error) {
 	infobytes, err := psd.Content.ContentInfo.Bytes()
 	if err != nil {
-		return nil, fmt.Errorf("unpack TSTInfo: %s", err)
+		return nil, fmt.Errorf("unpack TSTInfo: %w", err)
 	} else if infobytes[0] == 0x04 {
 		// unwrap dummy OCTET STRING
 		_, err = asn1.Unmarshal(infobytes, &infobytes)
 		if err != nil {
-			return nil, fmt.Errorf("unpack TSTInfo: %s", err)
+			return nil, fmt.Errorf("unpack TSTInfo: %w", err)
 		}
 	}
 	info := new(TSTInfo)
 	if _, err := asn1.Unmarshal(infobytes, info); err != nil {
-		return nil, fmt.Errorf("unpack TSTInfo: %s", err)
+		return nil, fmt.Errorf("unpack TSTInfo: %w", err)
 	}
 	return info, nil
 }

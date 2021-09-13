@@ -14,14 +14,23 @@ limitations under the License.
 package artifacts
 
 import (
-	"reflect"
+	"fmt"
 	"sort"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	logtesting "knative.dev/pkg/logging/testing"
 )
+
+const (
+	digest1 = "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5"
+	digest2 = "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b6"
+)
+
+var ignore = []cmp.Option{cmpopts.IgnoreUnexported(name.Registry{}, name.Repository{}, name.Digest{})}
 
 func TestOCIArtifact_ExtractObjects(t *testing.T) {
 
@@ -44,7 +53,7 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 							{
 								ResourceName: "my-image",
 								Key:          "digest",
-								Value:        "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5",
+								Value:        digest1,
 							},
 						},
 						TaskSpec: &v1beta1.TaskSpec{
@@ -78,7 +87,7 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 							{
 								ResourceName: "my-image1",
 								Key:          "digest",
-								Value:        "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5",
+								Value:        digest1,
 							},
 							{
 								ResourceName: "my-image2",
@@ -88,7 +97,7 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 							{
 								ResourceName: "my-image2",
 								Key:          "digest",
-								Value:        "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b6",
+								Value:        digest2,
 							},
 						},
 						TaskSpec: &v1beta1.TaskSpec{
@@ -131,7 +140,7 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 							{
 								ResourceName: "my-image",
 								Key:          "digest",
-								Value:        "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5",
+								Value:        digest1,
 							},
 						},
 						TaskRunResults: []v1beta1.TaskRunResult{
@@ -195,7 +204,7 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 							{
 								ResourceName: "my-image",
 								Key:          "digest",
-								Value:        "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5",
+								Value:        digest1,
 							},
 							{
 								ResourceName: "gibberish",
@@ -205,7 +214,7 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 							{
 								ResourceName: "gobble-dygook",
 								Key:          "digest",
-								Value:        "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5",
+								Value:        digest1,
 							},
 						},
 						TaskSpec: &v1beta1.TaskSpec{
@@ -224,6 +233,24 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 				},
 			},
 			want: []interface{}{digest(t, "gcr.io/foo/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5")},
+		}, {
+			name: "images",
+			tr: &v1beta1.TaskRun{
+				Status: v1beta1.TaskRunStatus{
+					TaskRunStatusFields: v1beta1.TaskRunStatusFields{
+						TaskRunResults: []v1beta1.TaskRunResult{
+							{
+								Name:  "IMAGES",
+								Value: fmt.Sprintf("  \n \tgcr.io/foo/bar@%s\n,gcr.io/baz/bar@%s", digest1, digest2),
+							},
+						},
+					},
+				},
+			},
+			want: []interface{}{
+				digest(t, "gcr.io/foo/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5"),
+				digest(t, "gcr.io/baz/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b6"),
+			},
 		},
 	}
 	for _, tt := range tests {
@@ -238,10 +265,41 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 				b := got[j].(name.Digest)
 				return a.DigestStr() < b.DigestStr()
 			})
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("OCIArtifact.ExtractObjects() = %v, want %v", got, tt.want)
+			if !cmp.Equal(got, tt.want, ignore...) {
+				t.Errorf("OCIArtifact.ExtractObjects() = %s", cmp.Diff(got, tt.want, ignore...))
 			}
 		})
+	}
+}
+
+func TestExtractOCIImagesFromResults(t *testing.T) {
+	tr := &v1beta1.TaskRun{
+		Status: v1beta1.TaskRunStatus{
+			TaskRunStatusFields: v1beta1.TaskRunStatusFields{
+				TaskRunResults: []v1beta1.TaskRunResult{
+					{Name: "img1_IMAGE_URL", Value: "img1"},
+					{Name: "img1_IMAGE_DIGEST", Value: digest1},
+					{Name: "img2_IMAGE_URL", Value: "img2"},
+					{Name: "img2_IMAGE_DIGEST", Value: digest2},
+					{Name: "IMAGE_URL", Value: "img3"},
+					{Name: "IMAGE_DIGEST", Value: digest1},
+				},
+			},
+		},
+	}
+	want := []interface{}{
+		digest(t, fmt.Sprintf("img1@%s", digest1)),
+		digest(t, fmt.Sprintf("img2@%s", digest2)),
+		digest(t, fmt.Sprintf("img3@%s", digest1)),
+	}
+	got := ExtractOCIImagesFromResults(tr, logtesting.TestLogger(t))
+	sort.Slice(got, func(i, j int) bool {
+		a := got[i].(name.Digest)
+		b := got[j].(name.Digest)
+		return a.String() < b.String()
+	})
+	if !cmp.Equal(got, want, ignore...) {
+		t.Fatalf("not the same %s", cmp.Diff(got, want, ignore...))
 	}
 }
 

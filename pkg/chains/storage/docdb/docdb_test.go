@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"gocloud.dev/docstore"
 	_ "gocloud.dev/docstore/memdocstore"
@@ -76,7 +77,7 @@ func TestBackend_StorePayload(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if err := b.StorePayload(sb, tt.args.signature, tt.args.key); (err != nil) != tt.wantErr {
+			if err := b.StorePayload(sb, tt.args.signature, config.StorageOpts{Key: tt.args.key}); (err != nil) != tt.wantErr {
 				t.Fatalf("Backend.StorePayload() error = %v, wantErr %v", err, tt.wantErr)
 			}
 

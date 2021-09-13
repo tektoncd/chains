@@ -6,9 +6,9 @@ Authentication must be set up to take advantage of the following features in Cha
 This doc will cover how to set this up!
 
 ## Authenticating to an OCI Registry
-We need to give the `tekton-chains-controller` service account credentials so that the chains controller can push signatures to an OCI registry.
+The Chains controller will use the same service account your Task runs under as credentials for pushing signatures to an OCI registry. This section will cover how to set up a service account that has the necessary credentials.
 
-To do this, you will need access to credentials for your registry (they are in a file called `credentials.json` in this example).
+First, you will need access to credentials for your registry (they are in a file called `credentials.json` in this example).
 Next, create a [Docker config type Kubernetes secret](https://kubernetes.io/docs/concepts/configuration/secret/#docker-config-secrets), which will contain the credentials required to push signatures:
 
 ```
@@ -21,11 +21,18 @@ kubectl create secret docker-registry registry-credentials \
 ```
 More details around creating this secret can be found [here](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/#registry-secret-existing-credentials).
 
-We can then give the `tekton-chains-controller` service account access to these credentials:
+Set the namespace and name of the service account:
 
 ```
-kubectl patch serviceaccount tekton-chains-controller \
-  -p "{\"imagePullSecrets\": [{\"name\": \"registry-credentials\"}]}" -n tekton-chains
+export NAMESPACE=<your namespace>
+export SERVICE_ACCOUNT_NAME=<service account name>
 ```
 
-Now, `tekton-chains-controller` should be able to push to your OCI registry.
+and give the service account access to the secret above:
+
+```
+kubectl patch serviceaccount $SERVICE_ACCOUNT_NAME \
+  -p "{\"imagePullSecrets\": [{\"name\": \"registry-credentials\"}]}" -n $NAMESPACE
+```
+
+Now, anything running under `$SERVICE_ACCOUNT_NAME` should be able to push to your OCI registry.
