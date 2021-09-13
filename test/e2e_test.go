@@ -510,3 +510,56 @@ var imageTaskRun = v1beta1.TaskRun{
 		},
 	},
 }
+
+func TestAPIServer(t *testing.T) {
+	ctx := logtesting.TestContextWithLogger(t)
+	c, ns, cleanup := setup(ctx, t, setupOpts{})
+	defer cleanup()
+
+	resetConfig := setConfigMap(ctx, t, c, map[string]string{
+		// don't set insecure repository, forcing signature upload to fail
+		"chains.api.enabled": "true",
+	})
+	defer resetConfig()
+
+	tr, err := c.PipelineClient.TektonV1beta1().TaskRuns(ns).Create(ctx, apiserverTaskRun(), metav1.CreateOptions{})
+	if err != nil {
+		t.Errorf("error creating taskrun: %s", err)
+	}
+	t.Logf("Created TaskRun: %s", tr.Name)
+
+	// Give it a minute to complete.
+	waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, successful, 60*time.Second)
+}
+
+func apiserverTaskRun() *v1beta1.TaskRun {
+	script := `#!/usr/bin/env bash
+
+set -ex
+apt-get update
+apt-get install -y curl
+curl -X POST -H 'Content-Type: application/json' --data '{"uid":"%s","signatures":{"data":"sig"},"svid":"cert"}' tekton-chains-api.tekton-chains.svc.cluster.local/api/entry
+curl tekton-chains-api.tekton-chains.svc.cluster.local/api/entry/%s
+`
+	uid := fmt.Sprintf("myuid-%d", time.Now().Unix())
+	script = fmt.Sprintf(script, uid, uid)
+
+	return &v1beta1.TaskRun{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "apiserver-task",
+		},
+		Spec: v1beta1.TaskRunSpec{
+			TaskSpec: &v1beta1.TaskSpec{
+				Steps: []v1beta1.Step{
+					{
+						Container: corev1.Container{
+							Name:  "curl",
+							Image: "ubuntu",
+						},
+						Script: script,
+					},
+				},
+			},
+		},
+	}
+}
