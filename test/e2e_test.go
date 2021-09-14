@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -25,6 +26,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"path"
 	"testing"
 	"time"
@@ -35,6 +37,7 @@ import (
 	"github.com/sigstore/cosign/pkg/cosign"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature"
+	"github.com/sigstore/sigstore/pkg/signature/dsse"
 
 	"cloud.google.com/go/compute/metadata"
 	"cloud.google.com/go/storage"
@@ -348,6 +351,17 @@ func base64Decode(t *testing.T, s string) []byte {
 	return b
 }
 
+// DSSE messages contain the signature and payload in one object, but our interface expects a signature and payload
+// This means we need to use one field and ignore the other. The DSSE verifier upstream uses the signature field and ignores
+// The message field, but we want the reverse here.
+type reverseDSSEVerifier struct {
+	signature.Verifier
+}
+
+func (w *reverseDSSEVerifier) VerifySignature(s io.Reader, m io.Reader, opts ...signature.VerifyOption) error {
+	return w.Verifier.VerifySignature(m, nil, opts...)
+}
+
 func TestOCIStorage(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
 	c, ns, cleanup := setup(ctx, t, setupOpts{registry: true})
@@ -356,8 +370,10 @@ func TestOCIStorage(t *testing.T) {
 	resetConfig := setConfigMap(ctx, t, c, map[string]string{
 		"storage.oci.repository.insecure": "true",
 		"artifacts.oci.storage":           "oci",
+		"artifacts.oci.signer":            "x509",
 		"artifacts.taskrun.storage":       "oci",
 		"artifacts.taskrun.format":        "tekton-provenance",
+		"artifacts.taskrun.signer":        "x509",
 	})
 	defer resetConfig()
 	time.Sleep(3 * time.Second)
@@ -401,14 +417,16 @@ func TestOCIStorage(t *testing.T) {
 				SigVerifier:   c.secret.x509priv,
 			}); err != nil {
 				t.Log(err)
+				continue
 			}
 			// verify the attestation
 			if _, err = cosign.Verify(ctx, externalRef, &cosign.CheckOpts{
 				SigTagSuffixOverride: cosign.AttestationTagSuffix,
 				SignatureRepo:        externalRef.Context(),
-				SigVerifier:          c.secret.x509priv,
+				SigVerifier:          &reverseDSSEVerifier{dsse.WrapVerifier(c.secret.x509priv)},
 			}); err != nil {
 				t.Log(err)
+				continue
 			}
 			return
 		case <-timeoutChan:
