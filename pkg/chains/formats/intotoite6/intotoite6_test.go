@@ -143,7 +143,7 @@ var e1BuildFinished = time.Unix(1617011415, 0)
 var expected1 = in_toto.ProvenanceStatement{
 	StatementHeader: in_toto.StatementHeader{
 		Type:          in_toto.StatementInTotoV01,
-		PredicateType: in_toto.PredicateProvenanceV01,
+		PredicateType: in_toto.PredicateSLSAProvenanceV01,
 		Subject: []in_toto.Subject{
 			{
 				Name: "/bin/ls",
@@ -160,7 +160,7 @@ var expected1 = in_toto.ProvenanceStatement{
 		},
 	},
 	Predicate: in_toto.ProvenancePredicate{
-		Metadata: in_toto.ProvenanceMetadata{
+		Metadata: &in_toto.ProvenanceMetadata{
 			BuildStartedOn:  &e1BuildStart,
 			BuildFinishedOn: &e1BuildFinished,
 		},
@@ -259,7 +259,7 @@ var testData2 = `
 var expected2 = in_toto.ProvenanceStatement{
 	StatementHeader: in_toto.StatementHeader{
 		Type:          in_toto.StatementInTotoV01,
-		PredicateType: in_toto.PredicateProvenanceV01,
+		PredicateType: in_toto.PredicateSLSAProvenanceV01,
 		Subject: []in_toto.Subject{
 			{
 				Name: "pkg:deb/debian/curl@7.50.3-1",
@@ -270,6 +270,7 @@ var expected2 = in_toto.ProvenanceStatement{
 		},
 	},
 	Predicate: in_toto.ProvenancePredicate{
+		Metadata: &in_toto.ProvenanceMetadata{},
 		Materials: []in_toto.ProvenanceMaterial{
 			{
 				URI: "pkg:docker/test1/test1@sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6?repository_url=gcr.io",
@@ -362,7 +363,7 @@ var dataMultpleSubjects = `
 var expectedMultipleSubjects = in_toto.ProvenanceStatement{
 	StatementHeader: in_toto.StatementHeader{
 		Type:          in_toto.StatementInTotoV01,
-		PredicateType: in_toto.PredicateProvenanceV01,
+		PredicateType: in_toto.PredicateSLSAProvenanceV01,
 		Subject: []in_toto.Subject{
 			{
 				Name: "pkg:deb/debian/curl@7.50.3-1",
@@ -379,6 +380,7 @@ var expectedMultipleSubjects = in_toto.ProvenanceStatement{
 		},
 	},
 	Predicate: in_toto.ProvenancePredicate{
+		Metadata: &in_toto.ProvenanceMetadata{},
 		Materials: []in_toto.ProvenanceMaterial{
 			{
 				URI: "pkg:docker/test1/test1@sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6?repository_url=gcr.io",

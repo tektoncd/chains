@@ -7,7 +7,6 @@ require (
 	cloud.google.com/go/storage v1.16.1
 	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
 	github.com/ghodss/yaml v1.0.0
-	github.com/go-openapi/runtime v0.19.30 // indirect
 	github.com/golang/snappy v0.0.4
 	github.com/golangci/golangci-lint v1.42.0
 	github.com/google/addlicense v1.0.0
@@ -20,17 +19,18 @@ require (
 	github.com/hashicorp/go-sockaddr v1.0.2
 	github.com/hashicorp/hcl v1.0.0
 	github.com/hashicorp/vault/sdk v0.2.1
-	github.com/in-toto/in-toto-golang v0.2.1-0.20210627200632-886210ae2ab9
+	github.com/in-toto/in-toto-golang v0.2.1-0.20210910132023-02b98c8d4e22
 	github.com/mitchellh/mapstructure v1.4.1
 	github.com/pierrec/lz4 v2.6.1+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/ryanuber/go-glob v1.0.0
-	github.com/sigstore/cosign v1.1.0
-	github.com/sigstore/fulcio v0.1.1
+	github.com/sigstore/cosign v1.1.1-0.20210914204018-152eefb4bbf3
+	github.com/sigstore/fulcio v0.1.2-0.20210831152525-42f7422734bb
 	github.com/sigstore/rekor v0.3.0
 	github.com/sigstore/sigstore v0.0.0-20210729211320-56a91f560f44
 	github.com/tektoncd/pipeline v0.27.1-0.20210830150214-8afd1563782d
 	github.com/tektoncd/plumbing v0.0.0-20210902122415-a65b22d5f63b
+	github.com/theupdateframework/go-tuf v0.0.0-20210804171843-477a5d73800a // indirect
 	go.uber.org/zap v1.19.0
 	gocloud.dev v0.24.0
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
@@ -38,8 +38,8 @@ require (
 	k8s.io/api v0.22.1
 	k8s.io/apimachinery v0.22.1
 	k8s.io/client-go v0.22.1
-	k8s.io/code-generator v0.21.4
-	knative.dev/pkg v0.0.0-20210827184538-2bd91f75571c
+	k8s.io/code-generator v0.22.1
+	knative.dev/pkg v0.0.0-20210908025933-71508fc69a57
 )
 
 // Knative deps (release-0.20)
@@ -50,4 +50,5 @@ replace (
 	k8s.io/api => k8s.io/api v0.21.4
 	k8s.io/apimachinery => k8s.io/apimachinery v0.21.4
 	k8s.io/client-go => k8s.io/client-go v0.21.4
+	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20210305001622-591a79e4bda7
 )

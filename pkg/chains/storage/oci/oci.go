@@ -26,9 +26,9 @@ import (
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/pkg/errors"
-	"github.com/sigstore/cosign/cmd/cosign/cli"
 	"github.com/sigstore/cosign/pkg/cosign"
 	cremote "github.com/sigstore/cosign/pkg/cosign/remote"
+	"github.com/sigstore/cosign/pkg/types"
 	"github.com/tektoncd/chains/pkg/chains/formats/simple"
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -161,7 +161,7 @@ func (b *Backend) uploadAttestation(attestation in_toto.Statement, rawPayload []
 			RemoteOpts: []remote.Option{b.auth},
 			Cert:       []byte(storageOpts.Cert),
 			Chain:      []byte(storageOpts.Chain),
-			MediaType:  cli.DssePayloadType,
+			MediaType:  types.DssePayloadType,
 		}); err != nil {
 			return errors.Wrap(err, "uploading")
 		}

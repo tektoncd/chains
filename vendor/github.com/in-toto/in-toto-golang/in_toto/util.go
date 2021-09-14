@@ -19,8 +19,7 @@ NewSet creates a new Set, assigns it the optionally passed variadic string
 elements, and returns it.
 */
 func NewSet(elems ...string) Set {
-	var s Set
-	s = make(map[string]struct{})
+	var s Set = make(map[string]struct{})
 	for _, elem := range elems {
 		s.Add(elem)
 	}
@@ -59,7 +58,7 @@ which it was called that are also in the passed set.
 func (s Set) Intersection(s2 Set) Set {
 	res := NewSet()
 	for elem := range s {
-		if s2.Has(elem) == false {
+		if !s2.Has(elem) {
 			continue
 		}
 		res.Add(elem)
