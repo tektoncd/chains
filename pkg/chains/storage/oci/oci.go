@@ -157,7 +157,7 @@ func (b *Backend) uploadAttestation(attestation in_toto.Statement, rawPayload []
 		if err != nil {
 			return errors.Wrapf(err, "destination ref for %s", imageName)
 		}
-		if _, err = cremote.UploadSignature([]byte(signature), rawPayload, attRef, cremote.UploadOpts{
+		if _, err = cremote.UploadSignature([]byte{}, []byte(signature), attRef, cremote.UploadOpts{
 			RemoteOpts: []remote.Option{b.auth},
 			Cert:       []byte(storageOpts.Cert),
 			Chain:      []byte(storageOpts.Chain),
