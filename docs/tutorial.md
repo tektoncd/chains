@@ -15,14 +15,14 @@ You can opt to try the tutorial with either of the following key types:
 To generate your own encrypted x509 keypair and save it as a Kubernetes secret, install [cosign](https://github.com/sigstore/cosign) and run the following:
 
 ```shell
-cosign generate-key-pair -k8s tekton-chains/signing-secrets
+cosign generate-key-pair k8s://tekton-chains/signing-secrets
 ```
-cosign will prompt you for a password, which will be stored in the Kubernetes secret.
+
+cosign will prompt you for a password, which will be stored in a Kubernetes secret named signing-secrets in the tekton-chains namespace.
 
 To create a simple `TaskRun`, run:
-
 ```shell
-$ kubectl create -f examples/taskruns/task-output-image.yaml
+$ kubectl create -f https://raw.githubusercontent.com/tektoncd/chains/main/examples/taskruns/task-output-image.yaml
 taskrun.tekton.dev/build-push-run-output-image-qbjvh created
 ```
 
