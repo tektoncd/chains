@@ -31,13 +31,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/in-toto/in-toto-golang/pkg/ssl"
-	"github.com/sigstore/cosign/pkg/cosign"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature"
-	"github.com/sigstore/sigstore/pkg/signature/dsse"
 
 	"cloud.google.com/go/compute/metadata"
 	"cloud.google.com/go/storage"
@@ -396,43 +393,16 @@ func TestOCIStorage(t *testing.T) {
 	// Give it a minute to complete.
 	waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, done, 60*time.Second)
 
-	externalRef, err := name.ParseReference(fmt.Sprintf("%s/%s", c.externalRegistry, imageName), name.Insecure)
+	publicKey, err := cryptoutils.MarshalPublicKeyToPEM(c.secret.x509priv.Public())
 	if err != nil {
-		t.Fatalf("parsing ref: %v", err)
+		t.Error(err)
 	}
-	t.Logf("Verifying %s...", externalRef.String())
-	// wait two minutes for the controller to sign
-	// setup a timeout channel
-	timeoutChan := make(chan struct{})
-	go func() {
-		time.Sleep(2 * time.Minute)
-		timeoutChan <- struct{}{}
-	}()
-	for {
-		select {
-		default:
-			// verify the image
-			if _, err = cosign.Verify(ctx, externalRef, &cosign.CheckOpts{
-				SignatureRepo: externalRef.Context(),
-				SigVerifier:   c.secret.x509priv,
-			}); err != nil {
-				t.Log(err)
-				continue
-			}
-			// verify the attestation
-			if _, err = cosign.Verify(ctx, externalRef, &cosign.CheckOpts{
-				SigTagSuffixOverride: cosign.AttestationTagSuffix,
-				SignatureRepo:        externalRef.Context(),
-				SigVerifier:          &reverseDSSEVerifier{dsse.WrapVerifier(c.secret.x509priv)},
-			}); err != nil {
-				t.Log(err)
-				continue
-			}
-			return
-		case <-timeoutChan:
-			t.Fatal("time out")
-		}
+	verifyTaskRun := verifyKanikoTaskRun(ns, image, string(publicKey))
+	tr, err = c.PipelineClient.TektonV1beta1().TaskRuns(ns).Create(ctx, verifyTaskRun, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("error creating task: %s", err)
 	}
+	waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, successful, 60*time.Second)
 }
 
 func TestRetryFailed(t *testing.T) {

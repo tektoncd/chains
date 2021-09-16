@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -110,6 +111,40 @@ func kanikoTask(t *testing.T, namespace, destinationImage string) *v1beta1.Task 
 					Name: "dockerfile",
 					VolumeSource: v1.VolumeSource{
 						EmptyDir: &v1.EmptyDirVolumeSource{},
+					},
+				},
+			},
+		},
+	}
+}
+
+func verifyKanikoTaskRun(namespace, destinationImage, publicKey string) *v1beta1.TaskRun {
+	script := `#!/busybox/sh
+	
+# save the public key
+echo "%s" > cosign.pub
+
+# verify the image
+cosign verify -allow-insecure-registry -key cosign.pub %s
+
+# verify the attestation
+cosign verify-attestation -allow-insecure-registry -key cosign.pub %s`
+	script = fmt.Sprintf(script, publicKey, destinationImage, destinationImage)
+
+	return &v1beta1.TaskRun{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "verify-kaniko-taskrun",
+			Namespace:    namespace,
+		},
+		Spec: v1beta1.TaskRunSpec{
+			TaskSpec: &v1beta1.TaskSpec{
+				Steps: []v1beta1.Step{
+					{
+						Container: v1.Container{
+							Name:  "verify-image",
+							Image: "gcr.io/projectsigstore/cosign/ci/cosign:d764e8b89934dc1043bd1b13112a66641c63a038@sha256:228c37f9f37415efbd6a4ff16aae81197206ce1410a227bcab8ac8b039b36237",
+						},
+						Script: script,
 					},
 				},
 			},

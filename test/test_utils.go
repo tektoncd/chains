@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -82,6 +83,10 @@ func waitForCondition(ctx context.Context, t *testing.T, c pipelineclientset.Int
 			t.Fatal("time out")
 		}
 	}
+}
+
+func successful(tr *v1beta1.TaskRun) bool {
+	return tr.IsSuccessful()
 }
 
 func failed(tr *v1beta1.TaskRun) bool {
