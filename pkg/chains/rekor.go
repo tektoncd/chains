@@ -95,10 +95,5 @@ func shouldUploadTlog(cfg config.Config, tr *v1beta1.TaskRun) bool {
 		return false
 	}
 	// verify the annotation
-	for k, v := range tr.Annotations {
-		if k == RekorAnnotation && v == "true" {
-			return true
-		}
-	}
-	return false
+	return tr.Annotations[RekorAnnotation] == "true"
 }
