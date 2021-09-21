@@ -80,6 +80,8 @@ func waitForCondition(ctx context.Context, t *testing.T, c pipelineclientset.Int
 				return tr
 			}
 		case <-timeoutChan:
+			// print logs from the TaskRun on timeout
+			printDebugging(t, ns, name)
 			t.Fatal("time out")
 		}
 	}
@@ -201,4 +203,18 @@ func setConfigMap(ctx context.Context, t *testing.T, c *clients, data map[string
 			t.Log(err)
 		}
 	}
+}
+
+func printDebugging(t *testing.T, ns, taskRunName string) {
+	t.Log("============================== TaskRun Logs ==============================")
+	output, _ := exec.Command("tkn", "tr", "logs", "-n", ns, taskRunName).CombinedOutput()
+	t.Log(string(output))
+
+	t.Log("============================== TaskRun Describe ==============================")
+	output, _ = exec.Command("tkn", "tr", "describe", "-n", ns, taskRunName).CombinedOutput()
+	t.Log(string(output))
+
+	t.Log("============================== Chains Controller Logs ==============================")
+	output, _ = exec.Command("kubectl", "logs", "deploy/tekton-chains-controller", "-n", "tekton-chains").CombinedOutput()
+	t.Log(string(output))
 }

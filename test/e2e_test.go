@@ -31,6 +31,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/in-toto/in-toto-golang/pkg/ssl"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
@@ -39,6 +40,7 @@ import (
 	"cloud.google.com/go/compute/metadata"
 	"cloud.google.com/go/storage"
 	"github.com/tektoncd/chains/pkg/chains"
+	"github.com/tektoncd/chains/pkg/chains/provenance"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -371,6 +373,7 @@ func TestOCIStorage(t *testing.T) {
 		"artifacts.taskrun.storage":       "oci",
 		"artifacts.taskrun.format":        "tekton-provenance",
 		"artifacts.taskrun.signer":        "x509",
+		"artifacts.oci.format":            "simplesigning",
 	})
 	defer resetConfig()
 	time.Sleep(3 * time.Second)
@@ -391,7 +394,7 @@ func TestOCIStorage(t *testing.T) {
 	}
 
 	// Give it a minute to complete.
-	waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, done, 60*time.Second)
+	waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, signed, 60*time.Second)
 
 	publicKey, err := cryptoutils.MarshalPublicKeyToPEM(c.secret.x509priv.Public())
 	if err != nil {
@@ -497,4 +500,72 @@ var imageTaskRun = v1beta1.TaskRun{
 			},
 		},
 	},
+}
+
+func TestProvenanceMaterials(t *testing.T) {
+	ctx := logtesting.TestContextWithLogger(t)
+	c, ns, cleanup := setup(ctx, t, setupOpts{})
+	defer cleanup()
+
+	// Setup the right config.
+	resetConfig := setConfigMap(ctx, t, c, map[string]string{
+		"artifacts.taskrun.signer":  "x509",
+		"artifacts.taskrun.storage": "tekton",
+		"artifacts.taskrun.format":  "tekton-provenance",
+	})
+	defer resetConfig()
+
+	// modify image task run to add in the params we want to check for
+	commit := "my-git-commit"
+	url := "my-git-url"
+	imageTaskRun.Spec.Params = []v1beta1.Param{
+		{
+			Name: "CHAINS-GIT_COMMIT", Value: *v1beta1.NewArrayOrString(commit),
+		}, {
+			Name: "CHAINS-GIT_URL", Value: *v1beta1.NewArrayOrString(url),
+		},
+	}
+
+	tr, err := c.PipelineClient.TektonV1beta1().TaskRuns(ns).Create(ctx, &imageTaskRun, metav1.CreateOptions{})
+	if err != nil {
+		t.Errorf("error creating taskrun: %s", err)
+	}
+
+	// Give it a minute to complete.
+	waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, done, 60*time.Second)
+
+	// It can take up to a minute for the secret data to be updated!
+	tr = waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, signed, 120*time.Second)
+
+	// get provenance, and make sure it has a materials section
+	payloadKey := fmt.Sprintf("chains.tekton.dev/payload-taskrun-%s", tr.UID)
+	body := tr.Annotations[payloadKey]
+	bodyBytes, err := base64.StdEncoding.DecodeString(body)
+	if err != nil {
+		t.Error(err)
+	}
+	var actualProvenance in_toto.Statement
+	if err := json.Unmarshal(bodyBytes, &actualProvenance); err != nil {
+		t.Error(err)
+	}
+	predicateBytes, err := json.Marshal(actualProvenance.Predicate)
+	if err := json.Unmarshal(bodyBytes, &actualProvenance); err != nil {
+		t.Error(err)
+	}
+	var predicate provenance.ProvenancePredicate
+	if err := json.Unmarshal(predicateBytes, &predicate); err != nil {
+		t.Fatal(err)
+	}
+	want := []provenance.ProvenanceMaterial{
+		{
+			URI: url,
+			Digest: provenance.DigestSet{
+				"revision": commit,
+			},
+		},
+	}
+	got := predicate.Materials
+	if d := cmp.Diff(want, got); d != "" {
+		t.Fatal(string(d))
+	}
 }

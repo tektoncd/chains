@@ -119,16 +119,18 @@ func metadata(tr *v1beta1.TaskRun) provenance.ProvenanceMetadata {
 // add any Git specification to materials
 func materials(tr *v1beta1.TaskRun) []provenance.ProvenanceMaterial {
 	var mats []provenance.ProvenanceMaterial
-	if tr.Spec.Resources == nil {
-		gitCommit, gitURL := gitInfo(tr)
+	gitCommit, gitURL := gitInfo(tr)
 
-		// Store git rev as Materials and Recipe.Material
-		if gitCommit != "" && gitURL != "" {
-			mats = append(mats, provenance.ProvenanceMaterial{
-				URI:    gitURL,
-				Digest: map[string]string{"revision": gitCommit},
-			})
-		}
+	// Store git rev as Materials and Recipe.Material
+	if gitCommit != "" && gitURL != "" {
+		mats = append(mats, provenance.ProvenanceMaterial{
+			URI:    gitURL,
+			Digest: map[string]string{"revision": gitCommit},
+		})
+		return mats
+	}
+
+	if tr.Spec.Resources == nil {
 		return mats
 	}
 
@@ -284,6 +286,9 @@ func gitInfo(tr *v1beta1.TaskRun) (commit string, url string) {
 		return
 	}
 	for _, p := range tr.Status.TaskSpec.Params {
+		if p.Default == nil {
+			continue
+		}
 		if p.Name == commitParam {
 			commit = p.Default.StringVal
 			continue
