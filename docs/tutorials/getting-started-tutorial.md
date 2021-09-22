@@ -1,4 +1,4 @@
-# Chains Tutorial
+# Chains Getting Started Tutorial
 This tutorial will guide you through:
 * Generating your own keypair and storing it as a Kubernetes Secret
 * Creating a sample TaskRun
