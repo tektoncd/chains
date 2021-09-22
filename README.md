@@ -47,8 +47,10 @@ To finish setting up Chains, please complete the following steps:
 * [Set up any additional configuration](docs/config.md)
 
 
-## Tutorial
-To get started with Chains, try out our getting started [tutorial](docs/tutorial.md)!
+## Tutorials
+To get started with Chains, try out our [getting started tutorial](docs/tutorials/getting-started-tutorial.md).
+
+To start signing OCI images and generating signed provenance for them, try our [signed provenance tutorial](docs/tutorials/signed-provenance-tutorial.md).
 
 ## Experimental Features
 To learn more about experimental features, check out [experimental.md](docs/experimental.md)
