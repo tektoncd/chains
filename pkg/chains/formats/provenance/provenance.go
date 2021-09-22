@@ -39,6 +39,7 @@ const (
 	urlParam                     = "CHAINS-GIT_URL"
 	ChainsReproducibleAnnotation = "chains.tekton.dev/reproducible"
 	PredicateType                = "https://tekton.dev/chains/provenance"
+	statementType                = "https://in-toto.io/Statement/v0.1"
 )
 
 type Provenance struct {
@@ -74,15 +75,9 @@ func (i *Provenance) CreatePayload(obj interface{}) (interface{}, error) {
 }
 
 func (i *Provenance) generateProvenanceFromSubject(tr *v1beta1.TaskRun, subjects []in_toto.Subject) (interface{}, error) {
-	// first store the subject
-	name := tr.Name
-	if tr.Spec.TaskRef != nil {
-		name = tr.Spec.TaskRef.Name
-	}
-
 	att := in_toto.Statement{
 		StatementHeader: in_toto.StatementHeader{
-			Type:          name,
+			Type:          statementType,
 			Subject:       subjects,
 			PredicateType: PredicateType,
 		},
