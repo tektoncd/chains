@@ -57,6 +57,7 @@ EOF
       --param=serviceAccountPath=release.json \
       --param=releaseBucket=gs://tekton-releases/chains \
       --workspace name=release-secret,secret=release-secret \
+      --use-param-defaults \
       --workspace name=workarea,volumeClaimTemplateFile=workspace-template.yaml
     ```
 
@@ -106,7 +107,7 @@ EOF
           value: 'https://github.com/tektoncd/chains'
         - name: revision
           value: ${CHAINS_RELEASE_GIT_SHA}
-    EOF
+EOF
     ```
 
     1. Execute the Draft Release task.
