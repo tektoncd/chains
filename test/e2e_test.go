@@ -33,7 +33,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/in-toto/in-toto-golang/in_toto"
-	"github.com/in-toto/in-toto-golang/pkg/ssl"
+	"github.com/secure-systems-lab/go-securesystemslib/dsse"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature"
 
@@ -325,12 +325,12 @@ func TestFulcio(t *testing.T) {
 	}
 
 	// verify the signature
-	var envelope ssl.Envelope
+	var envelope dsse.Envelope
 	if err := json.Unmarshal(envelopeBytes, &envelope); err != nil {
 		t.Fatal(err)
 	}
 
-	paeEnc := ssl.PAE(in_toto.PayloadType, string(payload))
+	paeEnc := dsse.PAE(in_toto.PayloadType, string(payload))
 	sigEncoded := envelope.Signatures[0].Sig
 	sig := base64Decode(t, sigEncoded)
 

@@ -24,6 +24,7 @@ require (
 	github.com/pierrec/lz4 v2.6.1+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/ryanuber/go-glob v1.0.0
+	github.com/secure-systems-lab/go-securesystemslib v0.1.0
 	github.com/sigstore/cosign v1.1.1-0.20210914204018-152eefb4bbf3
 	github.com/sigstore/fulcio v0.1.2-0.20210831152525-42f7422734bb
 	github.com/sigstore/rekor v0.3.0
