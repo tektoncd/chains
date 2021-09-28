@@ -730,6 +730,9 @@ github.com/sassoftware/relic/lib/pkcs7
 github.com/sassoftware/relic/lib/pkcs9
 github.com/sassoftware/relic/lib/x509tools
 github.com/sassoftware/relic/signers/sigerrors
+# github.com/secure-systems-lab/go-securesystemslib v0.1.0
+## explicit
+github.com/secure-systems-lab/go-securesystemslib/dsse
 # github.com/securego/gosec/v2 v2.8.1
 github.com/securego/gosec/v2
 github.com/securego/gosec/v2/cwe
@@ -784,7 +787,6 @@ github.com/sigstore/rekor/pkg/util
 github.com/sigstore/sigstore/pkg/cryptoutils
 github.com/sigstore/sigstore/pkg/oauthflow
 github.com/sigstore/sigstore/pkg/signature
-github.com/sigstore/sigstore/pkg/signature/dsse
 github.com/sigstore/sigstore/pkg/signature/kms
 github.com/sigstore/sigstore/pkg/signature/kms/aws
 github.com/sigstore/sigstore/pkg/signature/kms/azure

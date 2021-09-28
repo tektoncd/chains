@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -37,7 +38,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
-	"github.com/in-toto/in-toto-golang/pkg/ssl"
+	"github.com/secure-systems-lab/go-securesystemslib/dsse"
 
 	"github.com/ghodss/yaml"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -114,8 +115,8 @@ func runInTotoFormatterTests(ctx context.Context, t *testing.T, ns string, c *cl
 			verifier := &verifier{
 				pub: pub.(*ecdsa.PublicKey),
 			}
-			ev := ssl.NewEnvelopeVerifier(verifier)
-			env := ssl.Envelope{}
+			ev := dsse.NewEnvelopeVerifier(verifier)
+			env := dsse.Envelope{}
 			if err := json.Unmarshal(signature, &env); err != nil {
 				t.Fatal(err)
 			}
