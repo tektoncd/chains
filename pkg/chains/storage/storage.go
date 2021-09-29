@@ -28,6 +28,8 @@ import (
 // Backend is an interface to store a chains Payload
 type Backend interface {
 	StorePayload(rawPayload []byte, signature string, opts config.StorageOpts) error
+	RetrievePayload(opts config.StorageOpts) (string, error)
+	RetrieveSignature(opts config.StorageOpts) (string, error)
 	Type() string
 }
 

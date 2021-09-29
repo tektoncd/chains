@@ -92,3 +92,34 @@ func (b *Backend) StorePayload(signed []byte, signature string, opts config.Stor
 func (b *Backend) Type() string {
 	return StorageTypeDocDB
 }
+
+func (b *Backend) RetrieveSignature(opts config.StorageOpts) (string, error) {
+	// Retrieve the document.
+	d, err := b.retrieveDocument(opts)
+	if err != nil {
+		return "", err
+	}
+
+	// Extract and decode the signature.
+	sig, err := base64.StdEncoding.DecodeString(d.Signature)
+	if err != nil {
+		return "", err
+	}
+	return string(sig), nil
+}
+
+func (b *Backend) RetrievePayload(opts config.StorageOpts) (string, error) {
+	d, err := b.retrieveDocument(opts)
+	if err != nil {
+		return "", err
+	}
+	return string(d.Signed), nil
+}
+
+func (b *Backend) retrieveDocument(opts config.StorageOpts) (SignedDocument, error) {
+	d := SignedDocument{Name: opts.Key}
+	if err := b.coll.Get(context.Background(), &d); err != nil {
+		return SignedDocument{}, err
+	}
+	return d, nil
+}

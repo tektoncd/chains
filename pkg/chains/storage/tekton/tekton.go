@@ -78,3 +78,50 @@ func (b *Backend) StorePayload(rawPayload []byte, signature string, opts config.
 func (b *Backend) Type() string {
 	return StorageBackendTekton
 }
+
+// retrieveAnnotationValue retrieve the value of an annotation and base64 decode it if needed.
+func (b *Backend) retrieveAnnotationValue(annotationKey string, decode bool) (string, error) {
+	// Retrieve the TaskRun.
+	b.logger.Infof("Retrieving annotation %q on TaskRun %s/%s", annotationKey, b.tr.Namespace, b.tr.Name)
+	tr, err := b.pipelienclientset.TektonV1beta1().TaskRuns(b.tr.Namespace).Get(context.TODO(), b.tr.Name, v1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("error retrieving taskrun: %s", err)
+	}
+
+	// Retrieve the annotation.
+	var annotationValue string
+	rawAnnotationValue, exists := tr.Annotations[annotationKey]
+
+	// Ensure it exists.
+	if exists {
+		// Decode it if needed.
+		if decode {
+			decodedAnnotation, err := base64.StdEncoding.DecodeString(rawAnnotationValue)
+			if err != nil {
+				return "", fmt.Errorf("error decoding the annotation value for the key %q: %s", annotationKey, err)
+			}
+			annotationValue = string(decodedAnnotation)
+		} else {
+			annotationValue = rawAnnotationValue
+		}
+	}
+
+	return annotationValue, nil
+}
+
+// RetrieveSignature retrieve the signature stored in the taskrun.
+func (b *Backend) RetrieveSignature(opts config.StorageOpts) (string, error) {
+	b.logger.Infof("Retrieving signature on TaskRun %s/%s", b.tr.Namespace, b.tr.Name)
+	return b.retrieveAnnotationValue(fmt.Sprintf(SignatureAnnotationFormat, opts.Key), true)
+}
+
+// RetrievePayload retrieve the payload stored in the taskrun.
+func (b *Backend) RetrievePayload(opts config.StorageOpts) (string, error) {
+	b.logger.Infof("Retrieving payload on TaskRun %s/%s", b.tr.Namespace, b.tr.Name)
+	payload, err := b.retrieveAnnotationValue(fmt.Sprintf(PayloadAnnotationFormat, opts.Key), true)
+	if err != nil {
+		return "", err
+	}
+
+	return string(payload), nil
+}

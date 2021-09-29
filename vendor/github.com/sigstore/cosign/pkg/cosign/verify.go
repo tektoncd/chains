@@ -33,7 +33,8 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/pkg/errors"
 
-	cremote "github.com/sigstore/cosign/pkg/cosign/remote"
+	"github.com/sigstore/cosign/internal/oci"
+	ociremote "github.com/sigstore/cosign/internal/oci/remote"
 	rekor "github.com/sigstore/rekor/pkg/client"
 	"github.com/sigstore/rekor/pkg/generated/client"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
@@ -88,17 +89,21 @@ func Verify(ctx context.Context, signedImgRef name.Reference, co *CheckOpts) ([]
 	}
 	h := signedImgDesc.Descriptor.Digest
 
-	// These are all the signatures attached to our image that we know how to parse.
-	sigRepo := co.SignatureRepo
-	if (sigRepo == name.Repository{}) {
-		sigRepo = signedImgRef.Context()
-	}
-	tagSuffix := SignatureTagSuffix
-	if co.SigTagSuffixOverride != "" {
-		tagSuffix = co.SigTagSuffixOverride
+	opts := []ociremote.Option{
+		ociremote.WithRemoteOptions(co.RegistryClientOpts...),
 	}
 
-	allSignatures, err := FetchSignaturesForImageDigest(ctx, h, sigRepo, tagSuffix, co.RegistryClientOpts...)
+	// These are all the signatures attached to our image that we know how to parse.
+	if (co.SignatureRepo != name.Repository{}) {
+		opts = append(opts, ociremote.WithTargetRepository(co.SignatureRepo))
+	}
+	if co.SigTagSuffixOverride != "" {
+		opts = append(opts, ociremote.WithSignatureSuffix(co.SigTagSuffixOverride))
+	}
+
+	// TODO(mattmoor): If we change this code to interact with the SignedImage directly,
+	// then we could shed the `remote.Get` above.
+	allSignatures, err := FetchSignaturesForReference(ctx, signedImgRef, opts...)
 	if err != nil {
 		return nil, errors.Wrap(err, "fetching signatures")
 	}
@@ -138,7 +143,6 @@ func Verify(ctx context.Context, signedImgRef name.Reference, co *CheckOpts) ([]
 			if co.CertEmail != "" {
 				emailVerified := false
 				for _, em := range sp.Cert.EmailAddresses {
-
 					if co.CertEmail == em {
 						emailVerified = true
 						break
@@ -289,7 +293,7 @@ func (sp *SignedPayload) VerifyBundle() (bool, error) {
 	return true, nil
 }
 
-func VerifySET(bundlePayload cremote.BundlePayload, signature []byte, pub *ecdsa.PublicKey) error {
+func VerifySET(bundlePayload oci.BundlePayload, signature []byte, pub *ecdsa.PublicKey) error {
 	contents, err := json.Marshal(bundlePayload)
 	if err != nil {
 		return errors.Wrap(err, "marshaling")
@@ -302,7 +306,7 @@ func VerifySET(bundlePayload cremote.BundlePayload, signature []byte, pub *ecdsa
 	// verify the SET against the public key
 	hash := sha256.Sum256(canonicalized)
 	if !ecdsa.VerifyASN1(pub, hash[:], signature) {
-		return fmt.Errorf("unable to verify")
+		return errors.New("unable to verify")
 	}
 	return nil
 }

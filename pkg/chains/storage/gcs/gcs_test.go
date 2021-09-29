@@ -57,21 +57,30 @@ func TestBackend_StorePayload(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			mockGcs := &mockGcsWriter{objects: map[string]*bytes.Buffer{}}
+			mockGcsWrite := &mockGcsWriter{objects: map[string]*bytes.Buffer{}}
+			mockGcsRead := &mockGcsReader{objects: mockGcsWrite.objects}
 			b := &Backend{
 				logger: logtesting.TestLogger(t),
 				tr:     tt.args.tr,
-				writer: mockGcs,
+				writer: mockGcsWrite,
+				reader: mockGcsRead,
 				cfg:    config.Config{Storage: config.StorageConfigs{GCS: config.GCSStorageConfig{Bucket: "foo"}}},
 			}
-			if err := b.StorePayload(tt.args.signed, tt.args.signature, config.StorageOpts{Key: tt.args.key}); (err != nil) != tt.wantErr {
+			opts := config.StorageOpts{Key: tt.args.key}
+			if err := b.StorePayload(tt.args.signed, tt.args.signature, opts); (err != nil) != tt.wantErr {
 				t.Errorf("Backend.StorePayload() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			got := mockGcs.objects["taskrun-foo-bar/foo-uid.signature"].String()
-			if got != tt.args.signature {
-				t.Errorf("wrong signature, expected %s, got %s", tt.args.signature, got)
+			got, err := b.RetrieveSignature(opts)
+			if err != nil {
+				t.Fatal(err)
 			}
-			got = mockGcs.objects["taskrun-foo-bar/foo-uid.payload"].String()
+			if got != tt.args.signature {
+				t.Errorf("wrong signature, expected %q, got %q", tt.args.signature, got)
+			}
+			got, err = b.RetrievePayload(opts)
+			if err != nil {
+				t.Fatal(err)
+			}
 			if got != string(tt.args.signed) {
 				t.Errorf("wrong signature, expected %s, got %s", tt.args.signed, got)
 			}
@@ -94,6 +103,24 @@ type writeCloser struct {
 }
 
 func (wc *writeCloser) Close() error {
+	// Noop
+	return nil
+}
+
+type mockGcsReader struct {
+	objects map[string]*bytes.Buffer
+}
+
+func (m *mockGcsReader) GetReader(object string) (io.ReadCloser, error) {
+	buf := m.objects[object]
+	return &ReaderCloser{buf}, nil
+}
+
+type ReaderCloser struct {
+	*bytes.Buffer
+}
+
+func (rc *ReaderCloser) Close() error {
 	// Noop
 	return nil
 }

@@ -15,7 +15,6 @@ package docdb
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"testing"
 
@@ -67,6 +66,7 @@ func TestBackend_StorePayload(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Prepare the document.
 			ctx := context.Background()
 			b := &Backend{
 				logger: logtesting.TestLogger(t),
@@ -77,25 +77,35 @@ func TestBackend_StorePayload(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if err := b.StorePayload(sb, tt.args.signature, config.StorageOpts{Key: tt.args.key}); (err != nil) != tt.wantErr {
+
+			// Store the document.
+			opts := config.StorageOpts{Key: tt.args.key}
+			if err := b.StorePayload(sb, tt.args.signature, opts); (err != nil) != tt.wantErr {
 				t.Fatalf("Backend.StorePayload() error = %v, wantErr %v", err, tt.wantErr)
 			}
-
 			obj := SignedDocument{
 				Name: tt.args.key,
 			}
 			if err := coll.Get(ctx, &obj); err != nil {
 				t.Fatal(err)
 			}
-			sig, err := base64.StdEncoding.DecodeString(obj.Signature)
+
+			// Check the signature.
+			sig, err := b.RetrieveSignature(opts)
 			if err != nil {
 				t.Fatal(err)
 			}
 			if string(sig) != tt.args.signature {
 				t.Errorf("wrong signature, expected %s, got %s", tt.args.signature, string(sig))
 			}
-			if string(obj.Signed) != string(sb) {
-				t.Errorf("wrong signature, expected %s, got %s", tt.args.signed, string(obj.Signed))
+
+			// Check the payload.
+			payload, err := b.RetrievePayload(opts)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if payload != string(sb) {
+				t.Errorf("wrong payload, expected %s, got %s", tt.args.signed, string(obj.Signed))
 			}
 		})
 	}

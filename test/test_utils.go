@@ -26,14 +26,18 @@ import (
 	"math/rand"
 	"os"
 	"os/exec"
+	"strings"
 	"testing"
 	"time"
 
 	"cloud.google.com/go/storage"
+	chainsstrorage "github.com/tektoncd/chains/pkg/chains/storage"
+	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	pipelineclientset "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"knative.dev/pkg/logging"
 )
 
 func getTr(ctx context.Context, t *testing.T, c pipelineclientset.Interface, name, ns string) (tr *v1beta1.TaskRun) {
@@ -168,6 +172,7 @@ func readObj(t *testing.T, bucket, name string, client *storage.Client) io.Reade
 
 func setConfigMap(ctx context.Context, t *testing.T, c *clients, data map[string]string) func() {
 	// Change the config to be GCS storage with this bucket.
+	// Note(rgreinho): This comment does not look right...
 	cm, err := c.KubeClient.CoreV1().ConfigMaps("tekton-chains").Get(ctx, "chains-config", metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
@@ -217,4 +222,53 @@ func printDebugging(t *testing.T, ns, taskRunName string) {
 	t.Log("============================== Chains Controller Logs ==============================")
 	output, _ = exec.Command("kubectl", "logs", "deploy/tekton-chains-controller", "-n", "tekton-chains").CombinedOutput()
 	t.Log(string(output))
+}
+
+func verifySignature(ctx context.Context, t *testing.T, c *clients, tr *v1beta1.TaskRun) {
+	// Retrieve the configuration.
+	chainsConfig, err := c.KubeClient.CoreV1().ConfigMaps("tekton-chains").Get(ctx, "chains-config", metav1.GetOptions{})
+	if err != nil {
+		t.Errorf("error retrieving tekton chains configmap: %s", err)
+	}
+	cfg, err := config.NewConfigFromConfigMap(chainsConfig)
+	if err != nil {
+		t.Errorf("error creating tekton chains configuration: %s", err)
+	}
+
+	// Prepare the logger.
+	logger := logging.FromContext(ctx)
+
+	// Initialize the backend.
+	backends, err := chainsstrorage.InitializeBackends(c.PipelineClient, c.KubeClient, logger, tr, *cfg)
+	if err != nil {
+		t.Errorf("error initializing backends: %s", err)
+	}
+	backendName := cfg.Artifacts.TaskRuns.StorageBackend
+	t.Logf("Backend name: %q\n", backendName)
+	backend := backends[cfg.Artifacts.TaskRuns.StorageBackend]
+
+	// Skip OCI as the functions are not implemented.
+	if backendName == "oci" {
+		return
+	}
+
+	// Initialize the storage options.
+	opts := config.StorageOpts{
+		Key: fmt.Sprintf("taskrun-%s", tr.UID),
+	}
+
+	// Let's fetch the signature and body.
+	signature, err := backend.RetrieveSignature(opts)
+	if err != nil {
+		t.Errorf("error retrieving the signature: %s", err)
+	}
+	body, err := backend.RetrievePayload(opts)
+	if err != nil {
+		t.Errorf("error retrieving the payload: %s", err)
+	}
+
+	if err := c.secret.x509priv.VerifySignature(strings.NewReader(signature), strings.NewReader(body)); err != nil {
+		t.Fatal(err)
+	}
+
 }

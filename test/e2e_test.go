@@ -27,7 +27,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"path"
 	"testing"
 	"time"
 
@@ -68,11 +67,12 @@ func TestTektonStorage(t *testing.T) {
 
 	// Setup the right config.
 	resetConfig := setConfigMap(ctx, t, c, map[string]string{
-		"artifacts.taskrun.signer": "x509",
-		"artifacts.oci.format":     "tekton",
-		"artifacts.taskrun.format": "tekton",
-		"artifacts.oci.storage":    "tekton",
-		"artifacts.oci.signer":     "x509",
+		"artifacts.taskrun.format":  "tekton",
+		"artifacts.taskrun.signer":  "x509",
+		"artifacts.taskrun.storage": "tekton",
+		"artifacts.oci.format":      "tekton",
+		"artifacts.oci.signer":      "x509",
+		"artifacts.oci.storage":     "tekton",
 	})
 	defer resetConfig()
 
@@ -87,24 +87,8 @@ func TestTektonStorage(t *testing.T) {
 	// It can take up to a minute for the secret data to be updated!
 	tr = waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, signed, 120*time.Second)
 
-	// Let's fetch the signature and body:
-
-	sigKey := fmt.Sprintf("chains.tekton.dev/signature-taskrun-%s", tr.UID)
-	payloadKey := fmt.Sprintf("chains.tekton.dev/payload-taskrun-%s", tr.UID)
-	signature, body := tr.Annotations[sigKey], tr.Annotations[payloadKey]
-	// base64 decode them
-	sigBytes, err := base64.StdEncoding.DecodeString(signature)
-	if err != nil {
-		t.Error(err)
-	}
-	bodyBytes, err := base64.StdEncoding.DecodeString(body)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if err := c.secret.x509priv.VerifySignature(bytes.NewReader(sigBytes), bytes.NewReader(bodyBytes)); err != nil {
-		t.Fatal(err)
-	}
+	// Verify the payload signature.
+	verifySignature(ctx, t, c, tr)
 }
 
 func TestRekor(t *testing.T) {
@@ -114,12 +98,13 @@ func TestRekor(t *testing.T) {
 
 	// Setup the right config.
 	resetConfig := setConfigMap(ctx, t, c, map[string]string{
-		"artifacts.taskrun.signer": "x509",
-		"artifacts.oci.format":     "tekton",
-		"artifacts.taskrun.format": "tekton",
-		"artifacts.oci.storage":    "tekton",
-		"artifacts.oci.signer":     "x509",
-		"transparency.enabled":     "manual",
+		"artifacts.taskrun.format":  "tekton",
+		"artifacts.taskrun.signer":  "x509",
+		"artifacts.taskrun.storage": "tekton",
+		"artifacts.oci.format":      "tekton",
+		"artifacts.oci.signer":      "x509",
+		"artifacts.oci.storage":     "tekton",
+		"transparency.enabled":      "manual",
 	})
 	defer resetConfig()
 
@@ -138,24 +123,8 @@ func TestRekor(t *testing.T) {
 		t.Fatal("failed to upload to tlog")
 	}
 
-	// Let's fetch the signature and body:
-
-	sigKey := fmt.Sprintf("chains.tekton.dev/signature-taskrun-%s", tr.UID)
-	payloadKey := fmt.Sprintf("chains.tekton.dev/payload-taskrun-%s", tr.UID)
-	signature, body := tr.Annotations[sigKey], tr.Annotations[payloadKey]
-	// base64 decode them
-	sigBytes, err := base64.StdEncoding.DecodeString(signature)
-	if err != nil {
-		t.Error(err)
-	}
-	bodyBytes, err := base64.StdEncoding.DecodeString(body)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if err := c.secret.x509priv.VerifySignature(bytes.NewReader(sigBytes), bytes.NewReader(bodyBytes)); err != nil {
-		t.Fatal(err)
-	}
+	// Verify the payload signature.
+	verifySignature(ctx, t, c, tr)
 }
 
 func TestOCISigning(t *testing.T) {
@@ -240,9 +209,9 @@ func TestGCSStorage(t *testing.T) {
 	defer cleanup()
 
 	resetConfig := setConfigMap(ctx, t, c, map[string]string{
+		"artifacts.taskrun.signer":  "x509",
 		"artifacts.taskrun.storage": "gcs",
 		"storage.gcs.bucket":        bucketName,
-		"artifacts.taskrun.signer":  "x509",
 	})
 	defer resetConfig()
 	time.Sleep(3 * time.Second)
@@ -258,20 +227,8 @@ func TestGCSStorage(t *testing.T) {
 	// It can take up to a minute for the secret data to be updated!
 	tr = waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, signed, 120*time.Second)
 
-	root := fmt.Sprintf("taskrun-%s-%s", tr.Namespace, tr.Name)
-	key := "taskrun-" + string(tr.UID)
-
-	sigName := path.Join(root, fmt.Sprintf("%s.signature", key))
-	payloadName := path.Join(root, fmt.Sprintf("%s.payload", key))
-
-	t.Log(sigName)
-
-	sigBytes := readObj(t, bucketName, sigName, client)
-	bodyBytes := readObj(t, bucketName, payloadName, client)
-
-	if err := c.secret.x509priv.VerifySignature(sigBytes, bodyBytes); err != nil {
-		t.Fatal(err)
-	}
+	// Verify the payload signature.
+	verifySignature(ctx, t, c, tr)
 }
 
 func TestFulcio(t *testing.T) {
@@ -367,13 +324,13 @@ func TestOCIStorage(t *testing.T) {
 	defer cleanup()
 
 	resetConfig := setConfigMap(ctx, t, c, map[string]string{
-		"storage.oci.repository.insecure": "true",
+		"artifacts.oci.format":            "simplesigning",
 		"artifacts.oci.storage":           "oci",
 		"artifacts.oci.signer":            "x509",
-		"artifacts.taskrun.storage":       "oci",
 		"artifacts.taskrun.format":        "tekton-provenance",
 		"artifacts.taskrun.signer":        "x509",
-		"artifacts.oci.format":            "simplesigning",
+		"artifacts.taskrun.storage":       "oci",
+		"storage.oci.repository.insecure": "true",
 	})
 	defer resetConfig()
 	time.Sleep(3 * time.Second)
@@ -509,9 +466,9 @@ func TestProvenanceMaterials(t *testing.T) {
 
 	// Setup the right config.
 	resetConfig := setConfigMap(ctx, t, c, map[string]string{
+		"artifacts.taskrun.format":  "tekton-provenance",
 		"artifacts.taskrun.signer":  "x509",
 		"artifacts.taskrun.storage": "tekton",
-		"artifacts.taskrun.format":  "tekton-provenance",
 	})
 	defer resetConfig()
 
