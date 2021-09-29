@@ -28,7 +28,7 @@ import (
 
 // Signer exposes methods to sign payloads using a KMS
 type Signer struct {
-	signature.Signer
+	signature.SignerVerifier
 	logger *zap.SugaredLogger
 }
 
@@ -39,8 +39,8 @@ func NewSigner(cfg config.KMSSigner, logger *zap.SugaredLogger) (*Signer, error)
 		return nil, err
 	}
 	return &Signer{
-		Signer: k,
-		logger: logger,
+		SignerVerifier: k,
+		logger:         logger,
 	}, nil
 }
 

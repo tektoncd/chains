@@ -28,6 +28,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/theupdateframework/go-tuf/encrypted"
 
+	"github.com/sigstore/cosign/pkg/cosign/remote"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature"
 )
@@ -35,10 +36,7 @@ import (
 const (
 	PrivakeKeyPemType = "ENCRYPTED COSIGN PRIVATE KEY"
 
-	sigkey    = "dev.cosignproject.cosign/signature"
-	certkey   = "dev.sigstore.cosign/certificate"
-	chainkey  = "dev.sigstore.cosign/chain"
-	BundleKey = "dev.sigstore.cosign/bundle"
+	BundleKey = remote.BundleKey
 )
 
 type PassFunc func(bool) ([]byte, error)
@@ -128,7 +126,7 @@ func LoadECDSAPrivateKey(key []byte, pass []byte) (*signature.ECDSASignerVerifie
 	}
 	epk, ok := pk.(*ecdsa.PrivateKey)
 	if !ok {
-		return nil, fmt.Errorf("invalid private key")
+		return nil, errors.New("invalid private key")
 	}
 	return signature.LoadECDSASignerVerifier(epk, crypto.SHA256)
 }

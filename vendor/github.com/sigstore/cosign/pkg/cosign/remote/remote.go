@@ -21,29 +21,28 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"os"
-	"strconv"
 
-	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
-	"github.com/google/go-containerregistry/pkg/v1/empty"
 	"github.com/google/go-containerregistry/pkg/v1/mutate"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/google/go-containerregistry/pkg/v1/remote/transport"
 	"github.com/google/go-containerregistry/pkg/v1/types"
 	"github.com/pkg/errors"
+
+	"github.com/sigstore/cosign/internal/oci"
+	"github.com/sigstore/cosign/internal/oci/empty"
+	ociremote "github.com/sigstore/cosign/internal/oci/remote"
 	ctypes "github.com/sigstore/cosign/pkg/types"
 	"github.com/sigstore/sigstore/pkg/signature"
 )
 
 const (
-	sigkey              = "dev.cosignproject.cosign/signature"
-	certkey             = "dev.sigstore.cosign/certificate"
-	chainkey            = "dev.sigstore.cosign/chain"
-	BundleKey           = "dev.sigstore.cosign/bundle"
-	DockerMediaTypesEnv = "COSIGN_DOCKER_MEDIA_TYPES"
+	sigkey    = "dev.cosignproject.cosign/signature"
+	certkey   = "dev.sigstore.cosign/certificate"
+	chainkey  = "dev.sigstore.cosign/chain"
+	BundleKey = "dev.sigstore.cosign/bundle"
 )
 
 func Descriptors(ref name.Reference, remoteOpts ...remote.Option) ([]v1.Descriptor, error) {
@@ -59,39 +58,23 @@ func Descriptors(ref name.Reference, remoteOpts ...remote.Option) ([]v1.Descript
 	return m.Layers, nil
 }
 
-func DockerMediaTypes() bool {
-	if b, err := strconv.ParseBool(os.Getenv(DockerMediaTypesEnv)); err == nil {
-		return b
-	}
-	return false
-}
-
 // SignatureImage returns the existing destination image, or a new, empty one.
-func SignatureImage(ref name.Reference, opts ...remote.Option) (v1.Image, error) {
-	base, err := remote.Image(ref, opts...)
-	if err != nil {
-		if te, ok := err.(*transport.Error); ok {
-			if te.StatusCode != http.StatusNotFound {
-				return nil, te
-			}
-			base = empty.Image
-			if !DockerMediaTypes() {
-				base = mutate.MediaType(base, types.OCIManifestSchema1)
-				m, err := base.Manifest()
-				if err != nil {
-					// should never happen...?
-					return nil, err
-				}
-				m.Config.MediaType = types.OCIConfigJSON
-			}
-		} else {
-			return nil, err
-		}
+func SignatureImage(ref name.Reference, opts ...remote.Option) (oci.Signatures, error) {
+	base, err := ociremote.Signatures(ref, ociremote.WithRemoteOptions(opts...))
+	if err == nil {
+		return base, nil
 	}
-	return base, nil
+	var te *transport.Error
+	if errors.As(err, &te) {
+		if te.StatusCode != http.StatusNotFound {
+			return nil, te
+		}
+		return empty.Signatures(), nil
+	}
+	return nil, err
 }
 
-func findDuplicate(sigImage v1.Image, payload []byte, dupeDetector signature.Verifier, annotations map[string]string) ([]byte, error) {
+func findDuplicate(sigImage oci.Signatures, payload []byte, dupeDetector signature.Verifier, annotations map[string]string) ([]byte, error) {
 	l := &staticLayer{
 		b:  payload,
 		mt: ctypes.SimpleSigningMediaType,
@@ -101,6 +84,8 @@ func findDuplicate(sigImage v1.Image, payload []byte, dupeDetector signature.Ver
 	if err != nil {
 		return nil, err
 	}
+
+	// TODO(mattmoor): Port this to take advantage of the higher-level oci.Signature interface.
 	manifest, err := sigImage.Manifest()
 	if err != nil {
 		return nil, err
@@ -128,23 +113,11 @@ LayerLoop:
 	return nil, nil
 }
 
-type BundlePayload struct {
-	Body           interface{} `json:"body"`
-	IntegratedTime int64       `json:"integratedTime"`
-	LogIndex       int64       `json:"logIndex"`
-	LogID          string      `json:"logID"`
-}
-
-type Bundle struct {
-	SignedEntryTimestamp strfmt.Base64
-	Payload              BundlePayload
-}
-
 type UploadOpts struct {
 	Cert                  []byte
 	Chain                 []byte
 	DupeDetector          signature.Verifier
-	Bundle                *Bundle
+	Bundle                *oci.Bundle
 	AdditionalAnnotations map[string]string
 	RemoteOpts            []remote.Option
 	MediaType             string

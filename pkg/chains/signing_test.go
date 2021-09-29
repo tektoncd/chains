@@ -16,6 +16,7 @@ package chains
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/sigstore/rekor/pkg/generated/models"
@@ -367,4 +368,12 @@ func (b *mockBackend) StorePayload(signed []byte, signature string, opts config.
 
 func (b *mockBackend) Type() string {
 	return b.backendType
+}
+
+func (b *mockBackend) RetrievePayload(opts config.StorageOpts) (string, error) {
+	return "", fmt.Errorf("not implemented")
+}
+
+func (b *mockBackend) RetrieveSignature(opts config.StorageOpts) (string, error) {
+	return "", fmt.Errorf("not implemented")
 }

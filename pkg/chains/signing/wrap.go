@@ -18,6 +18,7 @@ import (
 	"context"
 	"crypto"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 
@@ -124,4 +125,8 @@ func (w *sslSigner) Cert() string {
 
 func (w *sslSigner) Chain() string {
 	return w.chain
+}
+
+func (w *sslSigner) VerifySignature(signature, message io.Reader, opts ...signature.VerifyOption) error {
+	return fmt.Errorf("not implemented")
 }

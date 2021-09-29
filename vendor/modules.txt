@@ -745,10 +745,13 @@ github.com/sergi/go-diff/diffmatchpatch
 github.com/shazow/go-diff/difflib
 # github.com/shibumi/go-pathspec v1.2.0
 github.com/shibumi/go-pathspec
-# github.com/sigstore/cosign v1.1.1-0.20210914204018-152eefb4bbf3
+# github.com/sigstore/cosign v1.2.1
 ## explicit
 github.com/sigstore/cosign/cmd/cosign/cli/fulcio
 github.com/sigstore/cosign/cmd/cosign/cli/fulcio/fulcioroots
+github.com/sigstore/cosign/internal/oci
+github.com/sigstore/cosign/internal/oci/empty
+github.com/sigstore/cosign/internal/oci/remote
 github.com/sigstore/cosign/pkg/cosign
 github.com/sigstore/cosign/pkg/cosign/remote
 github.com/sigstore/cosign/pkg/cosign/tuf
@@ -1411,6 +1414,7 @@ k8s.io/api/storage/v1
 k8s.io/api/storage/v1alpha1
 k8s.io/api/storage/v1beta1
 # k8s.io/apiextensions-apiserver v0.22.1
+## explicit
 k8s.io/apiextensions-apiserver/pkg/apis/apiextensions
 k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1
 # k8s.io/apimachinery v0.22.1 => k8s.io/apimachinery v0.21.4
@@ -1792,6 +1796,7 @@ knative.dev/pkg/metrics
 knative.dev/pkg/metrics/metricskey
 knative.dev/pkg/network
 knative.dev/pkg/network/handlers
+knative.dev/pkg/pool
 knative.dev/pkg/profiling
 knative.dev/pkg/reconciler
 knative.dev/pkg/reconciler/testing

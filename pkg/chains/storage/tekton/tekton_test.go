@@ -14,9 +14,7 @@ limitations under the License.
 package tekton
 
 import (
-	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -67,36 +65,41 @@ func TestBackend_StorePayload(t *testing.T) {
 			if err != nil {
 				t.Errorf("error marshaling json: %v", err)
 			}
-			if err := b.StorePayload(payload, "mocksignature", config.StorageOpts{Key: "mockpayload"}); (err != nil) != tt.wantErr {
+			opts := config.StorageOpts{Key: "mockpayload"}
+			mockSignature := "mocksignature"
+			if err := b.StorePayload(payload, mockSignature, opts); (err != nil) != tt.wantErr {
 				t.Errorf("Backend.StorePayload() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
-			// The rest is invalid if we wanted an error
+			// The rest is invalid if we wanted an error.
 			if tt.wantErr {
 				return
 			}
 
-			// Now get the updated taskrun
-			tr, err = c.TektonV1beta1().TaskRuns(tr.Namespace).Get(ctx, tr.Name, metav1.GetOptions{})
-			if err != nil {
-				t.Errorf("error getting updated taskrun: %v", err)
-			}
-
-			// Reverse all the decodings
-			annotation := fmt.Sprintf(PayloadAnnotationFormat, "mockpayload")
-			jsonString, err := base64.StdEncoding.DecodeString(tr.ObjectMeta.Annotations[annotation])
+			jsonString, err := b.RetrievePayload(opts)
 			if err != nil {
 				t.Errorf("error base64 decoding: %v", err)
 			}
+
 			mp := mockPayload{}
 			if err := json.Unmarshal([]byte(jsonString), &mp); err != nil {
 				t.Errorf("error json decoding: %v", err)
 			}
 
-			// Compare to the input
+			// Compare to the input.
 			if diff := cmp.Diff(tt.payload, mp); diff != "" {
 				t.Errorf("unexpected payload: (-want, +got): %s", diff)
 			}
+
+			// Compare the signature.
+			sig, err := b.RetrieveSignature(opts)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if diff := cmp.Diff(mockSignature, sig); diff != "" {
+				t.Errorf("unexpected signature: (-want, +got): %s", diff)
+			}
+
 		})
 	}
 }

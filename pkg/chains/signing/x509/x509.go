@@ -40,7 +40,7 @@ import (
 type Signer struct {
 	cert  string
 	chain string
-	signature.Signer
+	signature.SignerVerifier
 	logger *zap.SugaredLogger
 }
 
@@ -84,10 +84,10 @@ func fulcioSigner(auth, addr string, logger *zap.SugaredLogger) (*Signer, error)
 		return nil, errors.Wrap(err, "new signer")
 	}
 	return &Signer{
-		Signer: k.ECDSASignerVerifier,
-		cert:   string(k.Cert),
-		chain:  string(k.Chain),
-		logger: logger,
+		SignerVerifier: k.ECDSASignerVerifier,
+		cert:           string(k.Cert),
+		chain:          string(k.Chain),
+		logger:         logger,
 	}, nil
 }
 
@@ -106,7 +106,7 @@ func x509Signer(privateKey []byte, logger *zap.SugaredLogger) (*Signer, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Signer{Signer: signer, logger: logger}, nil
+	return &Signer{SignerVerifier: signer, logger: logger}, nil
 }
 
 func cosignSigner(secretPath string, privateKey []byte, logger *zap.SugaredLogger) (*Signer, error) {
@@ -120,7 +120,7 @@ func cosignSigner(secretPath string, privateKey []byte, logger *zap.SugaredLogge
 	if err != nil {
 		return nil, err
 	}
-	return &Signer{Signer: signer, logger: logger}, nil
+	return &Signer{SignerVerifier: signer, logger: logger}, nil
 }
 
 func (s *Signer) Type() string {

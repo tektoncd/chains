@@ -25,7 +25,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/ryanuber/go-glob v1.0.0
 	github.com/secure-systems-lab/go-securesystemslib v0.1.0
-	github.com/sigstore/cosign v1.1.1-0.20210914204018-152eefb4bbf3
+	github.com/sigstore/cosign v1.2.1
 	github.com/sigstore/fulcio v0.1.2-0.20210831152525-42f7422734bb
 	github.com/sigstore/rekor v0.3.0
 	github.com/sigstore/sigstore v1.0.0
@@ -37,6 +37,7 @@ require (
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
 	google.golang.org/api v0.56.0
 	k8s.io/api v0.22.1
+	k8s.io/apiextensions-apiserver v0.22.1 // indirect
 	k8s.io/apimachinery v0.22.1
 	k8s.io/client-go v0.22.1
 	k8s.io/code-generator v0.22.1
