@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -25,20 +26,21 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"path"
 	"testing"
 	"time"
 
-	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/google/go-cmp/cmp"
 	"github.com/in-toto/in-toto-golang/in_toto"
-	"github.com/in-toto/in-toto-golang/pkg/ssl"
-	"github.com/sigstore/cosign/pkg/cosign"
+	"github.com/secure-systems-lab/go-securesystemslib/dsse"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature"
 
 	"cloud.google.com/go/compute/metadata"
 	"cloud.google.com/go/storage"
 	"github.com/tektoncd/chains/pkg/chains"
+	"github.com/tektoncd/chains/pkg/chains/provenance"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -323,12 +325,12 @@ func TestFulcio(t *testing.T) {
 	}
 
 	// verify the signature
-	var envelope ssl.Envelope
+	var envelope dsse.Envelope
 	if err := json.Unmarshal(envelopeBytes, &envelope); err != nil {
 		t.Fatal(err)
 	}
 
-	paeEnc := ssl.PAE(in_toto.PayloadType, string(payload))
+	paeEnc := dsse.PAE(in_toto.PayloadType, string(payload))
 	sigEncoded := envelope.Signatures[0].Sig
 	sig := base64Decode(t, sigEncoded)
 
@@ -348,6 +350,17 @@ func base64Decode(t *testing.T, s string) []byte {
 	return b
 }
 
+// DSSE messages contain the signature and payload in one object, but our interface expects a signature and payload
+// This means we need to use one field and ignore the other. The DSSE verifier upstream uses the signature field and ignores
+// The message field, but we want the reverse here.
+type reverseDSSEVerifier struct {
+	signature.Verifier
+}
+
+func (w *reverseDSSEVerifier) VerifySignature(s io.Reader, m io.Reader, opts ...signature.VerifyOption) error {
+	return w.Verifier.VerifySignature(m, nil, opts...)
+}
+
 func TestOCIStorage(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
 	c, ns, cleanup := setup(ctx, t, setupOpts{registry: true})
@@ -356,8 +369,11 @@ func TestOCIStorage(t *testing.T) {
 	resetConfig := setConfigMap(ctx, t, c, map[string]string{
 		"storage.oci.repository.insecure": "true",
 		"artifacts.oci.storage":           "oci",
+		"artifacts.oci.signer":            "x509",
 		"artifacts.taskrun.storage":       "oci",
 		"artifacts.taskrun.format":        "tekton-provenance",
+		"artifacts.taskrun.signer":        "x509",
+		"artifacts.oci.format":            "simplesigning",
 	})
 	defer resetConfig()
 	time.Sleep(3 * time.Second)
@@ -378,43 +394,18 @@ func TestOCIStorage(t *testing.T) {
 	}
 
 	// Give it a minute to complete.
-	waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, done, 60*time.Second)
+	waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, signed, 60*time.Second)
 
-	externalRef, err := name.ParseReference(fmt.Sprintf("%s/%s", c.externalRegistry, imageName), name.Insecure)
+	publicKey, err := cryptoutils.MarshalPublicKeyToPEM(c.secret.x509priv.Public())
 	if err != nil {
-		t.Fatalf("parsing ref: %v", err)
+		t.Error(err)
 	}
-	t.Logf("Verifying %s...", externalRef.String())
-	// wait two minutes for the controller to sign
-	// setup a timeout channel
-	timeoutChan := make(chan struct{})
-	go func() {
-		time.Sleep(2 * time.Minute)
-		timeoutChan <- struct{}{}
-	}()
-	for {
-		select {
-		default:
-			// verify the image
-			if _, err = cosign.Verify(ctx, externalRef, &cosign.CheckOpts{
-				SignatureRepo: externalRef.Context(),
-				SigVerifier:   c.secret.x509priv,
-			}); err != nil {
-				t.Log(err)
-			}
-			// verify the attestation
-			if _, err = cosign.Verify(ctx, externalRef, &cosign.CheckOpts{
-				SigTagSuffixOverride: cosign.AttestationTagSuffix,
-				SignatureRepo:        externalRef.Context(),
-				SigVerifier:          c.secret.x509priv,
-			}); err != nil {
-				t.Log(err)
-			}
-			return
-		case <-timeoutChan:
-			t.Fatal("time out")
-		}
+	verifyTaskRun := verifyKanikoTaskRun(ns, image, string(publicKey))
+	tr, err = c.PipelineClient.TektonV1beta1().TaskRuns(ns).Create(ctx, verifyTaskRun, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("error creating task: %s", err)
 	}
+	waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, successful, 60*time.Second)
 }
 
 func TestRetryFailed(t *testing.T) {
@@ -534,7 +525,6 @@ func TestAPIServer(t *testing.T) {
 
 func apiserverTaskRun() *v1beta1.TaskRun {
 	script := `#!/usr/bin/env bash
-
 set -ex
 apt-get update
 apt-get install -y curl
@@ -561,5 +551,73 @@ curl tekton-chains-api.tekton-chains.svc.cluster.local/api/entry/%s
 				},
 			},
 		},
+	}
+}
+
+func TestProvenanceMaterials(t *testing.T) {
+	ctx := logtesting.TestContextWithLogger(t)
+	c, ns, cleanup := setup(ctx, t, setupOpts{})
+	defer cleanup()
+
+	// Setup the right config.
+	resetConfig := setConfigMap(ctx, t, c, map[string]string{
+		"artifacts.taskrun.signer":  "x509",
+		"artifacts.taskrun.storage": "tekton",
+		"artifacts.taskrun.format":  "tekton-provenance",
+	})
+	defer resetConfig()
+
+	// modify image task run to add in the params we want to check for
+	commit := "my-git-commit"
+	url := "my-git-url"
+	imageTaskRun.Spec.Params = []v1beta1.Param{
+		{
+			Name: "CHAINS-GIT_COMMIT", Value: *v1beta1.NewArrayOrString(commit),
+		}, {
+			Name: "CHAINS-GIT_URL", Value: *v1beta1.NewArrayOrString(url),
+		},
+	}
+
+	tr, err := c.PipelineClient.TektonV1beta1().TaskRuns(ns).Create(ctx, &imageTaskRun, metav1.CreateOptions{})
+	if err != nil {
+		t.Errorf("error creating taskrun: %s", err)
+	}
+
+	// Give it a minute to complete.
+	waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, done, 60*time.Second)
+
+	// It can take up to a minute for the secret data to be updated!
+	tr = waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, signed, 120*time.Second)
+
+	// get provenance, and make sure it has a materials section
+	payloadKey := fmt.Sprintf("chains.tekton.dev/payload-taskrun-%s", tr.UID)
+	body := tr.Annotations[payloadKey]
+	bodyBytes, err := base64.StdEncoding.DecodeString(body)
+	if err != nil {
+		t.Error(err)
+	}
+	var actualProvenance in_toto.Statement
+	if err := json.Unmarshal(bodyBytes, &actualProvenance); err != nil {
+		t.Error(err)
+	}
+	predicateBytes, err := json.Marshal(actualProvenance.Predicate)
+	if err := json.Unmarshal(bodyBytes, &actualProvenance); err != nil {
+		t.Error(err)
+	}
+	var predicate provenance.ProvenancePredicate
+	if err := json.Unmarshal(predicateBytes, &predicate); err != nil {
+		t.Fatal(err)
+	}
+	want := []provenance.ProvenanceMaterial{
+		{
+			URI: url,
+			Digest: provenance.DigestSet{
+				"revision": commit,
+			},
+		},
+	}
+	got := predicate.Materials
+	if d := cmp.Diff(want, got); d != "" {
+		t.Fatal(string(d))
 	}
 }

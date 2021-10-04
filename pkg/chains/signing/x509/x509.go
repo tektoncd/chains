@@ -24,12 +24,11 @@ import (
 	"net/url"
 	"path/filepath"
 
-	"github.com/sigstore/cosign/cmd/cosign/cli"
-
 	"google.golang.org/api/idtoken"
 
 	"github.com/pkg/errors"
 	"github.com/sigstore/cosign/cmd/cosign/cli/fulcio"
+	"github.com/sigstore/cosign/pkg/cosign"
 	"github.com/sigstore/fulcio/pkg/client"
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/tektoncd/chains/pkg/chains/signing"
@@ -117,7 +116,7 @@ func cosignSigner(secretPath string, privateKey []byte, logger *zap.SugaredLogge
 	if err != nil {
 		return nil, errors.Wrap(err, "reading cosign.password file")
 	}
-	signer, err := cli.LoadECDSAPrivateKey(privateKey, password)
+	signer, err := cosign.LoadECDSAPrivateKey(privateKey, password)
 	if err != nil {
 		return nil, err
 	}

@@ -39,6 +39,7 @@ const (
 	urlParam                     = "CHAINS-GIT_URL"
 	ChainsReproducibleAnnotation = "chains.tekton.dev/reproducible"
 	PredicateType                = "https://tekton.dev/chains/provenance"
+	statementType                = "https://in-toto.io/Statement/v0.1"
 )
 
 type Provenance struct {
@@ -74,15 +75,9 @@ func (i *Provenance) CreatePayload(obj interface{}) (interface{}, error) {
 }
 
 func (i *Provenance) generateProvenanceFromSubject(tr *v1beta1.TaskRun, subjects []in_toto.Subject) (interface{}, error) {
-	// first store the subject
-	name := tr.Name
-	if tr.Spec.TaskRef != nil {
-		name = tr.Spec.TaskRef.Name
-	}
-
 	att := in_toto.Statement{
 		StatementHeader: in_toto.StatementHeader{
-			Type:          name,
+			Type:          statementType,
 			Subject:       subjects,
 			PredicateType: PredicateType,
 		},
@@ -119,16 +114,18 @@ func metadata(tr *v1beta1.TaskRun) provenance.ProvenanceMetadata {
 // add any Git specification to materials
 func materials(tr *v1beta1.TaskRun) []provenance.ProvenanceMaterial {
 	var mats []provenance.ProvenanceMaterial
-	if tr.Spec.Resources == nil {
-		gitCommit, gitURL := gitInfo(tr)
+	gitCommit, gitURL := gitInfo(tr)
 
-		// Store git rev as Materials and Recipe.Material
-		if gitCommit != "" && gitURL != "" {
-			mats = append(mats, provenance.ProvenanceMaterial{
-				URI:    gitURL,
-				Digest: map[string]string{"revision": gitCommit},
-			})
-		}
+	// Store git rev as Materials and Recipe.Material
+	if gitCommit != "" && gitURL != "" {
+		mats = append(mats, provenance.ProvenanceMaterial{
+			URI:    gitURL,
+			Digest: map[string]string{"revision": gitCommit},
+		})
+		return mats
+	}
+
+	if tr.Spec.Resources == nil {
 		return mats
 	}
 
@@ -278,6 +275,21 @@ func gitInfo(tr *v1beta1.TaskRun) (commit string, url string) {
 		}
 		if p.Name == urlParam {
 			url = p.Value.StringVal
+		}
+	}
+	if tr.Status.TaskSpec == nil {
+		return
+	}
+	for _, p := range tr.Status.TaskSpec.Params {
+		if p.Default == nil {
+			continue
+		}
+		if p.Name == commitParam {
+			commit = p.Default.StringVal
+			continue
+		}
+		if p.Name == urlParam {
+			url = p.Default.StringVal
 		}
 	}
 	return

@@ -21,6 +21,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/in-toto/in-toto-golang/in_toto"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/tektoncd/chains/pkg/chains/formats"
 	"github.com/tektoncd/chains/pkg/config"
@@ -68,6 +69,7 @@ func (i *InTotoIte6) CreatePayload(obj interface{}) (interface{}, error) {
 // 	Results with name *_DIGEST -> Subject
 // 	Step containers -> Materials
 // 	Params with name CHAINS-GIT_* -> Materials and recipe.materials
+
 // 	tekton-chains -> Recipe.type
 // 	Taskname -> Recipe.entry_point
 func (i *InTotoIte6) generateAttestationFromTaskRun(tr *v1beta1.TaskRun) (interface{}, error) {
@@ -78,9 +80,10 @@ func (i *InTotoIte6) generateAttestationFromTaskRun(tr *v1beta1.TaskRun) (interf
 	att := intoto.ProvenanceStatement{
 		StatementHeader: intoto.StatementHeader{
 			Type:          intoto.StatementInTotoV01,
-			PredicateType: intoto.PredicateProvenanceV01,
+			PredicateType: intoto.PredicateSLSAProvenanceV01,
 		},
 		Predicate: intoto.ProvenancePredicate{
+			Metadata: &in_toto.ProvenanceMetadata{},
 			Builder: intoto.ProvenanceBuilder{
 				ID: i.builderID,
 			},

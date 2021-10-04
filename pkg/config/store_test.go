@@ -236,6 +236,71 @@ func TestParse(t *testing.T) {
 				},
 				Service: ServiceConfig{Port: 9000},
 			},
+		}, {
+			name: "rekor - true",
+			data: map[string]string{
+				"transparency.enabled": "true",
+			},
+			want: Config{
+				Builder: BuilderConfig{
+					"tekton-chains",
+				},
+				Artifacts: ArtifactConfigs{
+					TaskRuns: Artifact{
+						Format:         "tekton",
+						Signer:         "x509",
+						StorageBackend: "tekton",
+					},
+					OCI: Artifact{
+						Format:         "simplesigning",
+						StorageBackend: "oci",
+						Signer:         "x509",
+					},
+				},
+				Signers: SignerConfigs{
+					X509: X509Signer{
+						FulcioAuth: "google",
+						FulcioAddr: "https://fulcio.sigstore.dev",
+					},
+				},
+				Transparency: TransparencyConfig{
+					Enabled: true,
+					URL:     "https://rekor.sigstore.dev",
+				},
+			},
+		}, {
+			name: "rekor - manual",
+			data: map[string]string{
+				"transparency.enabled": "manual",
+			},
+			want: Config{
+				Builder: BuilderConfig{
+					"tekton-chains",
+				},
+				Artifacts: ArtifactConfigs{
+					TaskRuns: Artifact{
+						Format:         "tekton",
+						Signer:         "x509",
+						StorageBackend: "tekton",
+					},
+					OCI: Artifact{
+						Format:         "simplesigning",
+						StorageBackend: "oci",
+						Signer:         "x509",
+					},
+				},
+				Signers: SignerConfigs{
+					X509: X509Signer{
+						FulcioAuth: "google",
+						FulcioAddr: "https://fulcio.sigstore.dev",
+					},
+				},
+				Transparency: TransparencyConfig{
+					Enabled:          true,
+					VerifyAnnotation: true,
+					URL:              "https://rekor.sigstore.dev",
+				},
+			},
 		},
 	}
 	for _, tt := range tests {

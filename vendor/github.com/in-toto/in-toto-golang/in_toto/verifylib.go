@@ -6,6 +6,7 @@ See https://github.com/in-toto/docs/blob/master/in-toto-spec.md
 package in_toto
 
 import (
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"io"
@@ -50,7 +51,7 @@ func RunInspections(layout Layout, runDir string) (map[string]Metablock, error) 
 		}
 
 		linkMb, err := InTotoRun(inspection.Name, runDir, paths, paths,
-			inspection.Run, Key{}, []string{"sha256"}, nil)
+			inspection.Run, Key{}, []string{"sha256"}, nil, nil)
 
 		if err != nil {
 			return nil, err
@@ -295,8 +296,8 @@ func VerifyArtifacts(items []interface{},
 				case "disallow":
 					// Does not consume but errors out if artifacts were filtered
 					if len(filtered) > 0 {
-						return fmt.Errorf("Artifact verification failed for %s '%s',"+
-							" %s %s disallowed by rule %s.",
+						return fmt.Errorf("artifact verification failed for %s '%s',"+
+							" %s %s disallowed by rule %s",
 							reflect.TypeOf(itemI).Name(), itemName,
 							verificationData["srcType"], filtered.Slice(), rule)
 					}
@@ -304,8 +305,8 @@ func VerifyArtifacts(items []interface{},
 					// REQUIRE is somewhat of a weird animal that does not use
 					// patterns bur rather single filenames (for now).
 					if !queue.Has(ruleData["pattern"]) {
-						return fmt.Errorf("Artifact verification failed for %s in REQUIRE '%s',"+
-							" because %s is not in %s.", verificationData["srcType"],
+						return fmt.Errorf("artifact verification failed for %s in REQUIRE '%s',"+
+							" because %s is not in %s", verificationData["srcType"],
 							ruleData["pattern"], ruleData["pattern"], queue.Slice())
 					}
 				}
@@ -376,7 +377,7 @@ func ReduceStepsMetadata(layout Layout,
 					!reflect.DeepEqual(linkMb.Signed.(Link).Products,
 						referenceLinkMb.Signed.(Link).Products) {
 					return nil, fmt.Errorf("Link '%s' and '%s' have different"+
-						" artifacts.",
+						" artifacts",
 						fmt.Sprintf(LinkNameFormat, step.Name, referenceKeyID),
 						fmt.Sprintf(LinkNameFormat, step.Name, keyID))
 				}
@@ -419,6 +420,39 @@ func VerifyStepCommandAlignment(layout Layout,
 }
 
 /*
+LoadLayoutCertificates loads the root and intermediate CAs from the layout if in the layout.
+This will be used to check signatures that were used to sign links but not configured
+in the PubKeys section of the step.  No configured CAs means we don't want to allow this.
+Returned CertPools will be empty in this case.
+*/
+func LoadLayoutCertificates(layout Layout, intermediatePems [][]byte) (*x509.CertPool, *x509.CertPool, error) {
+	rootPool := x509.NewCertPool()
+	for _, certPem := range layout.RootCas {
+		ok := rootPool.AppendCertsFromPEM([]byte(certPem.KeyVal.Certificate))
+		if !ok {
+			return nil, nil, fmt.Errorf("failed to load root certificates for layout")
+		}
+	}
+
+	intermediatePool := x509.NewCertPool()
+	for _, intermediatePem := range layout.IntermediateCas {
+		ok := intermediatePool.AppendCertsFromPEM([]byte(intermediatePem.KeyVal.Certificate))
+		if !ok {
+			return nil, nil, fmt.Errorf("failed to load intermediate certificates for layout")
+		}
+	}
+
+	for _, intermediatePem := range intermediatePems {
+		ok := intermediatePool.AppendCertsFromPEM(intermediatePem)
+		if !ok {
+			return nil, nil, fmt.Errorf("failed to load provided intermediate certificates")
+		}
+	}
+
+	return rootPool, intermediatePool, nil
+}
+
+/*
 VerifyLinkSignatureThesholds verifies that for each step of the passed layout,
 there are at least Threshold links, validly signed by different authorized
 functionaries.  The returned map of link metadata per steps contains only
@@ -443,7 +477,7 @@ return value is an empty map of Metablock maps and the second return value is
 the error.
 */
 func VerifyLinkSignatureThesholds(layout Layout,
-	stepsMetadata map[string]map[string]Metablock) (
+	stepsMetadata map[string]map[string]Metablock, rootCertPool, intermediateCertPool *x509.CertPool) (
 	map[string]map[string]Metablock, error) {
 	// This will stores links with valid signature from an authorized functionary
 	// for all steps
@@ -452,6 +486,8 @@ func VerifyLinkSignatureThesholds(layout Layout,
 	// Try to find enough (>= threshold) links each with a valid signature from
 	// distinct authorized functionaries for each step
 	for _, step := range layout.Steps {
+		var stepErr error
+
 		// This will store links with valid signature from an authorized
 		// functionary for the given step
 		linksPerStepVerified := make(map[string]Metablock)
@@ -459,39 +495,68 @@ func VerifyLinkSignatureThesholds(layout Layout,
 		// Check if there are any links at all for the given step
 		linksPerStep, ok := stepsMetadata[step.Name]
 		if !ok || len(linksPerStep) < 1 {
-			continue
+			stepErr = fmt.Errorf("no links found")
 		}
 
 		// For each link corresponding to a step, check that the signer key was
 		// authorized, the layout contains a verification key and the signature
 		// verification passes.  Only good links are stored, to verify thresholds
 		// below.
+		isAuthorizedSignature := false
 		for signerKeyID, linkMb := range linksPerStep {
 			for _, authorizedKeyID := range step.PubKeys {
 				if signerKeyID == authorizedKeyID {
 					if verifierKey, ok := layout.Keys[authorizedKeyID]; ok {
 						if err := linkMb.VerifySignature(verifierKey); err == nil {
 							linksPerStepVerified[signerKeyID] = linkMb
+							isAuthorizedSignature = true
 							break
 						}
 					}
 				}
 			}
+
+			// If the signer's key wasn't in our step's pubkeys array, check the cert pool to
+			// see if the key is known to us.
+			if !isAuthorizedSignature {
+				sig, err := linkMb.GetSignatureForKeyID(signerKeyID)
+				if err != nil {
+					stepErr = err
+					continue
+				}
+
+				cert, err := sig.GetCertificate()
+				if err != nil {
+					stepErr = err
+					continue
+				}
+
+				// test certificate against the step's constraints to make sure it's a valid functionary
+				err = step.CheckCertConstraints(cert, layout.RootCAIDs(), rootCertPool, intermediateCertPool)
+				if err != nil {
+					stepErr = err
+					continue
+				}
+
+				err = linkMb.VerifySignature(cert)
+				if err != nil {
+					stepErr = err
+					continue
+				}
+
+				linksPerStepVerified[signerKeyID] = linkMb
+			}
 		}
+
 		// Store all good links for a step
 		stepsMetadataVerified[step.Name] = linksPerStepVerified
-	}
-
-	// Verify threshold for each step
-	for _, step := range layout.Steps {
-		linksPerStepVerified, _ := stepsMetadataVerified[step.Name]
 
 		if len(linksPerStepVerified) < step.Threshold {
-			linksPerStep, _ := stepsMetadata[step.Name]
-			return nil, fmt.Errorf("Step '%s' requires '%d' link metadata file(s)."+
+			linksPerStep := stepsMetadata[step.Name]
+			return nil, fmt.Errorf("step '%s' requires '%d' link metadata file(s)."+
 				" '%d' out of '%d' available link(s) have a valid signature from an"+
-				" authorized signer.", step.Name, step.Threshold,
-				len(linksPerStepVerified), len(linksPerStep))
+				" authorized signer: %v", step.Name, step.Threshold,
+				len(linksPerStepVerified), len(linksPerStep), stepErr)
 		}
 	}
 	return stepsMetadataVerified, nil
@@ -524,28 +589,38 @@ ignored. Only a preliminary threshold check is performed, that is, if there
 aren't at least Threshold links for any given step, the first return value
 is an empty map of Metablock maps and the second return value is the error.
 */
-func LoadLinksForLayout(layout Layout, linkDir string) (
-	map[string]map[string]Metablock, error) {
+func LoadLinksForLayout(layout Layout, linkDir string) (map[string]map[string]Metablock, error) {
 	stepsMetadata := make(map[string]map[string]Metablock)
 
 	for _, step := range layout.Steps {
 		linksPerStep := make(map[string]Metablock)
+		// Since we can verify against certificates belonging to a CA, we need to
+		// load any possible links
+		linkFiles, err := filepath.Glob(osPath.Join(linkDir, fmt.Sprintf(LinkGlobFormat, step.Name)))
+		if err != nil {
+			return nil, err
+		}
 
-		for _, authorizedKeyID := range step.PubKeys {
-			linkName := fmt.Sprintf(LinkNameFormat, step.Name, authorizedKeyID)
-			linkPath := osPath.Join(linkDir, linkName)
-
+		for _, linkPath := range linkFiles {
 			var linkMb Metablock
 			if err := linkMb.Load(linkPath); err != nil {
 				continue
 			}
 
-			linksPerStep[authorizedKeyID] = linkMb
+			// To get the full key from the metadata's signatures, we have to check
+			// for one with the same short id...
+			signerShortKeyID := strings.TrimSuffix(strings.TrimPrefix(filepath.Base(linkPath), step.Name+"."), ".link")
+			for _, sig := range linkMb.Signatures {
+				if strings.HasPrefix(sig.KeyID, signerShortKeyID) {
+					linksPerStep[sig.KeyID] = linkMb
+					break
+				}
+			}
 		}
 
 		if len(linksPerStep) < step.Threshold {
-			return nil, fmt.Errorf("Step '%s' requires '%d' link metadata file(s),"+
-				" found '%d'.", step.Name, step.Threshold, len(linksPerStep))
+			return nil, fmt.Errorf("step '%s' requires '%d' link metadata file(s),"+
+				" found '%d'", step.Name, step.Threshold, len(linksPerStep))
 		}
 
 		stepsMetadata[step.Name] = linksPerStep
@@ -632,7 +707,7 @@ steps carried out in the sublayout.
 */
 func VerifySublayouts(layout Layout,
 	stepsMetadataVerified map[string]map[string]Metablock,
-	superLayoutLinkPath string) (map[string]map[string]Metablock, error) {
+	superLayoutLinkPath string, intermediatePems [][]byte) (map[string]map[string]Metablock, error) {
 	for stepName, linkData := range stepsMetadataVerified {
 		for keyID, metadata := range linkData {
 			if _, ok := metadata.Signed.(Layout); ok {
@@ -644,7 +719,7 @@ func VerifySublayouts(layout Layout,
 				sublayoutLinkPath := filepath.Join(superLayoutLinkPath,
 					sublayoutLinkDir)
 				summaryLink, err := InTotoVerify(metadata, layoutKeys,
-					sublayoutLinkPath, stepName, make(map[string]string))
+					sublayoutLinkPath, stepName, make(map[string]string), intermediatePems)
 				if err != nil {
 					return nil, err
 				}
@@ -695,9 +770,10 @@ func SubstituteParameters(layout Layout,
 
 	parameters := make([]string, 0)
 
+	re := regexp.MustCompile("^[a-zA-Z0-9_-]+$")
+
 	for parameter, value := range parameterDictionary {
-		parameterFormatCheck, _ := regexp.MatchString("^[a-zA-Z0-9_-]+$",
-			parameter)
+		parameterFormatCheck := re.MatchString(parameter)
 		if !parameterFormatCheck {
 			return layout, fmt.Errorf("invalid format for parameter")
 		}
@@ -761,7 +837,7 @@ NOTE: Artifact rules of type "create", "modify"
 and "delete" are currently not supported.
 */
 func InTotoVerify(layoutMb Metablock, layoutKeys map[string]Key,
-	linkDir string, stepName string, parameterDictionary map[string]string) (
+	linkDir string, stepName string, parameterDictionary map[string]string, intermediatePems [][]byte) (
 	Metablock, error) {
 
 	var summaryLink Metablock
@@ -786,6 +862,11 @@ func InTotoVerify(layoutMb Metablock, layoutKeys map[string]Key,
 		return summaryLink, err
 	}
 
+	rootCertPool, intermediateCertPool, err := LoadLayoutCertificates(layout, intermediatePems)
+	if err != nil {
+		return summaryLink, err
+	}
+
 	// Load links for layout
 	stepsMetadata, err := LoadLinksForLayout(layout, linkDir)
 	if err != nil {
@@ -794,14 +875,14 @@ func InTotoVerify(layoutMb Metablock, layoutKeys map[string]Key,
 
 	// Verify link signatures
 	stepsMetadataVerified, err := VerifyLinkSignatureThesholds(layout,
-		stepsMetadata)
+		stepsMetadata, rootCertPool, intermediateCertPool)
 	if err != nil {
 		return summaryLink, err
 	}
 
 	// Verify and resolve sublayouts
 	stepsSublayoutVerified, err := VerifySublayouts(layout,
-		stepsMetadataVerified, linkDir)
+		stepsMetadataVerified, linkDir, intermediatePems)
 	if err != nil {
 		return summaryLink, err
 	}
@@ -854,7 +935,7 @@ InTotoVerifyWithDirectory provides the same functionality as IntotoVerify, but
 adds the possibility to select a local directory from where the inspections are run.
 */
 func InTotoVerifyWithDirectory(layoutMb Metablock, layoutKeys map[string]Key,
-	linkDir string, runDir string, stepName string, parameterDictionary map[string]string) (
+	linkDir string, runDir string, stepName string, parameterDictionary map[string]string, intermediatePems [][]byte) (
 	Metablock, error) {
 
 	var summaryLink Metablock
@@ -884,6 +965,7 @@ func InTotoVerifyWithDirectory(layoutMb Metablock, layoutKeys map[string]Key,
 	if err != nil {
 		return Metablock{}, err
 	}
+	defer f.Close()
 	// We use Readdirnames(1) for performance reasons, one child node
 	// is enough to proof that the directory is not empty
 	_, err = f.Readdirnames(1)
@@ -915,6 +997,11 @@ func InTotoVerifyWithDirectory(layoutMb Metablock, layoutKeys map[string]Key,
 		return summaryLink, err
 	}
 
+	rootCertPool, intermediateCertPool, err := LoadLayoutCertificates(layout, intermediatePems)
+	if err != nil {
+		return summaryLink, err
+	}
+
 	// Load links for layout
 	stepsMetadata, err := LoadLinksForLayout(layout, linkDir)
 	if err != nil {
@@ -923,14 +1010,14 @@ func InTotoVerifyWithDirectory(layoutMb Metablock, layoutKeys map[string]Key,
 
 	// Verify link signatures
 	stepsMetadataVerified, err := VerifyLinkSignatureThesholds(layout,
-		stepsMetadata)
+		stepsMetadata, rootCertPool, intermediateCertPool)
 	if err != nil {
 		return summaryLink, err
 	}
 
 	// Verify and resolve sublayouts
 	stepsSublayoutVerified, err := VerifySublayouts(layout,
-		stepsMetadataVerified, linkDir)
+		stepsMetadataVerified, linkDir, intermediatePems)
 	if err != nil {
 		return summaryLink, err
 	}
