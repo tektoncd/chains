@@ -267,6 +267,7 @@ func TestParse(t *testing.T) {
 					Enabled: true,
 					URL:     "https://rekor.sigstore.dev",
 				},
+				Service: ServiceConfig{Port: 9000},
 			},
 		}, {
 			name: "rekor - manual",
@@ -300,6 +301,7 @@ func TestParse(t *testing.T) {
 					VerifyAnnotation: true,
 					URL:              "https://rekor.sigstore.dev",
 				},
+				Service: ServiceConfig{Port: 9000},
 			},
 		},
 	}
