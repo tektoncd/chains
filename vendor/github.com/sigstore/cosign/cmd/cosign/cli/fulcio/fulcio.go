@@ -16,20 +16,16 @@
 package fulcio
 
 import (
-	"bytes"
 	"context"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/x509"
-	_ "embed" // To enable the `go:embed` directive.
+	"encoding/base64"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"strings"
-	"sync"
 
 	"github.com/go-openapi/runtime"
 	httptransport "github.com/go-openapi/runtime/client"
@@ -37,8 +33,8 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/term"
 
+	"github.com/sigstore/cosign/cmd/cosign/cli/fulcio/fulcioroots"
 	"github.com/sigstore/cosign/pkg/cosign"
-	"github.com/sigstore/cosign/pkg/cosign/tuf"
 	fulcioClient "github.com/sigstore/fulcio/pkg/generated/client"
 	"github.com/sigstore/fulcio/pkg/generated/client/operations"
 	"github.com/sigstore/fulcio/pkg/generated/models"
@@ -50,13 +46,13 @@ const (
 	FlowNormal = "normal"
 	FlowDevice = "device"
 	FlowToken  = "token"
-	altRoot    = "SIGSTORE_ROOT_FILE"
 )
 
-// This is the root in the fulcio project.
-//go:embed fulcio.pem
-var rootPem string
-var fulcioTargetStr = `fulcio.crt.pem`
+type Resp struct {
+	CertPEM  []byte
+	ChainPEM []byte
+	SCT      []byte
+}
 
 type oidcConnector interface {
 	OIDConnect(string, string, string) (*oauthflow.OIDCIDToken, error)
@@ -74,22 +70,22 @@ type signingCertProvider interface {
 	SigningCert(params *operations.SigningCertParams, authInfo runtime.ClientAuthInfoWriter, opts ...operations.ClientOption) (*operations.SigningCertCreated, error)
 }
 
-func getCertForOauthID(priv *ecdsa.PrivateKey, scp signingCertProvider, connector oidcConnector, oidcIssuer string, oidcClientID string) (certPem, chainPem []byte, err error) {
+func getCertForOauthID(priv *ecdsa.PrivateKey, scp signingCertProvider, connector oidcConnector, oidcIssuer string, oidcClientID string) (Resp, error) {
 	pubBytes, err := x509.MarshalPKIXPublicKey(&priv.PublicKey)
 	if err != nil {
-		return nil, nil, err
+		return Resp{}, err
 	}
 
 	tok, err := connector.OIDConnect(oidcIssuer, oidcClientID, "")
 	if err != nil {
-		return nil, nil, err
+		return Resp{}, err
 	}
 
 	// Sign the email address as part of the request
 	h := sha256.Sum256([]byte(tok.Subject))
 	proof, err := ecdsa.SignASN1(rand.Reader, priv, h[:])
 	if err != nil {
-		return nil, nil, err
+		return Resp{}, err
 	}
 
 	bearerAuth := httptransport.BearerToken(tok.RawString)
@@ -109,17 +105,27 @@ func getCertForOauthID(priv *ecdsa.PrivateKey, scp signingCertProvider, connecto
 
 	resp, err := scp.SigningCert(params, bearerAuth)
 	if err != nil {
-		return nil, nil, err
+		return Resp{}, err
+	}
+	sct, err := base64.StdEncoding.DecodeString(resp.SCT.String())
+	if err != nil {
+		return Resp{}, err
 	}
 
 	// split the cert and the chain
 	certBlock, chainPem := pem.Decode([]byte(resp.Payload))
-	certPem = pem.EncodeToMemory(certBlock)
-	return certPem, chainPem, nil
+	certPem := pem.EncodeToMemory(certBlock)
+	fr := Resp{
+		CertPEM:  certPem,
+		ChainPEM: chainPem,
+		SCT:      sct,
+	}
+
+	return fr, nil
 }
 
 // GetCert returns the PEM-encoded signature of the OIDC identity returned as part of an interactive oauth2 flow plus the PEM-encoded cert chain.
-func GetCert(ctx context.Context, priv *ecdsa.PrivateKey, idToken, flow, oidcIssuer, oidcClientID string, fClient *fulcioClient.Fulcio) (certPemBytes, chainPemBytes []byte, err error) {
+func GetCert(ctx context.Context, priv *ecdsa.PrivateKey, idToken, flow, oidcIssuer, oidcClientID string, fClient *fulcioClient.Fulcio) (Resp, error) {
 	c := &realConnector{}
 	switch flow {
 	case FlowDevice:
@@ -130,7 +136,7 @@ func GetCert(ctx context.Context, priv *ecdsa.PrivateKey, idToken, flow, oidcIss
 	case FlowToken:
 		c.flow = &oauthflow.StaticTokenGetter{RawToken: idToken}
 	default:
-		return nil, nil, fmt.Errorf("unsupported oauth flow: %s", flow)
+		return Resp{}, fmt.Errorf("unsupported oauth flow: %s", flow)
 	}
 
 	return getCertForOauthID(priv, fClient.Operations, c, oidcIssuer, oidcClientID)
@@ -139,6 +145,7 @@ func GetCert(ctx context.Context, priv *ecdsa.PrivateKey, idToken, flow, oidcIss
 type Signer struct {
 	Cert  []byte
 	Chain []byte
+	SCT   []byte
 	pub   *ecdsa.PublicKey
 	*signature.ECDSASignerVerifier
 }
@@ -164,15 +171,17 @@ func NewSigner(ctx context.Context, idToken, oidcIssuer, oidcClientID string, fC
 	default:
 		flow = FlowNormal
 	}
-	cert, chain, err := GetCert(ctx, priv, idToken, flow, oidcIssuer, oidcClientID, fClient) // TODO, use the chain.
+	Resp, err := GetCert(ctx, priv, idToken, flow, oidcIssuer, oidcClientID, fClient) // TODO, use the chain.
 	if err != nil {
 		return nil, errors.Wrap(err, "retrieving cert")
 	}
+
 	f := &Signer{
 		pub:                 &priv.PublicKey,
 		ECDSASignerVerifier: signer,
-		Cert:                cert,
-		Chain:               chain,
+		Cert:                Resp.CertPEM,
+		Chain:               Resp.ChainPEM,
+		SCT:                 Resp.SCT,
 	}
 	return f, nil
 
@@ -184,47 +193,6 @@ func (f *Signer) PublicKey(opts ...signature.PublicKeyOption) (crypto.PublicKey,
 
 var _ signature.Signer = &Signer{}
 
-var (
-	rootsOnce sync.Once
-	roots     *x509.CertPool
-)
-
 func GetRoots() *x509.CertPool {
-	rootsOnce.Do(func() {
-		roots = initRoots()
-	})
-	return roots
-}
-
-func initRoots() *x509.CertPool {
-	cp := x509.NewCertPool()
-	rootEnv := os.Getenv(altRoot)
-	if rootEnv != "" {
-		raw, err := ioutil.ReadFile(rootEnv)
-		if err != nil {
-			panic(fmt.Sprintf("error reading root PEM file: %s", err))
-		}
-		if !cp.AppendCertsFromPEM(raw) {
-			panic("error creating root cert pool")
-		}
-	} else {
-		// First try retrieving from TUF root. Otherwise use rootPem.
-		ctx := context.Background() // TODO: pass in context?
-		buf := tuf.ByteDestination{Buffer: &bytes.Buffer{}}
-		err := tuf.GetTarget(ctx, fulcioTargetStr, &buf)
-		if err != nil {
-			// The user may not have initialized the local root metadata. Log the error and use the embedded root.
-			fmt.Println("using embedded fulcio certificate. did you run `cosign init`? error retrieving target: ", err)
-			if !cp.AppendCertsFromPEM([]byte(rootPem)) {
-				panic("error creating root cert pool")
-			}
-		} else {
-			// TODO: Remove the string replace when SigStore root is updated.
-			replaced := strings.ReplaceAll(buf.String(), "\n  ", "\n")
-			if !cp.AppendCertsFromPEM([]byte(replaced)) {
-				panic("error creating root cert pool")
-			}
-		}
-	}
-	return cp
+	return fulcioroots.Get()
 }

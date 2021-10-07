@@ -199,8 +199,8 @@ func NewConfigFromMap(data map[string]string) (*Config, error) {
 		asBool(ociRepositoryInsecureKey, &cfg.Storage.OCI.Insecure),
 		asString(docDBUrlKey, &cfg.Storage.DocDB.URL),
 
-		asBool(transparencyEnabledKey, &cfg.Transparency.Enabled, "manual"),
-		asBool(transparencyEnabledKey, &cfg.Transparency.VerifyAnnotation, "manual"),
+		oneOf(transparencyEnabledKey, &cfg.Transparency.Enabled, "true", "manual"),
+		oneOf(transparencyEnabledKey, &cfg.Transparency.VerifyAnnotation, "manual"),
 		asString(transparencyURLKey, &cfg.Transparency.URL),
 
 		asString(kmsSignerKMSRef, &cfg.Signers.KMS.KMSRef),
@@ -228,9 +228,28 @@ func NewConfigFromConfigMap(configMap *corev1.ConfigMap) (*Config, error) {
 	return NewConfigFromMap(configMap.Data)
 }
 
+// oneOf sets target to true if it maches any of the values
+func oneOf(key string, target *bool, values ...string) cm.ParseFunc {
+	return func(data map[string]string) error {
+		raw, ok := data[key]
+		if !ok {
+			return nil
+		}
+		if values == nil {
+			return nil
+		}
+		for _, v := range values {
+			if v == raw {
+				*target = true
+			}
+		}
+		return nil
+	}
+}
+
 // allow additional supported values for a "true" decision
 // in additional to the usual ones provided by strconv.ParseBool
-func asBool(key string, target *bool, values ...string) cm.ParseFunc {
+func asBool(key string, target *bool) cm.ParseFunc {
 	return func(data map[string]string) error {
 		raw, ok := data[key]
 		if !ok {
@@ -240,13 +259,6 @@ func asBool(key string, target *bool, values ...string) cm.ParseFunc {
 		if err == nil {
 			*target = val
 			return nil
-		}
-		if len(values) > 0 {
-			for _, v := range values {
-				if v == raw {
-					*target = true
-				}
-			}
 		}
 		return nil
 	}

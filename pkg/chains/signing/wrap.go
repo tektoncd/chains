@@ -22,7 +22,7 @@ import (
 	"io/ioutil"
 
 	"github.com/in-toto/in-toto-golang/in_toto"
-	"github.com/in-toto/in-toto-golang/pkg/ssl"
+	"github.com/secure-systems-lab/go-securesystemslib/dsse"
 	"github.com/sigstore/sigstore/pkg/signature"
 
 	"golang.org/x/crypto/ssh"
@@ -46,7 +46,7 @@ func Wrap(ctx context.Context, s Signer) (Signer, error) {
 		KeyID:   fingerprint,
 	}
 
-	envelope, err := ssl.NewEnvelopeSigner(&adapter)
+	envelope, err := dsse.NewEnvelopeSigner(&adapter)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +76,7 @@ func (w *sslAdapter) Verify(keyID string, data, sig []byte) error {
 
 // sslSigner converts the EnvelopeSigners back into our types, after wrapping.
 type sslSigner struct {
-	wrapper *ssl.EnvelopeSigner
+	wrapper *dsse.EnvelopeSigner
 	typ     string
 	pub     crypto.PublicKey
 	cert    string

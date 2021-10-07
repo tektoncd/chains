@@ -86,6 +86,40 @@ func TestMarkSigned(t *testing.T) {
 	}
 }
 
+func TestMarkFailed(t *testing.T) {
+	ctx, _ := rtesting.SetupFakeContext(t)
+	// Create a TR for testing
+	c := fakepipelineclient.Get(ctx)
+	tr := &v1beta1.TaskRun{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "my-taskrun",
+			Annotations: map[string]string{RetryAnnotation: "3"},
+		},
+		Spec: v1beta1.TaskRunSpec{
+			TaskRef: &v1beta1.TaskRef{
+				Name: "foo",
+			},
+		},
+	}
+	if _, err := c.TektonV1beta1().TaskRuns(tr.Namespace).Create(ctx, tr, metav1.CreateOptions{}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Test HandleRetry, should mark it as failed
+	if err := HandleRetry(tr, c, nil); err != nil {
+		t.Errorf("HandleRetry() error = %v", err)
+	}
+
+	failed, err := c.TektonV1beta1().TaskRuns(tr.Namespace).Get(ctx, tr.Name, metav1.GetOptions{})
+	if err != nil {
+		t.Errorf("Get() error = %v", err)
+	}
+
+	if failed.Annotations[ChainsAnnotation] != "failed" {
+		t.Errorf("Taskrun not marked as 'failed', was: '%s'", failed.Annotations[ChainsAnnotation])
+	}
+}
+
 func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 	// SignTaskRun does three main things:
 	// - generates payloads

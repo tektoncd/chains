@@ -278,7 +278,17 @@ DoneChoosingBodySource:
 	if r.pathPattern != "" && r.pathPattern != "/" && r.pathPattern[len(r.pathPattern)-1] == '/' {
 		reinstateSlash = true
 	}
-	urlPath := path.Join(basePath, r.pathPattern)
+
+	// In case the basePath includes hardcoded query parameters, parse those out before
+	// constructing the final path. The parameters themselves will be merged with the
+	// ones set by the client, with the priority given to the latter.
+	basePathURL, err := url.Parse(basePath)
+	if err != nil {
+		return nil, err
+	}
+	basePathQueryParams := basePathURL.Query()
+
+	urlPath := path.Join(basePathURL.Path, r.pathPattern)
 	for k, v := range r.pathParams {
 		urlPath = strings.Replace(urlPath, "{"+k+"}", url.PathEscape(v), -1)
 	}
@@ -289,6 +299,19 @@ DoneChoosingBodySource:
 	req, err := http.NewRequest(r.method, urlPath, body)
 	if err != nil {
 		return nil, err
+	}
+
+	originalParams := r.GetQueryParams()
+
+	// Merge the query parameters extracted from the basePath with the ones set by
+	// the client in this struct. In case of conflict, the client wins.
+	for k, v := range basePathQueryParams {
+		_, present := originalParams[k]
+		if !present {
+			if err = r.SetQueryParam(k, v...); err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	req.URL.RawQuery = r.query.Encode()

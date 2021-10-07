@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -34,13 +35,11 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
-	"net"
-	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
 
-	"github.com/sigstore/cosign/cmd/cosign/cli"
+	"github.com/sigstore/cosign/pkg/cosign"
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/tektoncd/pipeline/pkg/names"
 
@@ -59,10 +58,8 @@ type clients struct {
 	KubeClient     kubernetes.Interface
 	PipelineClient pipelineclientset.Interface
 	secret         secret
-	// these represent the same registry; internal is accessible from within the cluster
-	// external is accessible from outside the cluster via port-forwarding
+	// insecure registry available from within the cluster
 	internalRegistry string
-	externalRegistry string
 }
 
 // newClients instantiates and returns several clientsets required for making requests to the
@@ -107,9 +104,7 @@ func setup(ctx context.Context, t *testing.T, opts setupOpts) (*clients, string,
 
 	c.secret = setupSecret(ctx, t, c.KubeClient, opts)
 	if opts.registry {
-		internalRegistry, svc := createRegistry(ctx, t, namespace, c.KubeClient)
-		externalRegistry := portForward(ctx, t, svc)
-		c.internalRegistry, c.externalRegistry = internalRegistry, externalRegistry
+		c.internalRegistry = createRegistry(ctx, t, namespace, c.KubeClient)
 	}
 
 	var cleanup = func() {
@@ -137,7 +132,7 @@ func createNamespace(ctx context.Context, t *testing.T, namespace string, kubeCl
 	}
 }
 
-func createRegistry(ctx context.Context, t *testing.T, namespace string, kubeClient kubernetes.Interface) (string, *corev1.Service) {
+func createRegistry(ctx context.Context, t *testing.T, namespace string, kubeClient kubernetes.Interface) string {
 	t.Helper()
 	replicas := int32(1)
 	label := map[string]string{"app": "registry"}
@@ -178,7 +173,7 @@ func createRegistry(ctx context.Context, t *testing.T, namespace string, kubeCli
 	}
 	// first, check if the svc already exists
 	if svc, err := kubeClient.CoreV1().Services(namespace).Get(ctx, service.Name, metav1.GetOptions{}); err == nil {
-		return fmt.Sprintf("%s.%s.svc.cluster.local:5000", svc.Name, svc.Namespace), svc
+		return fmt.Sprintf("%s.%s.svc.cluster.local:5000", svc.Name, svc.Namespace)
 	}
 	t.Logf("Creating insecure registry to deploy in ns %s", namespace)
 	if _, err := kubeClient.AppsV1().Deployments(namespace).Create(ctx, deployment, metav1.CreateOptions{}); err != nil {
@@ -191,42 +186,7 @@ func createRegistry(ctx context.Context, t *testing.T, namespace string, kubeCli
 		t.Fatalf("Failed to create service for tests: %s", err)
 	}
 
-	return fmt.Sprintf("%s.%s.svc.cluster.local:5000", service.Name, service.Namespace), service
-}
-
-func portForward(ctx context.Context, t *testing.T, svc *corev1.Service) string {
-	freePort := getFreePort(t)
-	go func() {
-		// port forwarding has a bad habit of dying randomly, so keep restarting it
-		for {
-			t.Logf("Starting port forwarding on port %d...", freePort)
-			ctx, cancel := context.WithCancel(ctx)
-			cmd := exec.CommandContext(ctx, "kubectl", "port-forward", fmt.Sprintf("svc/%s", svc.Name), fmt.Sprintf("%d:5000", freePort), "-n", svc.Namespace)
-			select {
-			case <-ctx.Done():
-				cancel()
-				return // returning not to leak the goroutine
-			default:
-				if err := cmd.Run(); err != nil {
-					t.Logf("port forwarding died: %v\n", err)
-				} else {
-					cancel()
-					return
-				}
-				cancel()
-			}
-		}
-	}()
-	return fmt.Sprintf("localhost:%d", freePort)
-}
-
-func getFreePort(t *testing.T) int {
-	l, err := net.Listen("tcp", fmt.Sprintf("%s:0", "localhost"))
-	if err != nil {
-		t.Error(err)
-		return 5000 // just return something
-	}
-	return l.Addr().(*net.TCPAddr).Port
+	return fmt.Sprintf("%s.%s.svc.cluster.local:5000", service.Name, service.Namespace)
 }
 
 type secret struct {
@@ -263,7 +223,7 @@ func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface, opts
 		}
 		s.StringData[p] = string(b)
 	}
-	cosignPriv, err := cli.LoadECDSAPrivateKey([]byte(s.StringData["cosign.key"]), []byte(s.StringData["cosign.password"]))
+	cosignPriv, err := cosign.LoadECDSAPrivateKey([]byte(s.StringData["cosign.key"]), []byte(s.StringData["cosign.password"]))
 	if err != nil {
 		t.Error(err)
 	}
