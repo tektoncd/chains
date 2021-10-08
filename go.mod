@@ -40,6 +40,7 @@ require (
 	k8s.io/apimachinery v0.22.1
 	k8s.io/client-go v0.22.1
 	k8s.io/code-generator v0.22.1
+	k8s.io/utils v0.0.0-20210802155522-efc7438f0176
 	knative.dev/pkg v0.0.0-20210908025933-71508fc69a57
 )
 

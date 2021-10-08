@@ -24,8 +24,11 @@ import (
 	"github.com/in-toto/in-toto-golang/in_toto"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/tektoncd/chains/pkg/chains/formats"
+	"github.com/tektoncd/chains/pkg/chains/formats/provenance"
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	"go.uber.org/zap"
+	"k8s.io/utils/pointer"
 
 	"github.com/google/go-containerregistry/pkg/name"
 )
@@ -40,10 +43,14 @@ const (
 
 type InTotoIte6 struct {
 	builderID string
+	logger    *zap.SugaredLogger
 }
 
-func NewFormatter(cfg config.Config) (formats.Payloader, error) {
-	return &InTotoIte6{builderID: cfg.Builder.ID}, nil
+func NewFormatter(cfg config.Config, logger *zap.SugaredLogger) (formats.Payloader, error) {
+	return &InTotoIte6{
+		builderID: cfg.Builder.ID,
+		logger:    logger,
+	}, nil
 }
 
 func (i *InTotoIte6) Wrap() bool {
@@ -100,7 +107,7 @@ func (i *InTotoIte6) generateAttestationFromTaskRun(tr *v1beta1.TaskRun) (interf
 		att.Predicate.Metadata.BuildFinishedOn = &tr.Status.CompletionTime.Time
 	}
 
-	att.StatementHeader.Subject = getSubjectDigests(tr)
+	att.StatementHeader.Subject = provenance.GetSubjectDigests(tr, i.logger)
 
 	definedInMaterial, mats := materials(tr)
 	att.Predicate.Materials = mats
@@ -142,7 +149,7 @@ func materials(tr *v1beta1.TaskRun) (*int, []intoto.ProvenanceMaterial) {
 	var definedInMaterial *int
 	for i, u := range m {
 		if u.URI == gitURL {
-			definedInMaterial = intP(i)
+			definedInMaterial = pointer.Int(i)
 			break
 		}
 	}
@@ -171,77 +178,6 @@ func gitInfo(tr *v1beta1.TaskRun) (commit string, url string) {
 		}
 	}
 	return
-}
-
-// getSubjectDigests depends on taskResults with names ending with
-// _DIGEST.
-// To be able to find the resource that matches the digest, it relies on a
-// naming schema for an input parameter.
-// If the output result from this task is foo_DIGEST, it expects to find an
-// parameter named 'foo', and resolves this value to use for the subject with
-// for the found digest.
-// If no parameter is found, we search the results of this task, which allows
-// for a task to create a random resource not known prior to execution that
-// gets checksummed and added as the subject.
-// Digests can be on two formats: $alg:$digest (commonly used for container
-// image hashes), or $alg:$digest $path, which is used when a step is
-// calculating a hash of a previous step.
-func getSubjectDigests(tr *v1beta1.TaskRun) []intoto.Subject {
-	var subjects []intoto.Subject
-
-	for _, trr := range tr.Status.TaskRunResults {
-		if !strings.HasSuffix(trr.Name, chainsDigestSuffix) {
-			continue
-		}
-		potentialKey := strings.TrimSuffix(trr.Name, chainsDigestSuffix)
-		var sub string
-		// try to match the key to a param or a result
-		for _, p := range tr.Spec.Params {
-			if potentialKey != p.Name || p.Value.Type != v1beta1.ParamTypeString {
-				continue
-			}
-			sub = p.Value.StringVal
-		}
-		for _, p := range tr.Status.TaskRunResults {
-			if potentialKey == p.Name {
-				sub = strings.TrimRight(p.Value, "\n")
-			}
-		}
-		// if we couldn't match to a param or a result, continue
-		if sub == "" {
-			continue
-		}
-		// Value should be of the format:
-		//   alg:hash
-		//   alg:hash filename
-		algHash := strings.Split(trr.Value, " ")[0]
-		ah := strings.Split(algHash, ":")
-		if len(ah) != 2 {
-			continue
-		}
-		alg := ah[0]
-		hash := ah[1]
-
-		// OCI image shall use pacakge url format for subjects
-		if trr.Name == ociDigestResult {
-			imageID := getOCIImageID(sub, alg, hash)
-			sub, _, _ = getPackageURLDocker(imageID)
-		}
-		subjects = append(subjects, intoto.Subject{
-			Name: sub,
-			Digest: map[string]string{
-				alg: hash,
-			},
-		})
-	}
-	sort.Slice(subjects, func(i, j int) bool {
-		return subjects[i].Name <= subjects[j].Name
-	})
-	return subjects
-}
-
-func intP(i int) *int {
-	return &i
 }
 
 // getPackageURLDocker takes an image id and creates a package URL string

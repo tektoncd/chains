@@ -66,7 +66,7 @@ func (i *Provenance) CreatePayload(obj interface{}) (interface{}, error) {
 	default:
 		return nil, fmt.Errorf("intoto does not support type: %s", v)
 	}
-	subjects := getSubjectDigests(tr, i.logger)
+	subjects := GetSubjectDigests(tr, i.logger)
 	att, err := i.generateProvenanceFromSubject(tr, subjects)
 	if err != nil {
 		return nil, errors.Wrapf(err, "generating provenance for subject %s", subjects)
@@ -295,7 +295,7 @@ func gitInfo(tr *v1beta1.TaskRun) (commit string, url string) {
 	return
 }
 
-// getSubjectDigests depends on taskResults with names ending with
+// GetSubjectDigests depends on taskResults with names ending with
 // _DIGEST.
 // To be able to find the resource that matches the digest, it relies on a
 // naming schema for an input parameter.
@@ -308,7 +308,7 @@ func gitInfo(tr *v1beta1.TaskRun) (commit string, url string) {
 // Digests can be on two formats: $alg:$digest (commonly used for container
 // image hashes), or $alg:$digest $path, which is used when a step is
 // calculating a hash of a previous step.
-func getSubjectDigests(tr *v1beta1.TaskRun, logger *zap.SugaredLogger) []in_toto.Subject {
+func GetSubjectDigests(tr *v1beta1.TaskRun, logger *zap.SugaredLogger) []in_toto.Subject {
 	var subjects []in_toto.Subject
 
 	imgs := artifacts.ExtractOCIImagesFromResults(tr, logger)
