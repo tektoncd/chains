@@ -95,7 +95,7 @@ func allFormatters(cfg config.Config, l *zap.SugaredLogger) map[formats.PayloadT
 			}
 			all[f] = formatter
 		case formats.PayloadTypeInTotoIte6:
-			formatter, err := intotoite6.NewFormatter(cfg)
+			formatter, err := intotoite6.NewFormatter(cfg, l)
 			if err != nil {
 				l.Warnf("error configuring intoto formatter: %s", err)
 			}

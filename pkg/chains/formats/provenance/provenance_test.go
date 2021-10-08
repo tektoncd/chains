@@ -307,7 +307,7 @@ func TestGetSubjectDigests(t *testing.T) {
 			},
 		},
 	}
-	got := getSubjectDigests(tr, logtesting.TestLogger(t))
+	got := GetSubjectDigests(tr, logtesting.TestLogger(t))
 	if !reflect.DeepEqual(expected, got) {
 		if d := cmp.Diff(expected, got); d != "" {
 			t.Log(d)

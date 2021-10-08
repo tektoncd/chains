@@ -23,10 +23,12 @@ import (
 
 	"github.com/tektoncd/chains/pkg/chains/formats"
 	"github.com/tektoncd/chains/pkg/config"
+	"k8s.io/utils/pointer"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	logtesting "knative.dev/pkg/logging/testing"
 )
 
 var testData1 = `
@@ -92,8 +94,8 @@ var testData1 = `
         "value": "sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"
       },
       {
-        "name": "filename_DIGEST",
-        "value": "sha256:hash5   /bin/ls"
+        "name": "IMAGE_URL",
+        "value": "gcr.io/my/image"
       }
     ],
     "taskSpec": {
@@ -146,14 +148,8 @@ var expected1 = in_toto.ProvenanceStatement{
 		PredicateType: in_toto.PredicateSLSAProvenanceV01,
 		Subject: []in_toto.Subject{
 			{
-				Name: "/bin/ls",
-				Digest: map[string]string{
-					"sha256": "hash5",
-				},
-			},
-			{
-				Name: "pkg:docker/test/image@sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7?repository_url=test.io",
-				Digest: map[string]string{
+				Name: "gcr.io/my/image",
+				Digest: in_toto.DigestSet{
 					"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7",
 				},
 			},
@@ -196,7 +192,7 @@ var expected1 = in_toto.ProvenanceStatement{
 		Recipe: in_toto.ProvenanceRecipe{
 			Type:              tektonID,
 			EntryPoint:        "test-task",
-			DefinedInMaterial: intP(0),
+			DefinedInMaterial: pointer.Int(0),
 		},
 	},
 }
@@ -260,14 +256,7 @@ var expected2 = in_toto.ProvenanceStatement{
 	StatementHeader: in_toto.StatementHeader{
 		Type:          in_toto.StatementInTotoV01,
 		PredicateType: in_toto.PredicateSLSAProvenanceV01,
-		Subject: []in_toto.Subject{
-			{
-				Name: "pkg:deb/debian/curl@7.50.3-1",
-				Digest: map[string]string{
-					"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6",
-				},
-			},
-		},
+		Subject:       nil,
 	},
 	Predicate: in_toto.ProvenancePredicate{
 		Metadata: &in_toto.ProvenanceMetadata{},
@@ -319,20 +308,8 @@ var dataMultpleSubjects = `
     ],
     "taskResults": [
       {
-        "name": "file1_DIGEST",
-        "value": "sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"
-      },
-      {
-        "name": "file1",
-        "value": "pkg:deb/debian/curl@7.50.3-1"
-      },
-      {
-        "name": "file2_DIGEST",
-        "value": "sha256:daa1a56e13c85cf164e7d9e595006649e3a04c47fe4a8261320e18a0bf3b0367"
-      },
-      {
-        "name": "file2",
-        "value": "pkg:generic/curl@7.50.3-1.tar.gz"
+        "name": "IMAGES",
+        "value": "gcr.io/myimage@sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6,gcr.io/myimage@sha256:daa1a56e13c85cf164e7d9e595006649e3a04c47fe4a8261320e18a0bf3b0367"
       }
     ],
     "taskSpec": {
@@ -366,14 +343,13 @@ var expectedMultipleSubjects = in_toto.ProvenanceStatement{
 		PredicateType: in_toto.PredicateSLSAProvenanceV01,
 		Subject: []in_toto.Subject{
 			{
-				Name: "pkg:deb/debian/curl@7.50.3-1",
-				Digest: map[string]string{
+				Name: "gcr.io/myimage",
+				Digest: in_toto.DigestSet{
 					"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6",
 				},
-			},
-			{
-				Name: "pkg:generic/curl@7.50.3-1.tar.gz",
-				Digest: map[string]string{
+			}, {
+				Name: "gcr.io/myimage",
+				Digest: in_toto.DigestSet{
 					"sha256": "daa1a56e13c85cf164e7d9e595006649e3a04c47fe4a8261320e18a0bf3b0367",
 				},
 			},
@@ -413,7 +389,7 @@ func TestInTotoIte6_CreatePayload1(t *testing.T) {
 			ID: "test_builder-1",
 		},
 	}
-	i, _ := NewFormatter(cfg)
+	i, _ := NewFormatter(cfg, logtesting.TestLogger(t))
 
 	got, err := i.CreatePayload(&tr)
 
@@ -439,7 +415,7 @@ func TestInTotoIte6_CreatePayload2(t *testing.T) {
 			ID: "test_builder-2",
 		},
 	}
-	i, _ := NewFormatter(cfg)
+	i, _ := NewFormatter(cfg, logtesting.TestLogger(t))
 	got, err := i.CreatePayload(&tr)
 
 	if err != nil {
@@ -463,7 +439,7 @@ func TestInTotoIte6_CreatePayloadNilTaskRef(t *testing.T) {
 			ID: "testid",
 		},
 	}
-	f, _ := NewFormatter(cfg)
+	f, _ := NewFormatter(cfg, logtesting.TestLogger(t))
 
 	p, err := f.CreatePayload(&tr)
 	if err != nil {
@@ -490,7 +466,7 @@ func TestInTotoIte6_MultipleSubjects(t *testing.T) {
 			ID: "test_builder-multiple",
 		},
 	}
-	i, _ := NewFormatter(cfg)
+	i, _ := NewFormatter(cfg, logtesting.TestLogger(t))
 	got, err := i.CreatePayload(&tr)
 
 	if err != nil {
@@ -508,7 +484,7 @@ func TestNewFormatter(t *testing.T) {
 				ID: "testid",
 			},
 		}
-		f, err := NewFormatter(cfg)
+		f, err := NewFormatter(cfg, logtesting.TestLogger(t))
 		if f == nil {
 			t.Error("Failed to create formatter")
 		}
@@ -599,7 +575,7 @@ func TestCreatePayloadError(t *testing.T) {
 			ID: "testid",
 		},
 	}
-	f, _ := NewFormatter(cfg)
+	f, _ := NewFormatter(cfg, logtesting.TestLogger(t))
 
 	t.Run("Invalid type", func(t *testing.T) {
 		p, err := f.CreatePayload("not a task ref")

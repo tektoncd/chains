@@ -1757,6 +1757,7 @@ k8s.io/kube-openapi/pkg/util/proto
 k8s.io/legacy-cloud-providers/azure/auth
 k8s.io/legacy-cloud-providers/gce/gcpcredential
 # k8s.io/utils v0.0.0-20210802155522-efc7438f0176
+## explicit
 k8s.io/utils/buffer
 k8s.io/utils/integer
 k8s.io/utils/pointer

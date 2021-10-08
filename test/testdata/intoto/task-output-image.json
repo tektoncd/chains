@@ -1,7 +1,14 @@
 {
     "_type": "https://in-toto.io/Statement/v0.1",
     "predicateType": "https://slsa.dev/provenance/v0.1",
-    "subject": null,
+    "subject": [
+        {
+            "name": "gcr.io/foo/bar",
+            "digest": {
+                "sha256": "05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5"
+            }
+        }
+    ],
     "predicate": {
         "builder": {
             "id": "tekton-chains"
