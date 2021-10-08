@@ -31,8 +31,8 @@ The public key will be written to a local file called `cosign.pub`.
 
 ## Set up Authentication
 There are two forms of authentication that need to be set up:
-1. The default service account in the default namespace needs permission to push to your registry, since this is what Chains will be using for pushing signatures. See our [authentication doc](../authentication.md)
-1. The Kaniko Task that will build and push the image needs push permissions for your registry
+1. The Chains controller will be pushing signatures to an OCI registry using the credentials linked to your `TaskRun`'s service account. See our [authentication doc](../authentication.md)
+2. The Kaniko Task that will build and push the image needs push permissions for your registry.
 
 To set up auth for the Kaniko Task, you'll need a Kubernetes secret of a docker `config.json` file which contains the required auth.
 You can create the secret by running:
