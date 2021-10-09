@@ -27,7 +27,7 @@ The value of the `IMAGES` result is a list of comma-separates images, each quali
 
 Chains will parse through the list and sign each image.
 
-For in-toto attestations, see [INTOTO.md](INTOTO.md) for description
+For in-toto attestations, see [intoto.md](intoto.md) for description
 of in-toto specific type hinting.
 
 Note that these are provided automatically when using `PipelineResources`.
