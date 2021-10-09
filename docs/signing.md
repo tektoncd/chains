@@ -36,7 +36,7 @@ Chains also has the following requirements:
 
 To create a cosign keypair, `cosign.key` and `cosign.pub`, install [cosign](https://github.com/sigstore/cosign) and run the following:
 ```shell
-cosign generate-key-pair tekton-chains/signing-secrets
+cosign generate-key-pair k8s://tekton-chains/signing-secrets
 ```
 
 Cosign will prompt you for a password, and create the Kubernetes secret for you.
