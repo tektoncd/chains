@@ -28,7 +28,7 @@ require (
 	github.com/sigstore/cosign v1.1.1-0.20210914204018-152eefb4bbf3
 	github.com/sigstore/fulcio v0.1.2-0.20210831152525-42f7422734bb
 	github.com/sigstore/rekor v0.3.0
-	github.com/sigstore/sigstore v0.0.0-20210729211320-56a91f560f44
+	github.com/sigstore/sigstore v1.0.0
 	github.com/tektoncd/pipeline v0.27.1-0.20210830150214-8afd1563782d
 	github.com/tektoncd/plumbing v0.0.0-20210902122415-a65b22d5f63b
 	github.com/theupdateframework/go-tuf v0.0.0-20210804171843-477a5d73800a // indirect
