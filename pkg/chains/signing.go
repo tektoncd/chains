@@ -141,9 +141,6 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 	var merr *multierror.Error
 	extraAnnotations := map[string]string{}
 	for _, signableType := range enabledSignableTypes {
-		// Extract all the "things" to be signed.
-		// We might have a few of each type (several binaries, or images)
-		objects := signableType.ExtractObjects(tr)
 
 		payloadFormat := signableType.PayloadFormat(cfg)
 		// Find the right payload format and format the object
@@ -153,6 +150,10 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 			logger.Warnf("Format %s configured for TaskRun: %v %s was not found", payloadFormat, tr, signableType.Type())
 			continue
 		}
+
+		// Extract all the "things" to be signed.
+		// We might have a few of each type (several binaries, or images)
+		objects := signableType.ExtractObjects(tr)
 
 		// Go through each object one at a time.
 		for _, obj := range objects {
