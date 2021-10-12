@@ -208,7 +208,9 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 				merr = multierror.Append(merr, err)
 			}
 
-			if shouldUploadTlog(cfg, tr) {
+			// The attestation for the image in the inoto|tekton|tekton-provenance is a log of everyting that was done in the
+			// "tekton" TaskRun.
+			if signableType.Type() == "tekton" && shouldUploadTlog(cfg, tr) {
 				entry, err := rekorClient.UploadTlog(ctx, signer, signature, rawPayload, signer.Cert(), string(payloadFormat))
 				if err != nil {
 					logger.Error(err)
@@ -219,6 +221,7 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 				}
 			}
 		}
+
 		if merr.ErrorOrNil() != nil {
 			if err := HandleRetry(tr, ts.Pipelineclientset, extraAnnotations); err != nil {
 				merr = multierror.Append(merr, err)
