@@ -79,7 +79,7 @@ status:
   taskResults:
   - name: CHAINS-GIT_COMMIT
     value: 50c56a48cfb3a5a80fa36ed91c739bdac8381cbe
-  - value: CHAINS-GIT_URL
+  - name: CHAINS-GIT_URL
     value: https://github.com/GoogleContainerTools/distroless`
 
 	var taskRun *v1beta1.TaskRun
