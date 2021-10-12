@@ -277,21 +277,32 @@ func gitInfo(tr *v1beta1.TaskRun) (commit string, url string) {
 			url = p.Value.StringVal
 		}
 	}
-	if tr.Status.TaskSpec == nil {
-		return
+
+	if tr.Status.TaskSpec != nil {
+		for _, p := range tr.Status.TaskSpec.Params {
+			if p.Default == nil {
+				continue
+			}
+			if p.Name == commitParam {
+				commit = p.Default.StringVal
+				continue
+			}
+			if p.Name == urlParam {
+				url = p.Default.StringVal
+			}
+		}
 	}
-	for _, p := range tr.Status.TaskSpec.Params {
-		if p.Default == nil {
+
+	for _, r := range tr.Status.TaskRunResults {
+		if r.Name == commitParam {
+			commit = r.Value
 			continue
 		}
-		if p.Name == commitParam {
-			commit = p.Default.StringVal
-			continue
-		}
-		if p.Name == urlParam {
-			url = p.Default.StringVal
+		if r.Name == urlParam {
+			url = r.Value
 		}
 	}
+
 	return
 }
 

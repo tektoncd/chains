@@ -65,6 +65,43 @@ func TestMetadata(t *testing.T) {
 	}
 }
 
+func TestMaterialsWithTaskRunResults(t *testing.T) {
+	// make sure this works with Git resources
+	taskrun := `apiVersion: tekton.dev/v1beta1
+kind: TaskRun
+spec:
+  taskSpec:
+    resources:
+      inputs:
+      - name: repo
+        type: git
+status:
+  taskResults:
+  - name: CHAINS-GIT_COMMIT
+    value: 50c56a48cfb3a5a80fa36ed91c739bdac8381cbe
+  - value: CHAINS-GIT_URL
+    value: https://github.com/GoogleContainerTools/distroless`
+
+	var taskRun *v1beta1.TaskRun
+	if err := yaml.Unmarshal([]byte(taskrun), &taskRun); err != nil {
+		t.Fatal(err)
+	}
+
+	expected := []provenance.ProvenanceMaterial{
+		{
+			URI: "https://github.com/GoogleContainerTools/distroless",
+			Digest: provenance.DigestSet{
+				"revision": "50c56a48cfb3a5a80fa36ed91c739bdac8381cbe",
+			},
+		},
+	}
+
+	got := materials(taskRun)
+	if !reflect.DeepEqual(expected, got) {
+		t.Fatalf("expected %v got %v", expected, got)
+	}
+}
+
 func TestMaterials(t *testing.T) {
 	// make sure this works with Git resources
 	taskrun := `apiVersion: tekton.dev/v1beta1
