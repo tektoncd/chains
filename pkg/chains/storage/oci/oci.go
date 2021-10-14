@@ -82,6 +82,13 @@ func (b *Backend) StorePayload(rawPayload []byte, signature string, storageOpts 
 		if err := json.Unmarshal(rawPayload, &attestation); err != nil {
 			return errors.Wrap(err, "unmarshal attestation")
 		}
+
+		// This can happen if the Task/TaskRun does not adhere to specific naming conventions
+		// like *IMAGE_URL that would serve as hints.
+		if len(attestation.Subject) == 0 {
+			return errors.New("Did not find anything to attest")
+		}
+
 		return b.uploadAttestation(attestation, rawPayload, signature, storageOpts)
 	}
 
