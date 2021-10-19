@@ -22,7 +22,6 @@ import (
 	"github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	"go.uber.org/zap"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logtesting "knative.dev/pkg/logging/testing"
 )
@@ -34,11 +33,10 @@ func TestBackend_StorePayload(t *testing.T) {
 	logger := logtesting.TestLogger(t)
 
 	type fields struct {
-		logger *zap.SugaredLogger
-		tr     *v1beta1.TaskRun
-		cfg    config.Config
-		kc     authn.Keychain
-		auth   remote.Option
+		tr   *v1beta1.TaskRun
+		cfg  config.Config
+		kc   authn.Keychain
+		auth remote.Option
 	}
 	type args struct {
 		rawPayload  []byte
@@ -51,12 +49,10 @@ func TestBackend_StorePayload(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		// TODO: Add test cases.
 		{
 			name: "no subject",
 			fields: fields{
-				tr:     &v1beta1.TaskRun{ObjectMeta: v1.ObjectMeta{Name: "foo", Namespace: "bar"}},
-				logger: logger,
+				tr: &v1beta1.TaskRun{ObjectMeta: v1.ObjectMeta{Name: "foo", Namespace: "bar"}},
 			},
 			args: args{
 				rawPayload: sampleIntotoStatementBytes,
@@ -71,7 +67,7 @@ func TestBackend_StorePayload(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			b := &Backend{
-				logger: tt.fields.logger,
+				logger: logger,
 				tr:     tt.fields.tr,
 				cfg:    tt.fields.cfg,
 				kc:     tt.fields.kc,
