@@ -14,6 +14,7 @@ limitations under the License.
 package artifacts
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -107,6 +108,107 @@ func (oa *OCIArtifact) ExtractObjects(tr *v1beta1.TaskRun) []interface{} {
 	resultImages := ExtractOCIImagesFromResults(tr, oa.Logger)
 	objs = append(objs, resultImages...)
 
+	return objs
+}
+
+// ExtractOCIImagesFromAnnotations gathers information on where to read the image url and digest information
+// from annotations that would have been placed in the Task.
+func ExtractOCIImagesFromAnnotations(tr *v1beta1.TaskRun, logger *zap.SugaredLogger) []interface{} {
+
+	type imageMetadata struct {
+		Url    string `json:"url"`
+		Digest string `json:"digest"`
+	}
+
+	var objs []interface{}
+
+	// Gather the Task resource information.
+	lastAppliedConfiguration := tr.Annotations["kubectl.kubernetes.io/last-applied-configuration"]
+	bytes := []byte(lastAppliedConfiguration)
+	fromTask := &v1beta1.Task{}
+
+	err := json.Unmarshal(bytes, &fromTask)
+	if err != nil {
+		return objs
+	}
+
+	// Iterate over all annotations in the Task that have the
+	// "chains.tekton.dev/image-" prefix.
+	for key, value := range fromTask.Annotations {
+
+		prefix := "chains.tekton.dev/image-"
+
+		if !strings.HasPrefix(key, prefix) {
+			continue
+		}
+
+		// convert "{\"url\": \"params.shp-output-image\", \"digest\" : \"params.shp-image-digest\"}"
+		// into an object of type imageMetadata
+
+		valueBytes := []byte(value)
+		keyImageMetadata := &imageMetadata{}
+		err := json.Unmarshal(valueBytes, &keyImageMetadata)
+		if err != nil {
+			logger.Errorf("error unmarshalling: %v", value)
+			return objs
+		}
+
+		extractedImage := image{}
+
+		// Example,
+		// "chains.tekton.dev/image-0": "{\"url\": \"params.shp-output-image\", \"digest\" : \"params.shp-image-digest\"}",
+		if strings.HasPrefix(keyImageMetadata.Digest, "params.") {
+			paramName := strings.TrimPrefix(keyImageMetadata.Digest, "params.")
+			for _, param := range tr.Spec.Params {
+				if param.Name == paramName {
+					extractedImage.digest = param.Value.StringVal
+				}
+			}
+		}
+
+		// Example,
+		// "chains.tekton.dev/image-0": "{\"url\": \"params.shp-output-image\", \"digest\" : \"results.shp-image-digest\"}",
+		if strings.HasPrefix(keyImageMetadata.Digest, "results.") {
+			paramName := strings.TrimPrefix(keyImageMetadata.Digest, "results.")
+			for _, param := range tr.Status.TaskRunResults {
+				if param.Name == paramName {
+					extractedImage.digest = param.Value
+				}
+			}
+		}
+
+		// Example,
+		// "chains.tekton.dev/image-0": "{\"url\": \"params.shp-output-image\", \"digest\" : \"params.shp-image-digest\"}",
+		if strings.HasPrefix(keyImageMetadata.Url, "params.") {
+			paramName := strings.TrimPrefix(keyImageMetadata.Url, "params.")
+			for _, param := range tr.Spec.Params {
+				if param.Name == paramName {
+					extractedImage.url = param.Value.StringVal
+				}
+			}
+		}
+
+		// Example,
+		// "chains.tekton.dev/image-0": "{\"url\": \"results.shp-output-image\", \"digest\" : \"params.shp-image-digest\"}",
+		if strings.HasPrefix(keyImageMetadata.Url, "results.") {
+			paramName := strings.TrimPrefix(keyImageMetadata.Url, "results.")
+			for _, param := range tr.Status.TaskRunResults {
+				if param.Name == paramName {
+					extractedImage.url = param.Value
+				}
+			}
+		}
+
+		// If the information was incomplete, we'll ignore the incomplete information.
+		if extractedImage.digest != "" && extractedImage.url != "" {
+			dgst, err := name.NewDigest(fmt.Sprintf("%s@%s", extractedImage.url, extractedImage.digest))
+			if err != nil {
+				logger.Errorf("error getting digest: %v", err)
+				return objs
+			}
+			objs = append(objs, dgst)
+		}
+	}
 	return objs
 }
 
