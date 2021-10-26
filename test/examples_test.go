@@ -148,15 +148,28 @@ func expectedProvenance(t *testing.T, example string, tr *v1beta1.TaskRun) intot
 		Entrypoint      string
 		BuildStartedOn  string
 		BuildFinishedOn string
+		ContainerNames  []string
+		StepImages      []string
 	}
+
 	name := tr.Name
 	if tr.Spec.TaskRef != nil {
 		name = tr.Spec.TaskRef.Name
 	}
+
+	var stepNames []string
+	var images []string
+	for _, step := range tr.Status.Steps {
+		stepNames = append(stepNames, step.Name)
+		images = append(images, step.ImageID)
+	}
+
 	f := Format{
 		Entrypoint:      name,
 		BuildStartedOn:  tr.Status.StartTime.Time.UTC().Format(time.RFC3339),
 		BuildFinishedOn: tr.Status.CompletionTime.Time.UTC().Format(time.RFC3339),
+		ContainerNames:  stepNames,
+		StepImages:      images,
 	}
 
 	contents, err := ioutil.ReadFile(path)

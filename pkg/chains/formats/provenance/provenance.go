@@ -87,7 +87,7 @@ func (i *Provenance) generateProvenanceFromSubject(tr *v1beta1.TaskRun, subjects
 		Metadata:   metadata(tr),
 		Invocation: invocation(i.builderID, tr),
 		Materials:  materials(tr),
-		Recipe:     recipe(tr),
+		Recipe:     provenance.ProvenanceRecipe{Steps: Steps(tr)},
 	}
 
 	att.Predicate = pred
@@ -220,7 +220,7 @@ func recipeURI(tr *v1beta1.TaskRun) string {
 	return ""
 }
 
-func recipe(tr *v1beta1.TaskRun) provenance.ProvenanceRecipe {
+func Steps(tr *v1beta1.TaskRun) []provenance.RecipeStep {
 	steps := []provenance.RecipeStep{}
 
 	for _, step := range tr.Status.Steps {
@@ -244,7 +244,7 @@ func recipe(tr *v1beta1.TaskRun) provenance.ProvenanceRecipe {
 		// append to all of the steps
 		steps = append(steps, s)
 	}
-	return provenance.ProvenanceRecipe{Steps: steps}
+	return steps
 }
 
 func container(stepState v1beta1.StepState, tr *v1beta1.TaskRun) v1beta1.Step {

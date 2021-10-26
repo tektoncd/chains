@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/tektoncd/chains/pkg/chains/formats"
+	"github.com/tektoncd/chains/pkg/chains/provenance"
 	"github.com/tektoncd/chains/pkg/config"
 	"k8s.io/utils/pointer"
 
@@ -193,6 +194,29 @@ var expected1 = in_toto.ProvenanceStatement{
 			Type:              tektonID,
 			EntryPoint:        "test-task",
 			DefinedInMaterial: pointer.Int(0),
+			Arguments: []provenance.RecipeStep{
+				{
+					Arguments: []string(nil),
+					Environment: map[string]interface{}{
+						"container": string("step1"),
+						"image":     string("docker-pullable://gcr.io/test1/test1@sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"),
+					},
+				},
+				{
+					Arguments: []string(nil),
+					Environment: map[string]interface{}{
+						"container": string("step2"),
+						"image":     string("docker-pullable://gcr.io/test2/test2@sha256:4d6dd704ef58cb214dd826519929e92a978a57cdee43693006139c0080fd6fac"),
+					},
+				},
+				{
+					Arguments: []string(nil),
+					Environment: map[string]interface{}{
+						"container": string("step3"),
+						"image":     string("docker-pullable://gcr.io/test3/test3@sha256:f1a8b8549c179f41e27ff3db0fe1a1793e4b109da46586501a8343637b1d0478"),
+					},
+				},
+			},
 		},
 	},
 }
@@ -274,6 +298,15 @@ var expected2 = in_toto.ProvenanceStatement{
 		Recipe: in_toto.ProvenanceRecipe{
 			Type:       tektonID,
 			EntryPoint: "test-task",
+			Arguments: []provenance.RecipeStep{
+				{
+					Arguments: []string(nil),
+					Environment: map[string]interface{}{
+						"container": string("step1"),
+						"image":     string("docker-pullable://gcr.io/test1/test1@sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"),
+					},
+				},
+			},
 		},
 	},
 }
@@ -371,6 +404,15 @@ var expectedMultipleSubjects = in_toto.ProvenanceStatement{
 		Recipe: in_toto.ProvenanceRecipe{
 			Type:       tektonID,
 			EntryPoint: "test-task",
+			Arguments: []provenance.RecipeStep{
+				{
+					Arguments: []string(nil),
+					Environment: map[string]interface{}{
+						"container": string("step1"),
+						"image":     string("docker-pullable://gcr.io/test1/test1@sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"),
+					},
+				},
+			},
 		},
 	},
 }
