@@ -238,7 +238,7 @@ status:
 		},
 	}
 
-	got := recipe(taskRun)
+	got := provenance.ProvenanceRecipe{Steps: Steps(taskRun)}
 	if !reflect.DeepEqual(expected, got) {
 		if d := cmp.Diff(expected, got); d != "" {
 			t.Log(d)

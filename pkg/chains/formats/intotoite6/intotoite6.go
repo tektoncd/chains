@@ -97,6 +97,7 @@ func (i *InTotoIte6) generateAttestationFromTaskRun(tr *v1beta1.TaskRun) (interf
 			Recipe: intoto.ProvenanceRecipe{
 				Type:       tektonID,
 				EntryPoint: name,
+				Arguments:  provenance.Steps(tr),
 			},
 		},
 	}
