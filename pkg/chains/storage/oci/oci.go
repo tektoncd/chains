@@ -70,7 +70,7 @@ func (b *Backend) StorePayload(rawPayload []byte, signature string, storageOpts 
 	b.logger.Infof("Storing payload on TaskRun %s/%s", b.tr.Namespace, b.tr.Name)
 
 	if storageOpts.PayloadFormat == "simplesigning" {
-		format := simple.NewSimpleStruct()
+		format := simple.SimpleContainerImage{}
 		if err := json.Unmarshal(rawPayload, &format); err != nil {
 			return errors.Wrap(err, "unmarshal simplesigning")
 		}
@@ -95,7 +95,7 @@ func (b *Backend) StorePayload(rawPayload []byte, signature string, storageOpts 
 	return errors.New("OCI storage backend is only supported for OCI images and in-toto attestations")
 }
 
-func (b *Backend) uploadSignature(format simple.Simple, rawPayload []byte, signature string, storageOpts config.StorageOpts) error {
+func (b *Backend) uploadSignature(format simple.SimpleContainerImage, rawPayload []byte, signature string, storageOpts config.StorageOpts) error {
 	imageName := format.ImageName()
 
 	b.logger.Infof("Uploading %s signature", imageName)

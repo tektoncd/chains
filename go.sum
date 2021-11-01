@@ -1682,6 +1682,8 @@ github.com/sigstore/sigstore v0.0.0-20210729211320-56a91f560f44 h1:V7tcgdv69z2dA
 github.com/sigstore/sigstore v0.0.0-20210729211320-56a91f560f44/go.mod h1:rJpRn7XmR/YrfNGDU9jh+vy5WMeSv5YKfNDBwnFg+Qg=
 github.com/sigstore/sigstore v1.0.0 h1:yQUDL9euUBOL2eVrlTtLW5kNtt5YdGrLElf+PFE7P4A=
 github.com/sigstore/sigstore v1.0.0/go.mod h1:IVOe2lNKO5KEEj6GW58CnpwqcFQ8H+2RZQCKDwphta8=
+github.com/sigstore/sigstore v1.0.1-0.20211030194432-9a93316efcab h1:APKDOnjWrD4qYM/u5Hw3v+n8P0E+c8rrHQaIxHkRj7Q=
+github.com/sigstore/sigstore v1.0.1-0.20211030194432-9a93316efcab/go.mod h1:IVOe2lNKO5KEEj6GW58CnpwqcFQ8H+2RZQCKDwphta8=
 github.com/sirupsen/logrus v1.0.4-0.20170822132746-89742aefa4b2/go.mod h1:pMByvHTf9Beacp5x1UXfOR9xyW/9antXMhjMPG0dEzc=
 github.com/sirupsen/logrus v1.0.6/go.mod h1:pMByvHTf9Beacp5x1UXfOR9xyW/9antXMhjMPG0dEzc=
 github.com/sirupsen/logrus v1.4.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=

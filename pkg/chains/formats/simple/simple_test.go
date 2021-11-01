@@ -17,7 +17,9 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/sigstore/sigstore/pkg/signature/payload"
 )
 
 func makeDigest(t *testing.T, dgst string) name.Digest {
@@ -29,7 +31,6 @@ func makeDigest(t *testing.T, dgst string) name.Digest {
 }
 
 func TestSimpleSigning_CreatePayload(t *testing.T) {
-
 	tests := []struct {
 		name    string
 		obj     interface{}
@@ -39,17 +40,16 @@ func TestSimpleSigning_CreatePayload(t *testing.T) {
 		{
 			name: "digest",
 			obj:  makeDigest(t, "gcr.io/foo/bar@sha256:20ab676d319c93ef5b4bef9290ed913ed8feaa0c92c43a7cddc28a3697918b92"),
-			want: Simple{
-				Critical: Critical{
-					Identity: map[string]string{
-						"docker-reference": "gcr.io/foo/bar",
+			want: SimpleContainerImage{
+				Critical: payload.Critical{
+					Identity: payload.Identity{
+						DockerReference: "gcr.io/foo/bar",
 					},
-					Image: map[string]string{
-						"Docker-manifest-digest": "sha256:20ab676d319c93ef5b4bef9290ed913ed8feaa0c92c43a7cddc28a3697918b92",
+					Image: payload.Image{
+						DockerManifestDigest: "sha256:20ab676d319c93ef5b4bef9290ed913ed8feaa0c92c43a7cddc28a3697918b92",
 					},
-					Type: "Tekton container signature",
+					Type: payload.CosignSignatureType,
 				},
-				Optional: map[string]interface{}{},
 			},
 		},
 		{
@@ -65,6 +65,9 @@ func TestSimpleSigning_CreatePayload(t *testing.T) {
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SimpleSigning.CreatePayload() error = %v, wantErr %v", err, tt.wantErr)
 				return
+			}
+			if d := cmp.Diff(got, tt.want); d != "" {
+				t.Fatal(d)
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("SimpleSigning.CreatePayload() = %v, want %v", got, tt.want)
@@ -83,7 +86,7 @@ func TestImageName(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	s, ok := format.(Simple)
+	s, ok := format.(SimpleContainerImage)
 	if !ok {
 		t.Fatal("expected type Simple")
 	}

@@ -15,8 +15,8 @@ package simple
 
 import (
 	"fmt"
-	"path"
 
+	"github.com/sigstore/sigstore/pkg/signature/payload"
 	"github.com/tektoncd/chains/pkg/chains/formats"
 
 	"github.com/google/go-containerregistry/pkg/name"
@@ -27,13 +27,13 @@ import (
 type SimpleSigning struct {
 }
 
+type SimpleContainerImage payload.SimpleContainerImage
+
 // CreatePayload implements the Payloader interface.
 func (i *SimpleSigning) CreatePayload(obj interface{}) (interface{}, error) {
 	switch v := obj.(type) {
 	case name.Digest:
-		format := NewSimpleStruct()
-		format.Critical.Identity["docker-reference"] = path.Join(v.RegistryStr(), v.RepositoryStr())
-		format.Critical.Image["Docker-manifest-digest"] = v.DigestStr()
+		format := NewSimpleStruct(v)
 		return format, nil
 	default:
 		return nil, fmt.Errorf("unsupported type %s", v)
@@ -48,35 +48,15 @@ func NewFormatter() (formats.Payloader, error) {
 	return &SimpleSigning{}, nil
 }
 
-func NewSimpleStruct() Simple {
-	s := Simple{
-		Critical: Critical{
-			Identity: map[string]string{},
-			Image:    map[string]string{},
-			Type:     "Tekton container signature",
-		},
-		Optional: map[string]interface{}{},
-	}
-	return s
+func NewSimpleStruct(img name.Digest) SimpleContainerImage {
+	cosign := payload.Cosign{Image: img}
+	return SimpleContainerImage(cosign.SimpleContainerImage())
 }
 
-type Simple struct {
-	Critical Critical
-	Optional map[string]interface{}
-}
-
-type Critical struct {
-	Identity map[string]string
-	Image    map[string]string
-	Type     string
+func (i SimpleContainerImage) ImageName() string {
+	return fmt.Sprintf("%s@%s", i.Critical.Identity.DockerReference, i.Critical.Image.DockerManifestDigest)
 }
 
 func (i *SimpleSigning) Type() formats.PayloadType {
 	return formats.PayloadTypeSimpleSigning
-}
-
-func (s *Simple) ImageName() string {
-	reg := s.Critical.Identity["docker-reference"]
-	digest := s.Critical.Image["Docker-manifest-digest"]
-	return fmt.Sprintf("%s@%s", reg, digest)
 }
