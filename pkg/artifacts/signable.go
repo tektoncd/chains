@@ -122,7 +122,7 @@ func ExtractOCIImagesFromResults(tr *v1beta1.TaskRun, logger *zap.SugaredLogger)
 	urlSuffix := "IMAGE_URL"
 	digestSuffix := "IMAGE_DIGEST"
 	for _, res := range tr.Status.TaskRunResults {
-		if strings.HasSuffix(res.Name, urlSuffix) || res.Name == urlSuffix {
+		if strings.HasSuffix(res.Name, urlSuffix) {
 			p := strings.TrimSuffix(res.Name, urlSuffix)
 			if v, ok := taskResultImages[p]; ok {
 				v.url = strings.Trim(res.Value, "\n")
@@ -130,7 +130,7 @@ func ExtractOCIImagesFromResults(tr *v1beta1.TaskRun, logger *zap.SugaredLogger)
 				taskResultImages[p] = &image{url: strings.Trim(res.Value, "\n")}
 			}
 		}
-		if strings.HasSuffix(res.Name, digestSuffix) || res.Name == digestSuffix {
+		if strings.HasSuffix(res.Name, digestSuffix) {
 			p := strings.TrimSuffix(res.Name, digestSuffix)
 			if v, ok := taskResultImages[p]; ok {
 				v.digest = strings.Trim(res.Value, "\n")

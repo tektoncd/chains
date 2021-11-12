@@ -17,6 +17,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"strings"
 
 	"github.com/tektoncd/chains/pkg/config"
 
@@ -110,18 +111,55 @@ func (b *Backend) retrieveAnnotationValue(annotationKey string, decode bool) (st
 }
 
 // RetrieveSignature retrieve the signature stored in the taskrun.
-func (b *Backend) RetrieveSignature(opts config.StorageOpts) (string, error) {
+func (b *Backend) RetrieveSignatures(opts config.StorageOpts) (map[string][]string, error) {
 	b.logger.Infof("Retrieving signature on TaskRun %s/%s", b.tr.Namespace, b.tr.Name)
-	return b.retrieveAnnotationValue(fmt.Sprintf(SignatureAnnotationFormat, opts.Key), true)
+	signatureAnnotation := b.SigName(opts)
+	signature, err := b.retrieveAnnotationValue(signatureAnnotation, true)
+	if err != nil {
+		return nil, err
+	}
+
+	m := make(map[string][]string)
+	for _, res := range b.tr.Status.TaskRunResults {
+		if strings.HasSuffix(res.Name, "IMAGE_URL") {
+			m[signatureAnnotation] = []string{signature}
+			break
+		}
+	}
+	return m, nil
 }
 
 // RetrievePayload retrieve the payload stored in the taskrun.
-func (b *Backend) RetrievePayload(opts config.StorageOpts) (string, error) {
+func (b *Backend) RetrievePayloads(opts config.StorageOpts) (map[string]string, error) {
 	b.logger.Infof("Retrieving payload on TaskRun %s/%s", b.tr.Namespace, b.tr.Name)
-	payload, err := b.retrieveAnnotationValue(fmt.Sprintf(PayloadAnnotationFormat, opts.Key), true)
+	payloadAnnotation := b.PayloadName(opts)
+	payload, err := b.retrieveAnnotationValue(payloadAnnotation, true)
 	if err != nil {
-		return "", err
+		return nil, err
+	}
+	m := make(map[string]string)
+	for _, res := range b.tr.Status.TaskRunResults {
+		if strings.HasSuffix(res.Name, "IMAGE_URL") {
+			m[payloadAnnotation] = payload
+			break
+		}
 	}
 
-	return string(payload), nil
+	return m, nil
+}
+
+func (b *Backend) SigName(opts config.StorageOpts) string {
+	return fmt.Sprintf(SignatureAnnotationFormat, opts.Key)
+}
+
+func (b *Backend) PayloadName(opts config.StorageOpts) string {
+	return fmt.Sprintf(PayloadAnnotationFormat, opts.Key)
+}
+
+func (b *Backend) CertName(opts config.StorageOpts) string {
+	return fmt.Sprintf(CertAnnotationsFormat, opts.Key)
+}
+
+func (b *Backend) ChainName(opts config.StorageOpts) string {
+	return fmt.Sprintf(ChainAnnotationFormat, opts.Key)
 }

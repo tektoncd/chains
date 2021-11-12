@@ -18,19 +18,23 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+
 	"github.com/tektoncd/chains/pkg/chains/formats"
 
 	"github.com/in-toto/in-toto-golang/in_toto"
+	"github.com/secure-systems-lab/go-securesystemslib/dsse"
 
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/authn/k8schain"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/pkg/errors"
+	"github.com/sigstore/cosign/pkg/oci"
 	"github.com/sigstore/cosign/pkg/oci/mutate"
 	ociremote "github.com/sigstore/cosign/pkg/oci/remote"
 	"github.com/sigstore/cosign/pkg/oci/static"
 	"github.com/sigstore/cosign/pkg/types"
+	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/formats/simple"
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -194,10 +198,94 @@ func (b *Backend) Type() string {
 	return StorageBackendOCI
 }
 
-func (b *Backend) RetrieveSignature(opts config.StorageOpts) (string, error) {
-	return "", fmt.Errorf("not implemented")
+func (b *Backend) RetrieveSignatures(opts config.StorageOpts) (map[string][]string, error) {
+	images, err := b.RetrieveArtifact(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	m := make(map[string][]string)
+	for ref, img := range images {
+		sigImage, err := img.Signatures()
+		if err != nil {
+			return nil, err
+		}
+		sigs, err := sigImage.Get()
+		if err != nil {
+			return nil, err
+		}
+
+		signatures := []string{}
+		for _, s := range sigs {
+			if sig, err := s.Base64Signature(); err == nil {
+				signatures = append(signatures, sig)
+			}
+		}
+		m[ref] = signatures
+	}
+	return m, nil
 }
 
-func (b *Backend) RetrievePayload(opts config.StorageOpts) (string, error) {
-	return "", fmt.Errorf("not implemented")
+func (b *Backend) RetrievePayloads(opts config.StorageOpts) (map[string]string, error) {
+	var err error
+	images, err := b.RetrieveArtifact(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	m := make(map[string]string)
+	var attImage oci.Signatures
+	for ref, img := range images {
+		if opts.PayloadFormat == formats.PayloadTypeSimpleSigning {
+			attImage, err = img.Signatures()
+		} else {
+			attImage, err = img.Attestations()
+		}
+		if err != nil {
+			return nil, err
+		}
+		atts, err := attImage.Get()
+		if err != nil {
+			return nil, err
+		}
+
+		for _, s := range atts {
+			if payload, err := s.Payload(); err == nil {
+				envelope := dsse.Envelope{}
+				if err := json.Unmarshal(payload, &envelope); err != nil {
+					return nil, fmt.Errorf("cannot decode the envelope: %s", err)
+				}
+
+				var decodedPayload []byte
+				decodedPayload, err = base64.StdEncoding.DecodeString(envelope.Payload)
+				if err != nil {
+					return nil, fmt.Errorf("error decoding the payload: %s", err)
+				}
+
+				m[ref] = string(decodedPayload)
+			}
+
+		}
+	}
+	return m, nil
+}
+
+func (b *Backend) RetrieveArtifact(opts config.StorageOpts) (map[string]oci.SignedImage, error) {
+	// Given the TaskRun, retrieve the OCI images.
+	images := artifacts.ExtractOCIImagesFromResults(b.tr, b.logger)
+	m := make(map[string]oci.SignedImage)
+
+	for _, image := range images {
+		ref, ok := image.(name.Digest)
+		if !ok {
+			return nil, errors.New("error parsing image")
+		}
+		img, err := ociremote.SignedImage(ref)
+		if err != nil {
+			return nil, err
+		}
+		m[ref.DigestStr()] = img
+	}
+
+	return m, nil
 }

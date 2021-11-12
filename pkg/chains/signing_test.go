@@ -371,10 +371,10 @@ func (b *mockBackend) Type() string {
 	return b.backendType
 }
 
-func (b *mockBackend) RetrievePayload(opts config.StorageOpts) (string, error) {
-	return "", fmt.Errorf("not implemented")
+func (b *mockBackend) RetrievePayloads(opts config.StorageOpts) (map[string]string, error) {
+	return nil, fmt.Errorf("not implemented")
 }
 
-func (b *mockBackend) RetrieveSignature(opts config.StorageOpts) (string, error) {
-	return "", fmt.Errorf("not implemented")
+func (b *mockBackend) RetrieveSignatures(opts config.StorageOpts) (map[string][]string, error) {
+	return nil, fmt.Errorf("not implemented")
 }

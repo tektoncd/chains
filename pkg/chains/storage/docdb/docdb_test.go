@@ -91,21 +91,25 @@ func TestBackend_StorePayload(t *testing.T) {
 			}
 
 			// Check the signature.
-			sig, err := b.RetrieveSignature(opts)
+			signatures, err := b.RetrieveSignatures(opts)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if string(sig) != tt.args.signature {
-				t.Errorf("wrong signature, expected %s, got %s", tt.args.signature, string(sig))
+			if len(signatures[obj.Name]) != 1 {
+				t.Fatalf("unexpected number of signatures: %d", len(signatures[obj.Name]))
+			}
+
+			if signatures[obj.Name][0] != tt.args.signature {
+				t.Errorf("wrong signature, expected %s, got %s", tt.args.signature, signatures[obj.Name][0])
 			}
 
 			// Check the payload.
-			payload, err := b.RetrievePayload(opts)
+			payloads, err := b.RetrievePayloads(opts)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if payload != string(sb) {
-				t.Errorf("wrong payload, expected %s, got %s", tt.args.signed, string(obj.Signed))
+			if payloads[obj.Name] != string(sb) {
+				t.Errorf("wrong payload, expected %s, got %s", tt.args.signed, payloads[obj.Name])
 			}
 		})
 	}
