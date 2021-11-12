@@ -51,6 +51,13 @@ func TestBackend_StorePayload(t *testing.T) {
 					Name:      "foo",
 					Namespace: "bar",
 				},
+				Status: v1beta1.TaskRunStatus{
+					TaskRunStatusFields: v1beta1.TaskRunStatusFields{
+						TaskRunResults: []v1beta1.TaskRunResult{
+							{Name: "IMAGE_URL", Value: "mockImage"},
+						},
+					},
+				},
 			}
 			if _, err := c.TektonV1beta1().TaskRuns(tr.Namespace).Create(ctx, tr, metav1.CreateOptions{}); err != nil {
 				t.Errorf("error setting up fake taskrun: %v", err)
@@ -76,13 +83,14 @@ func TestBackend_StorePayload(t *testing.T) {
 				return
 			}
 
-			jsonString, err := b.RetrievePayload(opts)
+			payloadAnnotation := b.PayloadName(opts)
+			payloads, err := b.RetrievePayloads(opts)
 			if err != nil {
 				t.Errorf("error base64 decoding: %v", err)
 			}
 
 			mp := mockPayload{}
-			if err := json.Unmarshal([]byte(jsonString), &mp); err != nil {
+			if err := json.Unmarshal([]byte(payloads[payloadAnnotation]), &mp); err != nil {
 				t.Errorf("error json decoding: %v", err)
 			}
 
@@ -92,11 +100,12 @@ func TestBackend_StorePayload(t *testing.T) {
 			}
 
 			// Compare the signature.
-			sig, err := b.RetrieveSignature(opts)
+			signatureAnnotation := b.SigName(opts)
+			sigs, err := b.RetrieveSignatures(opts)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if diff := cmp.Diff(mockSignature, sig); diff != "" {
+			if diff := cmp.Diff(mockSignature, sigs[signatureAnnotation][0]); diff != "" {
 				t.Errorf("unexpected signature: (-want, +got): %s", diff)
 			}
 

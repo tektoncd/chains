@@ -14,11 +14,12 @@ limitations under the License.
 package gcs
 
 import (
-	"cloud.google.com/go/storage"
 	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
+
+	"cloud.google.com/go/storage"
 
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -145,13 +146,28 @@ func (r *reader) GetReader(object string) (io.ReadCloser, error) {
 	return r.client.Bucket(r.bucket).Object(object).NewReader(ctx)
 }
 
-func (b *Backend) RetrieveSignature(opts config.StorageOpts) (string, error) {
+func (b *Backend) RetrieveSignatures(opts config.StorageOpts) (map[string][]string, error) {
 	object := b.sigName(opts)
-	return b.retrieveObject(object)
+	signature, err := b.retrieveObject(object)
+	if err != nil {
+		return nil, err
+	}
+
+	m := make(map[string][]string)
+	m[object] = []string{signature}
+	return m, nil
 }
 
-func (b *Backend) RetrievePayload(opts config.StorageOpts) (string, error) {
-	return b.retrieveObject(b.payloadName(opts))
+func (b *Backend) RetrievePayloads(opts config.StorageOpts) (map[string]string, error) {
+	object := b.payloadName(opts)
+	m := make(map[string]string)
+	payload, err := b.retrieveObject(object)
+	if err != nil {
+		return nil, err
+	}
+
+	m[object] = payload
+	return m, nil
 }
 
 func (b *Backend) retrieveObject(object string) (string, error) {
@@ -159,6 +175,7 @@ func (b *Backend) retrieveObject(object string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	defer reader.Close()
 	payload, err := ioutil.ReadAll(reader)
 	if err != nil {

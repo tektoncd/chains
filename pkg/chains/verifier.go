@@ -65,18 +65,23 @@ func (tv *TaskRunVerifier) VerifyTaskRun(ctx context.Context, tr *v1beta1.TaskRu
 			logger.Warnf("No signer %s configured for %s", signerType, signableType.Type())
 			continue
 		}
+
 		for _, backend := range signableType.StorageBackend(cfg).List() {
 			b := allBackends[backend]
-			signature, err := b.RetrieveSignature(config.StorageOpts{})
+			signatures, err := b.RetrieveSignatures(config.StorageOpts{})
 			if err != nil {
 				return err
 			}
-			payload, err := b.RetrievePayload(config.StorageOpts{})
+			payload, err := b.RetrievePayloads(config.StorageOpts{})
 			if err != nil {
 				return err
 			}
-			if err := signer.VerifySignature(strings.NewReader(signature), strings.NewReader(payload)); err != nil {
-				return err
+			for image, sigs := range signatures {
+				for _, sig := range sigs {
+					if err := signer.VerifySignature(strings.NewReader(sig), strings.NewReader(payload[image])); err != nil {
+						return err
+					}
+				}
 			}
 		}
 	}

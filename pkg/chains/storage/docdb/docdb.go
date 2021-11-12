@@ -93,33 +93,43 @@ func (b *Backend) Type() string {
 	return StorageTypeDocDB
 }
 
-func (b *Backend) RetrieveSignature(opts config.StorageOpts) (string, error) {
+func (b *Backend) RetrieveSignatures(opts config.StorageOpts) (map[string][]string, error) {
 	// Retrieve the document.
-	d, err := b.retrieveDocument(opts)
+	documents, err := b.retrieveDocuments(opts)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	// Extract and decode the signature.
-	sig, err := base64.StdEncoding.DecodeString(d.Signature)
-	if err != nil {
-		return "", err
+	m := make(map[string][]string)
+	for _, d := range documents {
+		// Extract and decode the signature.
+		sig, err := base64.StdEncoding.DecodeString(d.Signature)
+		if err != nil {
+			return nil, err
+		}
+		m[d.Name] = []string{string(sig)}
 	}
-	return string(sig), nil
+	return m, nil
 }
 
-func (b *Backend) RetrievePayload(opts config.StorageOpts) (string, error) {
-	d, err := b.retrieveDocument(opts)
+func (b *Backend) RetrievePayloads(opts config.StorageOpts) (map[string]string, error) {
+	documents, err := b.retrieveDocuments(opts)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return string(d.Signed), nil
+
+	m := make(map[string]string)
+	for _, d := range documents {
+		m[d.Name] = string(d.Signed)
+	}
+
+	return m, nil
 }
 
-func (b *Backend) retrieveDocument(opts config.StorageOpts) (SignedDocument, error) {
+func (b *Backend) retrieveDocuments(opts config.StorageOpts) ([]SignedDocument, error) {
 	d := SignedDocument{Name: opts.Key}
 	if err := b.coll.Get(context.Background(), &d); err != nil {
-		return SignedDocument{}, err
+		return []SignedDocument{}, err
 	}
-	return d, nil
+	return []SignedDocument{d}, nil
 }

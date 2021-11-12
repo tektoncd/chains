@@ -247,29 +247,27 @@ func verifySignature(ctx context.Context, t *testing.T, c *clients, tr *v1beta1.
 		t.Logf("Backend name: %q\n", b)
 		backend := backends[b]
 
-		// Skip OCI as the functions are not implemented.
-		if b == "oci" {
-			continue
-		}
-
 		// Initialize the storage options.
 		opts := config.StorageOpts{
 			Key: fmt.Sprintf("taskrun-%s", tr.UID),
 		}
 
 		// Let's fetch the signature and body.
-		signature, err := backend.RetrieveSignature(opts)
+		signatures, err := backend.RetrieveSignatures(opts)
 		if err != nil {
 			t.Errorf("error retrieving the signature: %s", err)
 		}
-		body, err := backend.RetrievePayload(opts)
+		payloads, err := backend.RetrievePayloads(opts)
 		if err != nil {
 			t.Errorf("error retrieving the payload: %s", err)
 		}
 
-		if err := c.secret.x509priv.VerifySignature(strings.NewReader(signature), strings.NewReader(body)); err != nil {
-			t.Fatal(err)
+		for ref, payload := range payloads {
+			for _, signature := range signatures[ref] {
+				if err := c.secret.x509priv.VerifySignature(strings.NewReader(signature), strings.NewReader(payload)); err != nil {
+					t.Fatal(err)
+				}
+			}
 		}
 	}
-
 }

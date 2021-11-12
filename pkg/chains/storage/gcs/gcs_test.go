@@ -15,9 +15,10 @@ package gcs
 
 import (
 	"bytes"
-	"github.com/tektoncd/chains/pkg/chains/formats"
 	"io"
 	"testing"
+
+	"github.com/tektoncd/chains/pkg/chains/formats"
 
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -85,19 +86,23 @@ func TestBackend_StorePayload(t *testing.T) {
 			if err := b.StorePayload(tt.args.signed, tt.args.signature, tt.args.opts); (err != nil) != tt.wantErr {
 				t.Errorf("Backend.StorePayload() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			got, err := b.RetrieveSignature(tt.args.opts)
+
+			objectSig := b.sigName(tt.args.opts)
+			objectPayload := b.payloadName(tt.args.opts)
+			got, err := b.RetrieveSignatures(tt.args.opts)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if got != tt.args.signature {
-				t.Errorf("wrong signature, expected %q, got %q", tt.args.signature, got)
+			if got[objectSig][0] != tt.args.signature {
+				t.Errorf("wrong signature, expected %q, got %q", tt.args.signature, got[objectSig][0])
 			}
-			got, err = b.RetrievePayload(tt.args.opts)
+			var got_payload map[string]string
+			got_payload, err = b.RetrievePayloads(tt.args.opts)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if got != string(tt.args.signed) {
-				t.Errorf("wrong signature, expected %s, got %s", tt.args.signed, got)
+			if got_payload[objectPayload] != string(tt.args.signed) {
+				t.Errorf("wrong signature, expected %s, got %s", tt.args.signed, got_payload[objectPayload])
 			}
 		})
 	}
