@@ -1,6 +1,6 @@
 <!--
 ---
-linkTitle: "Chains Configuration"
+linkTitle: "Experimental Features"
 weight: 60
 ---
 -->
