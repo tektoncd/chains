@@ -1,5 +1,14 @@
+<!--
+---
+linkTitle: "Tutorial: Getting Started"
+weight: 100
+---
+-->
+
 # Chains Getting Started Tutorial
+
 This tutorial will guide you through:
+
 * Generating your own keypair and storing it as a Kubernetes Secret
 * Creating a sample TaskRun
 * Retrieving the signature and payload from the signed TaskRun
@@ -9,9 +18,11 @@ We'll be creating a `TaskRun`, signing it, and storing the signature and the pay
 So, no additional authentication should be required!
 
 You can opt to try the tutorial with either of the following key types:
+
 * [x509 (Default)](#x509)
 
 ## x509
+
 To generate your own encrypted x509 keypair and save it as a Kubernetes secret, install [cosign](https://github.com/sigstore/cosign) and run the following:
 
 ```shell
@@ -21,12 +32,14 @@ cosign generate-key-pair k8s://tekton-chains/signing-secrets
 cosign will prompt you for a password, which will be stored in a Kubernetes secret named signing-secrets in the tekton-chains namespace.
 
 To create a simple `TaskRun`, run:
+
 ```shell
 $ kubectl create -f https://raw.githubusercontent.com/tektoncd/chains/main/examples/taskruns/task-output-image.yaml
 taskrun.tekton.dev/build-push-run-output-image-qbjvh created
 ```
 
 Save the name of your `TaskRun` as an environment variable:
+
 ```shell
 $ export TASKRUN=<Name of your TaskRun> # Replace with your taskrun name
 ```
@@ -40,6 +53,7 @@ build-push-run-output-image-qbjvh   True        Succeeded   36m         36m
 ```
 
 Next, retrieve the signature and payload from the object (they are stored as base64-encoded annotations):
+
 ```shell
 $ export TASKRUN_UID=$(kubectl get taskrun $TASKRUN -o=json | jq -r '.metadata.uid')
 $ kubectl get taskrun $TASKRUN -o=json | jq  -r ".metadata.annotations[\"chains.tekton.dev/payload-taskrun-$TASKRUN_UID\"]" | base64 --decode > payload

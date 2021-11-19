@@ -1,3 +1,10 @@
+<!--
+---
+linkTitle: "In-toto Attestation Formatter"
+weight: 40
+---
+-->
+
 # In-toto attestation formatter
 
 ## Overview
