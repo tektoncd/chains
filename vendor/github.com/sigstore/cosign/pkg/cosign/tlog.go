@@ -17,22 +17,22 @@ package cosign
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"os"
 	"strings"
-
-	_ "embed" // To enable the `go:embed` directive.
+	"time"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/trillian/merkle/logverifier"
 	"github.com/google/trillian/merkle/rfc6962/hasher"
 	"github.com/pkg/errors"
-
-	"github.com/sigstore/cosign/internal/oci"
 	"github.com/sigstore/cosign/pkg/cosign/tuf"
+	"github.com/sigstore/cosign/pkg/oci"
+	"github.com/sigstore/rekor/pkg/generated/client/index"
+
 	"github.com/sigstore/rekor/pkg/generated/client"
 	"github.com/sigstore/rekor/pkg/generated/client/entries"
 	"github.com/sigstore/rekor/pkg/generated/client/pubkey"
@@ -41,46 +41,47 @@ import (
 	rekord_v001 "github.com/sigstore/rekor/pkg/types/rekord/v0.0.1"
 )
 
-// This is rekor's public key, via `curl -L rekor.sigstore.dev/api/ggcrv1/log/publicKey`
-// rekor.pub should be updated whenever the Rekor public key is rotated & the bundle annotation should be up-versioned
-//go:embed rekor.pub
-var rekorPub string
+// This is the rekor public key target name
 var rekorTargetStr = `rekor.pub`
 
 func GetRekorPub() string {
 	ctx := context.Background() // TODO: pass in context?
 	buf := tuf.ByteDestination{Buffer: &bytes.Buffer{}}
-	err := tuf.GetTarget(ctx, rekorTargetStr, &buf)
-	if err != nil {
-		// The user may not have initialized the local root metadata. Log the error and use the embedded root.
-		fmt.Fprintln(os.Stderr, "No TUF root installed, using embedded rekor key")
-		return rekorPub
+	// Retrieves the rekor public key from the embedded or cached TUF root. If expired, makes a
+	// network call to retrieve the updated target.
+	if err := tuf.GetTarget(ctx, rekorTargetStr, &buf); err != nil {
+		panic("error retrieving rekor public key")
 	}
 	return buf.String()
 }
 
 // TLogUpload will upload the signature, public key and payload to the transparency log.
-func TLogUpload(rekorClient *client.Rekor, signature, payload []byte, pemBytes []byte) (*models.LogEntryAnon, error) {
+func TLogUpload(rekorClient *client.Rekor, signature, payload []byte, pemBytes []byte, timeout time.Duration) (*models.LogEntryAnon, error) {
 	re := rekorEntry(payload, signature, pemBytes)
 	returnVal := models.Rekord{
 		APIVersion: swag.String(re.APIVersion()),
 		Spec:       re.RekordObj,
 	}
-	return doUpload(rekorClient, &returnVal)
+	return doUpload(rekorClient, &returnVal, timeout)
 }
 
 // TLogUploadInTotoAttestation will upload and in-toto entry for the signature and public key to the transparency log.
-func TLogUploadInTotoAttestation(rekorClient *client.Rekor, signature, pemBytes []byte) (*models.LogEntryAnon, error) {
+func TLogUploadInTotoAttestation(rekorClient *client.Rekor, signature, pemBytes []byte, timeout time.Duration) (*models.LogEntryAnon, error) {
 	e := intotoEntry(signature, pemBytes)
 	returnVal := models.Intoto{
 		APIVersion: swag.String(e.APIVersion()),
 		Spec:       e.IntotoObj,
 	}
-	return doUpload(rekorClient, &returnVal)
+	return doUpload(rekorClient, &returnVal, timeout)
 }
 
-func doUpload(rekorClient *client.Rekor, pe models.ProposedEntry) (*models.LogEntryAnon, error) {
-	params := entries.NewCreateLogEntryParams()
+func doUpload(rekorClient *client.Rekor, pe models.ProposedEntry, timeout time.Duration) (*models.LogEntryAnon, error) {
+	var params *entries.CreateLogEntryParams
+	if timeout != time.Duration(0) {
+		params = entries.NewCreateLogEntryParamsWithTimeout(timeout)
+	} else {
+		params = entries.NewCreateLogEntryParams()
+	}
 	params.SetProposedEntry(pe)
 	resp, err := rekorClient.Entries.CreateLogEntry(params)
 	if err != nil {
@@ -131,7 +132,7 @@ func rekorEntry(payload, signature, pubKey []byte) rekord_v001.V001Entry {
 	}
 }
 
-func getTlogEntry(rekorClient *client.Rekor, uuid string) (*models.LogEntryAnon, error) {
+func GetTlogEntry(rekorClient *client.Rekor, uuid string) (*models.LogEntryAnon, error) {
 	params := entries.NewGetLogEntryByUUIDParams()
 	params.SetEntryUUID(uuid)
 	resp, err := rekorClient.Entries.GetLogEntryByUUID(params)
@@ -184,6 +185,21 @@ func FindTlogEntry(rekorClient *client.Rekor, b64Sig string, payload, pubKey []b
 	return uuid, *verifiedEntry.Verification.InclusionProof.LogIndex, nil
 }
 
+func FindTLogEntriesByPayload(rekorClient *client.Rekor, payload []byte) (uuids []string, err error) {
+	params := index.NewSearchIndexParams()
+	params.Query = &models.SearchIndex{}
+
+	h := sha256.New()
+	h.Write(payload)
+	params.Query.Hash = fmt.Sprintf("sha256:%s", strings.ToLower(hex.EncodeToString(h.Sum(nil))))
+
+	searchIndex, err := rekorClient.Index.SearchIndex(params)
+	if err != nil {
+		return nil, err
+	}
+	return searchIndex.GetPayload(), nil
+}
+
 func verifyTLogEntry(rekorClient *client.Rekor, uuid string) (*models.LogEntryAnon, error) {
 	params := entries.NewGetLogEntryByUUIDParams()
 	params.EntryUUID = uuid
@@ -197,6 +213,9 @@ func verifyTLogEntry(rekorClient *client.Rekor, uuid string) (*models.LogEntryAn
 		return nil, errors.New("UUID value can not be extracted")
 	}
 	e := lep.Payload[params.EntryUUID]
+	if e.Verification == nil || e.Verification.InclusionProof == nil {
+		return nil, errors.New("inclusion proof not provided")
+	}
 
 	hashes := [][]byte{}
 	for _, h := range e.Verification.InclusionProof.Hashes {
@@ -208,9 +227,6 @@ func verifyTLogEntry(rekorClient *client.Rekor, uuid string) (*models.LogEntryAn
 	leafHash, _ := hex.DecodeString(params.EntryUUID)
 
 	v := logverifier.New(hasher.DefaultHasher)
-	if e.Verification == nil || e.Verification.InclusionProof == nil {
-		return nil, errors.New("inclusion proof not provided")
-	}
 	if err := v.VerifyInclusionProof(*e.Verification.InclusionProof.LogIndex, *e.Verification.InclusionProof.TreeSize, hashes, rootHash, leafHash); err != nil {
 		return nil, errors.Wrap(err, "verifying inclusion proof")
 	}

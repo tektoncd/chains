@@ -2,7 +2,6 @@ package in_toto
 
 import (
 	"fmt"
-	"path/filepath"
 )
 
 /*
@@ -89,7 +88,7 @@ non-match plus a warning is printed.
 func (s Set) Filter(pattern string) Set {
 	res := NewSet()
 	for elem := range s {
-		matched, err := filepath.Match(pattern, elem)
+		matched, err := match(pattern, elem)
 		if err != nil {
 			fmt.Printf("WARNING: %s, pattern was '%s'\n", err, pattern)
 			continue

@@ -263,6 +263,10 @@ func extract(img v1.Image, w io.Writer) error {
 				return fmt.Errorf("reading tar: %v", err)
 			}
 
+			// Some tools prepend everything with "./", so if we don't Clean the
+			// name, we may have duplicate entries, which angers tar-split.
+			header.Name = filepath.Clean(header.Name)
+
 			basename := filepath.Base(header.Name)
 			dirname := filepath.Dir(header.Name)
 			tombstone := strings.HasPrefix(basename, whiteoutPrefix)
@@ -452,6 +456,14 @@ func MediaType(img v1.Image, mt types.MediaType) v1.Image {
 	return &image{
 		base:      img,
 		mediaType: &mt,
+	}
+}
+
+// ConfigMediaType modifies the MediaType() of the given image's Config.
+func ConfigMediaType(img v1.Image, mt types.MediaType) v1.Image {
+	return &image{
+		base:            img,
+		configMediaType: &mt,
 	}
 }
 

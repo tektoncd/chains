@@ -3,46 +3,51 @@ module github.com/tektoncd/chains
 go 1.16
 
 require (
-	cloud.google.com/go v0.94.1
-	cloud.google.com/go/storage v1.16.1
+	cloud.google.com/go v0.97.0
+	cloud.google.com/go/storage v1.18.2
 	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
 	github.com/ghodss/yaml v1.0.0
 	github.com/golang/snappy v0.0.4
 	github.com/golangci/golangci-lint v1.42.0
 	github.com/google/addlicense v1.0.0
 	github.com/google/go-cmp v0.5.6
-	github.com/google/go-containerregistry v0.6.0
-	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20210830114045-7e0ed51a7bb1
+	github.com/google/go-containerregistry v0.6.1-0.20210922191434-34b7f00d7a60
+	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20211102215614-dd49079bb93d
 	github.com/google/go-licenses v0.0.0-20210816172045-3099c18c36e1
 	github.com/hashicorp/errwrap v1.1.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-sockaddr v1.0.2
 	github.com/hashicorp/hcl v1.0.0
-	github.com/hashicorp/vault/sdk v0.2.1
-	github.com/in-toto/in-toto-golang v0.2.1-0.20210910132023-02b98c8d4e22
-	github.com/mitchellh/mapstructure v1.4.1
+	github.com/hashicorp/vault/sdk v0.3.0
+	github.com/in-toto/in-toto-golang v0.3.3
+	github.com/juju/ansiterm v0.0.0-20180109212912-720a0952cc2a // indirect
+	github.com/lunixbochs/vtclean v0.0.0-20180621232353-2d01aacdc34a // indirect
+	github.com/mitchellh/mapstructure v1.4.2
+	github.com/peterbourgon/ff/v3 v3.1.0 // indirect
+	github.com/peterh/liner v1.2.1 // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible
 	github.com/pkg/errors v0.9.1
+	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
 	github.com/ryanuber/go-glob v1.0.0
 	github.com/secure-systems-lab/go-securesystemslib v0.1.0
-	github.com/sigstore/cosign v1.2.1
+	github.com/sigstore/cosign v1.3.1
 	github.com/sigstore/fulcio v0.1.2-0.20210831152525-42f7422734bb
 	github.com/sigstore/rekor v0.3.0
-	github.com/sigstore/sigstore v1.0.1-0.20211030194432-9a93316efcab
+	github.com/sigstore/sigstore v1.0.1
 	github.com/tektoncd/pipeline v0.27.1-0.20210830150214-8afd1563782d
 	github.com/tektoncd/plumbing v0.0.0-20210902122415-a65b22d5f63b
 	github.com/theupdateframework/go-tuf v0.0.0-20210804171843-477a5d73800a // indirect
-	go.uber.org/zap v1.19.0
+	go.uber.org/zap v1.19.1
 	gocloud.dev v0.24.0
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
-	google.golang.org/api v0.56.0
+	google.golang.org/api v0.60.0
 	k8s.io/api v0.22.1
 	k8s.io/apiextensions-apiserver v0.22.1 // indirect
 	k8s.io/apimachinery v0.22.1
 	k8s.io/client-go v0.22.1
 	k8s.io/code-generator v0.22.1
-	k8s.io/utils v0.0.0-20210802155522-efc7438f0176
-	knative.dev/pkg v0.0.0-20210908025933-71508fc69a57
+	k8s.io/utils v0.0.0-20210930125809-cb0fa318a74b
+	knative.dev/pkg v0.0.0-20211004133827-74ac82a333a4
 )
 
 // Knative deps (release-0.20)

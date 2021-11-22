@@ -24,47 +24,40 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
 	"github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer"
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
-	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/pkg/errors"
 
-	"github.com/sigstore/cosign/internal/oci"
-	ociremote "github.com/sigstore/cosign/internal/oci/remote"
+	"github.com/sigstore/cosign/pkg/oci"
+	ociremote "github.com/sigstore/cosign/pkg/oci/remote"
 	rekor "github.com/sigstore/rekor/pkg/client"
 	"github.com/sigstore/rekor/pkg/generated/client"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature"
-	"github.com/sigstore/sigstore/pkg/signature/payload"
+	"github.com/sigstore/sigstore/pkg/signature/dsse"
+	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
 // CheckOpts are the options for checking signatures.
 type CheckOpts struct {
-	// SignatureRepo, if set, designates the repository where image signatures are stored.
-	// Otherwise, it is assumed that signatures reside in the same repo as the image itself.
-	SignatureRepo name.Repository
-	// SigTagSuffixOverride overrides the suffix of the derived signature image tag. Default: ".sig"
-	SigTagSuffixOverride string
 	// RegistryClientOpts are the options for interacting with the container registry.
-	RegistryClientOpts []remote.Option
+	RegistryClientOpts []ociremote.Option
 
 	// Annotations optionally specifies image signature annotations to verify.
 	Annotations map[string]interface{}
-	// ClaimVerifier, if provided, verifies claims present in the SignedPayload.
-	ClaimVerifier func(sigPayload SignedPayload, imageDigest v1.Hash, annotations map[string]interface{}) error
-	VerifyBundle  bool //TODO: remove in favor of SignedPayload.BundleVerified
+	// ClaimVerifier, if provided, verifies claims present in the oci.Signature.
+	ClaimVerifier func(sig oci.Signature, imageDigest v1.Hash, annotations map[string]interface{}) error
 
 	// RekorURL is the URL for the rekor server to use to verify signatures and public keys.
 	RekorURL string
 
 	// SigVerifier is used to verify signatures.
 	SigVerifier signature.Verifier
-	// VerifyOpts are the options provided to `SigVerifier.VerifySignature()`.
-	VerifyOpts []signature.VerifyOption
 	// PKOpts are the options provided to `SigVerifier.PublicKey()`.
 	PKOpts []signature.PublicKeyOption
 
@@ -74,159 +67,312 @@ type CheckOpts struct {
 	CertEmail string
 }
 
-// Verify does all the main cosign checks in a loop, returning validated payloads.
-// If there were no payloads, we return an error.
-func Verify(ctx context.Context, signedImgRef name.Reference, co *CheckOpts) ([]SignedPayload, error) {
-	// Enforce this up front.
-	if co.RootCerts == nil && co.SigVerifier == nil {
-		return nil, errors.New("one of verifier or root certs is required")
+// DSSE messages (Attestations) contain the signature and payload in one object, but our interface expects a signature and payload
+// This means we need to use one field and ignore the other. The DSSE verifier upstream uses the signature field and ignores
+// The message field, but we want the reverse here.
+type reverseDSSEVerifier struct {
+	signature.Verifier
+}
+
+func newReverseDSSEVerifier(v signature.Verifier) signature.Verifier {
+	return &reverseDSSEVerifier{
+		Verifier: dsse.WrapVerifier(v),
+	}
+}
+
+func (w *reverseDSSEVerifier) VerifySignature(s io.Reader, m io.Reader, opts ...signature.VerifyOption) error {
+	return w.Verifier.VerifySignature(m, nil, opts...)
+}
+
+func getSignedEntity(signedImgRef name.Reference, regClientOpts []ociremote.Option) (oci.SignedEntity, v1.Hash, error) {
+	se, err := ociremote.SignedEntity(signedImgRef, regClientOpts...)
+	if err != nil {
+		return nil, v1.Hash{}, err
+	}
+	// Both of the SignedEntity types implement Digest()
+	h, err := se.(interface{ Digest() (v1.Hash, error) }).Digest()
+	if err != nil {
+		return nil, v1.Hash{}, err
+	}
+	return se, h, nil
+}
+
+func verifyOCISignature(ctx context.Context, verifier signature.Verifier, sig oci.Signature) error {
+	b64sig, err := sig.Base64Signature()
+	if err != nil {
+		return err
+	}
+	signature, err := base64.StdEncoding.DecodeString(b64sig)
+	if err != nil {
+		return err
+	}
+	payload, err := sig.Payload()
+	if err != nil {
+		return err
+	}
+	return verifier.VerifySignature(bytes.NewReader(signature), bytes.NewReader(payload), options.WithContext(ctx))
+}
+
+func validateAndUnpackCert(cert *x509.Certificate, co *CheckOpts) (signature.Verifier, error) {
+	verifier, err := signature.LoadECDSAVerifier(cert.PublicKey.(*ecdsa.PublicKey), crypto.SHA256)
+	if err != nil {
+		return nil, errors.Wrap(err, "invalid certificate found on signature")
 	}
 
-	// Always lookup digest from remote to prevent impersonation and zombie verification
-	signedImgDesc, err := remote.Get(signedImgRef, co.RegistryClientOpts...)
-	if err != nil {
+	// Now verify the cert, then the signature.
+	if err := TrustedCert(cert, co.RootCerts); err != nil {
 		return nil, err
 	}
-	h := signedImgDesc.Descriptor.Digest
-
-	opts := []ociremote.Option{
-		ociremote.WithRemoteOptions(co.RegistryClientOpts...),
+	if co.CertEmail != "" {
+		emailVerified := false
+		for _, em := range cert.EmailAddresses {
+			if co.CertEmail == em {
+				emailVerified = true
+				break
+			}
+		}
+		if !emailVerified {
+			return nil, errors.New("expected email not found in certificate")
+		}
 	}
+	return verifier, nil
+}
 
-	// These are all the signatures attached to our image that we know how to parse.
-	if (co.SignatureRepo != name.Repository{}) {
-		opts = append(opts, ociremote.WithTargetRepository(co.SignatureRepo))
-	}
-	if co.SigTagSuffixOverride != "" {
-		opts = append(opts, ociremote.WithSignatureSuffix(co.SigTagSuffixOverride))
-	}
-
-	// TODO(mattmoor): If we change this code to interact with the SignedImage directly,
-	// then we could shed the `remote.Get` above.
-	allSignatures, err := FetchSignaturesForReference(ctx, signedImgRef, opts...)
+func tlogValidatePublicKey(rekorClient *client.Rekor, pub crypto.PublicKey, sig oci.Signature) error {
+	pemBytes, err := cryptoutils.MarshalPublicKeyToPEM(pub)
 	if err != nil {
-		return nil, errors.Wrap(err, "fetching signatures")
+		return err
+	}
+	b64sig, err := sig.Base64Signature()
+	if err != nil {
+		return err
+	}
+	payload, err := sig.Payload()
+	if err != nil {
+		return err
+	}
+	_, _, err = FindTlogEntry(rekorClient, b64sig, payload, pemBytes)
+	return err
+}
+
+func tlogValidateCertificate(rekorClient *client.Rekor, sig oci.Signature) error {
+	cert, err := sig.Cert()
+	if err != nil {
+		return err
+	}
+	pemBytes, err := cryptoutils.MarshalCertificateToPEM(cert)
+	if err != nil {
+		return err
+	}
+	b64sig, err := sig.Base64Signature()
+	if err != nil {
+		return err
+	}
+	payload, err := sig.Payload()
+	if err != nil {
+		return err
+	}
+	uuid, _, err := FindTlogEntry(rekorClient, b64sig, payload, pemBytes)
+	if err != nil {
+		return err
+	}
+	// if we have a cert, we should check expiry
+	// The IntegratedTime verified in VerifyTlog
+	e, err := GetTlogEntry(rekorClient, uuid)
+	if err != nil {
+		return err
+	}
+	return checkExpiry(cert, time.Unix(*e.IntegratedTime, 0))
+}
+
+// VerifySignatures does all the main cosign checks in a loop, returning the verified signatures.
+// If there were no valid signatures, we return an error.
+func VerifyImageSignatures(ctx context.Context, signedImgRef name.Reference, co *CheckOpts) (checkedSignatures []oci.Signature, bundleVerified bool, err error) {
+	// Enforce this up front.
+	if co.RootCerts == nil && co.SigVerifier == nil {
+		return nil, false, errors.New("one of verifier or root certs is required")
+	}
+
+	// TODO(mattmoor): We could implement recursive verification if we just wrapped
+	// most of the logic below here in a call to mutate.Map
+
+	se, h, err := getSignedEntity(signedImgRef, co.RegistryClientOpts)
+	if err != nil {
+		return nil, false, err
+	}
+	sigs, err := se.Signatures()
+	if err != nil {
+		return nil, false, err
+	}
+	sl, err := sigs.Get()
+	if err != nil {
+		return nil, false, err
 	}
 
 	validationErrs := []string{}
-	checkedSignatures := []SignedPayload{}
+
 	var rekorClient *client.Rekor
-	for _, sp := range allSignatures {
-		switch {
-		// We have a public key to check against.
-		case co.SigVerifier != nil:
-			if err := sp.VerifySignature(co.SigVerifier, co.VerifyOpts...); err != nil {
-				validationErrs = append(validationErrs, err.Error())
-				continue
+	if co.RekorURL != "" {
+		rekorClient, err = rekor.GetRekorClient(co.RekorURL)
+		if err != nil {
+			return nil, false, err
+		}
+	}
+
+	for _, sig := range sl {
+		if err := func(sig oci.Signature) error {
+			verifier := co.SigVerifier
+			if verifier == nil {
+				// If we don't have a public key to check against, we can try a root cert.
+				cert, err := sig.Cert()
+				if err != nil {
+					return err
+				}
+				if cert == nil {
+					return errors.New("no certificate found on signature")
+				}
+				verifier, err = validateAndUnpackCert(cert, co)
+				if err != nil {
+					return err
+				}
 			}
-		// If we don't have a public key to check against, we can try a root cert.
-		case co.RootCerts != nil:
-			// There might be signatures with a public key instead of a cert, though
-			if sp.Cert == nil {
-				validationErrs = append(validationErrs, "no certificate found on signature")
-				continue
+
+			if err := verifyOCISignature(ctx, verifier, sig); err != nil {
+				return err
 			}
-			pub, err := signature.LoadECDSAVerifier(sp.Cert.PublicKey.(*ecdsa.PublicKey), crypto.SHA256)
-			if err != nil {
-				validationErrs = append(validationErrs, "invalid certificate found on signature")
-				continue
+
+			// We can't check annotations without claims, both require unmarshalling the payload.
+			if co.ClaimVerifier != nil {
+				if err := co.ClaimVerifier(sig, h, co.Annotations); err != nil {
+					return err
+				}
 			}
-			// Now verify the cert, then the signature.
-			if err := sp.TrustedCert(co.RootCerts); err != nil {
-				validationErrs = append(validationErrs, err.Error())
-				continue
+
+			verified, err := VerifyBundle(sig)
+			if err != nil && co.RekorURL == "" {
+				return errors.Wrap(err, "unable to verify bundle")
 			}
-			if err := sp.VerifySignature(pub); err != nil {
-				validationErrs = append(validationErrs, err.Error())
-				continue
-			}
-			if co.CertEmail != "" {
-				emailVerified := false
-				for _, em := range sp.Cert.EmailAddresses {
-					if co.CertEmail == em {
-						emailVerified = true
-						break
+			bundleVerified = bundleVerified || verified
+
+			if !verified && co.RekorURL != "" {
+				if co.SigVerifier != nil {
+					pub, err := co.SigVerifier.PublicKey(co.PKOpts...)
+					if err != nil {
+						return err
 					}
+					return tlogValidatePublicKey(rekorClient, pub, sig)
 				}
-				if !emailVerified {
-					validationErrs = append(validationErrs, "expected email not found in certificate")
-					continue
-				}
-			}
-		}
 
-		// We can't check annotations without claims, both require unmarshalling the payload.
-		if co.ClaimVerifier != nil {
-			if err := co.ClaimVerifier(sp, h, co.Annotations); err != nil {
-				validationErrs = append(validationErrs, err.Error())
-				continue
+				return tlogValidateCertificate(rekorClient, sig)
 			}
-		}
-
-		verified, err := sp.VerifyBundle()
-		if err != nil && co.RekorURL == "" {
-			validationErrs = append(validationErrs, "unable to verify bundle: "+err.Error())
+			return nil
+		}(sig); err != nil {
+			validationErrs = append(validationErrs, err.Error())
 			continue
-		}
-		co.VerifyBundle = verified
-
-		if !verified && co.RekorURL != "" {
-			if rekorClient == nil {
-				rekorClient, err = rekor.GetRekorClient(co.RekorURL)
-				if err != nil {
-					validationErrs = append(validationErrs, "creating rekor client: "+err.Error())
-					continue
-				}
-			}
-			// Get the right public key to use (key or cert)
-			var pemBytes []byte
-			if co.SigVerifier != nil {
-				var pub crypto.PublicKey
-				pub, err = co.SigVerifier.PublicKey(co.PKOpts...)
-				if err != nil {
-					validationErrs = append(validationErrs, err.Error())
-					continue
-				}
-				pemBytes, err = cryptoutils.MarshalPublicKeyToPEM(pub)
-			} else {
-				pemBytes, err = cryptoutils.MarshalCertificateToPEM(sp.Cert)
-			}
-			if err != nil {
-				validationErrs = append(validationErrs, err.Error())
-				continue
-			}
-
-			// Find the uuid then the entry.
-			uuid, _, err := sp.VerifyTlog(rekorClient, pemBytes)
-			if err != nil {
-				validationErrs = append(validationErrs, err.Error())
-				continue
-			}
-
-			// if we have a cert, we should check expiry
-			// The IntegratedTime verified in VerifyTlog
-			if sp.Cert != nil {
-				e, err := getTlogEntry(rekorClient, uuid)
-				if err != nil {
-					validationErrs = append(validationErrs, err.Error())
-					continue
-				}
-
-				// Expiry check is only enabled with Tlog support
-				if err := checkExpiry(sp.Cert, time.Unix(*e.IntegratedTime, 0)); err != nil {
-					validationErrs = append(validationErrs, err.Error())
-					continue
-				}
-			}
 		}
 
 		// Phew, we made it.
-		checkedSignatures = append(checkedSignatures, sp)
+		checkedSignatures = append(checkedSignatures, sig)
 	}
 	if len(checkedSignatures) == 0 {
-		return nil, fmt.Errorf("no matching signatures:\n%s", strings.Join(validationErrs, "\n "))
+		return nil, false, fmt.Errorf("no matching signatures:\n%s", strings.Join(validationErrs, "\n "))
 	}
-	return checkedSignatures, nil
+	return checkedSignatures, bundleVerified, nil
+}
+
+// VerifyAttestations does all the main cosign checks in a loop, returning the verified attestations.
+// If there were no valid attestations, we return an error.
+func VerifyImageAttestations(ctx context.Context, signedImgRef name.Reference, co *CheckOpts) (checkedAttestations []oci.Signature, bundleVerified bool, err error) {
+	// Enforce this up front.
+	if co.RootCerts == nil && co.SigVerifier == nil {
+		return nil, false, errors.New("one of verifier or root certs is required")
+	}
+
+	// TODO(mattmoor): We could implement recursive verification if we just wrapped
+	// most of the logic below here in a call to mutate.Map
+
+	se, h, err := getSignedEntity(signedImgRef, co.RegistryClientOpts)
+	if err != nil {
+		return nil, false, err
+	}
+	atts, err := se.Attestations()
+	if err != nil {
+		return nil, false, err
+	}
+	sl, err := atts.Get()
+	if err != nil {
+		return nil, false, err
+	}
+
+	validationErrs := []string{}
+
+	var rekorClient *client.Rekor
+	if co.RekorURL != "" {
+		rekorClient, err = rekor.GetRekorClient(co.RekorURL)
+		if err != nil {
+			return nil, false, err
+		}
+	}
+	for _, att := range sl {
+		if err := func(att oci.Signature) error {
+			verifier := co.SigVerifier
+			if verifier == nil {
+				// If we don't have a public key to check against, we can try a root cert.
+				cert, err := att.Cert()
+				if err != nil {
+					return err
+				}
+				if cert == nil {
+					return errors.New("no certificate found on attestation")
+				}
+				verifier, err = validateAndUnpackCert(cert, co)
+				if err != nil {
+					return err
+				}
+			}
+			verifier = newReverseDSSEVerifier(verifier)
+
+			if err := verifyOCISignature(ctx, verifier, att); err != nil {
+				return err
+			}
+
+			// We can't check annotations without claims, both require unmarshalling the payload.
+			if co.ClaimVerifier != nil {
+				if err := co.ClaimVerifier(att, h, co.Annotations); err != nil {
+					return err
+				}
+			}
+
+			verified, err := VerifyBundle(att)
+			if err != nil && co.RekorURL == "" {
+				return errors.Wrap(err, "unable to verify bundle")
+			}
+			bundleVerified = bundleVerified || verified
+
+			if !verified && co.RekorURL != "" {
+				if co.SigVerifier != nil {
+					pub, err := co.SigVerifier.PublicKey(co.PKOpts...)
+					if err != nil {
+						return err
+					}
+					return tlogValidatePublicKey(rekorClient, pub, att)
+				}
+
+				return tlogValidateCertificate(rekorClient, att)
+			}
+			return nil
+		}(att); err != nil {
+			validationErrs = append(validationErrs, err.Error())
+			continue
+		}
+
+		// Phew, we made it.
+		checkedAttestations = append(checkedAttestations, att)
+	}
+	if len(checkedAttestations) == 0 {
+		return nil, false, fmt.Errorf("no matching attestations:\n%s", strings.Join(validationErrs, "\n "))
+	}
+	return checkedAttestations, bundleVerified, nil
 }
 
 func checkExpiry(cert *x509.Certificate, it time.Time) error {
@@ -244,52 +390,34 @@ func checkExpiry(cert *x509.Certificate, it time.Time) error {
 	return nil
 }
 
-func (sp *SignedPayload) VerifySignature(verifier signature.Verifier, verifyOpts ...signature.VerifyOption) error {
-	signature, err := base64.StdEncoding.DecodeString(sp.Base64Signature)
+func VerifyBundle(sig oci.Signature) (bool, error) {
+	bundle, err := sig.Bundle()
 	if err != nil {
-		return err
-	}
-	return verifier.VerifySignature(bytes.NewReader(signature), bytes.NewReader(sp.Payload), verifyOpts...)
-}
-
-func (sp *SignedPayload) VerifyClaims(digest v1.Hash, ss *payload.SimpleContainerImage) error {
-	foundDgst := ss.Critical.Image.DockerManifestDigest
-	if foundDgst != digest.String() {
-		return fmt.Errorf("invalid or missing digest in claim: %s", foundDgst)
-	}
-	return nil
-}
-
-func (sp *SignedPayload) BundleVerified() bool {
-	return sp.bundleVerified
-}
-
-func (sp *SignedPayload) VerifyBundle() (bool, error) {
-	if sp.Bundle == nil {
+		return false, err
+	} else if bundle == nil {
 		return false, nil
 	}
-	if sp.bundleVerified {
-		return true, nil
-	}
+
 	rekorPubKey, err := PemToECDSAKey([]byte(GetRekorPub()))
 	if err != nil {
 		return false, errors.Wrap(err, "pem to ecdsa")
 	}
 
-	if err := VerifySET(sp.Bundle.Payload, []byte(sp.Bundle.SignedEntryTimestamp), rekorPubKey); err != nil {
+	if err := VerifySET(bundle.Payload, []byte(bundle.SignedEntryTimestamp), rekorPubKey); err != nil {
 		return false, err
 	}
 
-	if sp.Cert == nil {
-		sp.bundleVerified = true
+	cert, err := sig.Cert()
+	if err != nil {
+		return false, err
+	} else if cert == nil {
 		return true, nil
 	}
 
 	// verify the cert against the integrated time
-	if err := checkExpiry(sp.Cert, time.Unix(sp.Bundle.Payload.IntegratedTime, 0)); err != nil {
+	if err := checkExpiry(cert, time.Unix(bundle.Payload.IntegratedTime, 0)); err != nil {
 		return false, errors.Wrap(err, "checking expiry on cert")
 	}
-	sp.bundleVerified = true
 	return true, nil
 }
 
@@ -309,14 +437,6 @@ func VerifySET(bundlePayload oci.BundlePayload, signature []byte, pub *ecdsa.Pub
 		return errors.New("unable to verify")
 	}
 	return nil
-}
-
-func (sp *SignedPayload) VerifyTlog(rc *client.Rekor, publicKeyPem []byte) (uuid string, index int64, err error) {
-	return FindTlogEntry(rc, sp.Base64Signature, sp.Payload, publicKeyPem)
-}
-
-func (sp *SignedPayload) TrustedCert(roots *x509.CertPool) error {
-	return TrustedCert(sp.Cert, roots)
 }
 
 func TrustedCert(cert *x509.Certificate, roots *x509.CertPool) error {

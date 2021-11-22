@@ -239,6 +239,7 @@ func TestFulcio(t *testing.T) {
 	c, ns, cleanup := setup(ctx, t, setupOpts{ns: "default"})
 	defer cleanup()
 	resetConfig := setConfigMap(ctx, t, c, map[string]string{
+		"artifacts.taskrun.storage":   "tekton",
 		"artifacts.taskrun.signer":    "x509",
 		"artifacts.taskrun.format":    "tekton-provenance",
 		"artifacts.oci.signer":        "x509",
