@@ -18,16 +18,15 @@ package cosign
 import (
 	"context"
 	"crypto/x509"
+	"fmt"
 	"runtime"
-	"strings"
 
 	"github.com/google/go-containerregistry/pkg/name"
-	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/pkg/errors"
 	"knative.dev/pkg/pool"
 
-	"github.com/sigstore/cosign/internal/oci"
-	ociremote "github.com/sigstore/cosign/internal/oci/remote"
+	"github.com/sigstore/cosign/pkg/oci"
+	ociremote "github.com/sigstore/cosign/pkg/oci/remote"
 )
 
 type SignedPayload struct {
@@ -36,17 +35,7 @@ type SignedPayload struct {
 	Cert            *x509.Certificate
 	Chain           []*x509.Certificate
 	Bundle          *oci.Bundle
-	bundleVerified  bool
 }
-
-// TODO: marshal the cert correctly.
-// func (sp *SignedPayload) MarshalJSON() ([]byte, error) {
-// 	x509.Certificate.
-// 	pem.EncodeToMemory(&pem.Block{
-// 		Type: "CERTIFICATE",
-// 		Bytes:
-// 	})
-// }
 
 const (
 	SignatureTagSuffix   = ".sig"
@@ -59,12 +48,6 @@ const (
 	SBOM        = "sbom"
 	Attestation = "attestation"
 )
-
-func AttachedImageTag(repo name.Repository, digest v1.Hash, tagSuffix string) name.Tag {
-	// sha256:d34db33f -> sha256-d34db33f.suffix
-	tagStr := strings.ReplaceAll(digest.String(), ":", "-") + tagSuffix
-	return repo.Tag(tagStr)
-}
 
 func FetchSignaturesForReference(ctx context.Context, ref name.Reference, opts ...ociremote.Option) ([]SignedPayload, error) {
 	simg, err := ociremote.SignedEntity(ref, opts...)
@@ -79,6 +62,9 @@ func FetchSignaturesForReference(ctx context.Context, ref name.Reference, opts .
 	l, err := sigs.Get()
 	if err != nil {
 		return nil, errors.Wrap(err, "fetching signatures")
+	}
+	if len(l) == 0 {
+		return nil, fmt.Errorf("no signatures associated with %v", ref)
 	}
 
 	g := pool.New(runtime.NumCPU())
