@@ -99,10 +99,6 @@ func runInTotoFormatterTests(ctx context.Context, t *testing.T, ns string, c *cl
 			}
 			expected := expectedProvenance(t, example, completed)
 
-			// it's hard to verify materials because digests
-			// are different for every run. skip checking the materials for now,
-			// so that we can at least verify the rest of the attestation is correct
-			(&gotProvenance).Predicate.Materials = nil
 			if d := cmp.Diff(gotProvenance, expected); d != "" {
 				t.Fatalf("expected and got do not match:\n%v", d)
 			}
