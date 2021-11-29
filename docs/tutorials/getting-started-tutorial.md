@@ -63,7 +63,7 @@ $ kubectl get taskrun $TASKRUN -o=json | jq  -r ".metadata.annotations[\"chains.
 Finally, we can check the signature with [cosign](https://github.com/sigstore/cosign):
 
 ```shell
-$ cosign verify-blob -key cosign.pub -signature ./signature ./payload 
+$ cosign verify-blob --key cosign.pub --signature ./signature ./payload 
 Verified OK
 ```
 
