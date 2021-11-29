@@ -41,7 +41,7 @@ type SearchIndex struct {
 	Email strfmt.Email `json:"email,omitempty"`
 
 	// hash
-	// Pattern: ^(sha256:)?[0-9a-fA-F]{64}$
+	// Pattern: ^(sha256:)?[0-9a-fA-F]{64}$|^(sha1:)?[0-9a-fA-F]{40}$
 	Hash string `json:"hash,omitempty"`
 
 	// public key
@@ -87,7 +87,7 @@ func (m *SearchIndex) validateHash(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := validate.Pattern("hash", "body", m.Hash, `^(sha256:)?[0-9a-fA-F]{64}$`); err != nil {
+	if err := validate.Pattern("hash", "body", m.Hash, `^(sha256:)?[0-9a-fA-F]{64}$|^(sha1:)?[0-9a-fA-F]{40}$`); err != nil {
 		return err
 	}
 
@@ -103,6 +103,8 @@ func (m *SearchIndex) validatePublicKey(formats strfmt.Registry) error {
 		if err := m.PublicKey.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("publicKey")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("publicKey")
 			}
 			return err
 		}
@@ -131,6 +133,8 @@ func (m *SearchIndex) contextValidatePublicKey(ctx context.Context, formats strf
 		if err := m.PublicKey.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("publicKey")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("publicKey")
 			}
 			return err
 		}
@@ -168,7 +172,7 @@ type SearchIndexPublicKey struct {
 
 	// format
 	// Required: true
-	// Enum: [pgp x509 minisign ssh]
+	// Enum: [pgp x509 minisign ssh tuf]
 	Format *string `json:"format"`
 
 	// url
@@ -198,7 +202,7 @@ var searchIndexPublicKeyTypeFormatPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["pgp","x509","minisign","ssh"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["pgp","x509","minisign","ssh","tuf"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -219,6 +223,9 @@ const (
 
 	// SearchIndexPublicKeyFormatSSH captures enum value "ssh"
 	SearchIndexPublicKeyFormatSSH string = "ssh"
+
+	// SearchIndexPublicKeyFormatTUF captures enum value "tuf"
+	SearchIndexPublicKeyFormatTUF string = "tuf"
 )
 
 // prop value enum

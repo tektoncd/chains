@@ -42,9 +42,6 @@ type HelmV001Schema struct {
 	// Required: true
 	Chart *HelmV001SchemaChart `json:"chart"`
 
-	// Arbitrary content to be included in the verifiable entry in the transparency log
-	ExtraData interface{} `json:"extraData,omitempty"`
-
 	// public key
 	// Required: true
 	PublicKey *HelmV001SchemaPublicKey `json:"publicKey"`
@@ -78,6 +75,8 @@ func (m *HelmV001Schema) validateChart(formats strfmt.Registry) error {
 		if err := m.Chart.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("chart")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("chart")
 			}
 			return err
 		}
@@ -96,6 +95,8 @@ func (m *HelmV001Schema) validatePublicKey(formats strfmt.Registry) error {
 		if err := m.PublicKey.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("publicKey")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("publicKey")
 			}
 			return err
 		}
@@ -128,6 +129,8 @@ func (m *HelmV001Schema) contextValidateChart(ctx context.Context, formats strfm
 		if err := m.Chart.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("chart")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("chart")
 			}
 			return err
 		}
@@ -142,6 +145,8 @@ func (m *HelmV001Schema) contextValidatePublicKey(ctx context.Context, formats s
 		if err := m.PublicKey.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("publicKey")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("publicKey")
 			}
 			return err
 		}
@@ -208,6 +213,8 @@ func (m *HelmV001SchemaChart) validateHash(formats strfmt.Registry) error {
 		if err := m.Hash.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("chart" + "." + "hash")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("chart" + "." + "hash")
 			}
 			return err
 		}
@@ -226,6 +233,8 @@ func (m *HelmV001SchemaChart) validateProvenance(formats strfmt.Registry) error 
 		if err := m.Provenance.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("chart" + "." + "provenance")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("chart" + "." + "provenance")
 			}
 			return err
 		}
@@ -258,6 +267,8 @@ func (m *HelmV001SchemaChart) contextValidateHash(ctx context.Context, formats s
 		if err := m.Hash.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("chart" + "." + "hash")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("chart" + "." + "hash")
 			}
 			return err
 		}
@@ -272,6 +283,8 @@ func (m *HelmV001SchemaChart) contextValidateProvenance(ctx context.Context, for
 		if err := m.Provenance.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("chart" + "." + "provenance")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("chart" + "." + "provenance")
 			}
 			return err
 		}
@@ -452,6 +465,8 @@ func (m *HelmV001SchemaChartProvenance) validateSignature(formats strfmt.Registr
 		if err := m.Signature.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("chart" + "." + "provenance" + "." + "signature")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("chart" + "." + "provenance" + "." + "signature")
 			}
 			return err
 		}
@@ -492,6 +507,8 @@ func (m *HelmV001SchemaChartProvenance) contextValidateSignature(ctx context.Con
 		if err := m.Signature.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("chart" + "." + "provenance" + "." + "signature")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("chart" + "." + "provenance" + "." + "signature")
 			}
 			return err
 		}

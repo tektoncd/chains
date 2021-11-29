@@ -53,9 +53,9 @@ func (r *rekor) UploadTlog(ctx context.Context, signer signing.Signer, signature
 		return nil, errors.Wrap(err, "public key or cert")
 	}
 	if payloadFormat == "in-toto" || payloadFormat == "tekton-provenance" {
-		return cosign.TLogUploadInTotoAttestation(r.c, signature, pkoc, timeout)
+		return cosign.TLogUploadInTotoAttestation(ctx, r.c, signature, pkoc)
 	}
-	return cosign.TLogUpload(r.c, signature, rawPayload, pkoc, timeout)
+	return cosign.TLogUpload(ctx, r.c, signature, rawPayload, pkoc)
 }
 
 // return the cert if we have it, otherwise return public key

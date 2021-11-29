@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -14,15 +15,17 @@ import (
 )
 
 const (
-	KeyIDLength              = sha256.Size * 2
-	KeyTypeEd25519           = "ed25519"
-	KeyTypeECDSA_SHA2_P256   = "ecdsa-sha2-nistp256"
-	KeySchemeEd25519         = "ed25519"
-	KeySchemeECDSA_SHA2_P256 = "ecdsa-sha2-nistp256"
+	KeyIDLength                = sha256.Size * 2
+	KeyTypeEd25519             = "ed25519"
+	KeyTypeECDSA_SHA2_P256     = "ecdsa-sha2-nistp256"
+	KeySchemeEd25519           = "ed25519"
+	KeySchemeECDSA_SHA2_P256   = "ecdsa-sha2-nistp256"
+	KeyTypeRSASSA_PSS_SHA256   = "rsa"
+	KeySchemeRSASSA_PSS_SHA256 = "rsassa-pss-sha256"
 )
 
 var (
-	KeyAlgorithms            = []string{"sha256", "sha512"}
+	HashAlgorithms           = []string{"sha256", "sha512"}
 	ErrPathsAndPathHashesSet = errors.New("tuf: failed validation of delegated target: paths and path_hash_prefixes are both set")
 )
 
@@ -36,36 +39,42 @@ type Signature struct {
 	Signature HexBytes `json:"sig"`
 }
 
-type Key struct {
-	Type       string   `json:"keytype"`
-	Scheme     string   `json:"scheme"`
-	Algorithms []string `json:"keyid_hash_algorithms,omitempty"`
-	Value      KeyValue `json:"keyval"`
+type PublicKey struct {
+	Type       string          `json:"keytype"`
+	Scheme     string          `json:"scheme"`
+	Algorithms []string        `json:"keyid_hash_algorithms,omitempty"`
+	Value      json.RawMessage `json:"keyval"`
 
 	ids    []string
 	idOnce sync.Once
 }
 
-func (k *Key) IDs() []string {
+type PrivateKey struct {
+	Type       string          `json:"keytype"`
+	Scheme     string          `json:"scheme,omitempty"`
+	Algorithms []string        `json:"keyid_hash_algorithms,omitempty"`
+	Value      json.RawMessage `json:"keyval"`
+}
+
+func (k *PublicKey) IDs() []string {
 	k.idOnce.Do(func() {
-		data, _ := cjson.Marshal(k)
+		data, err := cjson.Marshal(k)
+		if err != nil {
+			panic(fmt.Errorf("tuf: error creating key ID: %w", err))
+		}
 		digest := sha256.Sum256(data)
 		k.ids = []string{hex.EncodeToString(digest[:])}
 	})
 	return k.ids
 }
 
-func (k *Key) ContainsID(id string) bool {
+func (k *PublicKey) ContainsID(id string) bool {
 	for _, keyid := range k.IDs() {
 		if id == keyid {
 			return true
 		}
 	}
 	return false
-}
-
-type KeyValue struct {
-	Public HexBytes `json:"public"`
 }
 
 func DefaultExpires(role string) time.Time {
@@ -84,12 +93,13 @@ func DefaultExpires(role string) time.Time {
 }
 
 type Root struct {
-	Type        string           `json:"_type"`
-	SpecVersion string           `json:"spec_version"`
-	Version     int              `json:"version"`
-	Expires     time.Time        `json:"expires"`
-	Keys        map[string]*Key  `json:"keys"`
-	Roles       map[string]*Role `json:"roles"`
+	Type        string                `json:"_type"`
+	SpecVersion string                `json:"spec_version"`
+	Version     int                   `json:"version"`
+	Expires     time.Time             `json:"expires"`
+	Keys        map[string]*PublicKey `json:"keys"`
+	Roles       map[string]*Role      `json:"roles"`
+	Custom      *json.RawMessage      `json:"custom,omitempty"`
 
 	ConsistentSnapshot bool `json:"consistent_snapshot"`
 }
@@ -99,13 +109,13 @@ func NewRoot() *Root {
 		Type:               "root",
 		SpecVersion:        "1.0",
 		Expires:            DefaultExpires("root"),
-		Keys:               make(map[string]*Key),
+		Keys:               make(map[string]*PublicKey),
 		Roles:              make(map[string]*Role),
 		ConsistentSnapshot: true,
 	}
 }
 
-func (r *Root) AddKey(key *Key) bool {
+func (r *Root) AddKey(key *PublicKey) bool {
 	changed := false
 	for _, id := range key.IDs() {
 		if _, ok := r.Keys[id]; !ok {
@@ -114,29 +124,6 @@ func (r *Root) AddKey(key *Key) bool {
 		}
 	}
 	return changed
-}
-
-// UniqueKeys returns the unique keys for each associated role.
-// We might have multiple key IDs that correspond to the same key.
-func (r Root) UniqueKeys() map[string][]*Key {
-	keysByRole := make(map[string][]*Key)
-	for name, role := range r.Roles {
-		seen := make(map[string]struct{})
-		keys := []*Key{}
-		for _, id := range role.KeyIDs {
-			// Double-check that there is actually a key with that ID.
-			if key, ok := r.Keys[id]; ok {
-				val := key.Value.Public.String()
-				if _, ok := seen[val]; ok {
-					continue
-				}
-				seen[val] = struct{}{}
-				keys = append(keys, key)
-			}
-		}
-		keysByRole[name] = keys
-	}
-	return keysByRole
 }
 
 type Role struct {
@@ -162,8 +149,8 @@ func (r *Role) AddKeyIDs(ids []string) bool {
 type Files map[string]FileMeta
 
 type FileMeta struct {
-	Length int64            `json:"length",omitempty`
-	Hashes Hashes           `json:"hashes",omitempty`
+	Length int64            `json:"length,omitempty"`
+	Hashes Hashes           `json:"hashes,omitempty"`
 	Custom *json.RawMessage `json:"custom,omitempty"`
 }
 
@@ -185,11 +172,12 @@ type SnapshotFileMeta struct {
 type SnapshotFiles map[string]SnapshotFileMeta
 
 type Snapshot struct {
-	Type        string        `json:"_type"`
-	SpecVersion string        `json:"spec_version"`
-	Version     int           `json:"version"`
-	Expires     time.Time     `json:"expires"`
-	Meta        SnapshotFiles `json:"meta"`
+	Type        string           `json:"_type"`
+	SpecVersion string           `json:"spec_version"`
+	Version     int              `json:"version"`
+	Expires     time.Time        `json:"expires"`
+	Meta        SnapshotFiles    `json:"meta"`
+	Custom      *json.RawMessage `json:"custom,omitempty"`
 }
 
 func NewSnapshot() *Snapshot {
@@ -212,19 +200,20 @@ func (f TargetFileMeta) HashAlgorithms() []string {
 }
 
 type Targets struct {
-	Type        string       `json:"_type"`
-	SpecVersion string       `json:"spec_version"`
-	Version     int          `json:"version"`
-	Expires     time.Time    `json:"expires"`
-	Targets     TargetFiles  `json:"targets"`
-	Delegations *Delegations `json:"delegations,omitempty"`
+	Type        string           `json:"_type"`
+	SpecVersion string           `json:"spec_version"`
+	Version     int              `json:"version"`
+	Expires     time.Time        `json:"expires"`
+	Targets     TargetFiles      `json:"targets"`
+	Delegations *Delegations     `json:"delegations,omitempty"`
+	Custom      *json.RawMessage `json:"custom,omitempty"`
 }
 
 // Delegations represents the edges from a parent Targets role to one or more
 // delegated target roles. See spec v1.0.19 section 4.5.
 type Delegations struct {
-	Keys  map[string]*Key `json:"keys"`
-	Roles []DelegatedRole `json:"roles"`
+	Keys  map[string]*PublicKey `json:"keys"`
+	Roles []DelegatedRole       `json:"roles"`
 }
 
 // DelegatedRole describes a delegated role, including what paths it is
@@ -318,11 +307,12 @@ type TimestampFileMeta struct {
 type TimestampFiles map[string]TimestampFileMeta
 
 type Timestamp struct {
-	Type        string         `json:"_type"`
-	SpecVersion string         `json:"spec_version"`
-	Version     int            `json:"version"`
-	Expires     time.Time      `json:"expires"`
-	Meta        TimestampFiles `json:"meta"`
+	Type        string           `json:"_type"`
+	SpecVersion string           `json:"spec_version"`
+	Version     int              `json:"version"`
+	Expires     time.Time        `json:"expires"`
+	Meta        TimestampFiles   `json:"meta"`
+	Custom      *json.RawMessage `json:"custom,omitempty"`
 }
 
 func NewTimestamp() *Timestamp {

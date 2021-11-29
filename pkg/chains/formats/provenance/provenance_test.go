@@ -22,6 +22,8 @@ import (
 	"testing"
 	"time"
 
+	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
+
 	"github.com/ghodss/yaml"
 	"github.com/google/go-cmp/cmp"
 	"github.com/in-toto/in-toto-golang/in_toto"
@@ -334,12 +336,12 @@ func TestGetSubjectDigests(t *testing.T) {
 	expected := []in_toto.Subject{
 		{
 			Name: "index.docker.io/registry/myimage",
-			Digest: in_toto.DigestSet{
+			Digest: slsa.DigestSet{
 				"sha256": strings.TrimPrefix(digest1, "sha256:"),
 			},
 		}, {
 			Name: "registry/resource-image",
-			Digest: in_toto.DigestSet{
+			Digest: slsa.DigestSet{
 				"sha256": strings.TrimPrefix(digest2, "sha256:"),
 			},
 		},
