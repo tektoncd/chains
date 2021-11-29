@@ -1,6 +1,6 @@
 {
     "_type": "https://in-toto.io/Statement/v0.1",
-    "predicateType": "https://slsa.dev/provenance/v0.1",
+    "predicateType": "https://slsa.dev/provenance/v0.2",
     "subject": [
         {
             "name": "gcr.io/foo/bar",
@@ -13,15 +13,17 @@
         "builder": {
             "id": "tekton-chains"
         },
-        "recipe": {
-            "type": "https://tekton.dev/attestations/chains@v1",
-            "entryPoint": "{{.Entrypoint}}",
-            "arguments": [
+        "buildType": "https://tekton.dev/attestations/chains@v2",
+        "invocation": {
+            "configSource": {},
+            "parameters": null
+        },
+        "buildConfig": {
+            "steps": [
                 {
                     "entryPoint": "",
                     "arguments": null,
-                    "environment":
-                    {
+                    "environment": {
                         "container": "{{index .ContainerNames 0}}",
                         "image": "{{index .StepImages 0}}"
                     },
@@ -30,8 +32,7 @@
                 {
                     "entryPoint": "",
                     "arguments": null,
-                    "environment":
-                    {
+                    "environment": {
                         "container": "{{index .ContainerNames 1}}",
                         "image": "{{index .StepImages 1}}"
                     },
@@ -40,8 +41,7 @@
                 {
                     "entryPoint": "set -e\ncat \u003c\u003cEOF \u003e $(inputs.resources.sourcerepo.path)/index.json\n{\n\"schemaVersion\": 2,\n\"manifests\": [\n    {\n    \"mediaType\": \"application/vnd.oci.image.index.v1+json\",\n    \"size\": 314,\n    \"digest\": \"sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5\"\n    }\n]\n}\n",
                     "arguments": null,
-                    "environment":
-                    {
+                    "environment": {
                         "container": "{{index .ContainerNames 2}}",
                         "image": "{{index .StepImages 2}}"
                     },
@@ -50,8 +50,7 @@
                 {
                     "entryPoint": "cat $(inputs.resources.sourcerepo.path)/index.json",
                     "arguments": null,
-                    "environment":
-                    {
+                    "environment": {
                         "container": "{{index .ContainerNames 3}}",
                         "image": "{{index .StepImages 3}}"
                     },
@@ -60,8 +59,7 @@
                 {
                     "entryPoint": "",
                     "arguments": null,
-                    "environment":
-                    {
+                    "environment": {
                         "container": "{{index .ContainerNames 4}}",
                         "image": "{{index .StepImages 4}}"
                     },
@@ -73,11 +71,19 @@
             "buildStartedOn": "{{.BuildStartedOn}}",
             "buildFinishedOn": "{{.BuildFinishedOn}}",
             "completeness": {
-                "arguments": false,
+                "parameters": false,
                 "environment": false,
                 "materials": false
             },
             "reproducible": false
-        }
+        },
+        "materials": [
+            {
+                "uri": "https://github.com/GoogleContainerTools/skaffold",
+                "digest": {
+                    "revision": "v0.32.0"
+                }
+            }
+        ]
     }
 }
