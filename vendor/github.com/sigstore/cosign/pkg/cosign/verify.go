@@ -22,9 +22,9 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io"
 	"strings"
 	"time"
 
@@ -33,10 +33,12 @@ import (
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/pkg/errors"
 
+	ssldsse "github.com/secure-systems-lab/go-securesystemslib/dsse"
 	"github.com/sigstore/cosign/pkg/oci"
 	ociremote "github.com/sigstore/cosign/pkg/oci/remote"
 	rekor "github.com/sigstore/rekor/pkg/client"
 	"github.com/sigstore/rekor/pkg/generated/client"
+	"github.com/sigstore/rekor/pkg/generated/models"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/dsse"
@@ -65,23 +67,6 @@ type CheckOpts struct {
 	RootCerts *x509.CertPool
 	// CertEmail is the email expected for a certificate to be valid. The empty string means any certificate can be valid.
 	CertEmail string
-}
-
-// DSSE messages (Attestations) contain the signature and payload in one object, but our interface expects a signature and payload
-// This means we need to use one field and ignore the other. The DSSE verifier upstream uses the signature field and ignores
-// The message field, but we want the reverse here.
-type reverseDSSEVerifier struct {
-	signature.Verifier
-}
-
-func newReverseDSSEVerifier(v signature.Verifier) signature.Verifier {
-	return &reverseDSSEVerifier{
-		Verifier: dsse.WrapVerifier(v),
-	}
-}
-
-func (w *reverseDSSEVerifier) VerifySignature(s io.Reader, m io.Reader, opts ...signature.VerifyOption) error {
-	return w.Verifier.VerifySignature(m, nil, opts...)
 }
 
 func getSignedEntity(signedImgRef name.Reference, regClientOpts []ociremote.Option) (oci.SignedEntity, v1.Hash, error) {
@@ -113,6 +98,22 @@ func verifyOCISignature(ctx context.Context, verifier signature.Verifier, sig oc
 	return verifier.VerifySignature(bytes.NewReader(signature), bytes.NewReader(payload), options.WithContext(ctx))
 }
 
+func verifyOCIAttestation(_ context.Context, verifier signature.Verifier, att oci.Signature) error {
+	// TODO(dekkagaijin): plumb through context
+	payload, err := att.Payload()
+	if err != nil {
+		return err
+	}
+
+	env := ssldsse.Envelope{}
+	if err := json.Unmarshal(payload, &env); err != nil {
+		return nil
+	}
+
+	dssev := ssldsse.NewEnvelopeVerifier(&dsse.VerifierAdapter{SignatureVerifier: verifier})
+	return dssev.Verify(&env)
+}
+
 func validateAndUnpackCert(cert *x509.Certificate, co *CheckOpts) (signature.Verifier, error) {
 	verifier, err := signature.LoadECDSAVerifier(cert.PublicKey.(*ecdsa.PublicKey), crypto.SHA256)
 	if err != nil {
@@ -138,7 +139,7 @@ func validateAndUnpackCert(cert *x509.Certificate, co *CheckOpts) (signature.Ver
 	return verifier, nil
 }
 
-func tlogValidatePublicKey(rekorClient *client.Rekor, pub crypto.PublicKey, sig oci.Signature) error {
+func tlogValidatePublicKey(ctx context.Context, rekorClient *client.Rekor, pub crypto.PublicKey, sig oci.Signature) error {
 	pemBytes, err := cryptoutils.MarshalPublicKeyToPEM(pub)
 	if err != nil {
 		return err
@@ -151,11 +152,11 @@ func tlogValidatePublicKey(rekorClient *client.Rekor, pub crypto.PublicKey, sig 
 	if err != nil {
 		return err
 	}
-	_, _, err = FindTlogEntry(rekorClient, b64sig, payload, pemBytes)
+	_, _, err = FindTlogEntry(ctx, rekorClient, b64sig, payload, pemBytes)
 	return err
 }
 
-func tlogValidateCertificate(rekorClient *client.Rekor, sig oci.Signature) error {
+func tlogValidateCertificate(ctx context.Context, rekorClient *client.Rekor, sig oci.Signature) error {
 	cert, err := sig.Cert()
 	if err != nil {
 		return err
@@ -172,13 +173,13 @@ func tlogValidateCertificate(rekorClient *client.Rekor, sig oci.Signature) error
 	if err != nil {
 		return err
 	}
-	uuid, _, err := FindTlogEntry(rekorClient, b64sig, payload, pemBytes)
+	uuid, _, err := FindTlogEntry(ctx, rekorClient, b64sig, payload, pemBytes)
 	if err != nil {
 		return err
 	}
 	// if we have a cert, we should check expiry
 	// The IntegratedTime verified in VerifyTlog
-	e, err := GetTlogEntry(rekorClient, uuid)
+	e, err := GetTlogEntry(ctx, rekorClient, uuid)
 	if err != nil {
 		return err
 	}
@@ -248,7 +249,7 @@ func VerifyImageSignatures(ctx context.Context, signedImgRef name.Reference, co 
 				}
 			}
 
-			verified, err := VerifyBundle(sig)
+			verified, err := VerifyBundle(ctx, sig)
 			if err != nil && co.RekorURL == "" {
 				return errors.Wrap(err, "unable to verify bundle")
 			}
@@ -260,10 +261,10 @@ func VerifyImageSignatures(ctx context.Context, signedImgRef name.Reference, co 
 					if err != nil {
 						return err
 					}
-					return tlogValidatePublicKey(rekorClient, pub, sig)
+					return tlogValidatePublicKey(ctx, rekorClient, pub, sig)
 				}
 
-				return tlogValidateCertificate(rekorClient, sig)
+				return tlogValidateCertificate(ctx, rekorClient, sig)
 			}
 			return nil
 		}(sig); err != nil {
@@ -330,9 +331,8 @@ func VerifyImageAttestations(ctx context.Context, signedImgRef name.Reference, c
 					return err
 				}
 			}
-			verifier = newReverseDSSEVerifier(verifier)
 
-			if err := verifyOCISignature(ctx, verifier, att); err != nil {
+			if err := verifyOCIAttestation(ctx, verifier, att); err != nil {
 				return err
 			}
 
@@ -343,7 +343,7 @@ func VerifyImageAttestations(ctx context.Context, signedImgRef name.Reference, c
 				}
 			}
 
-			verified, err := VerifyBundle(att)
+			verified, err := VerifyBundle(ctx, att)
 			if err != nil && co.RekorURL == "" {
 				return errors.Wrap(err, "unable to verify bundle")
 			}
@@ -355,10 +355,10 @@ func VerifyImageAttestations(ctx context.Context, signedImgRef name.Reference, c
 					if err != nil {
 						return err
 					}
-					return tlogValidatePublicKey(rekorClient, pub, att)
+					return tlogValidatePublicKey(ctx, rekorClient, pub, att)
 				}
 
-				return tlogValidateCertificate(rekorClient, att)
+				return tlogValidateCertificate(ctx, rekorClient, att)
 			}
 			return nil
 		}(att); err != nil {
@@ -390,7 +390,7 @@ func checkExpiry(cert *x509.Certificate, it time.Time) error {
 	return nil
 }
 
-func VerifyBundle(sig oci.Signature) (bool, error) {
+func VerifyBundle(ctx context.Context, sig oci.Signature) (bool, error) {
 	bundle, err := sig.Bundle()
 	if err != nil {
 		return false, err
@@ -398,12 +398,12 @@ func VerifyBundle(sig oci.Signature) (bool, error) {
 		return false, nil
 	}
 
-	rekorPubKey, err := PemToECDSAKey([]byte(GetRekorPub()))
+	rekorPubKey, err := PemToECDSAKey([]byte(GetRekorPub(ctx)))
 	if err != nil {
 		return false, errors.Wrap(err, "pem to ecdsa")
 	}
 
-	if err := VerifySET(bundle.Payload, []byte(bundle.SignedEntryTimestamp), rekorPubKey); err != nil {
+	if err := VerifySET(bundle.Payload, bundle.SignedEntryTimestamp, rekorPubKey); err != nil {
 		return false, err
 	}
 
@@ -418,7 +418,71 @@ func VerifyBundle(sig oci.Signature) (bool, error) {
 	if err := checkExpiry(cert, time.Unix(bundle.Payload.IntegratedTime, 0)); err != nil {
 		return false, errors.Wrap(err, "checking expiry on cert")
 	}
+
+	payload, err := sig.Payload()
+	if err != nil {
+		return false, errors.Wrap(err, "reading payload")
+	}
+	signature, err := sig.Base64Signature()
+	if err != nil {
+		return false, errors.Wrap(err, "reading base64signature")
+	}
+
+	alg, bundlehash, err := bundleHash(bundle.Payload.Body.(string), signature)
+	h := sha256.Sum256(payload)
+	payloadHash := hex.EncodeToString(h[:])
+
+	if alg != "sha256" || bundlehash != payloadHash {
+		return false, errors.Wrap(err, "matching bundle to payload")
+	}
 	return true, nil
+}
+
+func bundleHash(bundleBody, signature string) (string, string, error) {
+	var toto models.Intoto
+	var rekord models.Rekord
+	var intotoObj models.IntotoV001Schema
+	var rekordObj models.RekordV001Schema
+
+	bodyDecoded, err := base64.StdEncoding.DecodeString(bundleBody)
+	if err != nil {
+		return "", "", err
+	}
+
+	// The fact that there's no signature (or empty rather), implies
+	// that this is an Attestation that we're verifying.
+	if len(signature) == 0 {
+		err = json.Unmarshal(bodyDecoded, &toto)
+		if err != nil {
+			return "", "", err
+		}
+
+		specMarshal, err := json.Marshal(toto.Spec)
+		if err != nil {
+			return "", "", err
+		}
+		err = json.Unmarshal(specMarshal, &intotoObj)
+		if err != nil {
+			return "", "", err
+		}
+
+		return *intotoObj.Content.Hash.Algorithm, *intotoObj.Content.Hash.Value, nil
+	}
+
+	err = json.Unmarshal(bodyDecoded, &rekord)
+	if err != nil {
+		return "", "", err
+	}
+
+	specMarshal, err := json.Marshal(rekord.Spec)
+	if err != nil {
+		return "", "", err
+	}
+	err = json.Unmarshal(specMarshal, &rekordObj)
+	if err != nil {
+		return "", "", err
+	}
+	return *rekordObj.Data.Hash.Algorithm, *rekordObj.Data.Hash.Value, nil
 }
 
 func VerifySET(bundlePayload oci.BundlePayload, signature []byte, pub *ecdsa.PublicKey) error {

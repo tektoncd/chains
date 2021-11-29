@@ -22,23 +22,26 @@ import (
 	"strings"
 
 	"github.com/in-toto/in-toto-golang/in_toto"
+	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
+
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
+	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/formats"
-	"github.com/tektoncd/chains/pkg/chains/formats/provenance"
 	"github.com/tektoncd/chains/pkg/config"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"go.uber.org/zap"
-	"k8s.io/utils/pointer"
 
 	"github.com/google/go-containerregistry/pkg/name"
 )
 
 const (
-	tektonID           = "https://tekton.dev/attestations/chains@v1"
-	commitParam        = "CHAINS-GIT_COMMIT"
-	urlParam           = "CHAINS-GIT_URL"
-	ociDigestResult    = "IMAGE_DIGEST"
-	chainsDigestSuffix = "_DIGEST"
+	tektonID                     = "https://tekton.dev/attestations/chains@v2"
+	commitParam                  = "CHAINS-GIT_COMMIT"
+	urlParam                     = "CHAINS-GIT_URL"
+	ociDigestResult              = "IMAGE_DIGEST"
+	chainsDigestSuffix           = "_DIGEST"
+	ChainsReproducibleAnnotation = "chains.tekton.dev/reproducible"
 )
 
 type InTotoIte6 struct {
@@ -68,93 +71,178 @@ func (i *InTotoIte6) CreatePayload(obj interface{}) (interface{}, error) {
 	return i.generateAttestationFromTaskRun(tr)
 }
 
-// generateAttestationFromTaskRun translates a Tekton TaskRun into an InToto ite6 provenance
-// attestation.
-// Spec: https://github.com/in-toto/attestation/blob/main/spec/predicates/provenance.md
-// At a high level, the mapping looks roughly like:
-// 	Configured builder id -> Builder.Id
-// 	Results with name *_DIGEST -> Subject
-// 	Step containers -> Materials
-// 	Params with name CHAINS-GIT_* -> Materials and recipe.materials
-
-// 	tekton-chains -> Recipe.type
-// 	Taskname -> Recipe.entry_point
+// generateAttestationFromTaskRun translates a Tekton TaskRun into an in-toto attestation
+// with the slsa-provenance predicate type
 func (i *InTotoIte6) generateAttestationFromTaskRun(tr *v1beta1.TaskRun) (interface{}, error) {
-	name := tr.Name
-	if tr.Spec.TaskRef != nil {
-		name = tr.Spec.TaskRef.Name
-	}
+	subjects := GetSubjectDigests(tr, i.logger)
+
 	att := intoto.ProvenanceStatement{
 		StatementHeader: intoto.StatementHeader{
 			Type:          intoto.StatementInTotoV01,
-			PredicateType: intoto.PredicateSLSAProvenanceV01,
+			PredicateType: slsa.PredicateSLSAProvenance,
+			Subject:       subjects,
 		},
-		Predicate: intoto.ProvenancePredicate{
-			Metadata: &in_toto.ProvenanceMetadata{},
-			Builder: intoto.ProvenanceBuilder{
+		Predicate: slsa.ProvenancePredicate{
+			Builder: slsa.ProvenanceBuilder{
 				ID: i.builderID,
 			},
-			Recipe: intoto.ProvenanceRecipe{
-				Type:       tektonID,
-				EntryPoint: name,
-				Arguments:  provenance.Steps(tr),
-			},
+			BuildType:   tektonID,
+			Invocation:  invocation(tr),
+			BuildConfig: buildConfig(tr),
+			Metadata:    metadata(tr),
+			Materials:   materials(tr),
 		},
 	}
-	if tr.Status.StartTime != nil {
-		att.Predicate.Metadata.BuildStartedOn = &tr.Status.StartTime.Time
-	}
-	if tr.Status.CompletionTime != nil {
-		att.Predicate.Metadata.BuildFinishedOn = &tr.Status.CompletionTime.Time
-	}
-
-	att.StatementHeader.Subject = provenance.GetSubjectDigests(tr, i.logger)
-
-	definedInMaterial, mats := materials(tr)
-	att.Predicate.Materials = mats
-	att.Predicate.Recipe.DefinedInMaterial = definedInMaterial
-
 	return att, nil
 }
 
-// materials will add the following to the attestation materials:
-// 1. All step containers
-// 2. Any specification for git
-func materials(tr *v1beta1.TaskRun) (*int, []intoto.ProvenanceMaterial) {
-	var m []intoto.ProvenanceMaterial
+func metadata(tr *v1beta1.TaskRun) *slsa.ProvenanceMetadata {
+	m := &slsa.ProvenanceMetadata{}
+	if tr.Status.StartTime != nil {
+		m.BuildStartedOn = &tr.Status.StartTime.Time
+	}
+	if tr.Status.CompletionTime != nil {
+		m.BuildFinishedOn = &tr.Status.CompletionTime.Time
+	}
+	for label, value := range tr.Labels {
+		if label == ChainsReproducibleAnnotation && value == "true" {
+			m.Reproducible = true
+		}
+	}
+	return m
+}
+
+// invocation describes the event that kicked off the build
+// we currently don't set ConfigSource because we don't know
+// which material the Task definition came from
+func invocation(tr *v1beta1.TaskRun) slsa.ProvenanceInvocation {
+	i := slsa.ProvenanceInvocation{}
+	// get parameters
+	var params []string
+	for _, p := range tr.Spec.Params {
+		params = append(params, fmt.Sprintf("%s=%v", p.Name, p.Value))
+	}
+	// add params
+	if ts := tr.Status.TaskSpec; ts != nil {
+		for _, p := range ts.Params {
+			if p.Default != nil {
+				v := p.Default.StringVal
+				if v == "" {
+					v = fmt.Sprintf("%v", p.Default.ArrayVal)
+				}
+				params = append(params, fmt.Sprintf("%s=%s", p.Name, v))
+			}
+		}
+	}
+	i.Parameters = params
+	return i
+}
+
+// GetSubjectDigests extracts OCI images from the TaskRun based on standard hinting set up
+// It also goes through looking for any PipelineResources of Image type
+func GetSubjectDigests(tr *v1beta1.TaskRun, logger *zap.SugaredLogger) []intoto.Subject {
+	var subjects []intoto.Subject
+
+	imgs := artifacts.ExtractOCIImagesFromResults(tr, logger)
+	for _, i := range imgs {
+		if d, ok := i.(name.Digest); ok {
+			subjects = append(subjects, intoto.Subject{
+				Name: d.Repository.Name(),
+				Digest: slsa.DigestSet{
+					"sha256": strings.TrimPrefix(d.DigestStr(), "sha256:"),
+				},
+			})
+		}
+	}
+
+	if tr.Spec.Resources == nil {
+		return subjects
+	}
+
+	// go through resourcesResult
+	for _, output := range tr.Spec.Resources.Outputs {
+		name := output.Name
+		if output.PipelineResourceBinding.ResourceSpec == nil {
+			continue
+		}
+		// similarly, we could do this for other pipeline resources or whatever thing replaces them
+		if output.PipelineResourceBinding.ResourceSpec.Type == v1alpha1.PipelineResourceTypeImage {
+			// get the url and digest, and save as a subject
+			var url, digest string
+			for _, s := range tr.Status.ResourcesResult {
+				if s.ResourceName == name {
+					if s.Key == "url" {
+						url = s.Value
+					}
+					if s.Key == "digest" {
+						digest = s.Value
+					}
+				}
+			}
+			subjects = append(subjects, in_toto.Subject{
+				Name: url,
+				Digest: slsa.DigestSet{
+					"sha256": strings.TrimPrefix(digest, "sha256:"),
+				},
+			})
+		}
+	}
+	sort.Slice(subjects, func(i, j int) bool {
+		return subjects[i].Name <= subjects[j].Name
+	})
+	return subjects
+}
+
+// add any Git specification to materials
+func materials(tr *v1beta1.TaskRun) []slsa.ProvenanceMaterial {
+	var mats []slsa.ProvenanceMaterial
 	gitCommit, gitURL := gitInfo(tr)
 
 	// Store git rev as Materials and Recipe.Material
 	if gitCommit != "" && gitURL != "" {
-		m = append(m, intoto.ProvenanceMaterial{
+		mats = append(mats, slsa.ProvenanceMaterial{
 			URI:    gitURL,
-			Digest: map[string]string{"git_commit": gitCommit},
+			Digest: map[string]string{"revision": gitCommit},
 		})
+		return mats
 	}
-	// Add all found step containers as materials
-	for _, trs := range tr.Status.Steps {
-		uri, alg, digest := getPackageURLDocker(trs.ImageID)
-		if uri == "" {
+
+	if tr.Spec.Resources == nil {
+		return mats
+	}
+
+	// check for a Git PipelineResource
+	for _, input := range tr.Spec.Resources.Inputs {
+		if input.ResourceSpec == nil || input.ResourceSpec.Type != v1alpha1.PipelineResourceTypeGit {
 			continue
 		}
 
-		m = append(m, intoto.ProvenanceMaterial{
-			URI:    uri,
-			Digest: intoto.DigestSet{alg: digest},
-		})
-	}
-	sort.Slice(m, func(i, j int) bool {
-		return m[i].URI <= m[j].URI
-	})
-	// find the index of the Git material, if it exists, in the newly sorted list
-	var definedInMaterial *int
-	for i, u := range m {
-		if u.URI == gitURL {
-			definedInMaterial = pointer.Int(i)
-			break
+		m := slsa.ProvenanceMaterial{
+			Digest: slsa.DigestSet{},
 		}
+
+		for _, rr := range tr.Status.ResourcesResult {
+			if rr.ResourceName != input.Name {
+				continue
+			}
+			if rr.Key == "url" {
+				m.URI = rr.Value
+			} else if rr.Key == "commit" {
+				m.Digest["revision"] = rr.Value
+			}
+		}
+
+		for _, param := range input.ResourceSpec.Params {
+			if param.Name == "url" {
+				m.URI = param.Value
+			}
+			if param.Name == "revision" {
+				m.Digest[param.Name] = param.Value
+			}
+		}
+		mats = append(mats, m)
 	}
-	return definedInMaterial, m
+	return mats
 }
 
 func (i *InTotoIte6) Type() formats.PayloadType {
@@ -172,58 +260,31 @@ func gitInfo(tr *v1beta1.TaskRun) (commit string, url string) {
 		}
 		if p.Name == urlParam {
 			url = p.Value.StringVal
-			// make sure url is PURL (git+https)
-			if !strings.HasPrefix(url, "git+") {
-				url = "git+" + url
+		}
+	}
+
+	if tr.Status.TaskSpec != nil {
+		for _, p := range tr.Status.TaskSpec.Params {
+			if p.Default == nil {
+				continue
+			}
+			if p.Name == commitParam {
+				commit = p.Default.StringVal
+				continue
+			}
+			if p.Name == urlParam {
+				url = p.Default.StringVal
 			}
 		}
 	}
+
+	for _, r := range tr.Status.TaskRunResults {
+		if r.Name == commitParam {
+			commit = r.Value
+		}
+		if r.Name == urlParam {
+			url = r.Value
+		}
+	}
 	return
-}
-
-// getPackageURLDocker takes an image id and creates a package URL string
-// based from it.
-// https://github.com/package-url/purl-spec
-func getPackageURLDocker(imageID string) (string, string, string) {
-	// Default registry per purl spec
-	const defaultRegistry = "hub.docker.com"
-
-	// imageID formats: name@alg:digest
-	//                  schema://name@alg:digest
-	d := strings.Split(imageID, "//")
-	if len(d) == 2 {
-		// Get away with schema
-		imageID = d[1]
-	}
-
-	digest, err := name.NewDigest(imageID, name.WithDefaultRegistry(defaultRegistry))
-	if err != nil {
-		return "", "", ""
-	}
-
-	// DigestStr() is alg:digest
-	parts := strings.Split(digest.DigestStr(), ":")
-	if len(parts) != 2 {
-		return "", "", ""
-	}
-
-	purl := fmt.Sprintf("pkg:docker/%s@%s",
-		digest.Context().RepositoryStr(),
-		digest.DigestStr(),
-	)
-
-	// Only inlude registry if it's not the default
-	registry := digest.Context().Registry.Name()
-	if registry != defaultRegistry {
-		purl = fmt.Sprintf("%s?repository_url=%s", purl, registry)
-	}
-
-	return purl, parts[0], parts[1]
-}
-
-// getOCIImageID generates an imageID that is compatible imageID field in
-// the task result's status field.
-func getOCIImageID(name, alg, digest string) string {
-	// image id is: docker://name@alg:digest
-	return fmt.Sprintf("docker://%s@%s:%s", name, alg, digest)
 }

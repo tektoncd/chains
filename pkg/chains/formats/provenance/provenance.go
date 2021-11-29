@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/in-toto/in-toto-golang/in_toto"
+	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/pkg/errors"
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/formats"
@@ -326,7 +327,7 @@ func GetSubjectDigests(tr *v1beta1.TaskRun, logger *zap.SugaredLogger) []in_toto
 		if d, ok := i.(name.Digest); ok {
 			subjects = append(subjects, in_toto.Subject{
 				Name: d.Repository.Name(),
-				Digest: in_toto.DigestSet{
+				Digest: slsa.DigestSet{
 					"sha256": strings.TrimPrefix(d.DigestStr(), "sha256:"),
 				},
 			})
@@ -359,7 +360,7 @@ func GetSubjectDigests(tr *v1beta1.TaskRun, logger *zap.SugaredLogger) []in_toto
 			}
 			subjects = append(subjects, in_toto.Subject{
 				Name: url,
-				Digest: in_toto.DigestSet{
+				Digest: slsa.DigestSet{
 					"sha256": strings.TrimPrefix(digest, "sha256:"),
 				},
 			})

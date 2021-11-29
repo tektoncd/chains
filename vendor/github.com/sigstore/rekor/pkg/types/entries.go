@@ -23,6 +23,8 @@ import (
 	"net/url"
 	"reflect"
 
+	"github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer"
+	"github.com/go-openapi/strfmt"
 	"github.com/mitchellh/mapstructure"
 	"github.com/sigstore/rekor/pkg/generated/models"
 )
@@ -70,16 +72,21 @@ func NewEntry(pe models.ProposedEntry) (EntryImpl, error) {
 
 // DecodeEntry maps the (abstract) input structure into the specific entry implementation class;
 // while doing so, it detects the case where we need to convert from string to []byte and does
-// the base64 decoding required to make that happen
+// the base64 decoding required to make that happen.
+// This also detects converting from string to strfmt.DateTime
 func DecodeEntry(input, output interface{}) error {
 	cfg := mapstructure.DecoderConfig{
 		DecodeHook: func(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
-			if f.Kind() != reflect.String || t.Kind() != reflect.Slice {
+			if f.Kind() != reflect.String || t.Kind() != reflect.Slice && t != reflect.TypeOf(strfmt.DateTime{}) {
 				return data, nil
 			}
 
 			if data == nil {
 				return nil, errors.New("attempted to decode nil data")
+			}
+
+			if t == reflect.TypeOf(strfmt.DateTime{}) {
+				return strfmt.ParseDateTime(data.(string))
 			}
 
 			bytes, err := base64.StdEncoding.DecodeString(data.(string))
@@ -97,6 +104,17 @@ func DecodeEntry(input, output interface{}) error {
 	}
 
 	return dec.Decode(input)
+}
+
+// CanonicalizeEntry returns the entry marshalled in JSON according to the
+// canonicalization rules of RFC8785 to protect against any changes in golang's JSON
+// marshalling logic that may reorder elements
+func CanonicalizeEntry(ctx context.Context, entry EntryImpl) ([]byte, error) {
+	canonicalEntry, err := entry.Canonicalize(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return jsoncanonicalizer.Transform(canonicalEntry)
 }
 
 // ArtifactProperties provide a consistent struct for passing values from

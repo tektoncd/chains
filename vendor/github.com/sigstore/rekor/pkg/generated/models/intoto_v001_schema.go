@@ -42,9 +42,6 @@ type IntotoV001Schema struct {
 	// Required: true
 	Content *IntotoV001SchemaContent `json:"content"`
 
-	// Arbitrary content to be included in the verifiable entry in the transparency log
-	ExtraData interface{} `json:"extraData,omitempty"`
-
 	// The public key that can verify the signature
 	// Required: true
 	// Format: byte
@@ -79,6 +76,8 @@ func (m *IntotoV001Schema) validateContent(formats strfmt.Registry) error {
 		if err := m.Content.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("content")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("content")
 			}
 			return err
 		}
@@ -116,6 +115,8 @@ func (m *IntotoV001Schema) contextValidateContent(ctx context.Context, formats s
 		if err := m.Content.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("content")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("content")
 			}
 			return err
 		}
@@ -177,6 +178,8 @@ func (m *IntotoV001SchemaContent) validateHash(formats strfmt.Registry) error {
 		if err := m.Hash.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("content" + "." + "hash")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("content" + "." + "hash")
 			}
 			return err
 		}
@@ -205,6 +208,8 @@ func (m *IntotoV001SchemaContent) contextValidateHash(ctx context.Context, forma
 		if err := m.Hash.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("content" + "." + "hash")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("content" + "." + "hash")
 			}
 			return err
 		}

@@ -57,7 +57,7 @@ func Write(ref name.Reference, img v1.Image, options ...Option) (rerr error) {
 			return err
 		}
 		defer close(o.updates)
-		defer func() { sendError(o.updates, rerr) }()
+		defer func() { _ = sendError(o.updates, rerr) }()
 	}
 	return writeImage(o.context, ref, img, o, lastUpdate)
 }
@@ -404,7 +404,7 @@ func (w *writer) incrProgress(written int64) {
 	}
 	w.updates <- v1.Update{
 		Total:    w.lastUpdate.Total,
-		Complete: atomic.AddInt64(&w.lastUpdate.Complete, int64(written)),
+		Complete: atomic.AddInt64(&w.lastUpdate.Complete, written),
 	}
 }
 
@@ -523,7 +523,7 @@ func (w *writer) writeIndex(ctx context.Context, ref name.Reference, ii v1.Image
 			if err != nil {
 				return err
 			}
-			if err := w.writeIndex(ctx, ref, ii); err != nil {
+			if err := w.writeIndex(ctx, ref, ii, options...); err != nil {
 				return err
 			}
 		case types.OCIManifestSchema1, types.DockerManifestSchema2:

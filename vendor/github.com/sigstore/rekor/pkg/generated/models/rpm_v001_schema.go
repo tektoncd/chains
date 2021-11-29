@@ -38,9 +38,6 @@ import (
 // swagger:model rpmV001Schema
 type RpmV001Schema struct {
 
-	// Arbitrary content to be included in the verifiable entry in the transparency log
-	ExtraData interface{} `json:"extraData,omitempty"`
-
 	// package
 	// Required: true
 	Package *RpmV001SchemaPackage `json:"package"`
@@ -78,6 +75,8 @@ func (m *RpmV001Schema) validatePackage(formats strfmt.Registry) error {
 		if err := m.Package.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("package")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("package")
 			}
 			return err
 		}
@@ -96,6 +95,8 @@ func (m *RpmV001Schema) validatePublicKey(formats strfmt.Registry) error {
 		if err := m.PublicKey.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("publicKey")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("publicKey")
 			}
 			return err
 		}
@@ -128,6 +129,8 @@ func (m *RpmV001Schema) contextValidatePackage(ctx context.Context, formats strf
 		if err := m.Package.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("package")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("package")
 			}
 			return err
 		}
@@ -142,6 +145,8 @@ func (m *RpmV001Schema) contextValidatePublicKey(ctx context.Context, formats st
 		if err := m.PublicKey.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("publicKey")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("publicKey")
 			}
 			return err
 		}
@@ -216,6 +221,8 @@ func (m *RpmV001SchemaPackage) validateHash(formats strfmt.Registry) error {
 		if err := m.Hash.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("package" + "." + "hash")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("package" + "." + "hash")
 			}
 			return err
 		}
@@ -260,6 +267,8 @@ func (m *RpmV001SchemaPackage) contextValidateHash(ctx context.Context, formats 
 		if err := m.Hash.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("package" + "." + "hash")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("package" + "." + "hash")
 			}
 			return err
 		}
