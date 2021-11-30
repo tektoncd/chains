@@ -328,7 +328,7 @@ func TestOCIStorage(t *testing.T) {
 		"artifacts.oci.format":            "simplesigning",
 		"artifacts.oci.storage":           "oci",
 		"artifacts.oci.signer":            "x509",
-		"artifacts.taskrun.format":        "tekton-provenance",
+		"artifacts.taskrun.format":        "in-toto",
 		"artifacts.taskrun.signer":        "x509",
 		"artifacts.taskrun.storage":       "oci",
 		"storage.oci.repository.insecure": "true",
@@ -467,7 +467,7 @@ func TestProvenanceMaterials(t *testing.T) {
 
 	// Setup the right config.
 	resetConfig := setConfigMap(ctx, t, c, map[string]string{
-		"artifacts.taskrun.format":  "tekton-provenance",
+		"artifacts.taskrun.format":  "in-toto",
 		"artifacts.taskrun.signer":  "x509",
 		"artifacts.taskrun.storage": "tekton",
 	})

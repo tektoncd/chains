@@ -55,14 +55,14 @@ kubectl create secret generic [DOCKERCONFIG_SECRET_NAME] --from-file [PATH TO CO
 
 You'll need to make these changes to the Tekton Chains Config:
 
-* `artifacts.taskrun.format=tekton-provenance`
+* `artifacts.taskrun.format=in-toto`
 * `artifacts.taskrun.storage=oci`
 * `transparency.enabled=true`
 
 You can set these fields by running
 
 ```shell
-kubectl patch configmap chains-config -n tekton-chains -p='{"data":{"artifacts.taskrun.format": "tekton-provenance"}}'
+kubectl patch configmap chains-config -n tekton-chains -p='{"data":{"artifacts.taskrun.format": "in-toto"}}'
 kubectl patch configmap chains-config -n tekton-chains -p='{"data":{"artifacts.taskrun.storage": "oci"}}'
 kubectl patch configmap chains-config -n tekton-chains -p='{"data":{"transparency.enabled": "true"}}'
 ```

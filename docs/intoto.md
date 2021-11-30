@@ -11,20 +11,8 @@ weight: 40
 
 The in-toto attestation spec is defined [here](https://github.com/in-toto/attestation/tree/v0.1.0/spec).
 
-In-toto attestations can be generated for TaskRuns. 
-Currently, two predicate formats are supported by Tekton Chains:
-1. A custom [Tekton Chains predicate](../PROVENANCE_SPEC.md)
-1. The standard [in-toto predicate](https://github.com/in-toto/attestation/blob/v0.1.0/spec/predicates/provenance.md)
-
-### Custom Tekton Chains predicate
-The custom Chains predicate can be enabled by running:
-
-```
-kubectl patch configmap chains-config -n tekton-chains -p='{"data":{"artifacts.taskrun.format": "tekton-provenance"}}'
-```
-
-For more details around this custom predicate, see [PROVENANCE_SPEC.md](../PROVENANCE_SPEC.md)
-
+In-toto attestations can be generated for TaskRuns.
+Tekton Chains generates in-toto attestations with the `slsa-provenance` predicate [format](https://slsa.dev/provenance/v0.2). 
 
 ### Standard in-toto predicate
 
