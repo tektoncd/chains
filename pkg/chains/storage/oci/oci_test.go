@@ -58,7 +58,7 @@ func TestBackend_StorePayload(t *testing.T) {
 				rawPayload: sampleIntotoStatementBytes,
 				signature:  "",
 				storageOpts: config.StorageOpts{
-					PayloadFormat: "tekton-provenance",
+					PayloadFormat: "in-toto",
 				},
 			},
 			wantErr: true,

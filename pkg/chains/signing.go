@@ -103,7 +103,7 @@ func allFormatters(cfg config.Config, l *zap.SugaredLogger) map[formats.PayloadT
 		case formats.PayloadTypeProvenance:
 			formatter, err := provenance.NewFormatter(cfg, l)
 			if err != nil {
-				l.Warnf("error configuring intoto formatter: %s", err)
+				l.Warnf("error configuring tekton-provenance formatter: %s", err)
 			}
 			all[f] = formatter
 		}

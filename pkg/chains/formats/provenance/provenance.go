@@ -49,10 +49,16 @@ type Provenance struct {
 }
 
 func NewFormatter(cfg config.Config, logger *zap.SugaredLogger) (formats.Payloader, error) {
+	errorMsg := `The 'tekton-provenance' format is deprecated, and support will be removed in the next release.
+	
+	Please switch to the in-toto format by running:
+	
+	kubectl patch configmap chains-config -n tekton-chains -p='{"data":{"artifacts.taskrun.format": "in-toto"}}'	
+	`
 	return &Provenance{
 		builderID: cfg.Builder.ID,
 		logger:    logger,
-	}, nil
+	}, errors.New(errorMsg)
 }
 
 func (i *Provenance) Wrap() bool {
