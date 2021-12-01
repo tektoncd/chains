@@ -321,8 +321,6 @@ github.com/fatih/structtag
 github.com/fsnotify/fsnotify
 # github.com/fzipp/gocyclo v0.3.1
 github.com/fzipp/gocyclo
-# github.com/gabriel-vasile/mimetype v1.3.1
-## explicit
 # github.com/ghodss/yaml v1.0.0
 ## explicit
 github.com/ghodss/yaml
@@ -665,8 +663,6 @@ github.com/jmespath/go-jmespath
 github.com/josharian/intern
 # github.com/json-iterator/go v1.1.11
 github.com/json-iterator/go
-# github.com/juju/ansiterm v0.0.0-20180109212912-720a0952cc2a
-## explicit
 # github.com/julz/importas v0.0.0-20210419104244-841f0c0fe66d
 github.com/julz/importas
 # github.com/kelseyhightower/envconfig v1.4.0
@@ -697,8 +693,6 @@ github.com/ldez/gomoddirectives
 github.com/ldez/tagliatelle
 # github.com/leodido/go-urn v1.2.1
 github.com/leodido/go-urn
-# github.com/lunixbochs/vtclean v0.0.0-20180621232353-2d01aacdc34a
-## explicit
 # github.com/magiconair/properties v1.8.5
 github.com/magiconair/properties
 # github.com/mailru/easyjson v0.7.7
@@ -780,10 +774,6 @@ github.com/opentracing/opentracing-go/log
 github.com/openzipkin/zipkin-go/model
 # github.com/pelletier/go-toml v1.9.4
 github.com/pelletier/go-toml
-# github.com/peterbourgon/ff/v3 v3.1.0
-## explicit
-# github.com/peterh/liner v1.2.1
-## explicit
 # github.com/phayes/checkstyle v0.0.0-20170904204023-bfd46e6a821d
 github.com/phayes/checkstyle
 # github.com/pierrec/lz4 v2.6.1+incompatible
@@ -826,8 +816,6 @@ github.com/quasilyte/go-ruleguard/ruleguard/quasigo
 github.com/quasilyte/go-ruleguard/ruleguard/typematch
 # github.com/quasilyte/regex/syntax v0.0.0-20200407221936-30656e2c4a95
 github.com/quasilyte/regex/syntax
-# github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475
-## explicit
 # github.com/rivo/uniseg v0.2.0
 github.com/rivo/uniseg
 # github.com/ryancurrah/gomodguard v1.2.3
@@ -1939,7 +1927,6 @@ k8s.io/kube-openapi/pkg/util/proto
 k8s.io/legacy-cloud-providers/azure/auth
 k8s.io/legacy-cloud-providers/gce/gcpcredential
 # k8s.io/utils v0.0.0-20211116205334-6203023598ed
-## explicit
 k8s.io/utils/buffer
 k8s.io/utils/integer
 k8s.io/utils/pointer

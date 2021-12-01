@@ -6,7 +6,6 @@ require (
 	cloud.google.com/go v0.97.0
 	cloud.google.com/go/storage v1.18.2
 	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
-	github.com/gabriel-vasile/mimetype v1.3.1 // indirect
 	github.com/ghodss/yaml v1.0.0
 	github.com/golang/snappy v0.0.4
 	github.com/golangci/golangci-lint v1.42.0
@@ -21,14 +20,9 @@ require (
 	github.com/hashicorp/hcl v1.0.0
 	github.com/hashicorp/vault/sdk v0.3.0
 	github.com/in-toto/in-toto-golang v0.4.0-prerelease
-	github.com/juju/ansiterm v0.0.0-20180109212912-720a0952cc2a // indirect
-	github.com/lunixbochs/vtclean v0.0.0-20180621232353-2d01aacdc34a // indirect
 	github.com/mitchellh/mapstructure v1.4.2
-	github.com/peterbourgon/ff/v3 v3.1.0 // indirect
-	github.com/peterh/liner v1.2.1 // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible
 	github.com/pkg/errors v0.9.1
-	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
 	github.com/ryanuber/go-glob v1.0.0
 	github.com/secure-systems-lab/go-securesystemslib v0.1.0
 	github.com/sigstore/cosign v1.3.2-0.20211124224132-6fc942badabf
@@ -46,7 +40,6 @@ require (
 	k8s.io/apimachinery v0.22.1
 	k8s.io/client-go v0.22.1
 	k8s.io/code-generator v0.22.1
-	k8s.io/utils v0.0.0-20211116205334-6203023598ed
 	knative.dev/pkg v0.0.0-20211123135150-787aec59e70a
 )
 

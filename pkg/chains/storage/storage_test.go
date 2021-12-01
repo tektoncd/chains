@@ -20,6 +20,7 @@ import (
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	fakepipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client/fake"
+	"k8s.io/apimachinery/pkg/util/sets"
 	fakekubeclient "knative.dev/pkg/client/injection/kube/client/fake"
 	logtesting "knative.dev/pkg/logging/testing"
 	rtesting "knative.dev/pkg/reconciler/testing"
@@ -37,7 +38,11 @@ func TestInitializeBackends(t *testing.T) {
 	}, {
 		name: "tekton",
 		want: []string{"tekton"},
-		cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: "tekton"}}},
+		cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: sets.NewString("tekton")}}},
+	}, {
+		name: "multi",
+		want: []string{"tekton"},
+		cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: sets.NewString("tekton", "mock")}}},
 	}}
 	logger := logtesting.TestLogger(t)
 	ctx, _ := rtesting.SetupFakeContext(t)

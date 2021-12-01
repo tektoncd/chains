@@ -141,60 +141,48 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 	var merr *multierror.Error
 	extraAnnotations := map[string]string{}
 	for _, signableType := range enabledSignableTypes {
+		if signableType.Enabled(cfg) {
+			payloadFormat := signableType.PayloadFormat(cfg)
+			// Find the right payload format and format the object
+			payloader, ok := allFormats[payloadFormat]
 
-		payloadFormat := signableType.PayloadFormat(cfg)
-		// Find the right payload format and format the object
-		payloader, ok := allFormats[payloadFormat]
-
-		if !ok {
-			logger.Warnf("Format %s configured for TaskRun: %v %s was not found", payloadFormat, tr, signableType.Type())
-			continue
-		}
-
-		// Extract all the "things" to be signed.
-		// We might have a few of each type (several binaries, or images)
-		objects := signableType.ExtractObjects(tr)
-
-		// Go through each object one at a time.
-		for _, obj := range objects {
-
-			payload, err := payloader.CreatePayload(obj)
-			if err != nil {
-				logger.Error(err)
-				continue
-			}
-			logger.Infof("Created payload of type %s for TaskRun %s/%s", string(payloadFormat), tr.Namespace, tr.Name)
-
-			// Sign it!
-			signerType := signableType.Signer(cfg)
-			signer, ok := signers[signerType]
 			if !ok {
-				logger.Warnf("No signer %s configured for %s", signerType, signableType.Type())
+				logger.Warnf("Format %s configured for TaskRun: %v %s was not found", payloadFormat, tr, signableType.Type())
 				continue
 			}
 
-			if payloader.Wrap() {
-				wrapped, err := signing.Wrap(ctx, signer)
+			// Extract all the "things" to be signed.
+			// We might have a few of each type (several binaries, or images)
+			objects := signableType.ExtractObjects(tr)
+
+			// Go through each object one at a time.
+			for _, obj := range objects {
+
+				payload, err := payloader.CreatePayload(obj)
 				if err != nil {
-					return err
+					logger.Error(err)
+					continue
 				}
-				logger.Infof("Using wrapped envelope signer for %s", payloader.Type())
-				signer = wrapped
-			}
+				logger.Infof("Created payload of type %s for TaskRun %s/%s", string(payloadFormat), tr.Namespace, tr.Name)
 
-			logger.Infof("Signing object with %s", signerType)
-			rawPayload, err := json.Marshal(payload)
-			if err != nil {
-				logger.Warnf("Unable to marshal payload: %v", signerType, obj)
-				continue
-			}
+				// Sign it!
+				signerType := signableType.Signer(cfg)
+				signer, ok := signers[signerType]
+				if !ok {
+					logger.Warnf("No signer %s configured for %s", signerType, signableType.Type())
+					continue
+				}
 
-			signature, err := signer.SignMessage(bytes.NewReader(rawPayload))
-			if err != nil {
-				logger.Error(err)
-				continue
-			}
+				if payloader.Wrap() {
+					wrapped, err := signing.Wrap(ctx, signer)
+					if err != nil {
+						return err
+					}
+					logger.Infof("Using wrapped envelope signer for %s", payloader.Type())
+					signer = wrapped
+				}
 
+<<<<<<< HEAD
 			// Now store those!
 			b := allBackends[signableType.StorageBackend(cfg)]
 			storageOpts := config.StorageOpts{
@@ -207,25 +195,56 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 				logger.Error(err)
 				merr = multierror.Append(merr, err)
 			}
+=======
+				logger.Infof("Signing object with %s", signerType)
+				rawPayload, err := json.Marshal(payload)
+				if err != nil {
+					logger.Warnf("Unable to marshal payload: %v", signerType, obj)
+					continue
+				}
+>>>>>>> 6447c467 (Add loosebazooka to chains approvers)
 
-			if shouldUploadTlog(cfg, tr) {
-				entry, err := rekorClient.UploadTlog(ctx, signer, signature, rawPayload, signer.Cert(), string(payloadFormat))
+				signature, err := signer.SignMessage(bytes.NewReader(rawPayload))
 				if err != nil {
 					logger.Error(err)
-					merr = multierror.Append(merr, err)
-				} else {
-					logger.Infof("Uploaded entry to %s with index %d", cfg.Transparency.URL, *entry.LogIndex)
+					continue
+				}
 
-					extraAnnotations[ChainsTransparencyAnnotation] = fmt.Sprintf("%s/api/v1/log/entries?logIndex=%d", cfg.Transparency.URL, *entry.LogIndex)
+				// Now store those!
+				for _, backend := range signableType.StorageBackend(cfg).List() {
+					b := allBackends[backend]
+					storageOpts := config.StorageOpts{
+						Key:           signableType.Key(obj),
+						Cert:          signer.Cert(),
+						Chain:         signer.Chain(),
+						PayloadFormat: string(payloadFormat),
+					}
+					if err := b.StorePayload(rawPayload, string(signature), storageOpts); err != nil {
+						logger.Error(err)
+						merr = multierror.Append(merr, err)
+					}
+				}
+
+				if shouldUploadTlog(cfg, tr) {
+					entry, err := rekorClient.UploadTlog(ctx, signer, signature, rawPayload, signer.Cert(), string(payloadFormat))
+					if err != nil {
+						logger.Error(err)
+						merr = multierror.Append(merr, err)
+					} else {
+						logger.Infof("Uploaded entry to %s with index %d", cfg.Transparency.URL, *entry.LogIndex)
+
+						extraAnnotations[ChainsTransparencyAnnotation] = fmt.Sprintf("%s/api/v1/log/entries?logIndex=%d", cfg.Transparency.URL, *entry.LogIndex)
+					}
 				}
 			}
-		}
-		if merr.ErrorOrNil() != nil {
-			if err := HandleRetry(tr, ts.Pipelineclientset, extraAnnotations); err != nil {
-				merr = multierror.Append(merr, err)
+			if merr.ErrorOrNil() != nil {
+				if err := HandleRetry(tr, ts.Pipelineclientset, extraAnnotations); err != nil {
+					merr = multierror.Append(merr, err)
+				}
+				return merr
 			}
-			return merr
 		}
+
 	}
 
 	// Now mark the TaskRun as signed

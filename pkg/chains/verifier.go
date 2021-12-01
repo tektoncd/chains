@@ -55,26 +55,28 @@ func (tv *TaskRunVerifier) VerifyTaskRun(ctx context.Context, tr *v1beta1.TaskRu
 	signers := allSigners(tv.SecretPath, cfg, logger)
 
 	for _, signableType := range enabledSignableTypes {
-
-		// Verify the signature.
-		signerType := signableType.Signer(cfg)
-		signer, ok := signers[signerType]
-		if !ok {
-			logger.Warnf("No signer %s configured for %s", signerType, signableType.Type())
-			continue
-		}
-
-		backend := allBackends[signableType.StorageBackend(cfg)]
-		signature, err := backend.RetrieveSignature(config.StorageOpts{})
-		if err != nil {
-			return err
-		}
-		payload, err := backend.RetrievePayload(config.StorageOpts{})
-		if err != nil {
-			return err
-		}
-		if err := signer.VerifySignature(strings.NewReader(signature), strings.NewReader(payload)); err != nil {
-			return err
+		if signableType.Enabled(cfg) {
+			// Verify the signature.
+			signerType := signableType.Signer(cfg)
+			signer, ok := signers[signerType]
+			if !ok {
+				logger.Warnf("No signer %s configured for %s", signerType, signableType.Type())
+				continue
+			}
+			for _, backend := range signableType.StorageBackend(cfg).List() {
+				b := allBackends[backend]
+				signature, err := b.RetrieveSignature(config.StorageOpts{})
+				if err != nil {
+					return err
+				}
+				payload, err := b.RetrievePayload(config.StorageOpts{})
+				if err != nil {
+					return err
+				}
+				if err := signer.VerifySignature(strings.NewReader(signature), strings.NewReader(payload)); err != nil {
+					return err
+				}
+			}
 		}
 	}
 

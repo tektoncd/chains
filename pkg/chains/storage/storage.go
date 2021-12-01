@@ -36,9 +36,13 @@ type Backend interface {
 // InitializeBackends creates and initializes every configured storage backend.
 func InitializeBackends(ps versioned.Interface, kc kubernetes.Interface, logger *zap.SugaredLogger, tr *v1beta1.TaskRun, cfg config.Config) (map[string]Backend, error) {
 	// Add an entry here for every configured backend
-	configuredBackends := []string{
-		cfg.Artifacts.TaskRuns.StorageBackend,
-		cfg.Artifacts.OCI.StorageBackend}
+	configuredBackends := []string{}
+	if cfg.Artifacts.TaskRuns.Enabled() {
+		configuredBackends = append(configuredBackends, cfg.Artifacts.TaskRuns.StorageBackend.List()...)
+	}
+	if cfg.Artifacts.OCI.Enabled() {
+		configuredBackends = append(configuredBackends, cfg.Artifacts.OCI.StorageBackend.List()...)
+	}
 
 	// Now only initialize and return the configured ones.
 	backends := map[string]Backend{}

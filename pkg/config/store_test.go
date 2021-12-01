@@ -23,6 +23,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	fakek8s "k8s.io/client-go/kubernetes/fake"
 	"knative.dev/pkg/configmap/informer"
 	logtesting "knative.dev/pkg/logging/testing"
@@ -106,12 +107,12 @@ func TestParse(t *testing.T) {
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
 						Format:         "tekton",
-						StorageBackend: "tekton",
+						StorageBackend: sets.NewString("tekton"),
 						Signer:         "x509",
 					},
 					OCI: Artifact{
 						Format:         "simplesigning",
-						StorageBackend: "oci",
+						StorageBackend: sets.NewString("oci"),
 						Signer:         "x509",
 					},
 				},
@@ -132,11 +133,11 @@ func TestParse(t *testing.T) {
 					TaskRuns: Artifact{
 						Format:         "tekton",
 						Signer:         "x509",
-						StorageBackend: "tekton",
+						StorageBackend: sets.NewString("tekton"),
 					},
 					OCI: Artifact{
 						Format:         "simplesigning",
-						StorageBackend: "oci",
+						StorageBackend: sets.NewString("oci"),
 						Signer:         "x509",
 					},
 				},
@@ -157,11 +158,11 @@ func TestParse(t *testing.T) {
 					TaskRuns: Artifact{
 						Format:         "tekton",
 						Signer:         "x509",
-						StorageBackend: "tekton",
+						StorageBackend: sets.NewString("tekton"),
 					},
 					OCI: Artifact{
 						Format:         "simplesigning",
-						StorageBackend: "oci",
+						StorageBackend: sets.NewString("oci"),
 						Signer:         "x509",
 					},
 				},
@@ -184,11 +185,11 @@ func TestParse(t *testing.T) {
 					TaskRuns: Artifact{
 						Format:         "tekton",
 						Signer:         "x509",
-						StorageBackend: "tekton",
+						StorageBackend: sets.NewString("tekton"),
 					},
 					OCI: Artifact{
 						Format:         "simplesigning",
-						StorageBackend: "oci",
+						StorageBackend: sets.NewString("oci"),
 						Signer:         "x509",
 					},
 				},
@@ -212,11 +213,11 @@ func TestParse(t *testing.T) {
 					TaskRuns: Artifact{
 						Format:         "tekton",
 						Signer:         "x509",
-						StorageBackend: "tekton",
+						StorageBackend: sets.NewString("tekton"),
 					},
 					OCI: Artifact{
 						Format:         "simplesigning",
-						StorageBackend: "oci",
+						StorageBackend: sets.NewString("oci"),
 						Signer:         "x509",
 					},
 				},
@@ -244,11 +245,11 @@ func TestParse(t *testing.T) {
 					TaskRuns: Artifact{
 						Format:         "tekton",
 						Signer:         "x509",
-						StorageBackend: "tekton",
+						StorageBackend: sets.NewString("tekton"),
 					},
 					OCI: Artifact{
 						Format:         "simplesigning",
-						StorageBackend: "oci",
+						StorageBackend: sets.NewString("oci"),
 						Signer:         "x509",
 					},
 				},
@@ -276,11 +277,11 @@ func TestParse(t *testing.T) {
 					TaskRuns: Artifact{
 						Format:         "tekton",
 						Signer:         "x509",
-						StorageBackend: "tekton",
+						StorageBackend: sets.NewString("tekton"),
 					},
 					OCI: Artifact{
 						Format:         "simplesigning",
-						StorageBackend: "oci",
+						StorageBackend: sets.NewString("oci"),
 						Signer:         "x509",
 					},
 				},

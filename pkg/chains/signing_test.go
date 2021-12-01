@@ -28,6 +28,7 @@ import (
 	fakepipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client/fake"
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes"
 	rtesting "knative.dev/pkg/reconciler/testing"
 )
@@ -169,7 +170,7 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 				Artifacts: config.ArtifactConfigs{
 					TaskRuns: config.Artifact{
 						Format:         "tekton",
-						StorageBackend: tt.configuredBackend,
+						StorageBackend: sets.NewString(tt.configuredBackend),
 						Signer:         "x509",
 					},
 				},
@@ -235,7 +236,7 @@ func TestTaskRunSigner_Transparency(t *testing.T) {
 			Artifacts: config.ArtifactConfigs{
 				TaskRuns: config.Artifact{
 					Format:         format,
-					StorageBackend: "mock",
+					StorageBackend: sets.NewString("mock"),
 					Signer:         "x509",
 				},
 			},
