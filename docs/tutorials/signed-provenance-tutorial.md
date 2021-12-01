@@ -18,6 +18,8 @@ This tutorial will guide you through:
 * Building an image with kaniko in a Tekton TaskRun
 * Verifying the signed image and the signed provenance
 
+![signed-provenance-setup](./images/signed_provenance.png)
+
 ## Prerequisites
 
 A Kubernetes cluster with the following installed:
