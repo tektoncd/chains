@@ -18,8 +18,6 @@ This tutorial will guide you through:
 * Building an image with kaniko in a Tekton TaskRun
 * Verifying the signed image and the signed provenance
 
-![signed-provenance-setup](./images/signed_provenance.png)
-
 ## Prerequisites
 
 A Kubernetes cluster with the following installed:
@@ -144,3 +142,8 @@ rekor-cli get --uuid [UUID] --format json | jq -r .Attestation | base64 --decode
 ```
 
 Congratulations! You have officially built an image, signed it, and generated signed provenance for it with Tekton Chains 🎉
+
+## What you just created
+This diagram shows what you just deployed:
+
+![signed-provenance-setup](./images/signed_provenance.png)

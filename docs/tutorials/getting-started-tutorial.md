@@ -17,8 +17,6 @@ This tutorial will guide you through:
 We'll be creating a `TaskRun`, signing it, and storing the signature and the payload as annotations on the `TaskRun` itself.
 So, no additional authentication should be required!
 
-![getting-started-setup](./images/getting_started.png)
-
 You can opt to try the tutorial with either of the following key types:
 
 * [x509 (Default)](#x509)
@@ -70,3 +68,8 @@ Verified OK
 ```
 
 Now we have a verifiable record of the `TaskRun`!
+
+## What you just created
+This diagram shows what you just deployed:
+
+![getting-started-setup](./images/getting_started.png)
