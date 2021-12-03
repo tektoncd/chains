@@ -107,7 +107,7 @@ func (b *Backend) uploadSignature(format simple.SimpleContainerImage, rawPayload
 	if err != nil {
 		return errors.Wrap(err, "getting digest")
 	}
-	image, err := ociremote.SignedImage(ref)
+	se, err := ociremote.SignedEntity(ref)
 	if err != nil {
 		return errors.Wrap(err, "getting signed image")
 	}
@@ -123,7 +123,7 @@ func (b *Backend) uploadSignature(format simple.SimpleContainerImage, rawPayload
 		return err
 	}
 	// Attach the signature to the entity.
-	newSE, err := mutate.AttachSignatureToImage(image, sig)
+	newSE, err := mutate.AttachSignatureToEntity(se, sig)
 	if err != nil {
 		return err
 	}
@@ -163,7 +163,7 @@ func (b *Backend) uploadAttestation(attestation in_toto.Statement, rawPayload []
 				return errors.Wrapf(err, "%s is not a valid repository", b.cfg.Storage.OCI.Repository)
 			}
 		}
-		image, err := ociremote.SignedImage(ref)
+		se, err := ociremote.SignedEntity(ref)
 		if err != nil {
 			return errors.Wrap(err, "getting signed image")
 		}
@@ -176,7 +176,7 @@ func (b *Backend) uploadAttestation(attestation in_toto.Statement, rawPayload []
 		if err != nil {
 			return err
 		}
-		newImage, err := mutate.AttachAttestationToImage(image, att)
+		newImage, err := mutate.AttachAttestationToEntity(se, att)
 		if err != nil {
 			return err
 		}
