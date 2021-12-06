@@ -18,6 +18,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/tektoncd/chains/pkg/chains/formats"
 
 	"github.com/in-toto/in-toto-golang/in_toto"
 
@@ -66,11 +67,11 @@ func NewStorageBackend(logger *zap.SugaredLogger, client kubernetes.Interface, t
 	}, nil
 }
 
-// StorePayload implements the Payloader interface.
+// StorePayload implements the storage.Backend interface.
 func (b *Backend) StorePayload(rawPayload []byte, signature string, storageOpts config.StorageOpts) error {
 	b.logger.Infof("Storing payload on TaskRun %s/%s", b.tr.Namespace, b.tr.Name)
 
-	if storageOpts.PayloadFormat == "simplesigning" {
+	if storageOpts.PayloadFormat == formats.PayloadTypeSimpleSigning {
 		format := simple.SimpleContainerImage{}
 		if err := json.Unmarshal(rawPayload, &format); err != nil {
 			return errors.Wrap(err, "unmarshal simplesigning")
@@ -78,7 +79,7 @@ func (b *Backend) StorePayload(rawPayload []byte, signature string, storageOpts 
 		return b.uploadSignature(format, rawPayload, signature, storageOpts)
 	}
 
-	if storageOpts.PayloadFormat == "in-toto" || storageOpts.PayloadFormat == "tekton-provenance" {
+	if storageOpts.PayloadFormat == formats.PayloadTypeInTotoIte6 || storageOpts.PayloadFormat == formats.PayloadTypeProvenance {
 		attestation := in_toto.Statement{}
 		if err := json.Unmarshal(rawPayload, &attestation); err != nil {
 			return errors.Wrap(err, "unmarshal attestation")
@@ -90,7 +91,7 @@ func (b *Backend) StorePayload(rawPayload []byte, signature string, storageOpts 
 			return errors.New("Did not find anything to attest")
 		}
 
-		return b.uploadAttestation(attestation, rawPayload, signature, storageOpts)
+		return b.uploadAttestation(attestation, signature, storageOpts)
 	}
 
 	return errors.New("OCI storage backend is only supported for OCI images and in-toto attestations")
@@ -142,7 +143,7 @@ func (b *Backend) uploadSignature(format simple.SimpleContainerImage, rawPayload
 	return nil
 }
 
-func (b *Backend) uploadAttestation(attestation in_toto.Statement, rawPayload []byte, signature string, storageOpts config.StorageOpts) error {
+func (b *Backend) uploadAttestation(attestation in_toto.Statement, signature string, storageOpts config.StorageOpts) error {
 	// upload an attestation for each subject
 	b.logger.Info("Starting to upload attestations to OCI ...")
 	for _, subj := range attestation.Subject {
