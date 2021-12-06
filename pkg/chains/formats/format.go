@@ -22,6 +22,7 @@ type Payloader interface {
 
 type PayloadType string
 
+// If you update this, remember to update AllFormatters
 const (
 	PayloadTypeTekton        PayloadType = "tekton"
 	PayloadTypeSimpleSigning PayloadType = "simplesigning"

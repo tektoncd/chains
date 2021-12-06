@@ -14,13 +14,12 @@ limitations under the License.
 package gcs
 
 import (
+	"cloud.google.com/go/storage"
 	"context"
 	"fmt"
+	"github.com/tektoncd/chains/pkg/chains/formats"
 	"io"
 	"io/ioutil"
-	"path"
-
-	"cloud.google.com/go/storage"
 
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -29,10 +28,11 @@ import (
 
 const (
 	StorageBackendGCS = "gcs"
-	// taskrun-$namespace-$name/$key.signature
+	// taskrun-$namespace-$name/$key.<type>
 	SignatureNameFormat = "taskrun-%s-%s/%s.signature"
-	// taskrun-$namespace-$name/$key.payload
-	PayloadNameFormat = "taskrun-%s-%s/%s.payload"
+	PayloadNameFormat   = "taskrun-%s-%s/%s.payload.%s"
+	CertNameFormat      = "taskrun-%s-%s/%s.cert"
+	ChainNameFormat     = "taskrun-%s-%s/%s.chain"
 )
 
 // Backend is a storage backend that stores signed payloads in the TaskRun metadata as an annotation.
@@ -62,15 +62,14 @@ func NewStorageBackend(logger *zap.SugaredLogger, tr *v1beta1.TaskRun, cfg confi
 	}, nil
 }
 
-// StorePayload implements the Payloader interface.
+// StorePayload implements the storage.Backend interface.
 func (b *Backend) StorePayload(rawPayload []byte, signature string, opts config.StorageOpts) error {
-	// We need two object names: the signature and the payload. We want to make these unique to the UID, but easy to find based on the
+	// We need multiple objects: the signature and the payload. We want to make these unique to the UID, but easy to find based on the
 	// name/namespace as well.
 	// $bucket/taskrun-$namespace-$name/$key.signature
-	// $bucket/taskrun-$namespace-$name/$key.payload
-	root := fmt.Sprintf("taskrun-%s-%s", b.tr.Namespace, b.tr.Name)
-	sigName := path.Join(root, fmt.Sprintf("%s.signature", opts.Key))
-	b.logger.Infof("Storing payload at %s", sigName)
+	// $bucket/taskrun-$namespace-$name/$key.payload.(att|sig)
+	sigName := b.sigName(opts)
+	b.logger.Infof("Storing signature at %s", sigName)
 
 	sigObj := b.writer.GetWriter(sigName)
 	if _, err := sigObj.Write([]byte(signature)); err != nil {
@@ -80,7 +79,10 @@ func (b *Backend) StorePayload(rawPayload []byte, signature string, opts config.
 		return err
 	}
 
-	payloadName := path.Join(root, fmt.Sprintf("%s.payload", opts.Key))
+	payloadName, err := b.payloadName(opts)
+	if err != nil {
+		return err
+	}
 	payloadObj := b.writer.GetWriter(payloadName)
 	defer payloadObj.Close()
 	if _, err := payloadObj.Write(rawPayload); err != nil {
@@ -93,7 +95,7 @@ func (b *Backend) StorePayload(rawPayload []byte, signature string, opts config.
 	if opts.Cert == "" {
 		return nil
 	}
-	certName := path.Join(root, fmt.Sprintf("%s.cert", opts.Key))
+	certName := b.certName(opts)
 	certObj := b.writer.GetWriter(certName)
 	defer certObj.Close()
 	if _, err := certObj.Write([]byte(opts.Cert)); err != nil {
@@ -103,7 +105,7 @@ func (b *Backend) StorePayload(rawPayload []byte, signature string, opts config.
 		return err
 	}
 
-	chainName := path.Join(root, fmt.Sprintf("%s.chain", opts.Key))
+	chainName := b.chainName(opts)
 	chainObj := b.writer.GetWriter(chainName)
 	defer chainObj.Close()
 	if _, err := chainObj.Write([]byte(opts.Chain)); err != nil {
@@ -149,12 +151,15 @@ func (r *reader) GetReader(object string) (io.ReadCloser, error) {
 }
 
 func (b *Backend) RetrieveSignature(opts config.StorageOpts) (string, error) {
-	object := fmt.Sprintf(SignatureNameFormat, b.tr.Namespace, b.tr.Name, opts.Key)
+	object := b.sigName(opts)
 	return b.retrieveObject(object)
 }
 
 func (b *Backend) RetrievePayload(opts config.StorageOpts) (string, error) {
-	object := fmt.Sprintf(PayloadNameFormat, b.tr.Namespace, b.tr.Name, opts.Key)
+	object, err := b.payloadName(opts)
+	if err != nil {
+		return "", err
+	}
 	return b.retrieveObject(object)
 }
 
@@ -169,4 +174,28 @@ func (b *Backend) retrieveObject(object string) (string, error) {
 		return "", err
 	}
 	return string(payload), nil
+}
+
+func (b *Backend) sigName(opts config.StorageOpts) string {
+	return fmt.Sprintf(SignatureNameFormat, b.tr.Namespace, b.tr.Name, opts.Key)
+}
+
+func (b *Backend) payloadName(opts config.StorageOpts) (string, error) {
+	ext := ""
+	if opts.PayloadFormat == formats.PayloadTypeTekton {
+		ext = "tkn"
+	} else if opts.PayloadFormat == formats.PayloadTypeInTotoIte6 {
+		ext = "att"
+	} else {
+		return "", fmt.Errorf("gcs does not support payloads of type %q", opts.PayloadFormat)
+	}
+	return fmt.Sprintf(PayloadNameFormat, b.tr.Namespace, b.tr.Name, opts.Key, ext), nil
+}
+
+func (b *Backend) certName(opts config.StorageOpts) string {
+	return fmt.Sprintf(CertNameFormat, b.tr.Namespace, b.tr.Name, opts.Key)
+}
+
+func (b *Backend) chainName(opts config.StorageOpts) string {
+	return fmt.Sprintf(ChainNameFormat, b.tr.Namespace, b.tr.Name, opts.Key)
 }

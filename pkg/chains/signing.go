@@ -201,7 +201,7 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 				Key:           signableType.Key(obj),
 				Cert:          signer.Cert(),
 				Chain:         signer.Chain(),
-				PayloadFormat: string(payloadFormat),
+				PayloadFormat: payloadFormat,
 			}
 			if err := b.StorePayload(rawPayload, string(signature), storageOpts); err != nil {
 				logger.Error(err)

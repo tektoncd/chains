@@ -16,10 +16,12 @@ limitations under the License.
 
 package config
 
+import "github.com/tektoncd/chains/pkg/chains/formats"
+
 // StorageOpts contains additional information required when storing signatures
 type StorageOpts struct {
 	Key           string
 	Cert          string
 	Chain         string
-	PayloadFormat string
+	PayloadFormat formats.PayloadType
 }

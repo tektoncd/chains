@@ -15,6 +15,7 @@ package gcs
 
 import (
 	"bytes"
+	"github.com/tektoncd/chains/pkg/chains/formats"
 	"io"
 	"testing"
 
@@ -31,7 +32,7 @@ func TestBackend_StorePayload(t *testing.T) {
 		tr        *v1beta1.TaskRun
 		signed    []byte
 		signature string
-		key       string
+		opts      config.StorageOpts
 	}
 	tests := []struct {
 		name    string
@@ -39,7 +40,7 @@ func TestBackend_StorePayload(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "no error",
+			name: "no error, intoto",
 			args: args{
 				tr: &v1beta1.TaskRun{
 					ObjectMeta: metav1.ObjectMeta{
@@ -50,7 +51,22 @@ func TestBackend_StorePayload(t *testing.T) {
 				},
 				signed:    []byte("signed"),
 				signature: "signature",
-				key:       "foo-uid",
+				opts:      config.StorageOpts{Key: "foo.uuid", PayloadFormat: formats.PayloadTypeInTotoIte6},
+			},
+		},
+		{
+			name: "no error, tekton",
+			args: args{
+				tr: &v1beta1.TaskRun{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "foo",
+						Name:      "bar",
+						UID:       types.UID("uid"),
+					},
+				},
+				signed:    []byte("signed"),
+				signature: "signature",
+				opts:      config.StorageOpts{Key: "foo.uuid", PayloadFormat: formats.PayloadTypeTekton},
 			},
 		},
 	}
@@ -66,18 +82,17 @@ func TestBackend_StorePayload(t *testing.T) {
 				reader: mockGcsRead,
 				cfg:    config.Config{Storage: config.StorageConfigs{GCS: config.GCSStorageConfig{Bucket: "foo"}}},
 			}
-			opts := config.StorageOpts{Key: tt.args.key}
-			if err := b.StorePayload(tt.args.signed, tt.args.signature, opts); (err != nil) != tt.wantErr {
+			if err := b.StorePayload(tt.args.signed, tt.args.signature, tt.args.opts); (err != nil) != tt.wantErr {
 				t.Errorf("Backend.StorePayload() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			got, err := b.RetrieveSignature(opts)
+			got, err := b.RetrieveSignature(tt.args.opts)
 			if err != nil {
 				t.Fatal(err)
 			}
 			if got != tt.args.signature {
 				t.Errorf("wrong signature, expected %q, got %q", tt.args.signature, got)
 			}
-			got, err = b.RetrievePayload(opts)
+			got, err = b.RetrievePayload(tt.args.opts)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -85,6 +100,25 @@ func TestBackend_StorePayload(t *testing.T) {
 				t.Errorf("wrong signature, expected %s, got %s", tt.args.signed, got)
 			}
 		})
+	}
+}
+
+func TestBackend_StorePayloadFailUnsupported(t *testing.T) {
+	mockGcsWrite := &mockGcsWriter{objects: map[string]*bytes.Buffer{}}
+	mockGcsRead := &mockGcsReader{objects: mockGcsWrite.objects}
+	b := &Backend{
+		logger: logtesting.TestLogger(t),
+		tr:     &v1beta1.TaskRun{},
+		writer: mockGcsWrite,
+		reader: mockGcsRead,
+		cfg:    config.Config{Storage: config.StorageConfigs{GCS: config.GCSStorageConfig{Bucket: "foo"}}},
+	}
+	opts := config.StorageOpts{Key: "foo.uuid", PayloadFormat: formats.PayloadTypeSimpleSigning}
+	if err := b.StorePayload([]byte("signed"), "signature", opts); err == nil {
+		t.Errorf("Backend.StorePayload() wantErr, but got none")
+	}
+	if _, err := b.RetrievePayload(opts); err == nil {
+		t.Errorf("Backend.StorePayload() wantErr, but got none")
 	}
 }
 
