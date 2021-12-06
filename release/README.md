@@ -107,7 +107,7 @@ EOF
           value: 'https://github.com/tektoncd/chains'
         - name: revision
           value: ${CHAINS_RELEASE_GIT_SHA}
-EOF
+    EOF
     ```
 
     1. Execute the Draft Release task.
@@ -135,9 +135,7 @@ EOF
 
     1. Publish the GitHub release once all notes are correct and in order.
 
-1. Edit `README.md` on `master` branch, add entry to docs table with latest release links.
-
-1. Push & make PR for updated `README.md`
+1. Create a branch for the release named `release-<version number>x`, e.g. `release-v0.28.x` and push it to the repo https://github.com/tektoncd/chains. Make sure to fetch the commit specified in `$CHAINS_RELEASE_GIT_SHA` to create the released branch.
 
 1. Test release that you just made against your own cluster (note `--context my-dev-cluster`):
 
