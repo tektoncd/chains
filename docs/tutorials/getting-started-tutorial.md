@@ -31,6 +31,21 @@ cosign generate-key-pair k8s://tekton-chains/signing-secrets
 
 cosign will prompt you for a password, which will be stored in a Kubernetes secret named signing-secrets in the tekton-chains namespace.
 
+## Configuring Tekton Chains
+
+You'll need to make these changes to the Tekton Chains Config:
+
+* `artifacts.oci.storage=""`
+
+You can set these fields by running
+
+```shell
+kubectl patch configmap chains-config -n tekton-chains -p='{"data":{"artifacts.oci.storage": ""}}'
+```
+
+This tells Chains to use the default `tekton` artifact (enabled by default) and disable the `OCI` artifact.
+
+
 To create a simple `TaskRun`, run:
 
 ```shell
