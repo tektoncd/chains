@@ -19,6 +19,7 @@ package config
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -42,7 +43,7 @@ type ArtifactConfigs struct {
 // Artifact contains the configuration for how to sign/store/format the signatures for a single artifact
 type Artifact struct {
 	Format         string
-	StorageBackend string
+	StorageBackend sets.String
 	Signer         string
 }
 
@@ -129,17 +130,21 @@ const (
 	ChainsConfig = "chains-config"
 )
 
+func (artifact *Artifact) Enabled() bool {
+	return !(artifact.StorageBackend.Len() == 1 && artifact.StorageBackend.Has(""))
+}
+
 func defaultConfig() *Config {
 	return &Config{
 		Artifacts: ArtifactConfigs{
 			TaskRuns: Artifact{
 				Format:         "tekton",
-				StorageBackend: "tekton",
+				StorageBackend: sets.NewString("tekton"),
 				Signer:         "x509",
 			},
 			OCI: Artifact{
 				Format:         "simplesigning",
-				StorageBackend: "oci",
+				StorageBackend: sets.NewString("oci"),
 				Signer:         "x509",
 			},
 		},
@@ -166,11 +171,11 @@ func NewConfigFromMap(data map[string]string) (*Config, error) {
 		// Artifact-specific configs
 		// TaskRuns
 		asString(taskrunFormatKey, &cfg.Artifacts.TaskRuns.Format, "tekton", "in-toto", "tekton-provenance"),
-		asString(taskrunStorageKey, &cfg.Artifacts.TaskRuns.StorageBackend, "tekton", "oci", "gcs", "docdb"),
+		asStringSet(taskrunStorageKey, &cfg.Artifacts.TaskRuns.StorageBackend, sets.NewString("tekton", "oci", "gcs", "docdb")),
 		asString(taskrunSignerKey, &cfg.Artifacts.TaskRuns.Signer, "x509", "kms"),
 		// OCI
 		asString(ociFormatKey, &cfg.Artifacts.OCI.Format, "tekton", "simplesigning"),
-		asString(ociStorageKey, &cfg.Artifacts.OCI.StorageBackend, "tekton", "oci", "gcs", "docdb"),
+		asStringSet(ociStorageKey, &cfg.Artifacts.OCI.StorageBackend, sets.NewString("tekton", "oci", "gcs", "docdb")),
 		asString(ociSignerKey, &cfg.Artifacts.OCI.Signer, "x509", "kms"),
 
 		// Storage level configs
@@ -254,6 +259,29 @@ func asString(key string, target *string, values ...string) cm.ParseFunc {
 			}
 		}
 		*target = raw
+		return nil
+	}
+}
+
+// asStringSet parses the value at key as a sets.String (split by ',') into the target, if it exists.
+func asStringSet(key string, target *sets.String, allowed sets.String) cm.ParseFunc {
+	return func(data map[string]string) error {
+		if raw, ok := data[key]; ok {
+			if raw == "" {
+				*target = sets.NewString("")
+				return nil
+			}
+			splitted := strings.Split(raw, ",")
+			if allowed.Len() > 0 {
+				for i, v := range splitted {
+					splitted[i] = strings.TrimSpace(v)
+					if !allowed.Has(splitted[i]) {
+						return fmt.Errorf("invalid value %q wanted one of %v", splitted[i], allowed.List())
+					}
+				}
+			}
+			*target = sets.NewString(splitted...)
+		}
 		return nil
 	}
 }

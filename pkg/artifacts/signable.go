@@ -22,15 +22,17 @@ import (
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"go.uber.org/zap"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 type Signable interface {
 	ExtractObjects(tr *v1beta1.TaskRun) []interface{}
-	StorageBackend(cfg config.Config) string
+	StorageBackend(cfg config.Config) sets.String
 	Signer(cfg config.Config) string
 	PayloadFormat(cfg config.Config) formats.PayloadType
 	Key(interface{}) string
 	Type() string
+	Enabled(cfg config.Config) bool
 }
 
 type TaskRunArtifact struct {
@@ -49,7 +51,7 @@ func (ta *TaskRunArtifact) Type() string {
 	return "tekton"
 }
 
-func (ta *TaskRunArtifact) StorageBackend(cfg config.Config) string {
+func (ta *TaskRunArtifact) StorageBackend(cfg config.Config) sets.String {
 	return cfg.Artifacts.TaskRuns.StorageBackend
 }
 
@@ -59,6 +61,10 @@ func (ta *TaskRunArtifact) PayloadFormat(cfg config.Config) formats.PayloadType 
 
 func (ta *TaskRunArtifact) Signer(cfg config.Config) string {
 	return cfg.Artifacts.TaskRuns.Signer
+}
+
+func (ta *TaskRunArtifact) Enabled(cfg config.Config) bool {
+	return cfg.Artifacts.TaskRuns.Enabled()
 }
 
 type OCIArtifact struct {
@@ -172,7 +178,7 @@ func (oa *OCIArtifact) Type() string {
 	return "oci"
 }
 
-func (oa *OCIArtifact) StorageBackend(cfg config.Config) string {
+func (oa *OCIArtifact) StorageBackend(cfg config.Config) sets.String {
 	return cfg.Artifacts.OCI.StorageBackend
 }
 
@@ -184,7 +190,11 @@ func (oa *OCIArtifact) Signer(cfg config.Config) string {
 	return cfg.Artifacts.OCI.Signer
 }
 
-func (ta *OCIArtifact) Key(obj interface{}) string {
+func (oa *OCIArtifact) Key(obj interface{}) string {
 	v := obj.(name.Digest)
 	return strings.TrimPrefix(v.DigestStr(), "sha256:")[:12]
+}
+
+func (oa *OCIArtifact) Enabled(cfg config.Config) bool {
+	return cfg.Artifacts.OCI.Enabled()
 }

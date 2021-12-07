@@ -366,6 +366,59 @@ func TestOCIStorage(t *testing.T) {
 	waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, successful, 60*time.Second)
 }
 
+func TestMultiBackendStorage(t *testing.T) {
+	ctx := logtesting.TestContextWithLogger(t)
+	c, ns, cleanup := setup(ctx, t, setupOpts{registry: true})
+	defer cleanup()
+
+	resetConfig := setConfigMap(ctx, t, c, map[string]string{
+		"artifacts.oci.format":            "simplesigning",
+		"artifacts.oci.storage":           "tekton,oci",
+		"artifacts.oci.signer":            "x509",
+		"artifacts.taskrun.format":        "tekton",
+		"artifacts.taskrun.signer":        "x509",
+		"artifacts.taskrun.storage":       "tekton,oci",
+		"storage.oci.repository.insecure": "true",
+	})
+	defer resetConfig()
+	time.Sleep(3 * time.Second)
+
+	// create necessary resources
+	imageName := "chains-test-oci-storage"
+	image := fmt.Sprintf("%s/%s", c.internalRegistry, imageName)
+	task := kanikoTask(t, ns, image)
+
+	if _, err := c.PipelineClient.TektonV1beta1().Tasks(ns).Create(ctx, task, metav1.CreateOptions{}); err != nil {
+		t.Fatalf("error creating task: %s", err)
+	}
+
+	taskRun := kanikoTaskRun(ns)
+	tr, err := c.PipelineClient.TektonV1beta1().TaskRuns(ns).Create(ctx, taskRun, metav1.CreateOptions{})
+	if err != nil {
+		t.Errorf("error creating taskrun: %s", err)
+	}
+
+	publicKey, err := cryptoutils.MarshalPublicKeyToPEM(c.secret.x509priv.Public())
+	if err != nil {
+		t.Error(err)
+	}
+	verifyTaskRun := verifyKanikoTaskRun(ns, image, string(publicKey))
+	tr, err = c.PipelineClient.TektonV1beta1().TaskRuns(ns).Create(ctx, verifyTaskRun, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("error creating task: %s", err)
+	}
+
+	// Give it a minute to complete.
+	waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, signed, 60*time.Second)
+
+	// It can take up to a minute for the secret data to be updated!
+	tr = waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, signed, 120*time.Second)
+
+	// Verify the payload signature.
+	verifySignature(ctx, t, c, tr)
+
+}
+
 func TestRetryFailed(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
 	c, ns, cleanup := setup(ctx, t, setupOpts{registry: true})

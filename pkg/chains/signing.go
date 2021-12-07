@@ -141,7 +141,9 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 	var merr *multierror.Error
 	extraAnnotations := map[string]string{}
 	for _, signableType := range enabledSignableTypes {
-
+		if !signableType.Enabled(cfg) {
+			continue
+		}
 		payloadFormat := signableType.PayloadFormat(cfg)
 		// Find the right payload format and format the object
 		payloader, ok := allFormats[payloadFormat]
@@ -196,16 +198,18 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 			}
 
 			// Now store those!
-			b := allBackends[signableType.StorageBackend(cfg)]
-			storageOpts := config.StorageOpts{
-				Key:           signableType.Key(obj),
-				Cert:          signer.Cert(),
-				Chain:         signer.Chain(),
-				PayloadFormat: payloadFormat,
-			}
-			if err := b.StorePayload(rawPayload, string(signature), storageOpts); err != nil {
-				logger.Error(err)
-				merr = multierror.Append(merr, err)
+			for _, backend := range signableType.StorageBackend(cfg).List() {
+				b := allBackends[backend]
+				storageOpts := config.StorageOpts{
+					Key:           signableType.Key(obj),
+					Cert:          signer.Cert(),
+					Chain:         signer.Chain(),
+					PayloadFormat: payloadFormat,
+				}
+				if err := b.StorePayload(rawPayload, string(signature), storageOpts); err != nil {
+					logger.Error(err)
+					merr = multierror.Append(merr, err)
+				}
 			}
 
 			if shouldUploadTlog(cfg, tr) {

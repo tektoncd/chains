@@ -23,6 +23,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	fakek8s "k8s.io/client-go/kubernetes/fake"
 	"knative.dev/pkg/configmap/informer"
 	logtesting "knative.dev/pkg/logging/testing"
@@ -92,13 +93,17 @@ var defaultSigners = SignerConfigs{
 
 func TestParse(t *testing.T) {
 	tests := []struct {
-		name string
-		data map[string]string
-		want Config
+		name           string
+		data           map[string]string
+		taskrunEnabled bool
+		ociEnbaled     bool
+		want           Config
 	}{
 		{
-			name: "empty",
-			data: map[string]string{},
+			name:           "empty",
+			data:           map[string]string{},
+			taskrunEnabled: true,
+			ociEnbaled:     true,
 			want: Config{
 				Builder: BuilderConfig{
 					"tekton-chains",
@@ -106,12 +111,12 @@ func TestParse(t *testing.T) {
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
 						Format:         "tekton",
-						StorageBackend: "tekton",
+						StorageBackend: sets.NewString("tekton"),
 						Signer:         "x509",
 					},
 					OCI: Artifact{
 						Format:         "simplesigning",
-						StorageBackend: "oci",
+						StorageBackend: sets.NewString("oci"),
 						Signer:         "x509",
 					},
 				},
@@ -122,8 +127,10 @@ func TestParse(t *testing.T) {
 			},
 		},
 		{
-			name: "single",
-			data: map[string]string{taskrunSignerKey: "x509"},
+			name:           "taskrun multi backend",
+			data:           map[string]string{taskrunStorageKey: "tekton,oci"},
+			taskrunEnabled: true,
+			ociEnbaled:     true,
 			want: Config{
 				Builder: BuilderConfig{
 					"tekton-chains",
@@ -131,12 +138,12 @@ func TestParse(t *testing.T) {
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
 						Format:         "tekton",
+						StorageBackend: sets.NewString("tekton", "oci"),
 						Signer:         "x509",
-						StorageBackend: "tekton",
 					},
 					OCI: Artifact{
 						Format:         "simplesigning",
-						StorageBackend: "oci",
+						StorageBackend: sets.NewString("oci"),
 						Signer:         "x509",
 					},
 				},
@@ -147,8 +154,145 @@ func TestParse(t *testing.T) {
 			},
 		},
 		{
-			name: "manual transparency",
-			data: map[string]string{transparencyEnabledKey: "manual"},
+			name:           "taskrun multi backend disabled",
+			data:           map[string]string{taskrunStorageKey: ""},
+			taskrunEnabled: false,
+			ociEnbaled:     true,
+			want: Config{
+				Builder: BuilderConfig{
+					"tekton-chains",
+				},
+				Artifacts: ArtifactConfigs{
+					TaskRuns: Artifact{
+						Format:         "tekton",
+						StorageBackend: sets.NewString(""),
+						Signer:         "x509",
+					},
+					OCI: Artifact{
+						Format:         "simplesigning",
+						StorageBackend: sets.NewString("oci"),
+						Signer:         "x509",
+					},
+				},
+				Signers: defaultSigners,
+				Transparency: TransparencyConfig{
+					URL: "https://rekor.sigstore.dev",
+				},
+			},
+		},
+		{
+			name:           "oci multi backend",
+			data:           map[string]string{ociStorageKey: "oci,tekton"},
+			taskrunEnabled: true,
+			ociEnbaled:     true,
+			want: Config{
+				Builder: BuilderConfig{
+					"tekton-chains",
+				},
+				Artifacts: ArtifactConfigs{
+					TaskRuns: Artifact{
+						Format:         "tekton",
+						StorageBackend: sets.NewString("tekton"),
+						Signer:         "x509",
+					},
+					OCI: Artifact{
+						Format:         "simplesigning",
+						StorageBackend: sets.NewString("oci", "tekton"),
+						Signer:         "x509",
+					},
+				},
+				Signers: defaultSigners,
+				Transparency: TransparencyConfig{
+					URL: "https://rekor.sigstore.dev",
+				},
+			},
+		},
+		{
+			name:           "oci multi backend disabled",
+			data:           map[string]string{ociStorageKey: ""},
+			taskrunEnabled: true,
+			ociEnbaled:     false,
+			want: Config{
+				Builder: BuilderConfig{
+					"tekton-chains",
+				},
+				Artifacts: ArtifactConfigs{
+					TaskRuns: Artifact{
+						Format:         "tekton",
+						StorageBackend: sets.NewString("tekton"),
+						Signer:         "x509",
+					},
+					OCI: Artifact{
+						Format:         "simplesigning",
+						StorageBackend: sets.NewString(""),
+						Signer:         "x509",
+					},
+				},
+				Signers: defaultSigners,
+				Transparency: TransparencyConfig{
+					URL: "https://rekor.sigstore.dev",
+				},
+			},
+		},
+		{
+			name:           "taskrun multi backend, oci disabled",
+			data:           map[string]string{taskrunStorageKey: "tekton,oci", ociStorageKey: ""},
+			taskrunEnabled: true,
+			ociEnbaled:     false,
+			want: Config{
+				Builder: BuilderConfig{
+					"tekton-chains",
+				},
+				Artifacts: ArtifactConfigs{
+					TaskRuns: Artifact{
+						Format:         "tekton",
+						StorageBackend: sets.NewString("tekton", "oci"),
+						Signer:         "x509",
+					},
+					OCI: Artifact{
+						Format:         "simplesigning",
+						StorageBackend: sets.NewString(""),
+						Signer:         "x509",
+					},
+				},
+				Signers: defaultSigners,
+				Transparency: TransparencyConfig{
+					URL: "https://rekor.sigstore.dev",
+				},
+			},
+		},
+		{
+			name:           "oci multi backend, tekton disabled",
+			data:           map[string]string{ociStorageKey: "oci,tekton", taskrunStorageKey: ""},
+			taskrunEnabled: false,
+			ociEnbaled:     true,
+			want: Config{
+				Builder: BuilderConfig{
+					"tekton-chains",
+				},
+				Artifacts: ArtifactConfigs{
+					TaskRuns: Artifact{
+						Format:         "tekton",
+						StorageBackend: sets.NewString(""),
+						Signer:         "x509",
+					},
+					OCI: Artifact{
+						Format:         "simplesigning",
+						StorageBackend: sets.NewString("oci", "tekton"),
+						Signer:         "x509",
+					},
+				},
+				Signers: defaultSigners,
+				Transparency: TransparencyConfig{
+					URL: "https://rekor.sigstore.dev",
+				},
+			},
+		},
+		{
+			name:           "single",
+			data:           map[string]string{taskrunSignerKey: "x509"},
+			taskrunEnabled: true,
+			ociEnbaled:     true,
 			want: Config{
 				Builder: BuilderConfig{
 					"tekton-chains",
@@ -157,11 +301,38 @@ func TestParse(t *testing.T) {
 					TaskRuns: Artifact{
 						Format:         "tekton",
 						Signer:         "x509",
-						StorageBackend: "tekton",
+						StorageBackend: sets.NewString("tekton"),
 					},
 					OCI: Artifact{
 						Format:         "simplesigning",
-						StorageBackend: "oci",
+						StorageBackend: sets.NewString("oci"),
+						Signer:         "x509",
+					},
+				},
+				Signers: defaultSigners,
+				Transparency: TransparencyConfig{
+					URL: "https://rekor.sigstore.dev",
+				},
+			},
+		},
+		{
+			name:           "manual transparency",
+			data:           map[string]string{transparencyEnabledKey: "manual"},
+			taskrunEnabled: true,
+			ociEnbaled:     true,
+			want: Config{
+				Builder: BuilderConfig{
+					"tekton-chains",
+				},
+				Artifacts: ArtifactConfigs{
+					TaskRuns: Artifact{
+						Format:         "tekton",
+						Signer:         "x509",
+						StorageBackend: sets.NewString("tekton"),
+					},
+					OCI: Artifact{
+						Format:         "simplesigning",
+						StorageBackend: sets.NewString("oci"),
 						Signer:         "x509",
 					},
 				},
@@ -174,8 +345,10 @@ func TestParse(t *testing.T) {
 			},
 		},
 		{
-			name: "extra",
-			data: map[string]string{taskrunSignerKey: "x509", "other-key": "foo"},
+			name:           "extra",
+			data:           map[string]string{taskrunSignerKey: "x509", "other-key": "foo"},
+			taskrunEnabled: true,
+			ociEnbaled:     true,
 			want: Config{
 				Builder: BuilderConfig{
 					"tekton-chains",
@@ -184,11 +357,11 @@ func TestParse(t *testing.T) {
 					TaskRuns: Artifact{
 						Format:         "tekton",
 						Signer:         "x509",
-						StorageBackend: "tekton",
+						StorageBackend: sets.NewString("tekton"),
 					},
 					OCI: Artifact{
 						Format:         "simplesigning",
-						StorageBackend: "oci",
+						StorageBackend: sets.NewString("oci"),
 						Signer:         "x509",
 					},
 				},
@@ -204,6 +377,8 @@ func TestParse(t *testing.T) {
 				"signers.x509.fulcio.enabled": "true",
 				"signers.x509.fulcio.address": "fulcio-address",
 			},
+			taskrunEnabled: true,
+			ociEnbaled:     true,
 			want: Config{
 				Builder: BuilderConfig{
 					"tekton-chains",
@@ -212,11 +387,11 @@ func TestParse(t *testing.T) {
 					TaskRuns: Artifact{
 						Format:         "tekton",
 						Signer:         "x509",
-						StorageBackend: "tekton",
+						StorageBackend: sets.NewString("tekton"),
 					},
 					OCI: Artifact{
 						Format:         "simplesigning",
-						StorageBackend: "oci",
+						StorageBackend: sets.NewString("oci"),
 						Signer:         "x509",
 					},
 				},
@@ -236,6 +411,8 @@ func TestParse(t *testing.T) {
 			data: map[string]string{
 				"transparency.enabled": "true",
 			},
+			taskrunEnabled: true,
+			ociEnbaled:     true,
 			want: Config{
 				Builder: BuilderConfig{
 					"tekton-chains",
@@ -244,11 +421,11 @@ func TestParse(t *testing.T) {
 					TaskRuns: Artifact{
 						Format:         "tekton",
 						Signer:         "x509",
-						StorageBackend: "tekton",
+						StorageBackend: sets.NewString("tekton"),
 					},
 					OCI: Artifact{
 						Format:         "simplesigning",
-						StorageBackend: "oci",
+						StorageBackend: sets.NewString("oci"),
 						Signer:         "x509",
 					},
 				},
@@ -268,6 +445,8 @@ func TestParse(t *testing.T) {
 			data: map[string]string{
 				"transparency.enabled": "manual",
 			},
+			taskrunEnabled: true,
+			ociEnbaled:     true,
 			want: Config{
 				Builder: BuilderConfig{
 					"tekton-chains",
@@ -276,11 +455,11 @@ func TestParse(t *testing.T) {
 					TaskRuns: Artifact{
 						Format:         "tekton",
 						Signer:         "x509",
-						StorageBackend: "tekton",
+						StorageBackend: sets.NewString("tekton"),
 					},
 					OCI: Artifact{
 						Format:         "simplesigning",
-						StorageBackend: "oci",
+						StorageBackend: sets.NewString("oci"),
 						Signer:         "x509",
 					},
 				},
@@ -303,6 +482,12 @@ func TestParse(t *testing.T) {
 			got, err := NewConfigFromMap(tt.data)
 			if err != nil {
 				t.Fatalf("NewConfigFromMap() = %v", err)
+			}
+			if got.Artifacts.OCI.Enabled() != tt.ociEnbaled {
+				t.Errorf("OCI artifact enable mismatch")
+			}
+			if got.Artifacts.TaskRuns.Enabled() != tt.taskrunEnabled {
+				t.Errorf("Taskrun artifact enable mismatch")
 			}
 			if diff := cmp.Diff(*got, tt.want); diff != "" {
 				t.Errorf("parse() = %v", diff)

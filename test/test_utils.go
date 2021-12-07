@@ -243,32 +243,33 @@ func verifySignature(ctx context.Context, t *testing.T, c *clients, tr *v1beta1.
 	if err != nil {
 		t.Errorf("error initializing backends: %s", err)
 	}
-	backendName := cfg.Artifacts.TaskRuns.StorageBackend
-	t.Logf("Backend name: %q\n", backendName)
-	backend := backends[cfg.Artifacts.TaskRuns.StorageBackend]
+	for _, b := range cfg.Artifacts.TaskRuns.StorageBackend.List() {
+		t.Logf("Backend name: %q\n", b)
+		backend := backends[b]
 
-	// Skip OCI as the functions are not implemented.
-	if backendName == "oci" {
-		return
-	}
+		// Skip OCI as the functions are not implemented.
+		if b == "oci" {
+			continue
+		}
 
-	// Initialize the storage options.
-	opts := config.StorageOpts{
-		Key: fmt.Sprintf("taskrun-%s", tr.UID),
-	}
+		// Initialize the storage options.
+		opts := config.StorageOpts{
+			Key: fmt.Sprintf("taskrun-%s", tr.UID),
+		}
 
-	// Let's fetch the signature and body.
-	signature, err := backend.RetrieveSignature(opts)
-	if err != nil {
-		t.Errorf("error retrieving the signature: %s", err)
-	}
-	body, err := backend.RetrievePayload(opts)
-	if err != nil {
-		t.Errorf("error retrieving the payload: %s", err)
-	}
+		// Let's fetch the signature and body.
+		signature, err := backend.RetrieveSignature(opts)
+		if err != nil {
+			t.Errorf("error retrieving the signature: %s", err)
+		}
+		body, err := backend.RetrievePayload(opts)
+		if err != nil {
+			t.Errorf("error retrieving the payload: %s", err)
+		}
 
-	if err := c.secret.x509priv.VerifySignature(strings.NewReader(signature), strings.NewReader(body)); err != nil {
-		t.Fatal(err)
+		if err := c.secret.x509priv.VerifySignature(strings.NewReader(signature), strings.NewReader(body)); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 }
