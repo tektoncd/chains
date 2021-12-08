@@ -103,25 +103,6 @@ func TestBackend_StorePayload(t *testing.T) {
 	}
 }
 
-func TestBackend_StorePayloadFailUnsupported(t *testing.T) {
-	mockGcsWrite := &mockGcsWriter{objects: map[string]*bytes.Buffer{}}
-	mockGcsRead := &mockGcsReader{objects: mockGcsWrite.objects}
-	b := &Backend{
-		logger: logtesting.TestLogger(t),
-		tr:     &v1beta1.TaskRun{},
-		writer: mockGcsWrite,
-		reader: mockGcsRead,
-		cfg:    config.Config{Storage: config.StorageConfigs{GCS: config.GCSStorageConfig{Bucket: "foo"}}},
-	}
-	opts := config.StorageOpts{Key: "foo.uuid", PayloadFormat: formats.PayloadTypeSimpleSigning}
-	if err := b.StorePayload([]byte("signed"), "signature", opts); err == nil {
-		t.Errorf("Backend.StorePayload() wantErr, but got none")
-	}
-	if _, err := b.RetrievePayload(opts); err == nil {
-		t.Errorf("Backend.StorePayload() wantErr, but got none")
-	}
-}
-
 type mockGcsWriter struct {
 	objects map[string]*bytes.Buffer
 }

@@ -17,7 +17,6 @@ import (
 	"cloud.google.com/go/storage"
 	"context"
 	"fmt"
-	"github.com/tektoncd/chains/pkg/chains/formats"
 	"io"
 	"io/ioutil"
 
@@ -30,7 +29,7 @@ const (
 	StorageBackendGCS = "gcs"
 	// taskrun-$namespace-$name/$key.<type>
 	SignatureNameFormat = "taskrun-%s-%s/%s.signature"
-	PayloadNameFormat   = "taskrun-%s-%s/%s.payload.%s"
+	PayloadNameFormat   = "taskrun-%s-%s/%s.payload"
 	CertNameFormat      = "taskrun-%s-%s/%s.cert"
 	ChainNameFormat     = "taskrun-%s-%s/%s.chain"
 )
@@ -67,7 +66,7 @@ func (b *Backend) StorePayload(rawPayload []byte, signature string, opts config.
 	// We need multiple objects: the signature and the payload. We want to make these unique to the UID, but easy to find based on the
 	// name/namespace as well.
 	// $bucket/taskrun-$namespace-$name/$key.signature
-	// $bucket/taskrun-$namespace-$name/$key.payload.(att|sig)
+	// $bucket/taskrun-$namespace-$name/$key.payload
 	sigName := b.sigName(opts)
 	b.logger.Infof("Storing signature at %s", sigName)
 
@@ -79,11 +78,7 @@ func (b *Backend) StorePayload(rawPayload []byte, signature string, opts config.
 		return err
 	}
 
-	payloadName, err := b.payloadName(opts)
-	if err != nil {
-		return err
-	}
-	payloadObj := b.writer.GetWriter(payloadName)
+	payloadObj := b.writer.GetWriter(b.payloadName(opts))
 	defer payloadObj.Close()
 	if _, err := payloadObj.Write(rawPayload); err != nil {
 		return err
@@ -156,11 +151,7 @@ func (b *Backend) RetrieveSignature(opts config.StorageOpts) (string, error) {
 }
 
 func (b *Backend) RetrievePayload(opts config.StorageOpts) (string, error) {
-	object, err := b.payloadName(opts)
-	if err != nil {
-		return "", err
-	}
-	return b.retrieveObject(object)
+	return b.retrieveObject(b.payloadName(opts))
 }
 
 func (b *Backend) retrieveObject(object string) (string, error) {
@@ -180,16 +171,8 @@ func (b *Backend) sigName(opts config.StorageOpts) string {
 	return fmt.Sprintf(SignatureNameFormat, b.tr.Namespace, b.tr.Name, opts.Key)
 }
 
-func (b *Backend) payloadName(opts config.StorageOpts) (string, error) {
-	ext := ""
-	if opts.PayloadFormat == formats.PayloadTypeTekton {
-		ext = "tkn"
-	} else if opts.PayloadFormat == formats.PayloadTypeInTotoIte6 {
-		ext = "att"
-	} else {
-		return "", fmt.Errorf("gcs does not support payloads of type %q", opts.PayloadFormat)
-	}
-	return fmt.Sprintf(PayloadNameFormat, b.tr.Namespace, b.tr.Name, opts.Key, ext), nil
+func (b *Backend) payloadName(opts config.StorageOpts) string {
+	return fmt.Sprintf(PayloadNameFormat, b.tr.Namespace, b.tr.Name, opts.Key)
 }
 
 func (b *Backend) certName(opts config.StorageOpts) string {
