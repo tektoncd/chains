@@ -167,7 +167,7 @@ func TestOCISigning(t *testing.T) {
 			// Let's fetch the signature and body:
 			t.Log(tr.Annotations)
 
-			sig, body := tr.Annotations["chains.tekton.dev/signature-05f95b26ed10"], tr.Annotations["chains.tekton.dev/payload-05f95b26ed10"]
+			sig, body := tr.Annotations["chains.tekton.dev/signature-05f95b26ed10"], tr.Annotations["chains.tekton.dev/tekton-05f95b26ed10"]
 			// base64 decode them
 			sigBytes, err := base64.StdEncoding.DecodeString(sig)
 			if err != nil {
@@ -241,7 +241,7 @@ func TestFulcio(t *testing.T) {
 	resetConfig := setConfigMap(ctx, t, c, map[string]string{
 		"artifacts.taskrun.storage":   "tekton",
 		"artifacts.taskrun.signer":    "x509",
-		"artifacts.taskrun.format":    "tekton-provenance",
+		"artifacts.taskrun.format":    "in-toto",
 		"artifacts.oci.signer":        "x509",
 		"signers.x509.fulcio.enabled": "true",
 		"transparency.enabled":        "false",
@@ -262,7 +262,7 @@ func TestFulcio(t *testing.T) {
 	// verify the cert against the signature and payload
 
 	sigKey := fmt.Sprintf("chains.tekton.dev/signature-taskrun-%s", tr.UID)
-	payloadKey := fmt.Sprintf("chains.tekton.dev/payload-taskrun-%s", tr.UID)
+	payloadKey := fmt.Sprintf("chains.tekton.dev/attestion-taskrun-%s", tr.UID)
 	certKey := fmt.Sprintf("chains.tekton.dev/cert-taskrun-%s", tr.UID)
 
 	envelopeBytes := base64Decode(t, tr.Annotations[sigKey])
@@ -496,7 +496,7 @@ func TestProvenanceMaterials(t *testing.T) {
 	tr = waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, signed, 120*time.Second)
 
 	// get provenance, and make sure it has a materials section
-	payloadKey := fmt.Sprintf("chains.tekton.dev/payload-taskrun-%s", tr.UID)
+	payloadKey := fmt.Sprintf("chains.tekton.dev/attestation-taskrun-%s", tr.UID)
 	body := tr.Annotations[payloadKey]
 	bodyBytes, err := base64.StdEncoding.DecodeString(body)
 	if err != nil {

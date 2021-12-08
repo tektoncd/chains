@@ -88,7 +88,7 @@ func runInTotoFormatterTests(ctx context.Context, t *testing.T, ns string, c *cl
 
 			// now validate the in-toto attestation
 			completed := waitForCondition(ctx, t, c.PipelineClient, taskRun.Name, ns, signed, 120*time.Second)
-			payload, _ := base64.StdEncoding.DecodeString(completed.Annotations[fmt.Sprintf("chains.tekton.dev/payload-taskrun-%s", completed.UID)])
+			payload, _ := base64.StdEncoding.DecodeString(completed.Annotations[fmt.Sprintf("chains.tekton.dev/attestation-taskrun-%s", completed.UID)])
 			signature, _ := base64.StdEncoding.DecodeString(completed.Annotations[fmt.Sprintf("chains.tekton.dev/signature-taskrun-%s", completed.UID)])
 			t.Logf("Got attestation: %s", string(payload))
 

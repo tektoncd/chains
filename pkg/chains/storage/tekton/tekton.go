@@ -31,7 +31,8 @@ import (
 
 const (
 	StorageBackendTekton        = "tekton"
-	TaskRunAnnotationFormat     = "chains.tekton.dev/taskrun-%s"     // payload type
+	PayloadAnnotationFormat     = "chains.tekton.dev/payload-%s"     // TODO: remove deprecated payload annotation
+	TektonAnnotationFormat      = "chains.tekton.dev/tekton-%s"      // payload type
 	AttestationAnnotationFormat = "chains.tekton.dev/attestation-%s" // payload type
 	SignatureAnnotationFormat   = "chains.tekton.dev/signature-%s"
 	CertAnnotationsFormat       = "chains.tekton.dev/cert-%s"
@@ -69,6 +70,9 @@ func (b *Backend) StorePayload(rawPayload []byte, signature string, opts config.
 		return err
 	}
 	patchMap[payloadKey] = base64.StdEncoding.EncodeToString([]byte(rawPayload))
+	// TODO: remove deprecated
+	// TODO: currently commented out so I can verify the new annotations in e2e (DO NOT SUBMIT)
+	// patchMap[fmt.Sprintf(SignatureAnnotationFormat, opts.Key)] = base64.StdEncoding.EncodeToString([]byte(rawPayload))
 
 	// Use patch instead of update to prevent race conditions.
 	patchBytes, err := patch.GetAnnotationsPatch(patchMap)
@@ -139,7 +143,7 @@ func (b *Backend) RetrievePayload(opts config.StorageOpts) (string, error) {
 
 func (b *Backend) payloadKey(opts config.StorageOpts) (string, error) {
 	if opts.PayloadFormat == formats.PayloadTypeTekton {
-		return fmt.Sprintf(TaskRunAnnotationFormat, opts.Key), nil
+		return fmt.Sprintf(TektonAnnotationFormat, opts.Key), nil
 	} else if opts.PayloadFormat == formats.PayloadTypeInTotoIte6 {
 		return fmt.Sprintf(AttestationAnnotationFormat, opts.Key), nil
 	} else {

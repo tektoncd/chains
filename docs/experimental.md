@@ -47,14 +47,14 @@ In this mode, instead of setting up a signing key, Chains would request an ident
 This identity token will be used to authorize a Fulcio certificate for a Tekton artifact (OCI image or TaskRun).
 Currently, this experimental feature only works on a GKE cluster with [Workload Identity](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity) configured (Workload Identity is required for Chains to be able to request an identity token).
 
-Once Chains has successfully requested a certificate, it will store the cert as a base64 encoded annotation on the TaskRun, along with the payload and signature.
+Once Chains has successfully requested a certificate, it will store the cert as a base64 encoded annotation on the TaskRun, along with the payload(attestation or taskrun) and signature.
 
 This can look like:
 
 ```yaml
 Annotations:  chains.tekton.dev/cert-taskrun-57e7ef8e-13fb-4d27-af6e-dc4d68f73cc4:
               chains.tekton.dev/chain-taskrun-57e7ef8e-13fb-4d27-af6e-dc4d68f73cc4:
-              chains.tekton.dev/payload-taskrun-57e7ef8e-13fb-4d27-af6e-dc4d68f73cc4:
+              chains.tekton.dev/attestation-taskrun-57e7ef8e-13fb-4d27-af6e-dc4d68f73cc4:
                 eyJfdHlwZSI6ImJ1aWxkLWNoYWlucy01dnhycyIsInByZWRpY2F0ZVR5cGUiOiJodHRwczovL3Rla3Rvbi5kZXYvY2hhaW5zL3Byb3ZlbmFuY2UiLCJzdWJqZWN0IjpbeyJuYW1lIj...
               chains.tekton.dev/signature-taskrun-57e7ef8e-13fb-4d27-af6e-dc4d68f73cc4:
                 eyJwYXlsb2FkVHlwZSI6ImFwcGxpY2F0aW9uL3ZuZC5pbi10b3RvK2pzb24iLCJwYXlsb2FkIjoiZXlKZmRIbHdaU0k2SW1KMWFXeGtMV05vWVdsdWN5MDFkbmh5Y3lJc0luQnlaV1...

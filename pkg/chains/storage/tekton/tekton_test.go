@@ -38,12 +38,12 @@ func TestBackend_StorePayload(t *testing.T) {
 		wantErr           bool
 	}{
 		{
-			name: "simple taskrun payload",
+			name: "simple tekton payload",
 			payload: mockPayload{
 				A: "foo",
 				B: 3,
 			},
-			payloadAnnotation: "chains.tekton.dev/taskrun-mockpayload",
+			payloadAnnotation: "chains.tekton.dev/tekton-mockpayload",
 			opts: config.StorageOpts{
 				Key:           "mockpayload",
 				PayloadFormat: formats.PayloadTypeTekton,

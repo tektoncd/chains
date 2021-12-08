@@ -56,7 +56,7 @@ Next, retrieve the signature and payload from the object (they are stored as bas
 
 ```shell
 $ export TASKRUN_UID=$(kubectl get taskrun $TASKRUN -o=json | jq -r '.metadata.uid')
-$ kubectl get taskrun $TASKRUN -o=json | jq  -r ".metadata.annotations[\"chains.tekton.dev/payload-taskrun-$TASKRUN_UID\"]" | base64 --decode > payload
+$ kubectl get taskrun $TASKRUN -o=json | jq  -r ".metadata.annotations[\"chains.tekton.dev/TODO_FIGURE_OUT_PAYLOAD_TYPE-taskrun-$TASKRUN_UID\"]" | base64 --decode > payload
 $ kubectl get taskrun $TASKRUN -o=json | jq  -r ".metadata.annotations[\"chains.tekton.dev/signature-taskrun-$TASKRUN_UID\"]" | base64 --decode > signature
 ```
 
