@@ -15,6 +15,7 @@ package tekton
 
 import (
 	"encoding/json"
+	"github.com/tektoncd/chains/pkg/chains/formats"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -32,42 +33,41 @@ func TestBackend_StorePayload(t *testing.T) {
 	tests := []struct {
 		name    string
 		payload interface{}
+		opts    config.StorageOpts
 		wantErr bool
 	}{
 		{
-			name: "simple",
+			name: "simple taskrun payload",
 			payload: mockPayload{
 				A: "foo",
 				B: 3,
+			},
+			opts: config.StorageOpts{
+				Key:           "mockpayload",
+				PayloadFormat: formats.PayloadTypeTekton,
+			},
+		},
+		{
+			name: "simple intoto payload",
+			payload: mockPayload{
+				A: "foo",
+				B: 3,
+			},
+			opts: config.StorageOpts{
+				Key:           "mockpayload",
+				PayloadFormat: formats.PayloadTypeInTotoIte6,
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx, _ := rtesting.SetupFakeContext(t)
-			c := fakepipelineclient.Get(ctx)
-			tr := &v1beta1.TaskRun{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "foo",
-					Namespace: "bar",
-				},
-			}
-			if _, err := c.TektonV1beta1().TaskRuns(tr.Namespace).Create(ctx, tr, metav1.CreateOptions{}); err != nil {
-				t.Errorf("error setting up fake taskrun: %v", err)
-			}
-
-			b := &Backend{
-				pipelienclientset: c,
-				logger:            logtesting.TestLogger(t),
-				tr:                tr,
-			}
+			b := configureFakeBackend(t)
 			payload, err := json.Marshal(tt.payload)
 			if err != nil {
 				t.Errorf("error marshaling json: %v", err)
 			}
-			opts := config.StorageOpts{Key: "mockpayload"}
 			mockSignature := "mocksignature"
-			if err := b.StorePayload(payload, mockSignature, opts); (err != nil) != tt.wantErr {
+			if err := b.StorePayload(payload, mockSignature, tt.opts); (err != nil) != tt.wantErr {
 				t.Errorf("Backend.StorePayload() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
@@ -76,7 +76,7 @@ func TestBackend_StorePayload(t *testing.T) {
 				return
 			}
 
-			jsonString, err := b.RetrievePayload(opts)
+			jsonString, err := b.RetrievePayload(tt.opts)
 			if err != nil {
 				t.Errorf("error base64 decoding: %v", err)
 			}
@@ -92,7 +92,7 @@ func TestBackend_StorePayload(t *testing.T) {
 			}
 
 			// Compare the signature.
-			sig, err := b.RetrieveSignature(opts)
+			sig, err := b.RetrieveSignature(tt.opts)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -108,4 +108,36 @@ func TestBackend_StorePayload(t *testing.T) {
 type mockPayload struct {
 	A string
 	B int
+}
+
+func TestBackend_StorePayloadFailUnsupported(t *testing.T) {
+	b := configureFakeBackend(t)
+	opts := config.StorageOpts{Key: "foo.uuid", PayloadFormat: formats.PayloadTypeSimpleSigning}
+	if err := b.StorePayload([]byte("signed"), "signature", opts); err == nil {
+		t.Errorf("Backend.StorePayload() wantErr, but got none")
+	}
+	if _, err := b.RetrievePayload(opts); err == nil {
+		t.Errorf("Backend.StorePayload() wantErr, but got none")
+	}
+}
+
+func configureFakeBackend(t *testing.T) *Backend {
+	ctx, _ := rtesting.SetupFakeContext(t)
+	c := fakepipelineclient.Get(ctx)
+	tr := &v1beta1.TaskRun{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: "bar",
+		},
+	}
+	if _, err := c.TektonV1beta1().TaskRuns(tr.Namespace).Create(ctx, tr, metav1.CreateOptions{}); err != nil {
+		t.Errorf("error setting up fake taskrun: %v", err)
+	}
+
+	b := &Backend{
+		pipelienclientset: c,
+		logger:            logtesting.TestLogger(t),
+		tr:                tr,
+	}
+	return b
 }

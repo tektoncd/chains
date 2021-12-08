@@ -17,6 +17,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/tektoncd/chains/pkg/chains/formats"
 
 	"github.com/tektoncd/chains/pkg/config"
 
@@ -29,11 +30,12 @@ import (
 )
 
 const (
-	StorageBackendTekton      = "tekton"
-	PayloadAnnotationFormat   = "chains.tekton.dev/payload-%s"
-	SignatureAnnotationFormat = "chains.tekton.dev/signature-%s"
-	CertAnnotationsFormat     = "chains.tekton.dev/cert-%s"
-	ChainAnnotationFormat     = "chains.tekton.dev/chain-%s"
+	StorageBackendTekton        = "tekton"
+	TaskRunAnnotationFormat     = "chains.tekton.dev/taskrun-%s"     // payload type
+	AttestationAnnotationFormat = "chains.tekton.dev/attestation-%s" // payload type
+	SignatureAnnotationFormat   = "chains.tekton.dev/signature-%s"
+	CertAnnotationsFormat       = "chains.tekton.dev/cert-%s"
+	ChainAnnotationFormat       = "chains.tekton.dev/chain-%s"
 )
 
 // Backend is a storage backend that stores signed payloads in the TaskRun metadata as an annotation.
@@ -57,14 +59,19 @@ func NewStorageBackend(ps versioned.Interface, logger *zap.SugaredLogger, tr *v1
 func (b *Backend) StorePayload(rawPayload []byte, signature string, opts config.StorageOpts) error {
 	b.logger.Infof("Storing payload on TaskRun %s/%s", b.tr.Namespace, b.tr.Name)
 
-	// Use patch instead of update to prevent race conditions.
-	patchBytes, err := patch.GetAnnotationsPatch(map[string]string{
-		// Base64 encode both the signature and the payload
-		fmt.Sprintf(PayloadAnnotationFormat, opts.Key):   base64.StdEncoding.EncodeToString(rawPayload),
+	patchMap := map[string]string{
 		fmt.Sprintf(SignatureAnnotationFormat, opts.Key): base64.StdEncoding.EncodeToString([]byte(signature)),
 		fmt.Sprintf(CertAnnotationsFormat, opts.Key):     base64.StdEncoding.EncodeToString([]byte(opts.Cert)),
 		fmt.Sprintf(ChainAnnotationFormat, opts.Key):     base64.StdEncoding.EncodeToString([]byte(opts.Chain)),
-	})
+	}
+	payloadKey, err := b.payloadKey(opts)
+	if err != nil {
+		return err
+	}
+	patchMap[payloadKey] = base64.StdEncoding.EncodeToString([]byte(rawPayload))
+
+	// Use patch instead of update to prevent race conditions.
+	patchBytes, err := patch.GetAnnotationsPatch(patchMap)
 	if err != nil {
 		return err
 	}
@@ -118,10 +125,24 @@ func (b *Backend) RetrieveSignature(opts config.StorageOpts) (string, error) {
 // RetrievePayload retrieve the payload stored in the taskrun.
 func (b *Backend) RetrievePayload(opts config.StorageOpts) (string, error) {
 	b.logger.Infof("Retrieving payload on TaskRun %s/%s", b.tr.Namespace, b.tr.Name)
-	payload, err := b.retrieveAnnotationValue(fmt.Sprintf(PayloadAnnotationFormat, opts.Key), true)
+	payloadKey, err := b.payloadKey(opts)
+	if err != nil {
+		return "", err
+	}
+	payload, err := b.retrieveAnnotationValue(payloadKey, true)
 	if err != nil {
 		return "", err
 	}
 
 	return string(payload), nil
+}
+
+func (b *Backend) payloadKey(opts config.StorageOpts) (string, error) {
+	if opts.PayloadFormat == formats.PayloadTypeTekton {
+		return fmt.Sprintf(TaskRunAnnotationFormat, opts.Key), nil
+	} else if opts.PayloadFormat == formats.PayloadTypeInTotoIte6 {
+		return fmt.Sprintf(AttestationAnnotationFormat, opts.Key), nil
+	} else {
+		return "", fmt.Errorf("tekton storage does not support payloads of type %q", opts.PayloadFormat)
+	}
 }
