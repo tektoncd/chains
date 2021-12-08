@@ -31,10 +31,11 @@ func TestBackend_StorePayload(t *testing.T) {
 	// The Tekton storage backend JSON serializes, base64 encodes, and attaches the result as an annotation
 
 	tests := []struct {
-		name    string
-		payload interface{}
-		opts    config.StorageOpts
-		wantErr bool
+		name              string
+		payload           interface{}
+		payloadAnnotation string
+		opts              config.StorageOpts
+		wantErr           bool
 	}{
 		{
 			name: "simple taskrun payload",
@@ -42,6 +43,7 @@ func TestBackend_StorePayload(t *testing.T) {
 				A: "foo",
 				B: 3,
 			},
+			payloadAnnotation: "chains.tekton.dev/taskrun-mockpayload",
 			opts: config.StorageOpts{
 				Key:           "mockpayload",
 				PayloadFormat: formats.PayloadTypeTekton,
@@ -53,6 +55,7 @@ func TestBackend_StorePayload(t *testing.T) {
 				A: "foo",
 				B: 3,
 			},
+			payloadAnnotation: "chains.tekton.dev/attestation-mockpayload",
 			opts: config.StorageOpts{
 				Key:           "mockpayload",
 				PayloadFormat: formats.PayloadTypeInTotoIte6,
@@ -69,6 +72,10 @@ func TestBackend_StorePayload(t *testing.T) {
 			mockSignature := "mocksignature"
 			if err := b.StorePayload(payload, mockSignature, tt.opts); (err != nil) != tt.wantErr {
 				t.Errorf("Backend.StorePayload() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			if _, err := b.retrieveAnnotationValue(tt.payloadAnnotation, false); err != nil {
+				t.Errorf("Backend could not retrieve expected annotation %q", tt.payloadAnnotation)
 			}
 
 			// The rest is invalid if we wanted an error.
