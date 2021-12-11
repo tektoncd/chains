@@ -16,7 +16,7 @@
         "buildType": "https://tekton.dev/attestations/chains@v2",
         "invocation": {
             "configSource": {},
-            "parameters": null
+            "parameters": {}
         },
         "buildConfig": {
             "steps": [

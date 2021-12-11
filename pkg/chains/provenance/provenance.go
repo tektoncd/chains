@@ -32,7 +32,7 @@ type ProvenancePredicate struct {
 
 // Invocation describes how the Taskrun was created
 type Invocation struct {
-	Parameters []string `json:"parameters"`
+	Parameters interface{} `json:"parameters"`
 	// This would be nil for an "inline task", a URI for the Task definition itself
 	// if it was created in-cluster, or an OCI uri if it came from OCI
 	// Something else if it came from a pipeline

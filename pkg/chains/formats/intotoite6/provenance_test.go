@@ -203,9 +203,9 @@ spec:
 	}
 
 	expected := slsa.ProvenanceInvocation{
-		Parameters: []string{
-			"my-param={string string-param []}",
-			"my-array-param={array  [my array]}",
+		Parameters: map[string]string{
+			"my-param":       "{string string-param []}",
+			"my-array-param": "{array  [my array]}",
 		},
 	}
 
