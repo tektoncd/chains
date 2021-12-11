@@ -118,9 +118,9 @@ func metadata(tr *v1beta1.TaskRun) *slsa.ProvenanceMetadata {
 func invocation(tr *v1beta1.TaskRun) slsa.ProvenanceInvocation {
 	i := slsa.ProvenanceInvocation{}
 	// get parameters
-	var params []string
+	params := make(map[string]string)
 	for _, p := range tr.Spec.Params {
-		params = append(params, fmt.Sprintf("%s=%v", p.Name, p.Value))
+		params[p.Name] = fmt.Sprintf("%v", p.Value)
 	}
 	// add params
 	if ts := tr.Status.TaskSpec; ts != nil {
@@ -130,7 +130,7 @@ func invocation(tr *v1beta1.TaskRun) slsa.ProvenanceInvocation {
 				if v == "" {
 					v = fmt.Sprintf("%v", p.Default.ArrayVal)
 				}
-				params = append(params, fmt.Sprintf("%s=%s", p.Name, v))
+				params[p.Name] = fmt.Sprintf("%s", v)
 			}
 		}
 	}
