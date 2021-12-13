@@ -62,7 +62,7 @@ func TestCreatePayload1(t *testing.T) {
 				BuildFinishedOn: &e1BuildFinished,
 			},
 			Materials: []slsa.ProvenanceMaterial{
-				{URI: "https://git.test.com", Digest: slsa.DigestSet{"revision": "abcd"}},
+				{URI: "git+https://git.test.com.git", Digest: slsa.DigestSet{"sha1": "abcd"}},
 			},
 			Invocation: slsa.ProvenanceInvocation{
 				Parameters: map[string]string{

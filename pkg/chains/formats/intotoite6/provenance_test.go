@@ -90,9 +90,9 @@ status:
 
 	expected := []slsa.ProvenanceMaterial{
 		{
-			URI: "https://github.com/GoogleContainerTools/distroless",
+			URI: "git+https://github.com/GoogleContainerTools/distroless.git",
 			Digest: slsa.DigestSet{
-				"revision": "50c56a48cfb3a5a80fa36ed91c739bdac8381cbe",
+				"sha1": "50c56a48cfb3a5a80fa36ed91c739bdac8381cbe",
 			},
 		},
 	}
@@ -142,9 +142,9 @@ status:
 
 	expected := []slsa.ProvenanceMaterial{
 		{
-			URI: "https://github.com/GoogleContainerTools/distroless",
+			URI: "git+https://github.com/GoogleContainerTools/distroless.git",
 			Digest: slsa.DigestSet{
-				"revision": "50c56a48cfb3a5a80fa36ed91c739bdac8381cbe",
+				"sha1": "50c56a48cfb3a5a80fa36ed91c739bdac8381cbe",
 			},
 		},
 	}
@@ -170,9 +170,9 @@ spec:
 
 	expected = []slsa.ProvenanceMaterial{
 		{
-			URI: "github.com/something",
+			URI: "git+github.com/something.git",
 			Digest: slsa.DigestSet{
-				"revision": "my-commit",
+				"sha1": "my-commit",
 			},
 		},
 	}

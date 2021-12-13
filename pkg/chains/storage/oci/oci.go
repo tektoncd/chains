@@ -18,6 +18,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+
 	"github.com/tektoncd/chains/pkg/chains/formats"
 
 	"github.com/in-toto/in-toto-golang/in_toto"
