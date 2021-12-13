@@ -529,7 +529,7 @@ func TestProvenanceMaterials(t *testing.T) {
 
 	// modify image task run to add in the params we want to check for
 	commit := "my-git-commit"
-	url := "my-git-url"
+	url := "https://my-git-url"
 	imageTaskRun.Spec.Params = []v1beta1.Param{
 		{
 			Name: "CHAINS-GIT_COMMIT", Value: *v1beta1.NewArrayOrString(commit),
@@ -570,9 +570,9 @@ func TestProvenanceMaterials(t *testing.T) {
 	}
 	want := []provenance.ProvenanceMaterial{
 		{
-			URI: url,
+			URI: "git+" + url + ".git",
 			Digest: provenance.DigestSet{
-				"revision": commit,
+				"sha1": commit,
 			},
 		},
 	}

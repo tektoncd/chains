@@ -79,9 +79,9 @@
         },
         "materials": [
             {
-                "uri": "https://github.com/GoogleContainerTools/skaffold",
+                "uri": "git+https://github.com/GoogleContainerTools/skaffold@v0.32.0",
                 "digest": {
-                    "revision": "v0.32.0"
+                    "sha1": "6ed7aad5e8a36052ee5f6079fc91368e362121f7"
                 }
             }
         ]
