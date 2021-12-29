@@ -3,7 +3,7 @@ module github.com/tektoncd/chains
 go 1.16
 
 require (
-	cloud.google.com/go v0.97.0
+	cloud.google.com/go v0.98.0
 	cloud.google.com/go/storage v1.18.2
 	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
 	github.com/ghodss/yaml v1.0.0
@@ -34,13 +34,13 @@ require (
 	go.uber.org/zap v1.19.1
 	gocloud.dev v0.24.0
 	golang.org/x/crypto v0.0.0-20210920023735-84f357641f63
-	google.golang.org/api v0.60.0
+	google.golang.org/api v0.61.0
 	k8s.io/api v0.22.1
 	k8s.io/apiextensions-apiserver v0.22.1 // indirect
 	k8s.io/apimachinery v0.22.1
 	k8s.io/client-go v0.22.1
 	k8s.io/code-generator v0.22.1
-	knative.dev/pkg v0.0.0-20211123135150-787aec59e70a
+	knative.dev/pkg v0.0.0-20211216142117-79271798f696
 )
 
 // Knative deps (release-0.20)
