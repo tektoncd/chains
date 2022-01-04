@@ -251,6 +251,24 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 				digest(t, "gcr.io/foo/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5"),
 				digest(t, "gcr.io/baz/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b6"),
 			},
+		}, {
+			name: "images-newline",
+			tr: &v1beta1.TaskRun{
+				Status: v1beta1.TaskRunStatus{
+					TaskRunStatusFields: v1beta1.TaskRunStatusFields{
+						TaskRunResults: []v1beta1.TaskRunResult{
+							{
+								Name:  "IMAGES",
+								Value: fmt.Sprintf("gcr.io/foo/bar@%s\ngcr.io/baz/bar@%s\n\n", digest1, digest2),
+							},
+						},
+					},
+				},
+			},
+			want: []interface{}{
+				digest(t, "gcr.io/foo/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5"),
+				digest(t, "gcr.io/baz/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b6"),
+			},
 		},
 	}
 	for _, tt := range tests {

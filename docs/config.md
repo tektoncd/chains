@@ -25,7 +25,8 @@ For example, if **both** `MYIMAGE_IMAGE_URL` AND `MYIMAGE_IMAGE_DIGEST` are corr
 Multiple images can be specified by using different prefixes in place of `*`.
 
 Multiple images can also be specified by using the `IMAGES` Result.
-The value of the `IMAGES` result is a list of comma-separates images, each qualified by digest.
+The value of the `IMAGES` result is a list of images, each qualified by digest.
+The list of images can be separated by commas or by newlines.
 
 ```shell
 - name: IMAGES
