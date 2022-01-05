@@ -22,6 +22,7 @@ package test
 import (
 	"bytes"
 	"context"
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/sha256"
 	"encoding/base64"
@@ -111,13 +112,16 @@ func runInTotoFormatterTests(ctx context.Context, t *testing.T, ns string, c *cl
 			verifier := &verifier{
 				pub: pub.(*ecdsa.PublicKey),
 			}
-			ev := dsse.NewEnvelopeVerifier(verifier)
+			ev, err := dsse.NewEnvelopeVerifier(verifier)
+			if err != nil {
+				t.Fatal(err)
+			}
 			env := dsse.Envelope{}
 			if err := json.Unmarshal(signature, &env); err != nil {
 				t.Fatal(err)
 			}
 
-			if err := ev.Verify(&env); err != nil {
+			if _, err := ev.Verify(&env); err != nil {
 				t.Fatal(err)
 			}
 		})
@@ -128,12 +132,20 @@ type verifier struct {
 	pub *ecdsa.PublicKey
 }
 
-func (v *verifier) Verify(_ string, data, sig []byte) error {
+func (v *verifier) Verify(data, sig []byte) error {
 	h := sha256.Sum256(data)
 	if ecdsa.VerifyASN1(v.pub, h[:], sig) {
 		return nil
 	}
 	return errors.New("validation error")
+}
+
+func (v *verifier) KeyID() (string, error) {
+	return "", nil
+}
+
+func (v *verifier) Public() crypto.PublicKey {
+	return v.pub
 }
 
 func expectedProvenance(t *testing.T, example string, tr *v1beta1.TaskRun) intoto.ProvenanceStatement {

@@ -1,3 +1,16 @@
+# Release (v1.9.0)
+
+## Module Highlights
+* `github.com/aws/smithy-go`: v1.9.0
+  * **Feature**: sync: OnceErr, can be used to concurrently record a signal when an error has occurred.
+  * **Bug Fix**: `transport/http`: CloseResponseBody and ErrorCloseResponseBody middleware have been updated to ensure that the body is fully drained before closing.
+
+# Release v1.8.1
+
+### Smithy Go Module
+* **Bug Fix**: Fixed an issue that would cause the HTTP Content-Length to be set to 0 if the stream body was not set.
+  * Fixes [aws/aws-sdk-go-v2#1418](https://github.com/aws/aws-sdk-go-v2/issues/1418)
+
 # Release v1.8.0
 
 ### Smithy Go Module

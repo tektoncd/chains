@@ -191,7 +191,7 @@ func createRegistry(ctx context.Context, t *testing.T, namespace string, kubeCli
 
 type secret struct {
 	x509priv   *signature.ECDSASignerVerifier
-	cosignPriv *signature.ECDSASignerVerifier
+	cosignPriv signature.SignerVerifier
 }
 
 func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface, opts setupOpts) secret {
@@ -223,7 +223,7 @@ func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface, opts
 		}
 		s.StringData[p] = string(b)
 	}
-	cosignPriv, err := cosign.LoadECDSAPrivateKey([]byte(s.StringData["cosign.key"]), []byte(s.StringData["cosign.password"]))
+	cosignPriv, err := cosign.LoadPrivateKey([]byte(s.StringData["cosign.key"]), []byte(s.StringData["cosign.password"]))
 	if err != nil {
 		t.Error(err)
 	}
