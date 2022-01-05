@@ -122,7 +122,7 @@ var simpleTaskspec = v1beta1.TaskSpec{
 
 var simpleTaskRun = v1beta1.TaskRun{
 	ObjectMeta: metav1.ObjectMeta{
-		GenerateName: "test-task",
+		GenerateName: "test-task-",
 	},
 	Spec: v1beta1.TaskRunSpec{
 		TaskSpec: &simpleTaskspec,

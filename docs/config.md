@@ -101,5 +101,4 @@ chains.tekton.dev/transparency-upload: "true"
 | Key | Description | Supported Values | Default |
 | :--- | :--- | :--- | :--- |
 | `signers.x509.fulcio.enabled` | EXPERIMENTAL. Whether to enable automatic certificates from fulcio. | `true`, `false` | `false`|
-| `signers.x509.fulcio.auth`    | EXPERIMENTAL. Auth mechanism for verifying identity for fulcio, if enabled  | `google`       | `google` |
 | `signers.x509.fulcio.address` | EXPERIMENTAL. Fulcio address to request certificate from, if enabled | |`https://fulcio.sigstore.dev` |

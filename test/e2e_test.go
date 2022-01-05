@@ -241,7 +241,7 @@ func TestFulcio(t *testing.T) {
 	resetConfig := setConfigMap(ctx, t, c, map[string]string{
 		"artifacts.taskrun.storage":   "tekton",
 		"artifacts.taskrun.signer":    "x509",
-		"artifacts.taskrun.format":    "tekton-provenance",
+		"artifacts.taskrun.format":    "in-toto",
 		"artifacts.oci.signer":        "x509",
 		"signers.x509.fulcio.enabled": "true",
 		"transparency.enabled":        "false",

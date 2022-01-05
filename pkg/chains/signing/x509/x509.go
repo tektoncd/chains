@@ -21,19 +21,23 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
-	"net/url"
 	"path/filepath"
-
-	"google.golang.org/api/idtoken"
 
 	"github.com/pkg/errors"
 	"github.com/sigstore/cosign/cmd/cosign/cli/fulcio"
 	"github.com/sigstore/cosign/pkg/cosign"
-	"github.com/sigstore/fulcio/pkg/api"
+	"github.com/sigstore/cosign/pkg/providers"
+	_ "github.com/sigstore/cosign/pkg/providers/google"
+
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/tektoncd/chains/pkg/chains/signing"
 	"github.com/tektoncd/chains/pkg/config"
 	"go.uber.org/zap"
+)
+
+const (
+	defaultOIDCIssuer   = "https://oauth2.sigstore.dev/auth"
+	defaultOIDCClientID = "sigstore"
 )
 
 // Signer exposes methods to sign payloads.
@@ -50,7 +54,7 @@ func NewSigner(secretPath string, cfg config.Config, logger *zap.SugaredLogger) 
 	cosignPrivateKeypath := filepath.Join(secretPath, "cosign.key")
 
 	if cfg.Signers.X509.FulcioEnabled {
-		return fulcioSigner(cfg.Signers.X509.FulcioAuth, cfg.Signers.X509.FulcioAddr, logger)
+		return fulcioSigner(cfg.Signers.X509.FulcioAddr, logger)
 	} else if contents, err := ioutil.ReadFile(x509PrivateKeyPath); err == nil {
 		return x509Signer(contents, logger)
 	} else if contents, err := ioutil.ReadFile(cosignPrivateKeypath); err == nil {
@@ -59,27 +63,24 @@ func NewSigner(secretPath string, cfg config.Config, logger *zap.SugaredLogger) 
 	return nil, errors.New("no valid private key found, looked for: [x509.pem, cosign.key]")
 }
 
-func fulcioSigner(auth, addr string, logger *zap.SugaredLogger) (*Signer, error) {
-	if auth != "google" {
-		return nil, errors.New(fmt.Sprintf("%s is not yet implemented as an authorization scheme for the fulcio signer", auth))
+func fulcioSigner(addr string, logger *zap.SugaredLogger) (*Signer, error) {
+	ctx := context.Background()
+
+	if !providers.Enabled(ctx) {
+		return nil, fmt.Errorf("no auth provider for fulcio is enabled")
+	}
+
+	tok, err := providers.Provide(ctx, "sigstore")
+	if err != nil {
+		return nil, errors.Wrap(err, "getting provider")
 	}
 	logger.Info("Signing with fulcio ...")
 
-	ts, err := idtoken.NewTokenSource(context.Background(), "sigstore")
+	fClient, err := fulcio.NewClient(addr)
 	if err != nil {
-		return nil, errors.Wrap(err, "new token source")
+		return nil, errors.Wrap(err, "creating Fulcio client")
 	}
-	tok, err := ts.Token()
-	if err != nil {
-		return nil, errors.Wrap(err, "getting token")
-	}
-
-	u, err := url.Parse(addr)
-	if err != nil {
-		return nil, errors.Wrap(err, "new fulcio client")
-	}
-	client := api.NewClient(u)
-	k, err := fulcio.NewSigner(context.Background(), tok.AccessToken, "https://oauth2.sigstore.dev/auth", "sigstore", client)
+	k, err := fulcio.NewSigner(ctx, tok, defaultOIDCIssuer, defaultOIDCClientID, fClient)
 	if err != nil {
 		return nil, errors.Wrap(err, "new signer")
 	}
