@@ -178,7 +178,7 @@ func TestOCISigning(t *testing.T) {
 				t.Error(err)
 			}
 
-			var verifier *signature.ECDSASignerVerifier
+			var verifier signature.SignerVerifier
 			if test.name == "cosign" {
 				verifier = c.secret.cosignPriv
 			} else {
@@ -288,7 +288,7 @@ func TestFulcio(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	paeEnc := dsse.PAE(in_toto.PayloadType, string(payload))
+	paeEnc := dsse.PAE(in_toto.PayloadType, payload)
 	sigEncoded := envelope.Signatures[0].Sig
 	sig := base64Decode(t, sigEncoded)
 

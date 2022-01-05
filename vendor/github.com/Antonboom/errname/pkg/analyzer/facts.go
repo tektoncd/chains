@@ -100,7 +100,7 @@ var knownErrConstructors = stringSet{
 	"errors.NewAssertionErrorWithWrappedErrf": {},
 }
 
-func isSentinelError(
+func isSentinelError( //nolint:gocognit
 	v *ast.ValueSpec,
 	pkgAliases map[string]string,
 	allTypes, errorTypes, errorFuncs stringSet,

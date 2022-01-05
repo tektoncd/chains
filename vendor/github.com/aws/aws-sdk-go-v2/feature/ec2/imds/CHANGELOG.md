@@ -1,3 +1,23 @@
+# v1.8.0 (2021-11-06)
+
+* **Feature**: Updated `github.com/aws/smithy-go` to latest version
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.7.0 (2021-10-21)
+
+* **Feature**: Updated  to latest version
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.6.0 (2021-10-11)
+
+* **Feature**: Respect passed in Context Deadline/Timeout. Updates the IMDS Client operations to not override the passed in Context's Deadline or Timeout options. If an Client operation is called with a Context with a Deadline or Timeout, the client will no longer override it with the client's default timeout.
+* **Bug Fix**: Fix IMDS client's response handling and operation timeout race. Fixes #1253
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.5.1 (2021-09-17)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
 # v1.5.0 (2021-08-27)
 
 * **Feature**: Updated `github.com/aws/smithy-go` to latest version

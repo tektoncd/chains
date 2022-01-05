@@ -29,7 +29,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sigstore/cosign/cmd/cosign/cli/fulcio"
 	"github.com/sigstore/cosign/pkg/cosign"
-	"github.com/sigstore/fulcio/pkg/client"
+	"github.com/sigstore/fulcio/pkg/api"
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/tektoncd/chains/pkg/chains/signing"
 	"github.com/tektoncd/chains/pkg/config"
@@ -78,7 +78,7 @@ func fulcioSigner(auth, addr string, logger *zap.SugaredLogger) (*Signer, error)
 	if err != nil {
 		return nil, errors.Wrap(err, "new fulcio client")
 	}
-	client := client.New(u)
+	client := api.NewClient(u)
 	k, err := fulcio.NewSigner(context.Background(), tok.AccessToken, "https://oauth2.sigstore.dev/auth", "sigstore", client)
 	if err != nil {
 		return nil, errors.Wrap(err, "new signer")
@@ -116,7 +116,7 @@ func cosignSigner(secretPath string, privateKey []byte, logger *zap.SugaredLogge
 	if err != nil {
 		return nil, errors.Wrap(err, "reading cosign.password file")
 	}
-	signer, err := cosign.LoadECDSAPrivateKey(privateKey, password)
+	signer, err := cosign.LoadPrivateKey(privateKey, password)
 	if err != nil {
 		return nil, err
 	}

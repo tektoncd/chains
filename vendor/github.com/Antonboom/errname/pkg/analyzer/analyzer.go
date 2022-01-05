@@ -65,15 +65,12 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			panic("no specification for type " + t)
 		}
 
-		var isValid bool
-		switch tSpec.Type.(type) {
-		case *ast.ArrayType:
-			isValid = isValidErrorArrayTypeName(t)
-		default:
-			isValid = isValidErrorTypeName(t)
-		}
-		if !isValid {
-			reportAboutErrorType(pass, tSpec.Pos(), t)
+		if _, ok := tSpec.Type.(*ast.ArrayType); ok {
+			if !isValidErrorArrayTypeName(t) {
+				reportAboutErrorType(pass, tSpec.Pos(), t, true)
+			}
+		} else if !isValidErrorTypeName(t) {
+			reportAboutErrorType(pass, tSpec.Pos(), t, false)
 		}
 	})
 
@@ -104,12 +101,16 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	return nil, nil
 }
 
-func reportAboutErrorType(pass *analysis.Pass, typePos token.Pos, typeName string) {
+func reportAboutErrorType(pass *analysis.Pass, typePos token.Pos, typeName string, isArrayType bool) {
 	var form string
 	if unicode.IsLower([]rune(typeName)[0]) {
 		form = "xxxError"
 	} else {
 		form = "XxxError"
+	}
+
+	if isArrayType {
+		form += "s"
 	}
 	pass.Reportf(typePos, "the type name `%s` should conform to the `%s` format", typeName, form)
 }
