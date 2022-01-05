@@ -68,7 +68,6 @@ type BuilderConfig struct {
 type X509Signer struct {
 	FulcioEnabled bool
 	FulcioAddr    string
-	FulcioAuth    string
 }
 
 type KMSSigner struct {
@@ -153,7 +152,6 @@ func defaultConfig() *Config {
 		},
 		Signers: SignerConfigs{
 			X509: X509Signer{
-				FulcioAuth: "google",
 				FulcioAddr: "https://fulcio.sigstore.dev",
 			},
 		},
@@ -191,7 +189,6 @@ func NewConfigFromMap(data map[string]string) (*Config, error) {
 		asString(kmsSignerKMSRef, &cfg.Signers.KMS.KMSRef),
 
 		asBool(x509SignerFulcioEnabled, &cfg.Signers.X509.FulcioEnabled),
-		asString(x509SignerFulcioAuth, &cfg.Signers.X509.FulcioAuth),
 		asString(x509SignerFulcioAddr, &cfg.Signers.X509.FulcioAddr),
 
 		// Build config

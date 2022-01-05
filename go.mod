@@ -38,7 +38,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/secure-systems-lab/go-securesystemslib v0.3.0
 	github.com/sigstore/cosign v1.4.2-0.20220103014340-1a7f9d61a2e9
-	github.com/sigstore/fulcio v0.1.2-0.20220103193424-0df42390d392
+	github.com/sigstore/fulcio v0.1.2-0.20220103193424-0df42390d392 // indirect
 	github.com/sigstore/rekor v0.4.1-0.20220103184137-e86cf37242d3
 	github.com/sigstore/sigstore v1.1.1-0.20220104191147-28bc731b4695
 	github.com/tektoncd/pipeline v0.31.1-0.20220105002759-3e137645be61
@@ -47,7 +47,7 @@ require (
 	go.uber.org/zap v1.19.1
 	gocloud.dev v0.24.1-0.20211119014450-028788aaaa4c
 	golang.org/x/crypto v0.0.0-20211209193657-4570a0811e8b
-	google.golang.org/api v0.63.0
+	google.golang.org/api v0.63.0 // indirect
 	google.golang.org/protobuf v1.27.1
 	k8s.io/api v0.22.5
 	k8s.io/apimachinery v0.22.5
