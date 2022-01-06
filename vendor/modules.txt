@@ -917,7 +917,11 @@ github.com/sigstore/cosign/pkg/oci/remote
 github.com/sigstore/cosign/pkg/oci/signed
 github.com/sigstore/cosign/pkg/oci/static
 github.com/sigstore/cosign/pkg/providers
+github.com/sigstore/cosign/pkg/providers/all
+github.com/sigstore/cosign/pkg/providers/filesystem
+github.com/sigstore/cosign/pkg/providers/github
 github.com/sigstore/cosign/pkg/providers/google
+github.com/sigstore/cosign/pkg/providers/spiffe
 github.com/sigstore/cosign/pkg/signature
 github.com/sigstore/cosign/pkg/types
 github.com/sigstore/cosign/pkg/version
@@ -998,6 +1002,20 @@ github.com/spf13/viper/internal/encoding/hcl
 github.com/spf13/viper/internal/encoding/json
 github.com/spf13/viper/internal/encoding/toml
 github.com/spf13/viper/internal/encoding/yaml
+# github.com/spiffe/go-spiffe/v2 v2.0.0-beta.10
+github.com/spiffe/go-spiffe/v2/bundle/jwtbundle
+github.com/spiffe/go-spiffe/v2/bundle/spiffebundle
+github.com/spiffe/go-spiffe/v2/bundle/x509bundle
+github.com/spiffe/go-spiffe/v2/internal/cryptoutil
+github.com/spiffe/go-spiffe/v2/internal/jwtutil
+github.com/spiffe/go-spiffe/v2/internal/pemutil
+github.com/spiffe/go-spiffe/v2/internal/x509util
+github.com/spiffe/go-spiffe/v2/logger
+github.com/spiffe/go-spiffe/v2/proto/spiffe/workload
+github.com/spiffe/go-spiffe/v2/spiffeid
+github.com/spiffe/go-spiffe/v2/svid/jwtsvid
+github.com/spiffe/go-spiffe/v2/svid/x509svid
+github.com/spiffe/go-spiffe/v2/workloadapi
 # github.com/src-d/gcfg v1.4.0
 github.com/src-d/gcfg
 github.com/src-d/gcfg/scanner
@@ -1114,6 +1132,8 @@ github.com/xanzy/go-gitlab
 github.com/xanzy/ssh-agent
 # github.com/yeya24/promlinter v0.1.0
 github.com/yeya24/promlinter
+# github.com/zeebo/errs v1.2.2
+github.com/zeebo/errs
 # go.mongodb.org/mongo-driver v1.7.5
 go.mongodb.org/mongo-driver/bson
 go.mongodb.org/mongo-driver/bson/bsoncodec
@@ -1337,7 +1357,6 @@ golang.org/x/xerrors/internal
 # gomodules.xyz/jsonpatch/v2 v2.2.0
 gomodules.xyz/jsonpatch/v2
 # google.golang.org/api v0.63.0
-## explicit
 google.golang.org/api/googleapi
 google.golang.org/api/googleapi/transport
 google.golang.org/api/iamcredentials/v1

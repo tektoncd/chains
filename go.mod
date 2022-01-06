@@ -47,7 +47,6 @@ require (
 	go.uber.org/zap v1.19.1
 	gocloud.dev v0.24.1-0.20211119014450-028788aaaa4c
 	golang.org/x/crypto v0.0.0-20211209193657-4570a0811e8b
-	google.golang.org/api v0.63.0 // indirect
 	google.golang.org/protobuf v1.27.1
 	k8s.io/api v0.22.5
 	k8s.io/apimachinery v0.22.5

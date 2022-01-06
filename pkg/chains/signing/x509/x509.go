@@ -27,7 +27,7 @@ import (
 	"github.com/sigstore/cosign/cmd/cosign/cli/fulcio"
 	"github.com/sigstore/cosign/pkg/cosign"
 	"github.com/sigstore/cosign/pkg/providers"
-	_ "github.com/sigstore/cosign/pkg/providers/google"
+	_ "github.com/sigstore/cosign/pkg/providers/all"
 
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/tektoncd/chains/pkg/chains/signing"
@@ -70,7 +70,7 @@ func fulcioSigner(addr string, logger *zap.SugaredLogger) (*Signer, error) {
 		return nil, fmt.Errorf("no auth provider for fulcio is enabled")
 	}
 
-	tok, err := providers.Provide(ctx, "sigstore")
+	tok, err := providers.Provide(ctx, defaultOIDCClientID)
 	if err != nil {
 		return nil, errors.Wrap(err, "getting provider")
 	}
