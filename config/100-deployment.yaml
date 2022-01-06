@@ -89,6 +89,8 @@ spec:
         volumeMounts:
         - name: signing-secrets
           mountPath: /etc/signing-secrets
+        - name: oidc-info
+          mountPath: /var/run/sigstore/cosign
         env:
         - name: SYSTEM_NAMESPACE
           valueFrom:
@@ -100,3 +102,15 @@ spec:
       - name: signing-secrets
         secret:
           secretName: signing-secrets
+      - name: oidc-info
+        projected:
+          sources:
+            # The "public good" instance supports tokens from EKS and GKE by default.
+            # The fulcio URL can also be redirected to an instance that has been
+            # configured to accept other issuers as well.  Removing this volume
+            # completely will direct chains to use alternate ambient credentials
+            # (e.g. GKE workload identity, SPIFFE)
+            - serviceAccountToken:
+                path: oidc-token
+                expirationSeconds: 600 # Use as short-lived as possible.
+                audience: sigstore
