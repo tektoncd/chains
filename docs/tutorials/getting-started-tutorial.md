@@ -10,41 +10,48 @@ weight: 100
 This tutorial will guide you through:
 
 * Generating your own keypair and storing it as a Kubernetes Secret
+* Configuring Tekton Chains backend storage
 * Creating a sample TaskRun
 * Retrieving the signature and payload from the signed TaskRun
 * Verifying the signature
 
-We'll be creating a `TaskRun`, signing it, and storing the signature and the payload as annotations on the `TaskRun` itself.
-So, no additional authentication should be required!
+We will be creating a `TaskRun`, signing it, and storing the signature and the
+payload as annotations on the `TaskRun` itself. So, no additional authentication
+should be required!
 
-You can opt to try the tutorial with either of the following key types:
-
-* [x509 (Default)](#x509)
+For this tutorial we will use the [x509](#x509) key type.
 
 ## x509
 
-To generate your own encrypted x509 keypair and save it as a Kubernetes secret, install [cosign](https://github.com/sigstore/cosign) and run the following:
+To generate your own encrypted x509 keypair and save it as a Kubernetes secret,
+install [cosign] and run the following:
 
 ```shell
 cosign generate-key-pair k8s://tekton-chains/signing-secrets
 ```
 
-cosign will prompt you for a password, which will be stored in a Kubernetes secret named signing-secrets in the tekton-chains namespace.
+[cosign] will prompt you for a password, which will be stored in a Kubernetes
+secret named signing-secrets in the tekton-chains namespace.
 
 ## Configuring Tekton Chains
 
-You'll need to make these changes to the Tekton Chains Config:
+You will need to make sure that OCI storage is disabled and that the taskrun
+storage and format is set to `tekton`.
 
-* `artifacts.oci.storage=""`
-
-You can set these fields by running
+You can set these fields by running the following command:
 
 ```shell
-kubectl patch configmap chains-config -n tekton-chains -p='{"data":{"artifacts.oci.storage": ""}}'
+kubectl patch configmap chains-config -n tekton-chains -p='{"data":{"artifacts.oci.storage": "", "artifacts.taskrun.format":"tekton", "artifacts.taskrun.storage": "tekton"}}'
 ```
 
-This tells Chains to use the default `tekton` artifact (enabled by default) and disable the `OCI` artifact.
+Then restart the controller to ensure it picks up the changes:
 
+```shell
+kubectl delete po -n tekton-chains -l app=tekton-chains-controller
+```
+
+This tells Chains to use the default `tekton` artifact (enabled by default) and
+disable the `OCI` artifact.
 
 To create a simple `TaskRun`, run:
 
@@ -53,38 +60,45 @@ $ kubectl create -f https://raw.githubusercontent.com/tektoncd/chains/main/examp
 taskrun.tekton.dev/build-push-run-output-image-qbjvh created
 ```
 
-Save the name of your `TaskRun` as an environment variable:
+Wait for it to finish (all the steps should be marked as **Completed**).
 
 ```shell
-$ export TASKRUN=<Name of your TaskRun> # Replace with your taskrun name
+$ tkn tr describe --last
+
+[...truncated output...]
+
+🦶 Steps
+
+NAME                            STATUS
+∙ create-dir-builtimage-9467f   Completed
+∙ git-source-sourcerepo-p2sk8   Completed
+∙ build-and-push                Completed
+∙ echo                          Completed
+∙ image-digest-exporter-xlkn7   Completed
 ```
 
-Then, take the name of the `TaskRun` you just created, and wait for it to finish (SUCCEEEDED should be True).
+Next, retrieve the signature and payload from the object (they are stored as
+base64-encoded annotations):
 
 ```shell
-$ kubectl get taskrun $TASKRUN
-NAME                                SUCCEEDED   REASON      STARTTIME   COMPLETIONTIME
-build-push-run-output-image-qbjvh   True        Succeeded   36m         36m    
+export TASKRUN_UID=$(tkn tr describe --last -o  jsonpath='{.metadata.uid}')
+tkn tr describe --last -o jsonpath="{.metadata.annotations.chains\.tekton\.dev/signature-taskrun-$TASKRUN_UID}" > signature
+tkn tr describe --last -o jsonpath="{.metadata.annotations.chains\.tekton\.dev/payload-taskrun-$TASKRUN_UID}" | base64 -d > payload
 ```
 
-Next, retrieve the signature and payload from the object (they are stored as base64-encoded annotations):
+Finally, we can check the signature with [cosign]:
 
 ```shell
-$ export TASKRUN_UID=$(kubectl get taskrun $TASKRUN -o=json | jq -r '.metadata.uid')
-$ kubectl get taskrun $TASKRUN -o=json | jq  -r ".metadata.annotations[\"chains.tekton.dev/payload-taskrun-$TASKRUN_UID\"]" | base64 --decode > payload
-$ kubectl get taskrun $TASKRUN -o=json | jq  -r ".metadata.annotations[\"chains.tekton.dev/signature-taskrun-$TASKRUN_UID\"]" | base64 --decode > signature
-```
-
-Finally, we can check the signature with [cosign](https://github.com/sigstore/cosign):
-
-```shell
-$ cosign verify-blob --key cosign.pub --signature ./signature ./payload 
+$ cosign verify-blob --key k8s://tekton-chains/signing-secrets --signature ./signature ./payload
 Verified OK
 ```
 
 Now we have a verifiable record of the `TaskRun`!
 
 ## What you just created
+
 This diagram shows what you just deployed:
 
 ![getting-started-setup](./images/getting_started.png)
+
+[cosign]: https://github.com/sigstore/cosign
