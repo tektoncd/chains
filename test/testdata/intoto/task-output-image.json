@@ -11,7 +11,7 @@
     ],
     "predicate": {
         "builder": {
-            "id": "tekton-chains"
+            "id": "https://tekton.dev/chains/v2"
         },
         "buildType": "https://tekton.dev/attestations/chains@v2",
         "invocation": {

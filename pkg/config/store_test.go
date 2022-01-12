@@ -105,7 +105,7 @@ func TestParse(t *testing.T) {
 			ociEnbaled:     true,
 			want: Config{
 				Builder: BuilderConfig{
-					"tekton-chains",
+					"https://tekton.dev/chains/v2",
 				},
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
@@ -132,7 +132,7 @@ func TestParse(t *testing.T) {
 			ociEnbaled:     true,
 			want: Config{
 				Builder: BuilderConfig{
-					"tekton-chains",
+					"https://tekton.dev/chains/v2",
 				},
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
@@ -159,7 +159,7 @@ func TestParse(t *testing.T) {
 			ociEnbaled:     true,
 			want: Config{
 				Builder: BuilderConfig{
-					"tekton-chains",
+					"https://tekton.dev/chains/v2",
 				},
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
@@ -186,7 +186,7 @@ func TestParse(t *testing.T) {
 			ociEnbaled:     true,
 			want: Config{
 				Builder: BuilderConfig{
-					"tekton-chains",
+					"https://tekton.dev/chains/v2",
 				},
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
@@ -213,7 +213,7 @@ func TestParse(t *testing.T) {
 			ociEnbaled:     false,
 			want: Config{
 				Builder: BuilderConfig{
-					"tekton-chains",
+					"https://tekton.dev/chains/v2",
 				},
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
@@ -240,7 +240,7 @@ func TestParse(t *testing.T) {
 			ociEnbaled:     false,
 			want: Config{
 				Builder: BuilderConfig{
-					"tekton-chains",
+					"https://tekton.dev/chains/v2",
 				},
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
@@ -267,7 +267,7 @@ func TestParse(t *testing.T) {
 			ociEnbaled:     true,
 			want: Config{
 				Builder: BuilderConfig{
-					"tekton-chains",
+					"https://tekton.dev/chains/v2",
 				},
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
@@ -294,7 +294,7 @@ func TestParse(t *testing.T) {
 			ociEnbaled:     true,
 			want: Config{
 				Builder: BuilderConfig{
-					"tekton-chains",
+					"https://tekton.dev/chains/v2",
 				},
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
@@ -321,7 +321,7 @@ func TestParse(t *testing.T) {
 			ociEnbaled:     true,
 			want: Config{
 				Builder: BuilderConfig{
-					"tekton-chains",
+					"https://tekton.dev/chains/v2",
 				},
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
@@ -350,7 +350,7 @@ func TestParse(t *testing.T) {
 			ociEnbaled:     true,
 			want: Config{
 				Builder: BuilderConfig{
-					"tekton-chains",
+					"https://tekton.dev/chains/v2",
 				},
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
@@ -380,7 +380,7 @@ func TestParse(t *testing.T) {
 			ociEnbaled:     true,
 			want: Config{
 				Builder: BuilderConfig{
-					"tekton-chains",
+					"https://tekton.dev/chains/v2",
 				},
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
@@ -413,7 +413,7 @@ func TestParse(t *testing.T) {
 			ociEnbaled:     true,
 			want: Config{
 				Builder: BuilderConfig{
-					"tekton-chains",
+					"https://tekton.dev/chains/v2",
 				},
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
@@ -446,7 +446,7 @@ func TestParse(t *testing.T) {
 			ociEnbaled:     true,
 			want: Config{
 				Builder: BuilderConfig{
-					"tekton-chains",
+					"https://tekton.dev/chains/v2",
 				},
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
