@@ -125,10 +125,10 @@ func verifyKanikoTaskRun(namespace, destinationImage, publicKey string) *v1beta1
 echo "%s" > cosign.pub
 
 # verify the image
-cosign verify -allow-insecure-registry -key cosign.pub %s
+cosign verify --allow-insecure-registry --key cosign.pub %s
 
 # verify the attestation
-cosign verify-attestation -allow-insecure-registry -key cosign.pub %s`
+cosign verify-attestation --allow-insecure-registry --key cosign.pub %s`
 	script = fmt.Sprintf(script, publicKey, destinationImage, destinationImage)
 
 	return &v1beta1.TaskRun{
