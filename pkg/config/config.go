@@ -156,7 +156,7 @@ func defaultConfig() *Config {
 			},
 		},
 		Builder: BuilderConfig{
-			ID: "tekton-chains",
+			ID: "https://tekton.dev/chains/v2",
 		},
 	}
 }

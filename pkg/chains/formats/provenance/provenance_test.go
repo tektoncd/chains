@@ -274,10 +274,10 @@ spec:
 			"my-param={string string-param []}",
 			"my-array-param={array  [my array]}",
 		},
-		ID: "tekton-chains",
+		ID: "https://tekton.dev/chains/v2",
 	}
 
-	got := invocation("tekton-chains", taskRun)
+	got := invocation("https://tekton.dev/chains/v2", taskRun)
 	if !reflect.DeepEqual(expected, got) {
 		if d := cmp.Diff(expected, got); d != "" {
 			t.Log(d)
