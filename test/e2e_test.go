@@ -70,7 +70,7 @@ func TestTektonStorage(t *testing.T) {
 		"artifacts.taskrun.format":  "tekton",
 		"artifacts.taskrun.signer":  "x509",
 		"artifacts.taskrun.storage": "tekton",
-		"artifacts.oci.format":      "tekton",
+		"artifacts.oci.format":      "simplesigning",
 		"artifacts.oci.signer":      "x509",
 		"artifacts.oci.storage":     "tekton",
 	})
@@ -101,7 +101,7 @@ func TestRekor(t *testing.T) {
 		"artifacts.taskrun.format":  "tekton",
 		"artifacts.taskrun.signer":  "x509",
 		"artifacts.taskrun.storage": "tekton",
-		"artifacts.oci.format":      "tekton",
+		"artifacts.oci.format":      "simplesigning",
 		"artifacts.oci.signer":      "x509",
 		"artifacts.oci.storage":     "tekton",
 		"transparency.enabled":      "manual",

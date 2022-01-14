@@ -172,7 +172,7 @@ func NewConfigFromMap(data map[string]string) (*Config, error) {
 		asStringSet(taskrunStorageKey, &cfg.Artifacts.TaskRuns.StorageBackend, sets.NewString("tekton", "oci", "gcs", "docdb")),
 		asString(taskrunSignerKey, &cfg.Artifacts.TaskRuns.Signer, "x509", "kms"),
 		// OCI
-		asString(ociFormatKey, &cfg.Artifacts.OCI.Format, "tekton", "simplesigning"),
+		asString(ociFormatKey, &cfg.Artifacts.OCI.Format, "simplesigning"),
 		asStringSet(ociStorageKey, &cfg.Artifacts.OCI.StorageBackend, sets.NewString("tekton", "oci", "gcs", "docdb")),
 		asString(ociSignerKey, &cfg.Artifacts.OCI.Signer, "x509", "kms"),
 
