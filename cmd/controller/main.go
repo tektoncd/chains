@@ -20,6 +20,12 @@ import (
 	"knative.dev/pkg/injection"
 	"knative.dev/pkg/injection/sharedmain"
 	"knative.dev/pkg/signals"
+
+	// Run with all of the upstream providers.
+	// We link this here to give downstreams greater choice/control over
+	// which providers they pull in, by linking their own variants in their
+	// own binary entrypoint.
+	_ "github.com/sigstore/cosign/pkg/providers/all"
 )
 
 var namespace = flag.String("namespace", "", "Namespace to restrict informer to. Optional, defaults to all namespaces.")
