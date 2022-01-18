@@ -25,8 +25,8 @@ kubectl patch configmap chains-config -n tekton-chains -p='{"data":{"artifacts.t
 To provide a git URL/commit as material, add a parameter named
 `CHAINS-GIT_COMMIT` and `CHAINS-GIT_URL`. The value of these
 parameters should be fed by some VCS task (e.g like this
-[task](https://github.com/tektoncd/catalog/blob/main/task/git-clone/0.3/git-clone.yaml#L81).
-A `PipeLine` example where another task `checkout` have URL/commit as
+[task](https://github.com/tektoncd/catalog/blob/main/task/git-clone/0.3/git-clone.yaml#L81)).
+A `PipeLine` example where another task `checkout` has URL/commit as
 task results:
 
 ```
@@ -40,7 +40,7 @@ task results:
 
 ### Type Hinting
 
-To capture arifacts created by a task, Chains will scan the TaskRun
+To capture artifacts created by a task, Chains will scan the TaskRun
 result for a result name `*_DIGEST`. The result shall be a string on
 the format `alg:digest`, alg is common `sha256`. If the result is named
 `Foo_DIGEST`, Chains will try to find a parameter or result (in that
@@ -68,7 +68,7 @@ URL](https://github.com/package-url/purl-spec) format.
 This is an MVP implementation of the the in-toto attestation
 format. More work would be required to properly capture the
 `Entrypoint` field in the provenance predicate, now the `TaskRef`'s name
-is used. Also metadata related to hermeticity/reproducible are
+is used. Also metadata related to hermeticity/reproducibility are
 currently not populated.
 
 ## Examples
