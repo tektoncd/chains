@@ -98,6 +98,11 @@ spec:
               fieldPath: metadata.namespace
         - name: METRICS_DOMAIN
           value: tekton.dev/chains
+        securityContext:
+          allowPrivilegeEscalation: false
+          # User 65532 is the distroless nonroot user ID
+          runAsUser: 65532
+          runAsGroup: 65532
       volumes:
       - name: signing-secrets
         secret:
