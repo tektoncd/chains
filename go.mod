@@ -14,7 +14,7 @@ require (
 	github.com/golangci/golangci-lint v1.43.0
 	github.com/google/addlicense v1.0.0
 	github.com/google/go-cmp v0.5.6
-	github.com/google/go-containerregistry v0.7.1-0.20211203164431-c75901cce627
+	github.com/google/go-containerregistry v0.8.1-0.20220120123041-d22850aca581
 	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20211215180950-ab77ea68f600
 	github.com/google/go-licenses v0.0.0-20210816172045-3099c18c36e1
 	github.com/hashicorp/errwrap v1.1.0
