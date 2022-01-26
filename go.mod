@@ -26,7 +26,7 @@ require (
 	github.com/hashicorp/go-secure-stdlib/strutil v0.1.2
 	github.com/hashicorp/go-sockaddr v1.0.2
 	github.com/hashicorp/go-uuid v1.0.2
-	github.com/hashicorp/go-version v1.3.0
+	github.com/hashicorp/go-version v1.4.0
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/hashicorp/hcl v1.0.0
 	github.com/hashicorp/vault/sdk v0.3.0
@@ -49,7 +49,7 @@ require (
 	golang.org/x/crypto v0.0.0-20211209193657-4570a0811e8b
 	google.golang.org/protobuf v1.27.1
 	k8s.io/api v0.22.5
-	k8s.io/apimachinery v0.22.5
+	k8s.io/apimachinery v0.22.6
 	k8s.io/client-go v0.22.5
 	k8s.io/code-generator v0.22.5
 	knative.dev/pkg v0.0.0-20220104185830-52e42b760b54
