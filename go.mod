@@ -5,7 +5,8 @@ go 1.16
 replace k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20211109043538-20434351676c
 
 require (
-	cloud.google.com/go v0.99.0
+	cloud.google.com/go/compute v0.1.0
+	cloud.google.com/go/iam v0.1.0 // indirect
 	cloud.google.com/go/storage v1.18.2
 	github.com/armon/go-metrics v0.3.10
 	github.com/armon/go-radix v1.0.0
@@ -48,8 +49,8 @@ require (
 	gocloud.dev v0.24.1-0.20211119014450-028788aaaa4c
 	golang.org/x/crypto v0.0.0-20211209193657-4570a0811e8b
 	google.golang.org/protobuf v1.27.1
-	k8s.io/api v0.22.5
-	k8s.io/apimachinery v0.22.5
+	k8s.io/api v0.23.3
+	k8s.io/apimachinery v0.23.3
 	k8s.io/client-go v0.22.5
 	k8s.io/code-generator v0.22.5
 	knative.dev/pkg v0.0.0-20220104185830-52e42b760b54
