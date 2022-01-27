@@ -5,7 +5,7 @@ go 1.16
 replace k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20211109043538-20434351676c
 
 require (
-	cloud.google.com/go/compute v0.1.0
+	cloud.google.com/go/compute v1.1.0
 	cloud.google.com/go/iam v0.1.0 // indirect
 	cloud.google.com/go/storage v1.18.2
 	github.com/armon/go-metrics v0.3.10
@@ -19,7 +19,7 @@ require (
 	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20211215180950-ab77ea68f600
 	github.com/google/go-licenses v0.0.0-20210816172045-3099c18c36e1
 	github.com/hashicorp/errwrap v1.1.0
-	github.com/hashicorp/go-hclog v1.0.0
+	github.com/hashicorp/go-hclog v1.1.0
 	github.com/hashicorp/go-immutable-radix v1.3.1
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-plugin v1.4.3
