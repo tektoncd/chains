@@ -89,7 +89,7 @@ ko delete -f config/
 To look at the controller logs, run:
 
 ```shell
-kubectl -n tekton-pipelines logs deployment/tekton-chains-controller
+kubectl -n tekton-chains logs deployment/tekton-chains-controller
 ```
 
 ## Running Tests
