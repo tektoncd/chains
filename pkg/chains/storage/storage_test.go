@@ -62,6 +62,10 @@ func TestInitializeBackends(t *testing.T) {
 			want: []string{"gcs", "grafeas", "oci", "tekton"},
 			cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: sets.NewString("gcs", "grafeas", "oci", "tekton", "not-exist")}}},
 		},
+		{
+			name: "pubsub",
+			want: []string{"pubsub"},
+			cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: sets.NewString("pubsub")}}}},
 	}
 	logger := logtesting.TestLogger(t)
 	ctx, _ := rtesting.SetupFakeContext(t)
@@ -74,6 +78,7 @@ func TestInitializeBackends(t *testing.T) {
 				t.Errorf("InitializeBackends() error = %v", err)
 				return
 			}
+			logger.Debugf("Backend: %v", got)
 			gotTypes := []string{}
 			for _, g := range got {
 				gotTypes = append(gotTypes, g.Type())

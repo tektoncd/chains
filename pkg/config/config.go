@@ -36,8 +36,8 @@ type Config struct {
 
 // ArtifactConfigs contains the configuration for how to sign/store/format the signatures for each artifact type
 type ArtifactConfigs struct {
-	TaskRuns Artifact
 	OCI      Artifact
+	TaskRuns Artifact
 }
 
 // Artifact contains the configuration for how to sign/store/format the signatures for a single artifact
@@ -54,6 +54,7 @@ type StorageConfigs struct {
 	Tekton  TektonStorageConfig
 	DocDB   DocDBStorageConfig
 	Grafeas GrafeasConfig
+	PubSub  PubSubStorageConfig
 }
 
 // SignerConfigs contains the configuration to instantiate different signers
@@ -119,6 +120,16 @@ type GrafeasConfig struct {
 	NoteID string
 }
 
+type PubSubStorageConfig struct {
+	Provider string
+	Topic    string
+	Kafka    KafkaStorageConfig
+}
+
+type KafkaStorageConfig struct {
+	BootstrapServers string
+}
+
 type TransparencyConfig struct {
 	Enabled          bool
 	VerifyAnnotation bool
@@ -143,6 +154,15 @@ const (
 	// No config needed for Tekton object storage
 
 	// No config needed for x509 signer
+
+	// PubSub - General
+	pubsubProvider = "storage.pubsub.provider"
+	pubsubTopic    = "storage.pubsub.topic"
+
+	// No config for PubSub - In-Memory
+
+	// PubSub - Kafka
+	pubsubKafkaBootstrapServer = "storage.pubsub.kafka.bootstrap.servers"
 
 	// KMS
 	kmsSignerKMSRef      = "signers.kms.kmsref"
@@ -206,12 +226,20 @@ func NewConfigFromMap(data map[string]string) (*Config, error) {
 		// Artifact-specific configs
 		// TaskRuns
 		asString(taskrunFormatKey, &cfg.Artifacts.TaskRuns.Format, "tekton", "in-toto", "tekton-provenance"),
-		asStringSet(taskrunStorageKey, &cfg.Artifacts.TaskRuns.StorageBackend, sets.NewString("tekton", "oci", "gcs", "docdb", "grafeas")),
+		asStringSet(taskrunStorageKey, &cfg.Artifacts.TaskRuns.StorageBackend, sets.NewString("tekton", "oci", "gcs", "docdb", "grafeas", "kafka")),
 		asString(taskrunSignerKey, &cfg.Artifacts.TaskRuns.Signer, "x509", "kms"),
+
 		// OCI
 		asString(ociFormatKey, &cfg.Artifacts.OCI.Format, "simplesigning"),
-		asStringSet(ociStorageKey, &cfg.Artifacts.OCI.StorageBackend, sets.NewString("tekton", "oci", "gcs", "docdb", "grafeas")),
+		asStringSet(ociStorageKey, &cfg.Artifacts.OCI.StorageBackend, sets.NewString("tekton", "oci", "gcs", "docdb", "grafeas", "kafka")),
 		asString(ociSignerKey, &cfg.Artifacts.OCI.Signer, "x509", "kms"),
+
+		// PubSub - General
+		asString(pubsubProvider, &cfg.Storage.PubSub.Provider, "inmemory", "kafka"),
+		asString(pubsubTopic, &cfg.Storage.PubSub.Topic),
+
+		// PubSub - Kafka
+		asString(pubsubKafkaBootstrapServer, &cfg.Storage.PubSub.Kafka.BootstrapServers),
 
 		// Storage level configs
 		asString(gcsBucketKey, &cfg.Storage.GCS.Bucket),
