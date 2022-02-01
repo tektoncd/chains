@@ -111,7 +111,7 @@ function install_spire() {
     -spiffeID spiffe://example.org/ns/tekton-chains/sa/tekton-chains-controller \
     -parentID spiffe://example.org/ns/spire/node/example \
     -selector k8s:ns:tekton-chains \
-    -selector k8s:sa:tekton-chains-controller  
+    -selector k8s:sa:tekton-chains-controller
 }
 
 function vault_exec() {
@@ -166,4 +166,10 @@ EOF
     || vault_exec write transit/keys/e2e type=ecdsa-p521
   vault_exec read -format=json transit/keys/e2e \
     | jq -r .data.keys.\"1\".public_key >"$(dirname $0)/testdata/vault.pub"
+}
+function install_kafka() {
+  echo ">> Deploying Kafka"
+  helm repo add bitnami https://charts.bitnami.com/bitnami
+  helm upgrade \
+  kafka bitnami/kafka --install --set livenessProbe.enabled=false --set readinessProbe.enabled=false
 }
