@@ -152,7 +152,7 @@ func defaultConfig() *Config {
 		},
 		Signers: SignerConfigs{
 			X509: X509Signer{
-				FulcioAddr: "https://fulcio.sigstore.dev",
+				FulcioAddr: "https://v1.fulcio.sigstore.dev",
 			},
 		},
 		Builder: BuilderConfig{

@@ -86,7 +86,7 @@ func TestNewConfigStore(t *testing.T) {
 
 var defaultSigners = SignerConfigs{
 	X509: X509Signer{
-		FulcioAddr: "https://fulcio.sigstore.dev",
+		FulcioAddr: "https://v1.fulcio.sigstore.dev",
 	},
 }
 
@@ -429,7 +429,7 @@ func TestParse(t *testing.T) {
 				},
 				Signers: SignerConfigs{
 					X509: X509Signer{
-						FulcioAddr: "https://fulcio.sigstore.dev",
+						FulcioAddr: "https://v1.fulcio.sigstore.dev",
 					},
 				},
 				Transparency: TransparencyConfig{
@@ -462,7 +462,7 @@ func TestParse(t *testing.T) {
 				},
 				Signers: SignerConfigs{
 					X509: X509Signer{
-						FulcioAddr: "https://fulcio.sigstore.dev",
+						FulcioAddr: "https://v1.fulcio.sigstore.dev",
 					},
 				},
 				Transparency: TransparencyConfig{
