@@ -15,7 +15,7 @@ cloud.google.com/go/firestore/apiv1
 cloud.google.com/go/iam
 # cloud.google.com/go/kms v1.1.0
 cloud.google.com/go/kms/apiv1
-# cloud.google.com/go/storage v1.19.0
+# cloud.google.com/go/storage v1.20.0
 ## explicit
 cloud.google.com/go/storage
 cloud.google.com/go/storage/internal/apiv2
