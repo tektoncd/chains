@@ -25,7 +25,10 @@ import (
 	_ "github.com/sigstore/sigstore/pkg/signature/kms/azure"
 	_ "github.com/sigstore/sigstore/pkg/signature/kms/gcp"
 	_ "github.com/sigstore/sigstore/pkg/signature/kms/hashivault"
+	"github.com/sigstore/sigstore/pkg/signature/options"
 
+	"github.com/spiffe/go-spiffe/v2/svid/jwtsvid"
+	"github.com/spiffe/go-spiffe/v2/workloadapi"
 	"github.com/tektoncd/chains/pkg/chains/signing"
 	"go.uber.org/zap"
 )
@@ -38,7 +41,31 @@ type Signer struct {
 
 // NewSigner returns a configured Signer
 func NewSigner(ctx context.Context, cfg config.KMSSigner, logger *zap.SugaredLogger) (*Signer, error) {
-	k, err := kms.Get(ctx, cfg.KMSRef, crypto.SHA256)
+	kmsOpts := []signature.RPCOption{}
+	rpcAuth := options.RPCAuth{
+		Address: cfg.Auth.Address,
+		OIDC: options.RPCAuthOIDC{
+			Role: cfg.Auth.Role,
+			Path: cfg.Auth.Path,
+		},
+	}
+	// get token from spire socket
+	if cfg.Auth.Spire.Sock != "" {
+		jwtSource, err := workloadapi.NewJWTSource(
+			ctx,
+			workloadapi.WithClientOptions(workloadapi.WithAddr(cfg.Auth.Spire.Sock)),
+		)
+		if err != nil {
+			return nil, err
+		}
+		svid, err := jwtSource.FetchJWTSVID(ctx, jwtsvid.Params{Audience: cfg.Auth.Spire.Audience})
+		if err != nil {
+			return nil, err
+		}
+		rpcAuth.OIDC.Token = svid.Marshal()
+	}
+	kmsOpts = append(kmsOpts, options.WithRPCAuthOpts(rpcAuth))
+	k, err := kms.Get(ctx, cfg.KMSRef, crypto.SHA256, kmsOpts...)
 	if err != nil {
 		return nil, err
 	}
