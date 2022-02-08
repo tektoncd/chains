@@ -42,6 +42,7 @@ require (
 	github.com/sigstore/cosign v1.6.1-0.20220401112351-80034ba3b905
 	github.com/sigstore/rekor v0.4.1-0.20220114213500-23f583409af3
 	github.com/sigstore/sigstore v1.2.1-0.20220330193110-d7475aecf1db
+	github.com/spiffe/go-spiffe/v2 v2.0.0
 	github.com/tektoncd/pipeline v0.31.1-0.20220105002759-3e137645be61
 	github.com/tektoncd/plumbing v0.0.0-20211012143332-c7cc43d9bc0c
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399
@@ -305,7 +306,6 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.10.1 // indirect
-	github.com/spiffe/go-spiffe/v2 v2.0.0 // indirect
 	github.com/src-d/gcfg v1.4.0 // indirect
 	github.com/ssgreg/nlreturn/v2 v2.2.1 // indirect
 	github.com/stretchr/objx v0.3.0 // indirect

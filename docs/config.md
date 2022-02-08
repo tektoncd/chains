@@ -68,6 +68,11 @@ Supported keys include:
 | Key | Description | Supported Values | Default |
 | :--- | :--- | :--- | :--- |
 | `signers.kms.kmsref` | The URI reference to a KMS service to use in `KMS` signers. | `gcpkms://projects/[PROJECT]/locations/[LOCATION]>/keyRings/[KEYRING]/cryptoKeys/[KEY]`| |
+| `signers.kms.auth.address` | URI of KMS server (e.g. the value of `VAULT_TOKEN`) | |
+| `signers.kms.auth.path` | Path used for authentication (e.g. `jwt` for Vault) | |
+| `signers.kms.auth.role` | Role used for authentication | |
+| `signers.kms.auth.spire.sock` | URI of the Spire socket used for KMS auth (e.g. `unix:///run/spire/sockets/agent.sock`) | |
+| `signers.kms.auth.spire.audience` | Audience for requesting a SVID from Spire | |
 
 ### Storage Configuration
 

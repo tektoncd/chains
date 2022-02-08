@@ -73,6 +73,19 @@ type X509Signer struct {
 
 type KMSSigner struct {
 	KMSRef string
+	Auth   KMSAuth
+}
+
+type KMSAuth struct {
+	Spire   KMSAuthSpire
+	Address string
+	Path    string
+	Role    string
+}
+
+type KMSAuthSpire struct {
+	Sock     string
+	Audience string
 }
 
 type GCSStorageConfig struct {
@@ -124,7 +137,13 @@ const (
 	// No config needed for x509 signer
 
 	// KMS
-	kmsSignerKMSRef = "signers.kms.kmsref"
+	kmsSignerKMSRef      = "signers.kms.kmsref"
+	kmsAuthAddress       = "signers.kms.auth.address"
+	kmsAuthPath          = "signers.kms.auth.path"
+	kmsAuthRole          = "signers.kms.auth.role"
+	kmsAuthSpireSock     = "signers.kms.auth.spire.sock"
+	kmsAuthSpireAudience = "signers.kms.auth.spire.audience"
+
 	// Fulcio
 	x509SignerFulcioEnabled = "signers.x509.fulcio.enabled"
 	x509SignerFulcioAuth    = "signers.x509.fulcio.auth"
@@ -199,6 +218,11 @@ func NewConfigFromMap(data map[string]string) (*Config, error) {
 		asString(transparencyURLKey, &cfg.Transparency.URL),
 
 		asString(kmsSignerKMSRef, &cfg.Signers.KMS.KMSRef),
+		asString(kmsAuthSpireSock, &cfg.Signers.KMS.Auth.Spire.Sock),
+		asString(kmsAuthSpireAudience, &cfg.Signers.KMS.Auth.Spire.Audience),
+		asString(kmsAuthAddress, &cfg.Signers.KMS.Auth.Address),
+		asString(kmsAuthPath, &cfg.Signers.KMS.Auth.Path),
+		asString(kmsAuthRole, &cfg.Signers.KMS.Auth.Role),
 
 		asBool(x509SignerFulcioEnabled, &cfg.Signers.X509.FulcioEnabled),
 		asString(x509SignerFulcioAddr, &cfg.Signers.X509.FulcioAddr),
