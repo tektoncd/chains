@@ -1,3 +1,31 @@
+# v1.13.0 (2022-01-14)
+
+* **Feature**: Updated `github.com/aws/smithy-go` to latest version
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.12.0 (2022-01-07)
+
+* **Feature**: Add load option for CredentialCache. Adds a new member to the LoadOptions struct, CredentialsCacheOptions. This member allows specifying a function that will be used to configure the CredentialsCache. The CredentialsCacheOptions will only be used if the configuration loader will wrap the underlying credential provider in the CredentialsCache.
+* **Feature**: Updated `github.com/aws/smithy-go` to latest version
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.11.1 (2021-12-21)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.11.0 (2021-12-02)
+
+* **Feature**: Add support for specifying `EndpointResolverWithOptions` on `LoadOptions`, and associated `WithEndpointResolverWithOptions`.
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.10.3 (2021-11-30)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.10.2 (2021-11-19)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
 # v1.10.1 (2021-11-12)
 
 * **Dependency Update**: Updated to the latest SDK module versions

@@ -16,6 +16,7 @@ package cosign
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
@@ -27,8 +28,8 @@ import (
 	"github.com/google/trillian/merkle/logverifier"
 	"github.com/google/trillian/merkle/rfc6962"
 	"github.com/pkg/errors"
+	"github.com/sigstore/cosign/pkg/cosign/bundle"
 	"github.com/sigstore/cosign/pkg/cosign/tuf"
-	"github.com/sigstore/cosign/pkg/oci"
 	"github.com/sigstore/rekor/pkg/generated/client/index"
 
 	"github.com/sigstore/rekor/pkg/generated/client"
@@ -42,15 +43,23 @@ import (
 // This is the rekor public key target name
 var rekorTargetStr = `rekor.pub`
 
-// GetRekorPub retrieves the rekor public key from the embedded or cached TUF root. If expired, makes a
-// network call to retrieve the updated target.
-func GetRekorPub(ctx context.Context) ([]byte, error) {
+// GetRekorPubs retrieves trusted Rekor public keys from the embedded or cached
+// TUF root. If expired, makes a network call to retrieve the updated targets.
+func GetRekorPubs(ctx context.Context) ([]*ecdsa.PublicKey, error) {
 	tuf, err := tuf.NewFromEnv(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer tuf.Close()
-	return tuf.GetTarget(rekorTargetStr)
+	b, err := tuf.GetTarget(rekorTargetStr)
+	if err != nil {
+		return nil, err
+	}
+	rekorPubKey, err := PemToECDSAKey(b)
+	if err != nil {
+		return nil, errors.Wrap(err, "pem to ecdsa")
+	}
+	return []*ecdsa.PublicKey{rekorPubKey}, nil
 }
 
 // TLogUpload will upload the signature, public key and payload to the transparency log.
@@ -262,7 +271,7 @@ func verifyTLogEntry(ctx context.Context, rekorClient *client.Rekor, uuid string
 		return nil, errors.Wrap(err, "rekor public key pem to ecdsa")
 	}
 
-	payload := oci.BundlePayload{
+	payload := bundle.RekorPayload{
 		Body:           e.Body,
 		IntegratedTime: *e.IntegratedTime,
 		LogIndex:       *e.LogIndex,

@@ -70,14 +70,18 @@ func loadKey(keyPath string, pf cosign.PassFunc) (signature.SignerVerifier, erro
 	if err != nil {
 		return nil, err
 	}
-	pass, err := pf(false)
-	if err != nil {
-		return nil, err
+	pass := []byte{}
+	if pf != nil {
+		pass, err = pf(false)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return cosign.LoadPrivateKey(kb, pass)
 }
 
-func loadPublicKey(raw []byte, hashAlgorithm crypto.Hash) (signature.Verifier, error) {
+// LoadPublicKeyRaw loads a verifier from a raw public key passed in
+func LoadPublicKeyRaw(raw []byte, hashAlgorithm crypto.Hash) (signature.Verifier, error) {
 	// PEM encoded file.
 	ed, err := cosign.PemToECDSAKey(raw)
 	if err != nil {
@@ -164,7 +168,7 @@ func PublicKeyFromKeyRefWithHashAlgo(ctx context.Context, keyRef string, hashAlg
 		}
 
 		if len(s.Data) > 0 {
-			return loadPublicKey(s.Data["cosign.pub"], hashAlgorithm)
+			return LoadPublicKeyRaw(s.Data["cosign.pub"], hashAlgorithm)
 		}
 	}
 
@@ -203,7 +207,7 @@ func PublicKeyFromKeyRefWithHashAlgo(ctx context.Context, keyRef string, hashAlg
 		}
 
 		if len(pubKey) > 0 {
-			return loadPublicKey([]byte(pubKey), hashAlgorithm)
+			return LoadPublicKeyRaw([]byte(pubKey), hashAlgorithm)
 		}
 	}
 

@@ -76,18 +76,29 @@ func parseReference(resourceID string) (keyPath string, err error) {
 	return
 }
 
-func newHashivaultClient(keyResourceID string) (*hashivaultClient, error) {
+func newHashivaultClient(address, token, transitSecretEnginePath, keyResourceID string) (*hashivaultClient, error) {
 	keyPath, err := parseReference(keyResourceID)
 	if err != nil {
 		return nil, err
 	}
 
-	address := os.Getenv("VAULT_ADDR")
+	if address == "" {
+		address = os.Getenv("VAULT_ADDR")
+	}
 	if address == "" {
 		return nil, errors.New("VAULT_ADDR is not set")
 	}
 
-	token := os.Getenv("VAULT_TOKEN")
+	client, err := vault.NewClient(&vault.Config{
+		Address: address,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "new vault client")
+	}
+
+	if token == "" {
+		token = os.Getenv("VAULT_TOKEN")
+	}
 	if token == "" {
 		log.Printf("VAULT_TOKEN is not set, trying to read token from file at path ~/.vault-token")
 		homeDir, err := homedir.Dir()
@@ -102,17 +113,11 @@ func newHashivaultClient(keyResourceID string) (*hashivaultClient, error) {
 
 		token = string(tokenFromFile)
 	}
-
-	client, err := vault.NewClient(&vault.Config{
-		Address: address,
-	})
-	if err != nil {
-		return nil, errors.Wrap(err, "new vault client")
-	}
-
 	client.SetToken(token)
 
-	transitSecretEnginePath := os.Getenv("TRANSIT_SECRET_ENGINE_PATH")
+	if transitSecretEnginePath == "" {
+		transitSecretEnginePath = os.Getenv("TRANSIT_SECRET_ENGINE_PATH")
+	}
 	if transitSecretEnginePath == "" {
 		transitSecretEnginePath = "transit"
 	}
@@ -127,6 +132,36 @@ func newHashivaultClient(keyResourceID string) (*hashivaultClient, error) {
 	hvClient.keyCache.SkipTTLExtensionOnHit(true)
 
 	return hvClient, nil
+}
+
+func oidcLogin(ctx context.Context, address, path, role, token string) (string, error) {
+	if address == "" {
+		address = os.Getenv("VAULT_ADDR")
+	}
+	if address == "" {
+		return "", errors.New("VAULT_ADDR is not set")
+	}
+	if path == "" {
+		path = "jwt"
+	}
+
+	client, err := vault.NewClient(&vault.Config{
+		Address: address,
+	})
+	if err != nil {
+		return "", errors.Wrap(err, "new vault client")
+	}
+
+	loginData := map[string]interface{}{
+		"role": role,
+		"jwt":  token,
+	}
+	fullpath := fmt.Sprintf("auth/%s/login", path)
+	resp, err := client.Logical().Write(fullpath, loginData)
+	if err != nil {
+		return "", errors.Wrap(err, "vault oidc login")
+	}
+	return resp.TokenID()
 }
 
 func (h *hashivaultClient) keyCacheLoaderFunction(key string) (data interface{}, ttl time.Duration, err error) {
@@ -209,6 +244,7 @@ func (h hashivaultClient) verify(sig, digest []byte, alg crypto.Hash) error {
 
 	result, err := client.Write(fmt.Sprintf("/%s/verify/%s/%s", h.transitSecretEnginePath, h.keyPath, hashString(alg)), map[string]interface{}{
 		"input":     base64.StdEncoding.EncodeToString(digest),
+		"prehashed": alg != crypto.Hash(0),
 		"signature": fmt.Sprintf("%s%s", vaultDataPrefix, encodedSig),
 	})
 
@@ -221,9 +257,15 @@ func (h hashivaultClient) verify(sig, digest []byte, alg crypto.Hash) error {
 		return errors.New("corrupted response")
 	}
 
-	if isValid, ok := valid.(bool); ok && isValid {
+	isValid, ok := valid.(bool)
+	if !ok {
+		return fmt.Errorf("data type assertion for field `valid` failed: %T %#v", valid.(bool), valid.(bool))
+	}
+
+	if !isValid {
 		return errors.New("Failed vault verification")
 	}
+
 	return nil
 }
 

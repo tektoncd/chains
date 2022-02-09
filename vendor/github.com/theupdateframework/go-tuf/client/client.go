@@ -2,10 +2,10 @@ package client
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"io"
 	"io/ioutil"
-	"log"
 
 	"github.com/theupdateframework/go-tuf/data"
 	"github.com/theupdateframework/go-tuf/util"
@@ -190,10 +190,6 @@ func (c *Client) Update() (data.TargetFiles, error) {
 	// Save the snapshot.json
 	if err := c.local.SetMeta("snapshot.json", snapshotJSON); err != nil {
 		return nil, err
-	}
-
-	if _, ok := snapshotMetas["root.json"]; ok {
-		log.Println("root pinning is not supported in Spec 1.0.19")
 	}
 
 	// If we don't have the targets.json, download it, determine updated
@@ -836,6 +832,29 @@ func (c *Client) Download(name string, dest Destination) (err error) {
 			return ErrWrongSize{name, e.Actual, e.Expected}
 		}
 		return ErrDownloadFailed{name, err}
+	}
+
+	return nil
+}
+
+func (c *Client) VerifyDigest(digest string, digestAlg string, length int64, path string) error {
+	localMeta, ok := c.targets[path]
+	if !ok {
+		return ErrUnknownTarget{Name: path, SnapshotVersion: c.snapshotVer}
+	}
+
+	actual := data.FileMeta{Length: length, Hashes: make(data.Hashes, 1)}
+	var err error
+	actual.Hashes[digestAlg], err = hex.DecodeString(digest)
+	if err != nil {
+		return err
+	}
+
+	if err := util.TargetFileMetaEqual(data.TargetFileMeta{FileMeta: actual}, localMeta); err != nil {
+		if e, ok := err.(util.ErrWrongLength); ok {
+			return ErrWrongSize{path, e.Actual, e.Expected}
+		}
+		return ErrDownloadFailed{path, err}
 	}
 
 	return nil

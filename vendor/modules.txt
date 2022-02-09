@@ -27,21 +27,21 @@ contrib.go.opencensus.io/exporter/prometheus
 github.com/Antonboom/errname/pkg/analyzer
 # github.com/Antonboom/nilnil v0.1.0
 github.com/Antonboom/nilnil/pkg/analyzer
-# github.com/Azure/azure-sdk-for-go v61.0.0+incompatible
-github.com/Azure/azure-sdk-for-go/services/containerregistry/mgmt/2019-05-01/containerregistry
+# github.com/Azure/azure-sdk-for-go v61.3.0+incompatible
 github.com/Azure/azure-sdk-for-go/services/keyvault/auth
 github.com/Azure/azure-sdk-for-go/services/keyvault/v7.1/keyvault
+github.com/Azure/azure-sdk-for-go/services/preview/containerregistry/runtime/2019-08-15-preview/containerregistry
 github.com/Azure/azure-sdk-for-go/version
 # github.com/Azure/go-autorest v14.2.0+incompatible
 github.com/Azure/go-autorest
-# github.com/Azure/go-autorest/autorest v0.11.22
+# github.com/Azure/go-autorest/autorest v0.11.24
 github.com/Azure/go-autorest/autorest
 github.com/Azure/go-autorest/autorest/azure
-# github.com/Azure/go-autorest/autorest/adal v0.9.17
+# github.com/Azure/go-autorest/autorest/adal v0.9.18
 github.com/Azure/go-autorest/autorest/adal
-# github.com/Azure/go-autorest/autorest/azure/auth v0.5.9
+# github.com/Azure/go-autorest/autorest/azure/auth v0.5.11
 github.com/Azure/go-autorest/autorest/azure/auth
-# github.com/Azure/go-autorest/autorest/azure/cli v0.4.4
+# github.com/Azure/go-autorest/autorest/azure/cli v0.4.5
 github.com/Azure/go-autorest/autorest/azure/cli
 # github.com/Azure/go-autorest/autorest/date v0.3.0
 github.com/Azure/go-autorest/autorest/date
@@ -88,7 +88,7 @@ github.com/asaskevich/govalidator
 github.com/ashanbrown/forbidigo/forbidigo
 # github.com/ashanbrown/makezero v0.0.0-20210520155254-b6261585ddde
 github.com/ashanbrown/makezero/makezero
-# github.com/aws/aws-sdk-go v1.42.26
+# github.com/aws/aws-sdk-go v1.42.43
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/awserr
 github.com/aws/aws-sdk-go/aws/awsutil
@@ -129,15 +129,15 @@ github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil
 github.com/aws/aws-sdk-go/service/dynamodb
 github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute
 github.com/aws/aws-sdk-go/service/dynamodb/expression
-github.com/aws/aws-sdk-go/service/ecr
 github.com/aws/aws-sdk-go/service/kms
 github.com/aws/aws-sdk-go/service/sso
 github.com/aws/aws-sdk-go/service/sso/ssoiface
 github.com/aws/aws-sdk-go/service/sts
 github.com/aws/aws-sdk-go/service/sts/stsiface
-# github.com/aws/aws-sdk-go-v2 v1.11.0
+# github.com/aws/aws-sdk-go-v2 v1.13.0
 github.com/aws/aws-sdk-go-v2
 github.com/aws/aws-sdk-go-v2/aws
+github.com/aws/aws-sdk-go-v2/aws/defaults
 github.com/aws/aws-sdk-go-v2/aws/middleware
 github.com/aws/aws-sdk-go-v2/aws/protocol/query
 github.com/aws/aws-sdk-go-v2/aws/protocol/restjson
@@ -153,9 +153,9 @@ github.com/aws/aws-sdk-go-v2/internal/sdkio
 github.com/aws/aws-sdk-go-v2/internal/strings
 github.com/aws/aws-sdk-go-v2/internal/sync/singleflight
 github.com/aws/aws-sdk-go-v2/internal/timeconv
-# github.com/aws/aws-sdk-go-v2/config v1.10.1
+# github.com/aws/aws-sdk-go-v2/config v1.13.0
 github.com/aws/aws-sdk-go-v2/config
-# github.com/aws/aws-sdk-go-v2/credentials v1.6.1
+# github.com/aws/aws-sdk-go-v2/credentials v1.8.0
 github.com/aws/aws-sdk-go-v2/credentials
 github.com/aws/aws-sdk-go-v2/credentials/ec2rolecreds
 github.com/aws/aws-sdk-go-v2/credentials/endpointcreds
@@ -163,30 +163,39 @@ github.com/aws/aws-sdk-go-v2/credentials/endpointcreds/internal/client
 github.com/aws/aws-sdk-go-v2/credentials/processcreds
 github.com/aws/aws-sdk-go-v2/credentials/ssocreds
 github.com/aws/aws-sdk-go-v2/credentials/stscreds
-# github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.8.0
+# github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.10.0
 github.com/aws/aws-sdk-go-v2/feature/ec2/imds
 github.com/aws/aws-sdk-go-v2/feature/ec2/imds/internal/config
-# github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.0
+# github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.4
 github.com/aws/aws-sdk-go-v2/internal/configsources
-# github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.0.0
+# github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.2.0
 github.com/aws/aws-sdk-go-v2/internal/endpoints/v2
-# github.com/aws/aws-sdk-go-v2/internal/ini v1.3.0
+# github.com/aws/aws-sdk-go-v2/internal/ini v1.3.4
 github.com/aws/aws-sdk-go-v2/internal/ini
-# github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.5.0
+# github.com/aws/aws-sdk-go-v2/service/ecr v1.14.0
+github.com/aws/aws-sdk-go-v2/service/ecr
+github.com/aws/aws-sdk-go-v2/service/ecr/internal/endpoints
+github.com/aws/aws-sdk-go-v2/service/ecr/types
+# github.com/aws/aws-sdk-go-v2/service/ecrpublic v1.11.0
+github.com/aws/aws-sdk-go-v2/service/ecrpublic
+github.com/aws/aws-sdk-go-v2/service/ecrpublic/internal/endpoints
+github.com/aws/aws-sdk-go-v2/service/ecrpublic/types
+# github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.7.0
 github.com/aws/aws-sdk-go-v2/service/internal/presigned-url
-# github.com/aws/aws-sdk-go-v2/service/sso v1.6.0
+# github.com/aws/aws-sdk-go-v2/service/sso v1.9.0
 github.com/aws/aws-sdk-go-v2/service/sso
 github.com/aws/aws-sdk-go-v2/service/sso/internal/endpoints
 github.com/aws/aws-sdk-go-v2/service/sso/types
-# github.com/aws/aws-sdk-go-v2/service/sts v1.10.0
+# github.com/aws/aws-sdk-go-v2/service/sts v1.14.0
 github.com/aws/aws-sdk-go-v2/service/sts
 github.com/aws/aws-sdk-go-v2/service/sts/internal/endpoints
 github.com/aws/aws-sdk-go-v2/service/sts/types
-# github.com/aws/smithy-go v1.9.0
+# github.com/aws/smithy-go v1.10.0
 github.com/aws/smithy-go
 github.com/aws/smithy-go/document
 github.com/aws/smithy-go/encoding
 github.com/aws/smithy-go/encoding/httpbinding
+github.com/aws/smithy-go/encoding/json
 github.com/aws/smithy-go/encoding/xml
 github.com/aws/smithy-go/io
 github.com/aws/smithy-go/logging
@@ -196,6 +205,13 @@ github.com/aws/smithy-go/rand
 github.com/aws/smithy-go/time
 github.com/aws/smithy-go/transport/http
 github.com/aws/smithy-go/transport/http/internal/io
+github.com/aws/smithy-go/waiter
+# github.com/awslabs/amazon-ecr-credential-helper/ecr-login v0.0.0-20211215200129-69c85dc22db6
+github.com/awslabs/amazon-ecr-credential-helper/ecr-login
+github.com/awslabs/amazon-ecr-credential-helper/ecr-login/api
+github.com/awslabs/amazon-ecr-credential-helper/ecr-login/cache
+github.com/awslabs/amazon-ecr-credential-helper/ecr-login/config
+github.com/awslabs/amazon-ecr-credential-helper/ecr-login/version
 # github.com/benbjohnson/clock v1.1.0
 github.com/benbjohnson/clock
 # github.com/beorn7/perks v1.0.1
@@ -235,6 +251,10 @@ github.com/cespare/xxhash/v2
 github.com/charithe/durationcheck
 # github.com/chavacava/garif v0.0.0-20210405164556-e8a0a408d6af
 github.com/chavacava/garif
+# github.com/chrismellard/docker-credential-acr-env v0.0.0-20220119192733-fe33c00cee21
+github.com/chrismellard/docker-credential-acr-env/pkg/credhelper
+github.com/chrismellard/docker-credential-acr-env/pkg/registry
+github.com/chrismellard/docker-credential-acr-env/pkg/token
 # github.com/containerd/stargz-snapshotter/estargz v0.10.1
 github.com/containerd/stargz-snapshotter/estargz
 github.com/containerd/stargz-snapshotter/estargz/errorutil
@@ -276,7 +296,7 @@ github.com/emirpasic/gods/utils
 github.com/esimonov/ifshort/pkg/analyzer
 # github.com/ettle/strcase v0.1.1
 github.com/ettle/strcase
-# github.com/evanphx/json-patch v4.11.0+incompatible
+# github.com/evanphx/json-patch v4.12.0+incompatible
 github.com/evanphx/json-patch
 # github.com/evanphx/json-patch/v5 v5.6.0
 github.com/evanphx/json-patch/v5
@@ -305,7 +325,7 @@ github.com/go-kit/log
 github.com/go-kit/log/level
 # github.com/go-logfmt/logfmt v0.5.0
 github.com/go-logfmt/logfmt
-# github.com/go-logr/logr v1.2.0
+# github.com/go-logr/logr v1.2.2
 github.com/go-logr/logr
 # github.com/go-openapi/analysis v0.20.1
 github.com/go-openapi/analysis
@@ -323,7 +343,7 @@ github.com/go-openapi/jsonpointer
 github.com/go-openapi/jsonreference
 # github.com/go-openapi/loads v0.21.0
 github.com/go-openapi/loads
-# github.com/go-openapi/runtime v0.21.0
+# github.com/go-openapi/runtime v0.23.0
 github.com/go-openapi/runtime
 github.com/go-openapi/runtime/client
 github.com/go-openapi/runtime/logger
@@ -335,9 +355,9 @@ github.com/go-openapi/runtime/security
 github.com/go-openapi/runtime/yamlpc
 # github.com/go-openapi/spec v0.20.4
 github.com/go-openapi/spec
-# github.com/go-openapi/strfmt v0.21.1
+# github.com/go-openapi/strfmt v0.21.2
 github.com/go-openapi/strfmt
-# github.com/go-openapi/swag v0.19.15
+# github.com/go-openapi/swag v0.21.1
 github.com/go-openapi/swag
 # github.com/go-openapi/validate v0.20.3
 github.com/go-openapi/validate
@@ -478,6 +498,7 @@ github.com/google/go-containerregistry/pkg/logs
 github.com/google/go-containerregistry/pkg/name
 github.com/google/go-containerregistry/pkg/v1
 github.com/google/go-containerregistry/pkg/v1/empty
+github.com/google/go-containerregistry/pkg/v1/google
 github.com/google/go-containerregistry/pkg/v1/layout
 github.com/google/go-containerregistry/pkg/v1/match
 github.com/google/go-containerregistry/pkg/v1/mutate
@@ -487,11 +508,13 @@ github.com/google/go-containerregistry/pkg/v1/remote/transport
 github.com/google/go-containerregistry/pkg/v1/stream
 github.com/google/go-containerregistry/pkg/v1/tarball
 github.com/google/go-containerregistry/pkg/v1/types
-# github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20211215180950-ab77ea68f600
+# github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20220125170349-50dfc2733d10
 ## explicit
 github.com/google/go-containerregistry/pkg/authn/k8schain
-# github.com/google/go-github/v39 v39.2.0
-github.com/google/go-github/v39/github
+# github.com/google/go-containerregistry/pkg/authn/kubernetes v0.0.0-20220125170349-50dfc2733d10
+github.com/google/go-containerregistry/pkg/authn/kubernetes
+# github.com/google/go-github/v42 v42.0.0
+github.com/google/go-github/v42/github
 # github.com/google/go-licenses v0.0.0-20210816172045-3099c18c36e1
 ## explicit
 github.com/google/go-licenses/licenses
@@ -700,7 +723,7 @@ github.com/mgechev/revive/config
 github.com/mgechev/revive/formatter
 github.com/mgechev/revive/lint
 github.com/mgechev/revive/rule
-# github.com/miekg/pkcs11 v1.0.3
+# github.com/miekg/pkcs11 v1.1.1
 github.com/miekg/pkcs11
 # github.com/mitchellh/copystructure v1.2.0
 ## explicit
@@ -838,7 +861,7 @@ github.com/sergi/go-diff/diffmatchpatch
 github.com/shazow/go-diff/difflib
 # github.com/shibumi/go-pathspec v1.3.0
 github.com/shibumi/go-pathspec
-# github.com/sigstore/cosign v1.4.2-0.20220103014340-1a7f9d61a2e9
+# github.com/sigstore/cosign v1.4.2-0.20220103014340-1a7f9d61a2e9 => github.com/sigstore/cosign v1.5.2-0.20220208171233-ddca5deac2ba
 ## explicit
 github.com/sigstore/cosign/cmd/cosign/cli/fulcio
 github.com/sigstore/cosign/cmd/cosign/cli/fulcio/fulcioroots
@@ -846,6 +869,7 @@ github.com/sigstore/cosign/cmd/cosign/cli/options
 github.com/sigstore/cosign/pkg/blob
 github.com/sigstore/cosign/pkg/cosign
 github.com/sigstore/cosign/pkg/cosign/attestation
+github.com/sigstore/cosign/pkg/cosign/bundle
 github.com/sigstore/cosign/pkg/cosign/git
 github.com/sigstore/cosign/pkg/cosign/git/github
 github.com/sigstore/cosign/pkg/cosign/git/gitlab
@@ -870,8 +894,7 @@ github.com/sigstore/cosign/pkg/providers/spiffe
 github.com/sigstore/cosign/pkg/signature
 github.com/sigstore/cosign/pkg/types
 github.com/sigstore/cosign/pkg/version
-# github.com/sigstore/fulcio v0.1.2-0.20220103193424-0df42390d392
-## explicit
+# github.com/sigstore/fulcio v0.1.2-0.20220114150912-86a2036f9bc7
 github.com/sigstore/fulcio/pkg/api
 github.com/sigstore/fulcio/pkg/ca
 github.com/sigstore/fulcio/pkg/challenges
@@ -879,7 +902,7 @@ github.com/sigstore/fulcio/pkg/config
 github.com/sigstore/fulcio/pkg/ctl
 github.com/sigstore/fulcio/pkg/log
 github.com/sigstore/fulcio/pkg/oauthflow
-# github.com/sigstore/rekor v0.4.1-0.20220103184137-e86cf37242d3
+# github.com/sigstore/rekor v0.4.1-0.20220114213500-23f583409af3
 ## explicit
 github.com/sigstore/rekor/pkg/client
 github.com/sigstore/rekor/pkg/generated/client
@@ -904,7 +927,7 @@ github.com/sigstore/rekor/pkg/types/hashedrekord/v0.0.1
 github.com/sigstore/rekor/pkg/types/intoto
 github.com/sigstore/rekor/pkg/types/intoto/v0.0.1
 github.com/sigstore/rekor/pkg/util
-# github.com/sigstore/sigstore v1.1.1-0.20220104191147-28bc731b4695
+# github.com/sigstore/sigstore v1.1.1-0.20220130134424-bae9b66b8442
 ## explicit
 github.com/sigstore/sigstore/pkg/cryptoutils
 github.com/sigstore/sigstore/pkg/oauthflow
@@ -929,7 +952,7 @@ github.com/sonatard/noctx/ngfunc
 github.com/sonatard/noctx/reqwithoutctx
 # github.com/sourcegraph/go-diff v0.6.1
 github.com/sourcegraph/go-diff/diff
-# github.com/spf13/afero v1.6.0
+# github.com/spf13/afero v1.8.0
 github.com/spf13/afero
 github.com/spf13/afero/mem
 # github.com/spf13/cast v1.4.1
@@ -947,7 +970,7 @@ github.com/spf13/viper/internal/encoding/hcl
 github.com/spf13/viper/internal/encoding/json
 github.com/spf13/viper/internal/encoding/toml
 github.com/spf13/viper/internal/encoding/yaml
-# github.com/spiffe/go-spiffe/v2 v2.0.0-beta.10
+# github.com/spiffe/go-spiffe/v2 v2.0.0-beta.11
 github.com/spiffe/go-spiffe/v2/bundle/jwtbundle
 github.com/spiffe/go-spiffe/v2/bundle/spiffebundle
 github.com/spiffe/go-spiffe/v2/bundle/x509bundle
@@ -1037,12 +1060,13 @@ github.com/tent/canonical-json-go
 github.com/tetafro/godot
 # github.com/thales-e-security/pool v0.0.2
 github.com/thales-e-security/pool
-# github.com/theupdateframework/go-tuf v0.0.0-20211213174152-470b5ab00139
+# github.com/theupdateframework/go-tuf v0.0.0-20220124194755-2c5d73bebc1c
 github.com/theupdateframework/go-tuf
 github.com/theupdateframework/go-tuf/client
 github.com/theupdateframework/go-tuf/client/leveldbstore
 github.com/theupdateframework/go-tuf/data
 github.com/theupdateframework/go-tuf/encrypted
+github.com/theupdateframework/go-tuf/internal/roles
 github.com/theupdateframework/go-tuf/internal/signer
 github.com/theupdateframework/go-tuf/internal/targets
 github.com/theupdateframework/go-tuf/pkg/keys
@@ -1065,13 +1089,7 @@ github.com/ultraware/whitespace
 github.com/uudashr/gocognit
 # github.com/vbatts/tar-split v0.11.2
 github.com/vbatts/tar-split/archive/tar
-# github.com/vdemeester/k8s-pkg-credentialprovider v1.21.0-1
-github.com/vdemeester/k8s-pkg-credentialprovider
-github.com/vdemeester/k8s-pkg-credentialprovider/aws
-github.com/vdemeester/k8s-pkg-credentialprovider/azure
-github.com/vdemeester/k8s-pkg-credentialprovider/gcp
-github.com/vdemeester/k8s-pkg-credentialprovider/secrets
-# github.com/xanzy/go-gitlab v0.52.2
+# github.com/xanzy/go-gitlab v0.54.4
 github.com/xanzy/go-gitlab
 # github.com/xanzy/ssh-agent v0.2.1
 github.com/xanzy/ssh-agent
@@ -1142,7 +1160,7 @@ gocloud.dev/internal/oc
 gocloud.dev/internal/openurl
 gocloud.dev/internal/retry
 gocloud.dev/internal/useragent
-# golang.org/x/crypto v0.0.0-20211209193657-4570a0811e8b
+# golang.org/x/crypto v0.0.0-20220112180741-5e0467b6c7ce
 ## explicit
 golang.org/x/crypto/blake2b
 golang.org/x/crypto/blowfish
@@ -1204,7 +1222,7 @@ golang.org/x/oauth2/jwt
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
 golang.org/x/sync/singleflight
-# golang.org/x/sys v0.0.0-20220114195835-da31bd327af9
+# golang.org/x/sys v0.0.0-20220128215802-99c3d69c2c27
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
 golang.org/x/sys/internal/unsafeheader
@@ -1301,7 +1319,7 @@ golang.org/x/xerrors
 golang.org/x/xerrors/internal
 # gomodules.xyz/jsonpatch/v2 v2.2.0
 gomodules.xyz/jsonpatch/v2
-# google.golang.org/api v0.66.0
+# google.golang.org/api v0.67.0
 google.golang.org/api/googleapi
 google.golang.org/api/googleapi/transport
 google.golang.org/api/iamcredentials/v1
@@ -1907,15 +1925,11 @@ k8s.io/client-go/util/jsonpath
 k8s.io/client-go/util/keyutil
 k8s.io/client-go/util/retry
 k8s.io/client-go/util/workqueue
-# k8s.io/cloud-provider v0.21.0
-k8s.io/cloud-provider/credentialconfig
 # k8s.io/code-generator v0.22.5
 ## explicit
 k8s.io/code-generator/cmd/deepcopy-gen
 k8s.io/code-generator/cmd/deepcopy-gen/args
 k8s.io/code-generator/pkg/util
-# k8s.io/component-base v0.22.5
-k8s.io/component-base/version
 # k8s.io/gengo v0.0.0-20211129171323-c02415ce4185
 k8s.io/gengo/args
 k8s.io/gengo/examples/deepcopy-gen/generators
@@ -1924,23 +1938,18 @@ k8s.io/gengo/generator
 k8s.io/gengo/namer
 k8s.io/gengo/parser
 k8s.io/gengo/types
-# k8s.io/klog v1.0.0
-k8s.io/klog
-# k8s.io/klog/v2 v2.30.0
+# k8s.io/klog/v2 v2.40.1
 k8s.io/klog/v2
-# k8s.io/kube-openapi v0.0.0-20211110012726-3cc51fd1e909 => k8s.io/kube-openapi v0.0.0-20211109043538-20434351676c
+# k8s.io/kube-openapi v0.0.0-20220124234850-424119656bbf => k8s.io/kube-openapi v0.0.0-20211109043538-20434351676c
 k8s.io/kube-openapi/pkg/common
 k8s.io/kube-openapi/pkg/util/proto
 k8s.io/kube-openapi/pkg/validation/spec
-# k8s.io/legacy-cloud-providers v0.21.0
-k8s.io/legacy-cloud-providers/azure/auth
-k8s.io/legacy-cloud-providers/gce/gcpcredential
 # k8s.io/utils v0.0.0-20211208161948-7d6a63dca704
 k8s.io/utils/buffer
 k8s.io/utils/integer
 k8s.io/utils/pointer
 k8s.io/utils/trace
-# knative.dev/pkg v0.0.0-20220104185830-52e42b760b54
+# knative.dev/pkg v0.0.0-20220121092305-3ba5d72e310a
 ## explicit
 knative.dev/pkg/apis
 knative.dev/pkg/apis/duck
@@ -2000,11 +2009,12 @@ mvdan.cc/interfacer/check
 mvdan.cc/lint
 # mvdan.cc/unparam v0.0.0-20210104141923-aac4ce9116a7
 mvdan.cc/unparam/check
-# sigs.k8s.io/structured-merge-diff/v4 v4.1.2
+# sigs.k8s.io/structured-merge-diff/v4 v4.2.1
 sigs.k8s.io/structured-merge-diff/v4/fieldpath
 sigs.k8s.io/structured-merge-diff/v4/schema
 sigs.k8s.io/structured-merge-diff/v4/typed
 sigs.k8s.io/structured-merge-diff/v4/value
 # sigs.k8s.io/yaml v1.3.0
 sigs.k8s.io/yaml
+# github.com/sigstore/cosign => github.com/sigstore/cosign v1.5.2-0.20220208171233-ddca5deac2ba
 # k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20211109043538-20434351676c
