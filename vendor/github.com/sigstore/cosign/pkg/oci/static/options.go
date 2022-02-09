@@ -19,7 +19,8 @@ import (
 	"encoding/json"
 
 	"github.com/google/go-containerregistry/pkg/v1/types"
-	"github.com/sigstore/cosign/pkg/oci"
+	"github.com/sigstore/cosign/pkg/cosign/bundle"
+	"github.com/sigstore/cosign/pkg/cosign/tuf"
 	ctypes "github.com/sigstore/cosign/pkg/types"
 )
 
@@ -29,10 +30,11 @@ type Option func(*options)
 type options struct {
 	LayerMediaType  types.MediaType
 	ConfigMediaType types.MediaType
-	Bundle          *oci.Bundle
+	Bundle          *bundle.RekorBundle
 	Cert            []byte
 	Chain           []byte
 	Annotations     map[string]string
+	Timestamp       *tuf.Timestamp
 }
 
 func makeOptions(opts ...Option) (*options, error) {
@@ -57,6 +59,14 @@ func makeOptions(opts ...Option) (*options, error) {
 			return nil, err
 		}
 		o.Annotations[BundleAnnotationKey] = string(b)
+	}
+
+	if o.Timestamp != nil {
+		t, err := json.Marshal(o.Timestamp)
+		if err != nil {
+			return nil, err
+		}
+		o.Annotations[TimestampAnnotationKey] = string(t)
 	}
 
 	return o, nil
@@ -84,7 +94,7 @@ func WithAnnotations(ann map[string]string) Option {
 }
 
 // WithBundle sets the bundle to attach to the signature
-func WithBundle(b *oci.Bundle) Option {
+func WithBundle(b *bundle.RekorBundle) Option {
 	return func(o *options) {
 		o.Bundle = b
 	}
@@ -95,5 +105,12 @@ func WithCertChain(cert, chain []byte) Option {
 	return func(o *options) {
 		o.Cert = cert
 		o.Chain = chain
+	}
+}
+
+// WithTimestamp sets the TUF timestamp to attach to the signature
+func WithTimestamp(t *tuf.Timestamp) Option {
+	return func(o *options) {
+		o.Timestamp = t
 	}
 }

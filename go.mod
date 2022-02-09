@@ -2,7 +2,10 @@ module github.com/tektoncd/chains
 
 go 1.16
 
-replace k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20211109043538-20434351676c
+replace (
+	github.com/sigstore/cosign => github.com/sigstore/cosign v1.5.2-0.20220208171233-ddca5deac2ba
+	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20211109043538-20434351676c
+)
 
 require (
 	cloud.google.com/go/compute v1.2.0
@@ -15,7 +18,7 @@ require (
 	github.com/google/addlicense v1.0.0
 	github.com/google/go-cmp v0.5.7
 	github.com/google/go-containerregistry v0.8.1-0.20220202214207-9c35968ef47e
-	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20211215180950-ab77ea68f600
+	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20220125170349-50dfc2733d10
 	github.com/google/go-licenses v0.0.0-20210816172045-3099c18c36e1
 	github.com/hashicorp/errwrap v1.1.0
 	github.com/hashicorp/go-hclog v1.1.0
@@ -38,19 +41,18 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/secure-systems-lab/go-securesystemslib v0.3.0
 	github.com/sigstore/cosign v1.4.2-0.20220103014340-1a7f9d61a2e9
-	github.com/sigstore/fulcio v0.1.2-0.20220103193424-0df42390d392 // indirect
-	github.com/sigstore/rekor v0.4.1-0.20220103184137-e86cf37242d3
-	github.com/sigstore/sigstore v1.1.1-0.20220104191147-28bc731b4695
+	github.com/sigstore/rekor v0.4.1-0.20220114213500-23f583409af3
+	github.com/sigstore/sigstore v1.1.1-0.20220130134424-bae9b66b8442
 	github.com/tektoncd/pipeline v0.31.1-0.20220105002759-3e137645be61
 	github.com/tektoncd/plumbing v0.0.0-20211012143332-c7cc43d9bc0c
 	go.uber.org/atomic v1.9.0
 	go.uber.org/zap v1.20.0
 	gocloud.dev v0.24.1-0.20211119014450-028788aaaa4c
-	golang.org/x/crypto v0.0.0-20211209193657-4570a0811e8b
+	golang.org/x/crypto v0.0.0-20220112180741-5e0467b6c7ce
 	google.golang.org/protobuf v1.27.1
 	k8s.io/api v0.22.5
 	k8s.io/apimachinery v0.22.5
 	k8s.io/client-go v0.22.5
 	k8s.io/code-generator v0.22.5
-	knative.dev/pkg v0.0.0-20220104185830-52e42b760b54
+	knative.dev/pkg v0.0.0-20220121092305-3ba5d72e310a
 )

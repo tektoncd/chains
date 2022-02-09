@@ -10,6 +10,7 @@ weight: 10
 Authentication must be set up to take advantage of the following features in Chains:
 
 * Pushing signatures to an OCI registry after signing an image
+* Using Fulcio to get Signing Certificates when utilizing Keyless signing.
 
 This doc will cover how to set this up!
 
@@ -48,3 +49,59 @@ kubectl patch serviceaccount $SERVICE_ACCOUNT_NAME \
 ```
 
 Now, Chains has push permissions for any TaskRuns running under the service account `$SERVICE_ACCOUNT_NAME`.
+
+## Authenticating to Fulcio for Keyless signing
+
+The default [deployment](../config/100-deployment.yaml) will work against
+public Fulcio assuming it is installed into an EKS or GKE cluster. You will
+just need to add the following to `chains-config` ConfigMap data section in the
+`tekton-chains` namespace:
+
+```
+  "signers.x509.fulcio.enabled": "true"
+```
+
+### Specifying a custom Fulcio endpoint
+
+If you are running your own instance of Fulcio, you need to further
+configure Fulcio for this. You need to additionally point Chains to your
+fulcio instance by adding this to `chains-config`. In this case, it's a local
+k8s service, but you will need to change the URL to point to your Fulcio
+instance.
+
+```
+  "signers.x509.fulcio.address": "http://fulcio.fulcio-system.svc"
+```
+
+### Specifying Spiffe as authentication provider
+
+If you are using Spiffe to authenticate to Fulcio, you will need to configure
+your Chains Deployment to fetch the SVID from the Spire agent. This requires
+mounting the Agent socket, specifying an environmental variable (if not using
+the default of `/tmp/spire-agent/public/api.sock`).
+
+For VolumeMount, replace the k8s SA token, or add if you use it for something
+else the following to `tekton-chains-controller` container volumeMounts section:
+
+```
+        - name: spiffe-workload-api
+          mountPath: /run/spire/sockets/agent.sock
+          readOnly: true
+```
+
+Specify (if necessary) the non-default Agent socket, by adding the following
+to the `tekton-chains-controller` env section:
+
+```
+        - name: SPIFFE_ENDPOINT_SOCKET
+          value: "/run/spire/sockets/agent.sock"
+```
+
+And finally, adding the volume for the Spiffe workload API by adding this
+to deployment `volumes` section:
+
+```
+      - name: spiffe-workload-api
+        hostPath:
+          path: /run/spire/sockets/agent.sock
+```
