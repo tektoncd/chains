@@ -255,6 +255,8 @@ github.com/chavacava/garif
 github.com/chrismellard/docker-credential-acr-env/pkg/credhelper
 github.com/chrismellard/docker-credential-acr-env/pkg/registry
 github.com/chrismellard/docker-credential-acr-env/pkg/token
+# github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be
+github.com/common-nighthawk/go-figure
 # github.com/containerd/stargz-snapshotter/estargz v0.10.1
 github.com/containerd/stargz-snapshotter/estargz
 github.com/containerd/stargz-snapshotter/estargz/errorutil
@@ -861,7 +863,7 @@ github.com/sergi/go-diff/diffmatchpatch
 github.com/shazow/go-diff/difflib
 # github.com/shibumi/go-pathspec v1.3.0
 github.com/shibumi/go-pathspec
-# github.com/sigstore/cosign v1.4.2-0.20220103014340-1a7f9d61a2e9 => github.com/sigstore/cosign v1.5.2-0.20220208171233-ddca5deac2ba
+# github.com/sigstore/cosign v1.5.2-0.20220210140103-2381756282ae
 ## explicit
 github.com/sigstore/cosign/cmd/cosign/cli/fulcio
 github.com/sigstore/cosign/cmd/cosign/cli/fulcio/fulcioroots
@@ -893,7 +895,6 @@ github.com/sigstore/cosign/pkg/providers/google
 github.com/sigstore/cosign/pkg/providers/spiffe
 github.com/sigstore/cosign/pkg/signature
 github.com/sigstore/cosign/pkg/types
-github.com/sigstore/cosign/pkg/version
 # github.com/sigstore/fulcio v0.1.2-0.20220114150912-86a2036f9bc7
 github.com/sigstore/fulcio/pkg/api
 github.com/sigstore/fulcio/pkg/ca
@@ -1222,7 +1223,7 @@ golang.org/x/oauth2/jwt
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
 golang.org/x/sync/singleflight
-# golang.org/x/sys v0.0.0-20220128215802-99c3d69c2c27
+# golang.org/x/sys v0.0.0-20220204135822-1c1b9b1eba6a
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
 golang.org/x/sys/internal/unsafeheader
@@ -1319,7 +1320,7 @@ golang.org/x/xerrors
 golang.org/x/xerrors/internal
 # gomodules.xyz/jsonpatch/v2 v2.2.0
 gomodules.xyz/jsonpatch/v2
-# google.golang.org/api v0.67.0
+# google.golang.org/api v0.68.0
 google.golang.org/api/googleapi
 google.golang.org/api/googleapi/transport
 google.golang.org/api/iamcredentials/v1
@@ -1353,7 +1354,7 @@ google.golang.org/appengine/internal/socket
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/socket
 google.golang.org/appengine/urlfetch
-# google.golang.org/genproto v0.0.0-20220201184016-50beb8ab5c44
+# google.golang.org/genproto v0.0.0-20220204002441-d6cc3cc0770e
 google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/api/httpbody
 google.golang.org/genproto/googleapis/cloud/kms/v1
@@ -2009,6 +2010,8 @@ mvdan.cc/interfacer/check
 mvdan.cc/lint
 # mvdan.cc/unparam v0.0.0-20210104141923-aac4ce9116a7
 mvdan.cc/unparam/check
+# sigs.k8s.io/release-utils v0.4.1-0.20220207182343-6dadf2228617
+sigs.k8s.io/release-utils/version
 # sigs.k8s.io/structured-merge-diff/v4 v4.2.1
 sigs.k8s.io/structured-merge-diff/v4/fieldpath
 sigs.k8s.io/structured-merge-diff/v4/schema
@@ -2016,5 +2019,4 @@ sigs.k8s.io/structured-merge-diff/v4/typed
 sigs.k8s.io/structured-merge-diff/v4/value
 # sigs.k8s.io/yaml v1.3.0
 sigs.k8s.io/yaml
-# github.com/sigstore/cosign => github.com/sigstore/cosign v1.5.2-0.20220208171233-ddca5deac2ba
 # k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20211109043538-20434351676c
