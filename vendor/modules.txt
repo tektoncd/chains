@@ -13,7 +13,7 @@ cloud.google.com/go/compute/metadata
 cloud.google.com/go/firestore/apiv1
 # cloud.google.com/go/iam v0.1.1
 cloud.google.com/go/iam
-# cloud.google.com/go/kms v1.1.0
+# cloud.google.com/go/kms v1.3.0
 cloud.google.com/go/kms/apiv1
 # cloud.google.com/go/storage v1.20.0
 ## explicit
@@ -27,7 +27,7 @@ contrib.go.opencensus.io/exporter/prometheus
 github.com/Antonboom/errname/pkg/analyzer
 # github.com/Antonboom/nilnil v0.1.0
 github.com/Antonboom/nilnil/pkg/analyzer
-# github.com/Azure/azure-sdk-for-go v61.3.0+incompatible
+# github.com/Azure/azure-sdk-for-go v61.5.0+incompatible
 github.com/Azure/azure-sdk-for-go/services/keyvault/auth
 github.com/Azure/azure-sdk-for-go/services/keyvault/v7.1/keyvault
 github.com/Azure/azure-sdk-for-go/services/preview/containerregistry/runtime/2019-08-15-preview/containerregistry
@@ -88,7 +88,7 @@ github.com/asaskevich/govalidator
 github.com/ashanbrown/forbidigo/forbidigo
 # github.com/ashanbrown/makezero v1.1.0
 github.com/ashanbrown/makezero/makezero
-# github.com/aws/aws-sdk-go v1.42.43
+# github.com/aws/aws-sdk-go v1.43.0
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/awserr
 github.com/aws/aws-sdk-go/aws/awsutil
@@ -940,7 +940,7 @@ github.com/sigstore/rekor/pkg/types/hashedrekord/v0.0.1
 github.com/sigstore/rekor/pkg/types/intoto
 github.com/sigstore/rekor/pkg/types/intoto/v0.0.1
 github.com/sigstore/rekor/pkg/util
-# github.com/sigstore/sigstore v1.1.1-0.20220130134424-bae9b66b8442
+# github.com/sigstore/sigstore v1.1.1-0.20220217211516-72dc5d11a806
 ## explicit
 github.com/sigstore/sigstore/pkg/cryptoutils
 github.com/sigstore/sigstore/pkg/oauthflow
@@ -1075,7 +1075,7 @@ github.com/tent/canonical-json-go
 github.com/tetafro/godot
 # github.com/thales-e-security/pool v0.0.2
 github.com/thales-e-security/pool
-# github.com/theupdateframework/go-tuf v0.0.0-20220124194755-2c5d73bebc1c
+# github.com/theupdateframework/go-tuf v0.0.0-20220127213825-87caa18db2a6
 github.com/theupdateframework/go-tuf
 github.com/theupdateframework/go-tuf/client
 github.com/theupdateframework/go-tuf/client/leveldbstore
@@ -1083,8 +1083,8 @@ github.com/theupdateframework/go-tuf/data
 github.com/theupdateframework/go-tuf/encrypted
 github.com/theupdateframework/go-tuf/internal/roles
 github.com/theupdateframework/go-tuf/internal/signer
-github.com/theupdateframework/go-tuf/internal/targets
 github.com/theupdateframework/go-tuf/pkg/keys
+github.com/theupdateframework/go-tuf/pkg/targets
 github.com/theupdateframework/go-tuf/sign
 github.com/theupdateframework/go-tuf/util
 github.com/theupdateframework/go-tuf/verify
@@ -1181,7 +1181,7 @@ gocloud.dev/internal/oc
 gocloud.dev/internal/openurl
 gocloud.dev/internal/retry
 gocloud.dev/internal/useragent
-# golang.org/x/crypto v0.0.0-20220112180741-5e0467b6c7ce
+# golang.org/x/crypto v0.0.0-20220131195533-30dcbda58838
 ## explicit
 golang.org/x/crypto/blake2b
 golang.org/x/crypto/blowfish
@@ -1219,7 +1219,7 @@ golang.org/x/mod/modfile
 golang.org/x/mod/module
 golang.org/x/mod/semver
 golang.org/x/mod/sumdb/note
-# golang.org/x/net v0.0.0-20220127074510-2fabfed7e28f
+# golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
 golang.org/x/net/http/httpguts
