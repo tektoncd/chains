@@ -11,7 +11,7 @@ require (
 	github.com/armon/go-radix v1.0.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/golang/snappy v0.0.4
-	github.com/golangci/golangci-lint v1.44.0
+	github.com/golangci/golangci-lint v1.44.2
 	github.com/google/addlicense v1.0.0
 	github.com/google/go-cmp v0.5.7
 	github.com/google/go-containerregistry v0.8.1-0.20220202214207-9c35968ef47e
