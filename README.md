@@ -123,7 +123,7 @@ To start signing OCI images and generating signed provenance for them, try our
 
 ### Community tutorials
 
-The Chains community has been hard at work is sharing some resources as well :
+The Chains community has been hard at work creating tutorials as well:
 
 - [Dual storage backend setup](https://github.com/thesecuresoftwarefactory/ssf/blob/main/examples/buildpacks/dual-storage-backend.md) showcases how to use multiple storage backends and
 verify the attestations with [cosign].
