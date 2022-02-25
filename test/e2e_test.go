@@ -27,6 +27,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"testing"
 	"time"
 
@@ -579,5 +580,63 @@ func TestProvenanceMaterials(t *testing.T) {
 	got := predicate.Materials
 	if d := cmp.Diff(want, got); d != "" {
 		t.Fatal(string(d))
+	}
+}
+
+func TestVaultKMSSpire(t *testing.T) {
+	ctx := logtesting.TestContextWithLogger(t)
+	c, ns, cleanup := setup(ctx, t, setupOpts{})
+	defer cleanup()
+
+	resetConfig := setConfigMap(ctx, t, c, map[string]string{
+		"artifacts.oci.signer":            "kms",
+		"artifacts.taskrun.signer":        "kms",
+		"signers.kms.kmsref":              "hashivault://e2e",
+		"signers.kms.auth.address":        "http://vault.vault:8200",
+		"signers.kms.auth.path":           "jwt",
+		"signers.kms.auth.role":           "spire-chains-controller",
+		"signers.kms.auth.spire.sock":     "unix:///tmp/spire-agent/public/api.sock",
+		"signers.kms.auth.spire.audience": "e2e",
+	})
+
+	defer resetConfig()
+	time.Sleep(3 * time.Second)
+
+	tr, err := c.PipelineClient.TektonV1beta1().TaskRuns(ns).Create(ctx, &imageTaskRun, metav1.CreateOptions{})
+	if err != nil {
+		t.Errorf("error creating taskrun: %s", err)
+	}
+
+	// Give it a minute to complete.
+	waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, done, 60*time.Second)
+	tr = waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, signed, 120*time.Second)
+	t.Log(tr.Annotations)
+
+	// Verify the payload signature.
+	verifySignature(ctx, t, c, tr) // TODO: consider removing
+
+	// verify the cert against the signature and payload
+
+	sigKey := fmt.Sprintf("chains.tekton.dev/signature-taskrun-%s", tr.UID)
+	payloadKey := fmt.Sprintf("chains.tekton.dev/payload-taskrun-%s", tr.UID)
+	sigBytes := base64Decode(t, tr.Annotations[sigKey])
+	payloadBytes := base64Decode(t, tr.Annotations[payloadKey])
+
+	certPEM, err := os.ReadFile("testdata/vault.pub")
+	if err != nil {
+		t.Fatalf("failed reading vault.pub key: %v", err)
+	}
+	cert, err := cryptoutils.UnmarshalPEMToPublicKey(certPEM)
+	if err != nil {
+		t.Fatalf("failed unmarshaling vault.pub key: %v", err)
+	}
+	pubKey, err := signature.LoadECDSAVerifier(cert.(*ecdsa.PublicKey), crypto.SHA256)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// verify the signature
+	if err := pubKey.VerifySignature(bytes.NewReader(sigBytes), bytes.NewReader(payloadBytes)); err != nil {
+		t.Fatal(err)
 	}
 }

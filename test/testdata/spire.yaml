@@ -1,0 +1,541 @@
+---
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: spire-agent
+  labels:
+    app.kubernetes.io/name: spire
+    app.kubernetes.io/instance: spire
+
+---
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: spire-server
+  labels:
+    app.kubernetes.io/name: spire
+    app.kubernetes.io/instance: spire
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spire-agent
+  labels:
+    app.kubernetes.io/name: spire
+    app.kubernetes.io/instance: spire
+data:
+  agent.conf: |
+    agent {
+      data_dir = "/run/spire"
+      log_level = "DEBUG"
+      server_address = "spire-server"
+      server_port = "8081"
+      # socket_path = "/run/spire/sockets/agent.sock"
+      trust_bundle_path = "/run/spire/bundle/bundle.crt"
+      trust_domain = "example.org"
+    }
+
+    plugins {
+      NodeAttestor "k8s_psat" {
+        plugin_data {
+          cluster = "example"
+        }
+      }
+
+      KeyManager "memory" {
+        plugin_data {
+        }
+      }
+
+      WorkloadAttestor "k8s" {
+        plugin_data {
+          # Defaults to the secure kubelet port by default.
+          # Minikube does not have a cert in the cluster CA bundle that
+          # can authenticate the kubelet cert, so skip validation.
+          skip_kubelet_verification = true
+        }
+      }
+
+      # WorkloadAttestor "unix" {
+      #     plugin_data {
+      #     }
+      # }
+    }
+
+    health_checks {
+      listener_enabled = true
+      bind_address = "0.0.0.0"
+      bind_port = "8080"
+      live_path = "/live"
+      ready_path = "/ready"
+    }
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spire-bundle
+  labels:
+    app.kubernetes.io/name: spire
+    app.kubernetes.io/instance: spire
+
+---
+
+# OIDC Discovery Provider: <https://github.com/spiffe/spire/blob/main/support/oidc-discovery-provider/README.md>
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spire-oidc-dp
+  labels:
+    app.kubernetes.io/name: spire
+    app.kubernetes.io/instance: spire
+data:
+  oidc-discovery-provider.conf: |
+    log_level = "INFO"
+    allow_insecure_scheme = "true"
+    domains = [ "spire-oidc.spire" ]
+    insecure_addr = ":8082"
+    # listen_socket_path = "/tmp/spire-server/private/oidc.sock"
+    server_api {
+      address = "unix:///tmp/spire-server/private/api.sock"
+    }
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spire-server
+  labels:
+    app.kubernetes.io/name: spire
+    app.kubernetes.io/instance: spire
+data:
+  server.conf: |
+    server {
+      bind_address = "0.0.0.0"
+      bind_port = "8081"
+      # socket_path = "/run/spire/sockets/server.sock"
+      trust_domain = "example.org"
+      data_dir = "/run/spire/data"
+      log_level = "DEBUG"
+      #AWS requires the use of RSA.  EC cryptography is not supported
+      # ca_key_type = "rsa-2048"
+      jwt_issuer = "spire-oidc.spire"
+
+      default_svid_ttl = "1h"
+      ca_subject = {
+        country = ["US"],
+        organization = ["SPIFFE"],
+        common_name = "",
+      }
+    }
+
+    plugins {
+      DataStore "sql" {
+        plugin_data {
+          database_type = "sqlite3"
+          connection_string = "/run/spire/data/datastore.sqlite3"
+        }
+      }
+
+      NodeAttestor "k8s_psat" {
+        plugin_data {
+          clusters = {
+            "example" = {
+              # use_token_review_api_validation = true
+              service_account_allow_list = ["spire:spire-agent"]
+            }
+          }
+        }
+      }
+
+      KeyManager "disk" {
+        plugin_data {
+          keys_path = "/run/spire/data/keys.json"
+        }
+      }
+
+      Notifier "k8sbundle" {
+        plugin_data {
+          # This plugin updates the bundle.crt value in the spire:spire-bundle
+          # ConfigMap by default, so no additional configuration is necessary.
+        }
+      }
+    }
+
+    health_checks {
+      listener_enabled = true
+      bind_address = "0.0.0.0"
+      bind_port = "8080"
+      live_path = "/live"
+      ready_path = "/ready"
+    }
+---
+
+# Required cluster role to allow spire-agent to query k8s API server
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: spire-agent-cluster-role
+  labels:
+    app.kubernetes.io/name: spire
+    app.kubernetes.io/instance: spire
+rules:
+- apiGroups: [""]
+  resources: ["pods","nodes","nodes/proxy"]
+  verbs: ["get"]
+---
+
+# ClusterRole to allow spire-server node attestor to query Token Review API
+# and to be able to push certificate bundles to a configmap
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: spire-server-cluster-role
+  labels:
+    app.kubernetes.io/name: spire
+    app.kubernetes.io/instance: spire
+rules:
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get"]
+- apiGroups: ["authentication.k8s.io"]
+  resources: ["tokenreviews"]
+  verbs: ["create"]
+# - apiGroups: [""]
+#   resources: ["configmaps"]
+#   verbs: ["patch", "get", "list"]
+---
+
+# Binds above cluster role to spire-agent service account
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: spire-agent-cluster-role-binding
+  labels:
+    app.kubernetes.io/name: spire
+    app.kubernetes.io/instance: spire
+subjects:
+- kind: ServiceAccount
+  name: spire-agent
+  namespace: spire
+roleRef:
+  kind: ClusterRole
+  name: spire-agent-cluster-role
+  apiGroup: rbac.authorization.k8s.io
+---
+
+# Binds above cluster role to spire-server service account
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: spire-server-cluster-role-binding
+  labels:
+    app.kubernetes.io/name: spire
+    app.kubernetes.io/instance: spire
+subjects:
+- kind: ServiceAccount
+  name: spire-server
+  namespace: spire
+roleRef:
+  kind: ClusterRole
+  name: spire-server-cluster-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+
+# Role for the SPIRE server
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: spire
+  name: spire-server-role
+rules:
+  # allow "get" access to pods (to resolve selectors for PSAT attestation)
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get"]
+  # allow access to "get" and "patch" the spire-bundle ConfigMap (for SPIRE
+  # agent bootstrapping, see the spire-bundle ConfigMap below)
+- apiGroups: [""]
+  resources: ["configmaps"]
+  resourceNames: ["spire-bundle"]
+  verbs: ["get", "patch"]
+
+---
+
+# RoleBinding granting the spire-server-role to the SPIRE server
+# service account.
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: spire-server-role-binding
+  namespace: spire
+subjects:
+- kind: ServiceAccount
+  name: spire-server
+  namespace: spire
+roleRef:
+  kind: Role
+  name: spire-server-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+
+# Service definition for the admission webhook
+apiVersion: v1
+kind: Service
+metadata:
+  name: spire-oidc
+  labels:
+    app.kubernetes.io/name: spire
+    app.kubernetes.io/instance: spire
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8082
+      targetPort: oidc
+      protocol: TCP
+      name: oidc
+  selector:
+    app: spire-server
+    app.kubernetes.io/name: spire
+    app.kubernetes.io/instance: spire
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: spire-server
+  labels:
+    app.kubernetes.io/name: spire
+    app.kubernetes.io/instance: spire
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8081
+      targetPort: grpc
+      protocol: TCP
+      name: grpc
+  selector:
+    app: spire-server
+    app.kubernetes.io/name: spire
+    app.kubernetes.io/instance: spire
+
+---
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: spire-agent
+  labels:
+    app: spire-agent
+    app.kubernetes.io/name: spire
+    app.kubernetes.io/instance: spire
+spec:
+  selector:
+    matchLabels:
+      app: spire-agent
+      app.kubernetes.io/name: spire
+      app.kubernetes.io/instance: spire
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: spire-agent
+        app.kubernetes.io/name: spire
+        app.kubernetes.io/instance: spire
+    spec:
+      hostPID: true
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      serviceAccountName: spire-agent
+      securityContext:
+        {}
+      initContainers:
+        - name: init
+          securityContext:
+            {}
+          # This is a small image with wait-for-it, choose whatever image
+          # you prefer that waits for a service to be up. This image is built
+          # from https://github.com/lqhl/wait-for-it
+          image: gcr.io/spiffe-io/wait-for-it
+          imagePullPolicy: IfNotPresent
+          args: ["-t", "30", "spire-server:8081"]
+      containers:
+        - name: spire-agent
+          securityContext:
+            {}
+          image: gcr.io/spiffe-io/spire-agent:1.0.2
+          imagePullPolicy: IfNotPresent
+          args: ["-config", "/run/spire/config/agent.conf"]
+          volumeMounts:
+            - name: spire-config
+              mountPath: /run/spire/config
+              readOnly: true
+            - name: spire-bundle
+              mountPath: /run/spire/bundle
+              readOnly: true
+            - name: spire-agent-socket
+              mountPath: /tmp/spire-agent/public
+              readOnly: false
+            - name: spire-token
+              mountPath: /var/run/secrets/tokens
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: 8080
+            failureThreshold: 2
+            initialDelaySeconds: 15
+            periodSeconds: 60
+            timeoutSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            {}
+      volumes:
+        - name: spire-config
+          configMap:
+            name: spire-agent
+        - name: spire-bundle
+          configMap:
+            name: spire-bundle
+        - name: spire-agent-socket
+          hostPath:
+            path: /run/spire/sockets
+            type: DirectoryOrCreate
+        - name: spire-token
+          projected:
+            sources:
+            - serviceAccountToken:
+                path: spire-agent
+                expirationSeconds: 7200
+                audience: spire-server
+
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: spire-server
+  labels:
+    app: spire-server
+    app.kubernetes.io/name: spire
+    app.kubernetes.io/instance: spire
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spire-server
+      app.kubernetes.io/name: spire
+      app.kubernetes.io/instance: spire
+  serviceName: spire-server
+  template:
+    metadata:
+      labels:
+        app: spire-server
+        app.kubernetes.io/name: spire
+        app.kubernetes.io/instance: spire
+    spec:
+      serviceAccountName: spire-server
+      securityContext:
+        {}
+      containers:
+        - name: spire-server
+          securityContext:
+            {}
+          image: gcr.io/spiffe-io/spire-server:1.0.2
+          imagePullPolicy: IfNotPresent
+          args:
+            - -config
+            - /run/spire/config/server.conf
+          ports:
+            - name: grpc
+              containerPort: 8081
+              protocol: TCP
+          volumeMounts:
+            - name: spire-config
+              mountPath: /run/spire/config
+              readOnly: true
+            # Spire is not configured with persistent data for CI tests
+            # - name: spire-data
+            #   mountPath: /run/spire/data
+            #   readOnly: false
+            - name: spire-server-socket
+              mountPath: /tmp/spire-server/private
+              readOnly: false
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: 8080
+            failureThreshold: 2
+            initialDelaySeconds: 15
+            periodSeconds: 60
+            timeoutSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            {}
+        - name: spire-oidc
+          image: gcr.io/spiffe-io/oidc-discovery-provider:1.0.2
+          imagePullPolicy: IfNotPresent
+          args:
+          - -config
+          - /run/spire/oidc/config/oidc-discovery-provider.conf
+          ports:
+          - name: oidc
+            containerPort: 8082
+            protocol: TCP
+          volumeMounts:
+          - name: spire-server-socket
+            mountPath: /tmp/spire-server/private
+            readOnly: false
+          - name: spire-oidc-config
+            mountPath: /run/spire/oidc/config/
+            readOnly: true
+          # - name: spire-data
+          #   mountPath: /run/spire/data
+          #   readOnly: false
+          readinessProbe:
+            exec:
+              command: ["/bin/ps", "aux", " ||", "grep", "oidc-discovery-provider -config /run/spire/oidc/config/oidc-discovery-provider.conf"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            {}
+      volumes:
+        - name: spire-config
+          configMap:
+            name: spire-server
+        - name: spire-server-socket
+          emptyDir: {}
+        - name: spire-oidc-config
+          configMap:
+            name: spire-oidc-dp
+  # volumeClaimTemplates:
+  #   - metadata:
+  #       name: spire-data
+  #       labels:
+  #         app.kubernetes.io/name: spire
+  #         app.kubernetes.io/instance: spire
+  #     spec:
+  #       accessModes:
+  #         - ReadWriteOnce
+  #       resources:
+  #         requests:
+  #           storage: 1Gi

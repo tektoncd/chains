@@ -92,6 +92,8 @@ spec:
           mountPath: /etc/signing-secrets
         - name: oidc-info
           mountPath: /var/run/sigstore/cosign
+        - name: spire-agent-socket
+          mountPath: /tmp/spire-agent/public
         env:
         - name: SYSTEM_NAMESPACE
           valueFrom:
@@ -120,3 +122,7 @@ spec:
                 path: oidc-token
                 expirationSeconds: 600 # Use as short-lived as possible.
                 audience: sigstore
+      - name: spire-agent-socket
+        hostPath:
+          path: /run/spire/sockets
+          type: DirectoryOrCreate

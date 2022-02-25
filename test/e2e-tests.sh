@@ -33,6 +33,10 @@ install_pipeline_crd
 
 install_chains
 
+install_spire
+
+install_vault
+
 failed=0
 
 # Run the integration tests
