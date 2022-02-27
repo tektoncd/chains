@@ -1,0 +1,191 @@
+name: Chains kind E2E Tests
+
+on:
+  pull_request:
+    branches: [ main ]
+
+defaults:
+  run:
+    shell: bash
+    working-directory: ./src/github.com/tektoncd/chains
+
+concurrency:
+  group: fulcio-rekor-kind-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  fulcio-rekor-ctlog-tests:
+    name: e2e tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false # Keep running if one leg fails.
+      matrix:
+        k8s-version:
+        - v1.21.x
+
+        leg:
+        - fulcio rekor ctlog e2e
+
+    env:
+      KNATIVE_VERSION: "1.1.0"
+      GOPATH: ${{ github.workspace }}
+      GO111MODULE: on
+      GOFLAGS: -ldflags=-s -ldflags=-w
+      KO_DOCKER_REPO: registry.local:5000/knative
+      KOCACHE: ~/ko
+      SIGSTORE_SCAFFOLDING_RELEASE_VERSION: "v0.1.19"
+      TEKTON_PIPELINES_RELEASE: "https://storage.googleapis.com/tekton-releases-nightly/pipeline/latest/release.yaml"
+
+    steps:
+    - name: Configure DockerHub mirror
+      working-directory: ./
+      run: |
+        tmp=$(mktemp)
+        jq '."registry-mirrors" = ["https://mirror.gcr.io"]' /etc/docker/daemon.json > "$tmp"
+        sudo mv "$tmp" /etc/docker/daemon.json
+        sudo service docker restart
+
+
+    # https://github.com/mvdan/github-actions-golang#how-do-i-set-up-caching-between-builds
+    - uses: actions/cache@v2
+      with:
+        # In order:
+        # * Module download cache
+        # * Build cache (Linux)
+        path: |
+          ~/go/pkg/mod
+          ~/.cache/go-build
+          ${{ env.KOCACHE }}
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.17.x
+
+    - uses: imjasonh/setup-ko@v0.4
+      with:
+        version: tip
+
+    - name: Check out our repo
+      uses: actions/checkout@v2
+      with:
+        path: ./src/github.com/tektoncd/chains
+
+    - name: Setup Cluster
+      run: |
+        curl -Lo ./setup-kind.sh https://github.com/vaikas/sigstore-scaffolding/releases/download/${{ env.SIGSTORE_SCAFFOLDING_RELEASE_VERSION }}/setup-kind.sh
+        chmod u+x ./setup-kind.sh
+        ./setup-kind.sh \
+          --registry-url $(echo ${KO_DOCKER_REPO} | cut -d'/' -f 1) \
+          --cluster-suffix cluster.local \
+          --k8s-version ${{ matrix.k8s-version }} \
+          --knative-version ${KNATIVE_VERSION}
+
+    - name: Install sigstore pieces
+      timeout-minutes: 10
+      run: |
+        curl -L https://github.com/vaikas/sigstore-scaffolding/releases/download/${{ env.SIGSTORE_SCAFFOLDING_RELEASE_VERSION }}/release.yaml | kubectl apply -f -
+
+        # Wait for all the ksvc to be up.
+        kubectl wait --timeout 10m -A --for=condition=Ready ksvc --all
+
+    - name: Run sigstore tests to make sure all is well
+      run: |
+        # Grab the secret from the ctlog-system namespace and make a copy
+        # in our namespace so we can get access to the CT Log public key
+        # so we can verify the SCT coming from there.
+        kubectl -n ctlog-system get secrets ctlog-public-key -oyaml | sed 's/namespace: .*/namespace: default/' | kubectl apply -f -
+
+        curl -L https://github.com/vaikas/sigstore-scaffolding/releases/download/${{ env.SIGSTORE_SCAFFOLDING_RELEASE_VERSION }}/testrelease.yaml | kubectl create -f -
+
+        kubectl wait --for=condition=Complete --timeout=90s job/check-oidc
+        kubectl wait --for=condition=Complete --timeout=90s job/checktree
+
+    - name: Install Tekton pipelines
+      run: |
+        while ! kubectl apply --filename ${{ env.TEKTON_PIPELINES_RELEASE }}
+        do
+          echo "waiting for tekton pipelines to get installed"
+          sleep 2
+        done
+
+        # Restart so picks up the changes.
+        kubectl -n tekton-pipelines delete po -l app=tekton-pipelines-controller
+
+    - name: Install all the everythings
+      working-directory: ./src/github.com/tektoncd/chains
+      timeout-minutes: 10
+      run: |
+        ko apply -BRf ./config/
+
+        # Make sure the jobs that are required to finish do so.
+        # Note we delete the jobs after they complete because otherwise
+        # the wait steps below will never complete because those pods
+        # will never come ready, because they have already finished.
+        kubectl wait --timeout 10m -A --for=condition=Complete jobs --all
+
+        for ns in trillian-system rekor-system ctlog-system fulcio-system; do
+          kubectl delete jobs -n ${ns} --all
+        done
+
+        # Now wait for all of the rollouts to complete!
+        for ns in fulcio-system trillian-system rekor-system ctlog-system; do
+          kubectl wait --timeout 10m -n ${ns} --for=condition=Ready pod --all
+        done
+            - name: Collect node diagnostics
+      if: ${{ failure() }}
+      run: |
+        for x in $(kubectl get nodes -oname); do
+          echo "::group:: describe $x"
+          kubectl describe $x
+          echo '::endgroup::'
+        done
+
+    - name: Patch config for testing
+      run: |
+        kubectl patch configmap/chains-config \
+        --namespace tekton-chains \
+        --type merge \
+        --patch '{"data":{"artifacts.oci.format": "simplesigning", "artifacts.oci.storage": "oci", "artifacts.taskrun.format": "in-toto", "signers.x509.fulcio.address": "http://fulcio.fulcio-system.svc", "signers.x509.fulcio.enabled": "true", "transparency.enabled": "true", "transparency.url": "http://rekor.rekor-system.svc"}}'
+
+        # Restart chains controller so picks up the changes.
+        kubectl -n tekton-chains delete po -l app=tekton-chains-controller
+
+    - name: Run tutorial taskrun
+       run: |
+         kubectl create -f https://raw.githubusercontent.com/tektoncd/chains/main/examples/taskruns/task-output-image.yaml
+
+         # Sleep so the taskrun shows up.
+         sleep 2
+
+        echo "Waiting for the taskrun to complete..."
+        kubectl wait --timeout 3m --for=condition=Succeeded taskruns --all
+
+    - name: Collect pod diagnostics
+      if: ${{ failure() }}
+      run: |
+        for ns in fulcio-system rekor-system trillian-system ctlog-system; do
+          kubectl get pods -n${ns}
+
+          for x in $(kubectl get pods -n${ns} -oname); do
+            echo "::group:: describe $x"
+            kubectl describe -n${ns} $x
+            echo '::endgroup::'
+          done
+        done
+
+    - name: Collect logs
+      if: ${{ failure() }}
+      run: |
+        mkdir -p /tmp/logs
+        kind export logs /tmp/logs
+
+    - name: Upload artifacts
+      if: ${{ failure() }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: logs
+        path: /tmp/logs
