@@ -7,7 +7,7 @@ on:
 defaults:
   run:
     shell: bash
-    working-directory: ./src/github.com/tektoncd/chains
+    working-directory: ./
 
 jobs:
   chains-e2e-tests:
@@ -61,6 +61,12 @@ jobs:
     - uses: imjasonh/setup-ko@v0.4
       with:
         version: tip
+
+    - name: Install tkn cli
+      run: |
+        curl -Lo ./tkn_0.22.0_Linux_x86_64.tar.gz https://github.com/tektoncd/cli/releases/download/v0.22.0/tkn_0.22.0_Linux_x86_64.tar.gz
+        tar xvzf ./tkn_0.22.0_Linux_x86_64.tar.gz tkn
+        chmod u+x ./tkn
 
     - name: Check out our repo
       uses: actions/checkout@v2
@@ -148,6 +154,15 @@ jobs:
 
         echo "Waiting for the taskrun to complete..."
         kubectl wait --timeout 3m --for=condition=Succeeded taskruns --all
+
+        ./tkn tr describe --last -o jsonpath="{.metadata.annotations.chains\.tekton\.dev/transparency}" | base64 -d > tektonentry
+        if grep --quiet rekor.rekor-system.svc ./tektonentry ; then
+          echo "Found rekor transparency entry:"
+          cat ./tektonentry
+        else
+          echo "Did not find rekor transparency entry:"
+          exit 1
+        fi
 
     - name: Collect node diagnostics
       if: ${{ failure() }}
