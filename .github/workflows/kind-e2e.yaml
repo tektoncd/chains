@@ -148,11 +148,11 @@ jobs:
         kubectl -n tekton-chains delete po -l app=tekton-chains-controller
 
     - name: Run tutorial taskrun
-       run: |
-         kubectl create -f https://raw.githubusercontent.com/tektoncd/chains/main/examples/taskruns/task-output-image.yaml
+      run: |
+        kubectl create -f https://raw.githubusercontent.com/tektoncd/chains/main/examples/taskruns/task-output-image.yaml
 
-         # Sleep so the taskrun shows up.
-         sleep 2
+        # Sleep so the taskrun shows up.
+        sleep 2
 
         echo "Waiting for the taskrun to complete..."
         kubectl wait --timeout 3m --for=condition=Succeeded taskruns --all
