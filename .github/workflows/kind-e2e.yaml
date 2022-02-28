@@ -128,7 +128,6 @@ jobs:
         for ns in fulcio-system trillian-system rekor-system ctlog-system; do
           kubectl wait --timeout 10m -n ${ns} --for=condition=Ready pod --all
         done
-            - name: Collect node diagnostics
 
     - name: Patch config for testing
       run: |
