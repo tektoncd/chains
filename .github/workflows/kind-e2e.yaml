@@ -164,6 +164,15 @@ jobs:
           exit 1
         fi
 
+    - name: Collect taskrun diagnostics
+      if: ${{ failure() }}
+      run: |
+        for x in $(kubectl get taskruns -oname); do
+          echo "::group:: describe $x"
+          ./tkn tr describe $x
+          echo '::endgroup::'
+        done
+
     - name: Collect node diagnostics
       if: ${{ failure() }}
       run: |
@@ -176,7 +185,7 @@ jobs:
     - name: Collect pod diagnostics
       if: ${{ failure() }}
       run: |
-        for ns in fulcio-system rekor-system trillian-system ctlog-system; do
+        for ns in default tekton-chains tekton-pipelines fulcio-system rekor-system trillian-system ctlog-system; do
           kubectl get pods -n${ns}
 
           for x in $(kubectl get pods -n${ns} -oname); do
