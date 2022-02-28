@@ -157,6 +157,8 @@ jobs:
 
         ./tkn tr describe --last
 
+        kubectl get taskruns -oyaml
+
         ./tkn tr describe --last -o jsonpath="{.metadata.annotations.chains\.tekton\.dev/transparency}" | base64 -d > tektonentry
         if grep --quiet rekor.rekor-system.svc ./tektonentry ; then
           echo "Found rekor transparency entry:"
