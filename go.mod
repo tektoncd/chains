@@ -36,7 +36,7 @@ require (
 	github.com/mitchellh/mapstructure v1.4.3
 	github.com/pierrec/lz4 v2.6.1+incompatible
 	github.com/pkg/errors v0.9.1
-	github.com/secure-systems-lab/go-securesystemslib v0.3.0
+	github.com/secure-systems-lab/go-securesystemslib v0.3.1
 	github.com/sigstore/cosign v1.5.2-0.20220210140103-2381756282ae
 	github.com/sigstore/rekor v0.4.1-0.20220114213500-23f583409af3
 	github.com/sigstore/sigstore v1.1.1-0.20220217211516-72dc5d11a806
