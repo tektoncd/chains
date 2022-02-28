@@ -860,7 +860,7 @@ github.com/sassoftware/relic/lib/pkcs7
 github.com/sassoftware/relic/lib/pkcs9
 github.com/sassoftware/relic/lib/x509tools
 github.com/sassoftware/relic/signers/sigerrors
-# github.com/secure-systems-lab/go-securesystemslib v0.3.0
+# github.com/secure-systems-lab/go-securesystemslib v0.3.1
 ## explicit
 github.com/secure-systems-lab/go-securesystemslib/cjson
 github.com/secure-systems-lab/go-securesystemslib/dsse
