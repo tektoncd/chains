@@ -155,6 +155,8 @@ jobs:
         echo "Waiting for the taskrun to complete..."
         kubectl wait --timeout 3m --for=condition=Succeeded taskruns --all
 
+        ./tkn tr describe --last
+
         ./tkn tr describe --last -o jsonpath="{.metadata.annotations.chains\.tekton\.dev/transparency}" | base64 -d > tektonentry
         if grep --quiet rekor.rekor-system.svc ./tektonentry ; then
           echo "Found rekor transparency entry:"
