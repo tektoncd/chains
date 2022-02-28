@@ -129,13 +129,6 @@ jobs:
           kubectl wait --timeout 10m -n ${ns} --for=condition=Ready pod --all
         done
             - name: Collect node diagnostics
-      if: ${{ failure() }}
-      run: |
-        for x in $(kubectl get nodes -oname); do
-          echo "::group:: describe $x"
-          kubectl describe $x
-          echo '::endgroup::'
-        done
 
     - name: Patch config for testing
       run: |
@@ -156,6 +149,15 @@ jobs:
 
         echo "Waiting for the taskrun to complete..."
         kubectl wait --timeout 3m --for=condition=Succeeded taskruns --all
+
+    - name: Collect node diagnostics
+      if: ${{ failure() }}
+      run: |
+        for x in $(kubectl get nodes -oname); do
+          echo "::group:: describe $x"
+          kubectl describe $x
+          echo '::endgroup::'
+        done
 
     - name: Collect pod diagnostics
       if: ${{ failure() }}
