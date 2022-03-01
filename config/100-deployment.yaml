@@ -17,8 +17,8 @@ apiVersion: v1
 metadata:
   name: tekton-chains
   labels:
-    app.kubernetes.io/component: chains
-    app.kubernetes.io/part-of: tekton-pipelines
+    app.kubernetes.io/instance: default
+    app.kubernetes.io/part-of: tekton-chains
 ---
 apiVersion: v1
 kind: Secret
@@ -26,11 +26,8 @@ metadata:
   name: signing-secrets
   namespace: tekton-chains
   labels:
-    app.kubernetes.io/component: chains
     app.kubernetes.io/instance: default
-    app.kubernetes.io/part-of: tekton-pipelines
-    pipeline.tekton.dev/release: "devel"
-    version: "devel"
+    app.kubernetes.io/part-of: tekton-chains
 # The data is populated at install time.
 # data:
 ---
@@ -40,11 +37,8 @@ metadata:
   name: chains-config
   namespace: tekton-chains
   labels:
-    app.kubernetes.io/component: chains
     app.kubernetes.io/instance: default
-    app.kubernetes.io/part-of: tekton-pipelines
-    pipeline.tekton.dev/release: "devel"
-    version: "devel"
+    app.kubernetes.io/part-of: tekton-chains
 # The data can be tweaked at install time, it is commented out
 # because these are the default settings.
 # data:
@@ -61,25 +55,32 @@ metadata:
   name: tekton-chains-controller
   namespace: tekton-chains
   labels:
-    app.kubernetes.io/name: tekton-pipelines
-    app.kubernetes.io/component: chains
+    app.kubernetes.io/name: controller
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: default
+    app.kubernetes.io/part-of: tekton-chains
     pipeline.tekton.dev/release: "devel"
     version: "devel"
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: tekton-chains-controller
+      app.kubernetes.io/name: controller
+      app.kubernetes.io/component: controller
+      app.kubernetes.io/instance: default
+      app.kubernetes.io/part-of: tekton-chains
   template:
     metadata:
       annotations:
         cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
       labels:
         app: tekton-chains-controller
-        app.kubernetes.io/name: tekton-pipelines
+        app.kubernetes.io/name: controller
         app.kubernetes.io/component: controller
+        app.kubernetes.io/instance: default
+        app.kubernetes.io/part-of: tekton-chains
         # # tekton.dev/release value replaced with inputs.params.versionTag in pipeline/tekton/publish.yaml
-        # pipeline.tekton.dev/release: "devel"
+        pipeline.tekton.dev/release: "devel"
         version: "devel"
     spec:
       serviceAccountName: tekton-chains-controller

@@ -17,9 +17,9 @@ kind: ClusterRoleBinding
 metadata:
   name: tekton-chains-controller-cluster-access
   labels:
-    app.kubernetes.io/component: chains
+    app.kubernetes.io/component: controller
     app.kubernetes.io/instance: default
-    app.kubernetes.io/part-of: tekton-pipelines
+    app.kubernetes.io/part-of: tekton-chains
 subjects:
   - kind: ServiceAccount
     name: tekton-chains-controller
@@ -34,9 +34,9 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: tekton-chains-controller-cluster-access
   labels:
-    app.kubernetes.io/component: chains
+    app.kubernetes.io/component: controller
     app.kubernetes.io/instance: default
-    app.kubernetes.io/part-of: tekton-pipelines
+    app.kubernetes.io/part-of: tekton-chains
 rules:
   - apiGroups: [""]
     # Controller needs to watch Pods created by TaskRuns to see them progress.
@@ -60,7 +60,7 @@ metadata:
   # This is the access that the controller needs on a per-namespace basis.
   name: tekton-chains-controller-tenant-access
   labels:
-    app.kubernetes.io/component: chains
+    app.kubernetes.io/component: controller
     app.kubernetes.io/instance: default
     app.kubernetes.io/part-of: tekton-chains
 rules:
@@ -86,9 +86,9 @@ kind: ClusterRoleBinding
 metadata:
   name: tekton-chains-controller-tenant-access
   labels:
-    app.kubernetes.io/component: chains
+    app.kubernetes.io/component: controller
     app.kubernetes.io/instance: default
-    app.kubernetes.io/part-of: tekton-pipelines
+    app.kubernetes.io/part-of: tekton-chains
 subjects:
   - kind: ServiceAccount
     name: tekton-chains-controller
@@ -104,8 +104,9 @@ metadata:
   name: tekton-chains-controller
   namespace: tekton-chains
   labels:
-    app.kubernetes.io/component: chains
-    app.kubernetes.io/part-of: tekton-pipelines
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: default
+    app.kubernetes.io/part-of: tekton-chains
 ---
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
@@ -114,7 +115,7 @@ metadata:
   namespace: tekton-chains
   labels:
     app.kubernetes.io/instance: default
-    app.kubernetes.io/part-of: tekton-pipelines
+    app.kubernetes.io/part-of: tekton-chains
 rules:
   # We uses leases for leaderelection
   - apiGroups: ["coordination.k8s.io"]
@@ -129,7 +130,7 @@ metadata:
   labels:
     app.kubernetes.io/component: controller
     app.kubernetes.io/instance: default
-    app.kubernetes.io/part-of: tekton-pipelines
+    app.kubernetes.io/part-of: tekton-chains
 subjects:
   - kind: ServiceAccount
     name: tekton-chains-controller
@@ -145,7 +146,6 @@ metadata:
   name: tekton-chains-info
   namespace: tekton-chains
   labels:
-    app.kubernetes.io/component: chains
     app.kubernetes.io/instance: default
     app.kubernetes.io/part-of: tekton-chains
 rules:
@@ -164,7 +164,6 @@ metadata:
   name: tekton-chains-info
   namespace: tekton-chains
   labels:
-    app.kubernetes.io/component: chains
     app.kubernetes.io/instance: default
     app.kubernetes.io/part-of: tekton-chains
 subjects:
