@@ -155,7 +155,8 @@ jobs:
           else
             echo "Did not find rekor transparency entry:"
             sleep 2
-        fi
+          fi
+        done
 
         # Did not find entry, fail
         exit 1
