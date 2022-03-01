@@ -145,15 +145,20 @@ jobs:
         echo "Waiting for Chains to do it's thing"
         for i in {1..10}
         do
-          ./tkn tr describe --last -o jsonpath="{.metadata.annotations.chains\.tekton\.dev/transparency}" | base64 -d > tektonentry
+          ./tkn tr describe --last -o jsonpath="{.metadata.annotations.chains\.tekton\.dev/transparency}" > tektonentry
 
-          if grep --quiet rekor.rekor-system.svc ./tektonentry ; then
-            echo "Found rekor transparency entry:"
-            cat ./tektonentry
-            kubectl get taskruns -oyaml
-            exit 0
+          if [ -s ./tektonentry ]; then
+            if cat ./tektonentry | base64 -d | grep --quiet rekor.rekor-system.svc ./tektonentry ; then
+              echo "Found rekor transparency entry:"
+              cat ./tektonentry | base64 -d
+              kubectl get taskruns -oyaml
+              exit 0
+            else
+              echo "Did not find expected rekor transparency entry"
+              sleep 2
+            fi
           else
-            echo "Did not find rekor transparency entry:"
+            echo "Did not find rekor transparency entry in the annotations"
             sleep 2
           fi
         done
