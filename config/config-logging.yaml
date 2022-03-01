@@ -19,7 +19,7 @@ metadata:
   namespace: tekton-chains
   labels:
     app.kubernetes.io/instance: default
-    app.kubernetes.io/part-of: tekton-pipelines
+    app.kubernetes.io/part-of: tekton-chains
 data:
   # Common configuration for all knative codebase
   zap-logger-config: |

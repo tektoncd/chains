@@ -18,7 +18,6 @@ metadata:
   name: chains-info
   namespace: tekton-chains
   labels:
-    app.kubernetes.io/component: chains
     app.kubernetes.io/instance: default
     app.kubernetes.io/part-of: tekton-chains
 data:
