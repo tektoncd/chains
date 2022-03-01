@@ -142,18 +142,23 @@ jobs:
         echo "Waiting for the taskrun to complete..."
         kubectl wait --timeout 3m --for=condition=Succeeded taskruns --all
 
-        ./tkn tr describe --last
+        echo "Waiting for Chains to do it's thing"
+        for i in {1..10}
+        do
+          ./tkn tr describe --last -o jsonpath="{.metadata.annotations.chains\.tekton\.dev/transparency}" | base64 -d > tektonentry
 
-        kubectl get taskruns -oyaml
-
-        ./tkn tr describe --last -o jsonpath="{.metadata.annotations.chains\.tekton\.dev/transparency}" | base64 -d > tektonentry
-        if grep --quiet rekor.rekor-system.svc ./tektonentry ; then
-          echo "Found rekor transparency entry:"
-          cat ./tektonentry
-        else
-          echo "Did not find rekor transparency entry:"
-          exit 1
+          if grep --quiet rekor.rekor-system.svc ./tektonentry ; then
+            echo "Found rekor transparency entry:"
+            cat ./tektonentry
+            kubectl get taskruns -oyaml
+            exit 0
+          else
+            echo "Did not find rekor transparency entry:"
+            sleep 2
         fi
+
+        # Did not find entry, fail
+        exit 1
 
     - name: Collect taskrun diagnostics
       if: ${{ failure() }}
