@@ -120,23 +120,6 @@ jobs:
       run: |
         ko apply -BRf ./config/
 
-        # Make sure the jobs that are required to finish do so.
-        # Note we delete the jobs after they complete because otherwise
-        # the wait steps below will never complete because those pods
-        # will never come ready, because they have already finished.
-        kubectl wait --timeout 10m -A --for=condition=Complete jobs --all
-
-        for ns in trillian-system rekor-system ctlog-system fulcio-system; do
-          kubectl delete jobs -n ${ns} --all
-        done
-
-        # Now wait for all of the rollouts to complete!
-        for ns in fulcio-system trillian-system rekor-system ctlog-system; do
-          kubectl wait --timeout 10m -n ${ns} --for=condition=Ready pod --all
-        done
-
-    - name: Patch config for testing
-      run: |
         kubectl patch configmap/chains-config \
         --namespace tekton-chains \
         --type merge \
@@ -144,6 +127,10 @@ jobs:
 
         # Restart chains controller so picks up the changes.
         kubectl -n tekton-chains delete po -l app=tekton-chains-controller
+
+        # TODO(vaikas): Better way to find when the chains has picked up
+        # the changes
+        sleep 10
 
     - name: Run tutorial taskrun
       run: |
