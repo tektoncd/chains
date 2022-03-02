@@ -1695,6 +1695,15 @@ github.com/xanzy/go-gitlab
 # github.com/xanzy/ssh-agent v0.2.1
 ## explicit
 github.com/xanzy/ssh-agent
+# github.com/xdg-go/pbkdf2 v1.0.0
+## explicit; go 1.9
+github.com/xdg-go/pbkdf2
+# github.com/xdg-go/scram v1.1.1
+## explicit; go 1.11
+github.com/xdg-go/scram
+# github.com/xdg-go/stringprep v1.0.3
+## explicit; go 1.11
+github.com/xdg-go/stringprep
 # github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2
 ## explicit
 github.com/xiang90/probing
@@ -1706,6 +1715,9 @@ github.com/yagipy/maintidx/pkg/halstvol
 # github.com/yeya24/promlinter v0.1.1-0.20210918184747-d757024714a1
 ## explicit; go 1.14
 github.com/yeya24/promlinter
+# github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a
+## explicit; go 1.12
+github.com/youmark/pkcs8
 # github.com/zeebo/errs v1.2.2
 ## explicit; go 1.12
 github.com/zeebo/errs
@@ -1837,7 +1849,7 @@ go.etcd.io/etcd/tests/v3/integration
 # go.etcd.io/etcd/v3 v3.5.0
 ## explicit; go 1.16
 go.etcd.io/etcd/v3
-# go.mongodb.org/mongo-driver v1.8.3
+# go.mongodb.org/mongo-driver v1.8.4
 ## explicit; go 1.10
 go.mongodb.org/mongo-driver/bson
 go.mongodb.org/mongo-driver/bson/bsoncodec
@@ -1845,7 +1857,34 @@ go.mongodb.org/mongo-driver/bson/bsonoptions
 go.mongodb.org/mongo-driver/bson/bsonrw
 go.mongodb.org/mongo-driver/bson/bsontype
 go.mongodb.org/mongo-driver/bson/primitive
+go.mongodb.org/mongo-driver/event
+go.mongodb.org/mongo-driver/internal
+go.mongodb.org/mongo-driver/internal/randutil
+go.mongodb.org/mongo-driver/mongo
+go.mongodb.org/mongo-driver/mongo/address
+go.mongodb.org/mongo-driver/mongo/description
+go.mongodb.org/mongo-driver/mongo/options
+go.mongodb.org/mongo-driver/mongo/readconcern
+go.mongodb.org/mongo-driver/mongo/readpref
+go.mongodb.org/mongo-driver/mongo/writeconcern
+go.mongodb.org/mongo-driver/tag
+go.mongodb.org/mongo-driver/version
+go.mongodb.org/mongo-driver/x/bsonx
 go.mongodb.org/mongo-driver/x/bsonx/bsoncore
+go.mongodb.org/mongo-driver/x/mongo/driver
+go.mongodb.org/mongo-driver/x/mongo/driver/auth
+go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/awsv4
+go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/gssapi
+go.mongodb.org/mongo-driver/x/mongo/driver/connstring
+go.mongodb.org/mongo-driver/x/mongo/driver/dns
+go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt
+go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options
+go.mongodb.org/mongo-driver/x/mongo/driver/ocsp
+go.mongodb.org/mongo-driver/x/mongo/driver/operation
+go.mongodb.org/mongo-driver/x/mongo/driver/session
+go.mongodb.org/mongo-driver/x/mongo/driver/topology
+go.mongodb.org/mongo-driver/x/mongo/driver/uuid
+go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage
 # go.opencensus.io v0.23.0
 ## explicit; go 1.13
 go.opencensus.io
@@ -1974,6 +2013,9 @@ gocloud.dev/pubsub
 gocloud.dev/pubsub/batcher
 gocloud.dev/pubsub/driver
 gocloud.dev/pubsub/mempubsub
+# gocloud.dev/docstore/mongodocstore v0.25.0
+## explicit; go 1.12
+gocloud.dev/docstore/mongodocstore
 # gocloud.dev/pubsub/kafkapubsub v0.25.0
 ## explicit; go 1.12
 gocloud.dev/pubsub/kafkapubsub
