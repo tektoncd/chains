@@ -79,6 +79,16 @@ Supported keys include:
 |`storage.grafeas.projectid`|The project ID to store occurrences|||
 |`storage.grafeas.noteid` (optional)|The note ID to link occurrences. If noteid is not provided, a name in the format of `tekton-<NAMESPACE>` will be used.|||
 
+You can read about the go-cloud docstore URI format [here](https://gocloud.dev/howto/docstore/)
+
+Tekton Chains supports the following docstore services:
+
+* `firestore`
+* `dynamodb`
+* `mongo`
+
+**Note**: with MongoDB you will need to add a `MONGO_SERVER_URL` env var with the MongoDB connection URI to the `tekton-chains-controller`, the go-cloud URI is just to point at the db and collection
+
 ### In-toto Configuration
 
 | Key | Description | Supported Values | Default |
