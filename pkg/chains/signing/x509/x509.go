@@ -48,12 +48,12 @@ type Signer struct {
 }
 
 // NewSigner returns a configured Signer
-func NewSigner(secretPath string, cfg config.Config, logger *zap.SugaredLogger) (*Signer, error) {
+func NewSigner(ctx context.Context, secretPath string, cfg config.Config, logger *zap.SugaredLogger) (*Signer, error) {
 	x509PrivateKeyPath := filepath.Join(secretPath, "x509.pem")
 	cosignPrivateKeypath := filepath.Join(secretPath, "cosign.key")
 
 	if cfg.Signers.X509.FulcioEnabled {
-		return fulcioSigner(cfg.Signers.X509.FulcioAddr, logger)
+		return fulcioSigner(ctx, cfg.Signers.X509.FulcioAddr, logger)
 	} else if contents, err := ioutil.ReadFile(x509PrivateKeyPath); err == nil {
 		return x509Signer(contents, logger)
 	} else if contents, err := ioutil.ReadFile(cosignPrivateKeypath); err == nil {
@@ -62,9 +62,7 @@ func NewSigner(secretPath string, cfg config.Config, logger *zap.SugaredLogger) 
 	return nil, errors.New("no valid private key found, looked for: [x509.pem, cosign.key]")
 }
 
-func fulcioSigner(addr string, logger *zap.SugaredLogger) (*Signer, error) {
-	ctx := context.Background()
-
+func fulcioSigner(ctx context.Context, addr string, logger *zap.SugaredLogger) (*Signer, error) {
 	if !providers.Enabled(ctx) {
 		return nil, fmt.Errorf("no auth provider for fulcio is enabled")
 	}

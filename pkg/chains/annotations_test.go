@@ -121,7 +121,7 @@ func TestAddRetry(t *testing.T) {
 	}
 
 	// run it through AddRetry, make sure annotation is added
-	if err := AddRetry(tr, c, nil); err != nil {
+	if err := AddRetry(ctx, tr, c, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -135,7 +135,7 @@ func TestAddRetry(t *testing.T) {
 	}
 
 	// run it again, make sure we see an increase
-	if err := AddRetry(signed, c, nil); err != nil {
+	if err := AddRetry(ctx, signed, c, nil); err != nil {
 		t.Fatal(err)
 	}
 	signed, err = c.TektonV1beta1().TaskRuns(tr.Namespace).Get(ctx, tr.Name, metav1.GetOptions{})

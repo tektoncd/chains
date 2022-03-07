@@ -14,6 +14,7 @@ limitations under the License.
 package oci
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
 
@@ -27,6 +28,7 @@ import (
 )
 
 func TestBackend_StorePayload(t *testing.T) {
+	ctx := context.Background()
 
 	// pretty much anything that has no Subject
 	sampleIntotoStatementBytes, _ := json.Marshal(in_toto.Statement{})
@@ -73,7 +75,7 @@ func TestBackend_StorePayload(t *testing.T) {
 				kc:     tt.fields.kc,
 				auth:   tt.fields.auth,
 			}
-			if err := b.StorePayload(tt.args.rawPayload, tt.args.signature, tt.args.storageOpts); (err != nil) != tt.wantErr {
+			if err := b.StorePayload(ctx, tt.args.rawPayload, tt.args.signature, tt.args.storageOpts); (err != nil) != tt.wantErr {
 				t.Errorf("Backend.StorePayload() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

@@ -51,19 +51,19 @@ type TaskRunSigner struct {
 // Set this as a var for mocking.
 var getBackends = storage.InitializeBackends
 
-func allSigners(sp string, cfg config.Config, l *zap.SugaredLogger) map[string]signing.Signer {
+func allSigners(ctx context.Context, sp string, cfg config.Config, l *zap.SugaredLogger) map[string]signing.Signer {
 	all := map[string]signing.Signer{}
 	for _, s := range signing.AllSigners {
 		switch s {
 		case signing.TypeX509:
-			signer, err := x509.NewSigner(sp, cfg, l)
+			signer, err := x509.NewSigner(ctx, sp, cfg, l)
 			if err != nil {
 				l.Warnf("error configuring x509 signer: %s", err)
 				continue
 			}
 			all[s] = signer
 		case signing.TypeKMS:
-			signer, err := kms.NewSigner(cfg.Signers.KMS, l)
+			signer, err := kms.NewSigner(ctx, cfg.Signers.KMS, l)
 			if err != nil {
 				l.Warnf("error configuring kms signer with config %v: %s", cfg.Signers.KMS, err)
 				continue
@@ -125,12 +125,12 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 	}
 
 	// Storage
-	allBackends, err := getBackends(ts.Pipelineclientset, ts.KubeClient, logger, tr, cfg)
+	allBackends, err := getBackends(ctx, ts.Pipelineclientset, ts.KubeClient, logger, tr, cfg)
 	if err != nil {
 		return err
 	}
 
-	signers := allSigners(ts.SecretPath, cfg, logger)
+	signers := allSigners(ctx, ts.SecretPath, cfg, logger)
 	allFormats := allFormatters(cfg, logger)
 
 	rekorClient, err := getRekor(cfg.Transparency.URL, logger)
@@ -206,7 +206,7 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 					Chain:         signer.Chain(),
 					PayloadFormat: payloadFormat,
 				}
-				if err := b.StorePayload(rawPayload, string(signature), storageOpts); err != nil {
+				if err := b.StorePayload(ctx, rawPayload, string(signature), storageOpts); err != nil {
 					logger.Error(err)
 					merr = multierror.Append(merr, err)
 				}
@@ -225,7 +225,7 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 			}
 		}
 		if merr.ErrorOrNil() != nil {
-			if err := HandleRetry(tr, ts.Pipelineclientset, extraAnnotations); err != nil {
+			if err := HandleRetry(ctx, tr, ts.Pipelineclientset, extraAnnotations); err != nil {
 				merr = multierror.Append(merr, err)
 			}
 			return merr
@@ -233,12 +233,12 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 	}
 
 	// Now mark the TaskRun as signed
-	return MarkSigned(tr, ts.Pipelineclientset, extraAnnotations)
+	return MarkSigned(ctx, tr, ts.Pipelineclientset, extraAnnotations)
 }
 
-func HandleRetry(tr *v1beta1.TaskRun, ps versioned.Interface, annotations map[string]string) error {
+func HandleRetry(ctx context.Context, tr *v1beta1.TaskRun, ps versioned.Interface, annotations map[string]string) error {
 	if RetryAvailable(tr) {
-		return AddRetry(tr, ps, annotations)
+		return AddRetry(ctx, tr, ps, annotations)
 	}
-	return MarkFailed(tr, ps, annotations)
+	return MarkFailed(ctx, tr, ps, annotations)
 }

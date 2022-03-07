@@ -28,6 +28,7 @@ import (
 )
 
 func TestBackend_StorePayload(t *testing.T) {
+	ctx := context.Background()
 
 	type args struct {
 		tr        *v1beta1.TaskRun
@@ -58,7 +59,7 @@ func TestBackend_StorePayload(t *testing.T) {
 	}
 
 	memUrl := "mem://chains/name"
-	coll, err := docstore.OpenCollection(context.Background(), memUrl)
+	coll, err := docstore.OpenCollection(ctx, memUrl)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,7 +68,6 @@ func TestBackend_StorePayload(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Prepare the document.
-			ctx := context.Background()
 			b := &Backend{
 				logger: logtesting.TestLogger(t),
 				tr:     tt.args.tr,
@@ -80,7 +80,7 @@ func TestBackend_StorePayload(t *testing.T) {
 
 			// Store the document.
 			opts := config.StorageOpts{Key: tt.args.key}
-			if err := b.StorePayload(sb, tt.args.signature, opts); (err != nil) != tt.wantErr {
+			if err := b.StorePayload(ctx, sb, tt.args.signature, opts); (err != nil) != tt.wantErr {
 				t.Fatalf("Backend.StorePayload() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			obj := SignedDocument{
@@ -91,7 +91,7 @@ func TestBackend_StorePayload(t *testing.T) {
 			}
 
 			// Check the signature.
-			signatures, err := b.RetrieveSignatures(opts)
+			signatures, err := b.RetrieveSignatures(ctx, opts)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -104,7 +104,7 @@ func TestBackend_StorePayload(t *testing.T) {
 			}
 
 			// Check the payload.
-			payloads, err := b.RetrievePayloads(opts)
+			payloads, err := b.RetrievePayloads(ctx, opts)
 			if err != nil {
 				t.Fatal(err)
 			}
