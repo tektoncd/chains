@@ -239,7 +239,7 @@ func verifySignature(ctx context.Context, t *testing.T, c *clients, tr *v1beta1.
 	logger := logging.FromContext(ctx)
 
 	// Initialize the backend.
-	backends, err := chainsstrorage.InitializeBackends(c.PipelineClient, c.KubeClient, logger, tr, *cfg)
+	backends, err := chainsstrorage.InitializeBackends(ctx, c.PipelineClient, c.KubeClient, logger, tr, *cfg)
 	if err != nil {
 		t.Errorf("error initializing backends: %s", err)
 	}
@@ -253,11 +253,11 @@ func verifySignature(ctx context.Context, t *testing.T, c *clients, tr *v1beta1.
 		}
 
 		// Let's fetch the signature and body.
-		signatures, err := backend.RetrieveSignatures(opts)
+		signatures, err := backend.RetrieveSignatures(ctx, opts)
 		if err != nil {
 			t.Errorf("error retrieving the signature: %s", err)
 		}
-		payloads, err := backend.RetrievePayloads(opts)
+		payloads, err := backend.RetrievePayloads(ctx, opts)
 		if err != nil {
 			t.Errorf("error retrieving the payload: %s", err)
 		}

@@ -55,8 +55,8 @@ type Backend struct {
 }
 
 // NewStorageBackend returns a new OCI StorageBackend that stores signatures in an OCI registry
-func NewStorageBackend(logger *zap.SugaredLogger, client kubernetes.Interface, tr *v1beta1.TaskRun, cfg config.Config) (*Backend, error) {
-	kc, err := k8schain.New(context.TODO(), client,
+func NewStorageBackend(ctx context.Context, logger *zap.SugaredLogger, client kubernetes.Interface, tr *v1beta1.TaskRun, cfg config.Config) (*Backend, error) {
+	kc, err := k8schain.New(ctx, client,
 		k8schain.Options{Namespace: tr.Namespace, ServiceAccountName: tr.Spec.ServiceAccountName})
 	if err != nil {
 		return nil, err
@@ -72,7 +72,7 @@ func NewStorageBackend(logger *zap.SugaredLogger, client kubernetes.Interface, t
 }
 
 // StorePayload implements the storage.Backend interface.
-func (b *Backend) StorePayload(rawPayload []byte, signature string, storageOpts config.StorageOpts) error {
+func (b *Backend) StorePayload(ctx context.Context, rawPayload []byte, signature string, storageOpts config.StorageOpts) error {
 	b.logger.Infof("Storing payload on TaskRun %s/%s", b.tr.Namespace, b.tr.Name)
 
 	if storageOpts.PayloadFormat == formats.PayloadTypeSimpleSigning {
@@ -198,8 +198,8 @@ func (b *Backend) Type() string {
 	return StorageBackendOCI
 }
 
-func (b *Backend) RetrieveSignatures(opts config.StorageOpts) (map[string][]string, error) {
-	images, err := b.RetrieveArtifact(opts)
+func (b *Backend) RetrieveSignatures(ctx context.Context, opts config.StorageOpts) (map[string][]string, error) {
+	images, err := b.RetrieveArtifact(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -226,9 +226,9 @@ func (b *Backend) RetrieveSignatures(opts config.StorageOpts) (map[string][]stri
 	return m, nil
 }
 
-func (b *Backend) RetrievePayloads(opts config.StorageOpts) (map[string]string, error) {
+func (b *Backend) RetrievePayloads(ctx context.Context, opts config.StorageOpts) (map[string]string, error) {
 	var err error
-	images, err := b.RetrieveArtifact(opts)
+	images, err := b.RetrieveArtifact(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -270,7 +270,7 @@ func (b *Backend) RetrievePayloads(opts config.StorageOpts) (map[string]string, 
 	return m, nil
 }
 
-func (b *Backend) RetrieveArtifact(opts config.StorageOpts) (map[string]oci.SignedImage, error) {
+func (b *Backend) RetrieveArtifact(ctx context.Context, opts config.StorageOpts) (map[string]oci.SignedImage, error) {
 	// Given the TaskRun, retrieve the OCI images.
 	images := artifacts.ExtractOCIImagesFromResults(b.tr, b.logger)
 	m := make(map[string]oci.SignedImage)

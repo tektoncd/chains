@@ -48,11 +48,11 @@ func (tv *TaskRunVerifier) VerifyTaskRun(ctx context.Context, tr *v1beta1.TaskRu
 	}
 
 	// Storage
-	allBackends, err := getBackends(tv.Pipelineclientset, tv.KubeClient, logger, tr, cfg)
+	allBackends, err := getBackends(ctx, tv.Pipelineclientset, tv.KubeClient, logger, tr, cfg)
 	if err != nil {
 		return err
 	}
-	signers := allSigners(tv.SecretPath, cfg, logger)
+	signers := allSigners(ctx, tv.SecretPath, cfg, logger)
 
 	for _, signableType := range enabledSignableTypes {
 		if !signableType.Enabled(cfg) {
@@ -68,11 +68,11 @@ func (tv *TaskRunVerifier) VerifyTaskRun(ctx context.Context, tr *v1beta1.TaskRu
 
 		for _, backend := range signableType.StorageBackend(cfg).List() {
 			b := allBackends[backend]
-			signatures, err := b.RetrieveSignatures(config.StorageOpts{})
+			signatures, err := b.RetrieveSignatures(ctx, config.StorageOpts{})
 			if err != nil {
 				return err
 			}
-			payload, err := b.RetrievePayloads(config.StorageOpts{})
+			payload, err := b.RetrievePayloads(ctx, config.StorageOpts{})
 			if err != nil {
 				return err
 			}

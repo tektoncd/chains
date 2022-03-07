@@ -37,8 +37,8 @@ type Signer struct {
 }
 
 // NewSigner returns a configured Signer
-func NewSigner(cfg config.KMSSigner, logger *zap.SugaredLogger) (*Signer, error) {
-	k, err := kms.Get(context.Background(), cfg.KMSRef, crypto.SHA256)
+func NewSigner(ctx context.Context, cfg config.KMSSigner, logger *zap.SugaredLogger) (*Signer, error) {
+	k, err := kms.Get(ctx, cfg.KMSRef, crypto.SHA256)
 	if err != nil {
 		return nil, err
 	}

@@ -52,7 +52,7 @@ func TestMarkSigned(t *testing.T) {
 	}
 
 	// Now mark it as signed.
-	if err := MarkSigned(tr, c, nil); err != nil {
+	if err := MarkSigned(ctx, tr, c, nil); err != nil {
 		t.Errorf("MarkSigned() error = %v", err)
 	}
 
@@ -71,7 +71,7 @@ func TestMarkSigned(t *testing.T) {
 	extra := map[string]string{
 		"foo": "bar",
 	}
-	if err := MarkSigned(tr, c, extra); err != nil {
+	if err := MarkSigned(ctx, tr, c, extra); err != nil {
 		t.Errorf("MarkSigned() error = %v", err)
 	}
 
@@ -108,7 +108,7 @@ func TestMarkFailed(t *testing.T) {
 	}
 
 	// Test HandleRetry, should mark it as failed
-	if err := HandleRetry(tr, c, nil); err != nil {
+	if err := HandleRetry(ctx, tr, c, nil); err != nil {
 		t.Errorf("HandleRetry() error = %v", err)
 	}
 
@@ -321,7 +321,7 @@ func TestTaskRunSigner_Transparency(t *testing.T) {
 
 func setupMocks(backends []*mockBackend, rekor *mockRekor) func() {
 	oldGet := getBackends
-	getBackends = func(ps versioned.Interface, _ kubernetes.Interface, logger *zap.SugaredLogger, _ *v1beta1.TaskRun, _ config.Config) (map[string]storage.Backend, error) {
+	getBackends = func(ctx context.Context, ps versioned.Interface, _ kubernetes.Interface, logger *zap.SugaredLogger, _ *v1beta1.TaskRun, _ config.Config) (map[string]storage.Backend, error) {
 		newBackends := map[string]storage.Backend{}
 		for _, m := range backends {
 			newBackends[m.backendType] = m
@@ -359,7 +359,7 @@ type mockBackend struct {
 }
 
 // StorePayload implements the Payloader interface.
-func (b *mockBackend) StorePayload(signed []byte, signature string, opts config.StorageOpts) error {
+func (b *mockBackend) StorePayload(ctx context.Context, signed []byte, signature string, opts config.StorageOpts) error {
 	if b.shouldErr {
 		return errors.New("mock error storing")
 	}
@@ -371,10 +371,10 @@ func (b *mockBackend) Type() string {
 	return b.backendType
 }
 
-func (b *mockBackend) RetrievePayloads(opts config.StorageOpts) (map[string]string, error) {
+func (b *mockBackend) RetrievePayloads(ctx context.Context, opts config.StorageOpts) (map[string]string, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
-func (b *mockBackend) RetrieveSignatures(opts config.StorageOpts) (map[string][]string, error) {
+func (b *mockBackend) RetrieveSignatures(ctx context.Context, opts config.StorageOpts) (map[string][]string, error) {
 	return nil, fmt.Errorf("not implemented")
 }

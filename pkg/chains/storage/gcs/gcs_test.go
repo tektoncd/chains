@@ -15,6 +15,7 @@ package gcs
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"testing"
 
@@ -28,6 +29,7 @@ import (
 )
 
 func TestBackend_StorePayload(t *testing.T) {
+	ctx := context.Background()
 
 	type args struct {
 		tr        *v1beta1.TaskRun
@@ -83,13 +85,13 @@ func TestBackend_StorePayload(t *testing.T) {
 				reader: mockGcsRead,
 				cfg:    config.Config{Storage: config.StorageConfigs{GCS: config.GCSStorageConfig{Bucket: "foo"}}},
 			}
-			if err := b.StorePayload(tt.args.signed, tt.args.signature, tt.args.opts); (err != nil) != tt.wantErr {
+			if err := b.StorePayload(ctx, tt.args.signed, tt.args.signature, tt.args.opts); (err != nil) != tt.wantErr {
 				t.Errorf("Backend.StorePayload() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
 			objectSig := b.sigName(tt.args.opts)
 			objectPayload := b.payloadName(tt.args.opts)
-			got, err := b.RetrieveSignatures(tt.args.opts)
+			got, err := b.RetrieveSignatures(ctx, tt.args.opts)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -97,7 +99,7 @@ func TestBackend_StorePayload(t *testing.T) {
 				t.Errorf("wrong signature, expected %q, got %q", tt.args.signature, got[objectSig][0])
 			}
 			var got_payload map[string]string
-			got_payload, err = b.RetrievePayloads(tt.args.opts)
+			got_payload, err = b.RetrievePayloads(ctx, tt.args.opts)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -112,7 +114,7 @@ type mockGcsWriter struct {
 	objects map[string]*bytes.Buffer
 }
 
-func (m *mockGcsWriter) GetWriter(object string) io.WriteCloser {
+func (m *mockGcsWriter) GetWriter(ctx context.Context, object string) io.WriteCloser {
 	buf := bytes.NewBuffer([]byte{})
 	m.objects[object] = buf
 	return &writeCloser{buf}
@@ -131,7 +133,7 @@ type mockGcsReader struct {
 	objects map[string]*bytes.Buffer
 }
 
-func (m *mockGcsReader) GetReader(object string) (io.ReadCloser, error) {
+func (m *mockGcsReader) GetReader(ctx context.Context, object string) (io.ReadCloser, error) {
 	buf := m.objects[object]
 	return &ReaderCloser{buf}, nil
 }

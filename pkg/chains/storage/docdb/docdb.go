@@ -48,9 +48,9 @@ type SignedDocument struct {
 }
 
 // NewStorageBackend returns a new Tekton StorageBackend that stores signatures on a TaskRun
-func NewStorageBackend(logger *zap.SugaredLogger, tr *v1beta1.TaskRun, cfg config.Config) (*Backend, error) {
+func NewStorageBackend(ctx context.Context, logger *zap.SugaredLogger, tr *v1beta1.TaskRun, cfg config.Config) (*Backend, error) {
 	url := cfg.Storage.DocDB.URL
-	coll, err := docstore.OpenCollection(context.Background(), url)
+	coll, err := docstore.OpenCollection(ctx, url)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func newStorageBackendWithColl(logger *zap.SugaredLogger, tr *v1beta1.TaskRun, c
 }
 
 // StorePayload implements the Payloader interface.
-func (b *Backend) StorePayload(signed []byte, signature string, opts config.StorageOpts) error {
+func (b *Backend) StorePayload(ctx context.Context, signed []byte, signature string, opts config.StorageOpts) error {
 	var obj interface{}
 	if err := json.Unmarshal(signed, &obj); err != nil {
 		return err
@@ -82,7 +82,7 @@ func (b *Backend) StorePayload(signed []byte, signature string, opts config.Stor
 		Chain:     opts.Chain,
 	}
 
-	if err := b.coll.Put(context.Background(), &entry); err != nil {
+	if err := b.coll.Put(ctx, &entry); err != nil {
 		return err
 	}
 
@@ -93,9 +93,9 @@ func (b *Backend) Type() string {
 	return StorageTypeDocDB
 }
 
-func (b *Backend) RetrieveSignatures(opts config.StorageOpts) (map[string][]string, error) {
+func (b *Backend) RetrieveSignatures(ctx context.Context, opts config.StorageOpts) (map[string][]string, error) {
 	// Retrieve the document.
-	documents, err := b.retrieveDocuments(opts)
+	documents, err := b.retrieveDocuments(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -112,8 +112,8 @@ func (b *Backend) RetrieveSignatures(opts config.StorageOpts) (map[string][]stri
 	return m, nil
 }
 
-func (b *Backend) RetrievePayloads(opts config.StorageOpts) (map[string]string, error) {
-	documents, err := b.retrieveDocuments(opts)
+func (b *Backend) RetrievePayloads(ctx context.Context, opts config.StorageOpts) (map[string]string, error) {
+	documents, err := b.retrieveDocuments(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -126,9 +126,9 @@ func (b *Backend) RetrievePayloads(opts config.StorageOpts) (map[string]string, 
 	return m, nil
 }
 
-func (b *Backend) retrieveDocuments(opts config.StorageOpts) ([]SignedDocument, error) {
+func (b *Backend) retrieveDocuments(ctx context.Context, opts config.StorageOpts) ([]SignedDocument, error) {
 	d := SignedDocument{Name: opts.Key}
-	if err := b.coll.Get(context.Background(), &d); err != nil {
+	if err := b.coll.Get(ctx, &d); err != nil {
 		return []SignedDocument{}, err
 	}
 	return []SignedDocument{d}, nil

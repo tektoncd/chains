@@ -51,7 +51,7 @@ func TestInitializeBackends(t *testing.T) {
 	tr := &v1beta1.TaskRun{}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := InitializeBackends(ps, kc, logger, tr, tt.cfg)
+			got, err := InitializeBackends(ctx, ps, kc, logger, tr, tt.cfg)
 			if err != nil {
 				t.Errorf("InitializeBackends() error = %v", err)
 				return
