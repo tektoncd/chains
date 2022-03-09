@@ -18,7 +18,7 @@ require (
 	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20220125170349-50dfc2733d10
 	github.com/google/go-licenses v0.0.0-20210816172045-3099c18c36e1
 	github.com/hashicorp/errwrap v1.1.0
-	github.com/hashicorp/go-hclog v1.1.0
+	github.com/hashicorp/go-hclog v1.2.0
 	github.com/hashicorp/go-immutable-radix v1.3.1
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-plugin v1.4.3
