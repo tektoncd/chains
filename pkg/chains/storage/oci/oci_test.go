@@ -16,23 +16,103 @@ package oci
 import (
 	"context"
 	"encoding/json"
+	"net/http/httptest"
+	"net/url"
+	"strings"
 	"testing"
 
+	"github.com/tektoncd/chains/pkg/chains/formats"
+	"github.com/tektoncd/chains/pkg/chains/formats/simple"
+	"github.com/tektoncd/chains/pkg/config"
+
 	"github.com/google/go-containerregistry/pkg/authn"
+	"github.com/google/go-containerregistry/pkg/authn/k8schain"
+	"github.com/google/go-containerregistry/pkg/registry"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/in-toto/in-toto-golang/in_toto"
-	"github.com/tektoncd/chains/pkg/config"
+	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
+	"github.com/sigstore/sigstore/pkg/signature/payload"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	remotetest "github.com/tektoncd/pipeline/test"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/fake"
 	logtesting "knative.dev/pkg/logging/testing"
+)
+
+const (
+	namespace      = "oci-test"
+	serviceAccount = "oci-test-sa"
+)
+
+var (
+	sa = &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      serviceAccount,
+		},
+	}
+
+	tr = &v1beta1.TaskRun{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: namespace,
+		},
+	}
 )
 
 func TestBackend_StorePayload(t *testing.T) {
 	ctx := context.Background()
+	kc, err := k8schain.New(ctx, fake.NewSimpleClientset(sa), k8schain.Options{
+		Namespace:          namespace,
+		ServiceAccountName: serviceAccount,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	auth := remote.WithAuthFromKeychain(authn.DefaultKeychain)
 
-	// pretty much anything that has no Subject
-	sampleIntotoStatementBytes, _ := json.Marshal(in_toto.Statement{})
-	logger := logtesting.TestLogger(t)
+	// Create registry server
+	s := httptest.NewServer(registry.New())
+	defer s.Close()
+	u, _ := url.Parse(s.URL)
+
+	// Push image to server
+	ref, err := remotetest.CreateImage(u.Host+"/task/"+tr.Name, tr)
+	if err != nil {
+		t.Fatalf("failed to push img: %v", err)
+	}
+	digest := strings.Split(ref, "@")[1]
+	digSplits := strings.Split(digest, ":")
+	algo, hex := digSplits[0], digSplits[1]
+
+	simple := simple.SimpleContainerImage{
+		Critical: payload.Critical{
+			Identity: payload.Identity{
+				DockerReference: u.Host + "/task/" + tr.Name,
+			},
+			Image: payload.Image{
+				DockerManifestDigest: digest,
+			},
+			Type: payload.CosignSignatureType,
+		},
+	}
+
+	intotoStatement := in_toto.ProvenanceStatement{
+		StatementHeader: in_toto.StatementHeader{
+			Type:          in_toto.StatementInTotoV01,
+			PredicateType: slsa.PredicateSLSAProvenance,
+			Subject: []in_toto.Subject{
+				{
+					Name: u.Host + "/task/" + tr.Name,
+					Digest: slsa.DigestSet{
+						algo: hex,
+					},
+				},
+			},
+		},
+		Predicate: slsa.ProvenancePredicate{},
+	}
 
 	type fields struct {
 		tr   *v1beta1.TaskRun
@@ -41,7 +121,7 @@ func TestBackend_StorePayload(t *testing.T) {
 		auth remote.Option
 	}
 	type args struct {
-		rawPayload  []byte
+		payload     interface{}
 		signature   string
 		storageOpts config.StorageOpts
 	}
@@ -52,13 +132,45 @@ func TestBackend_StorePayload(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "no subject",
+			name: "simplesigning payload",
 			fields: fields{
-				tr: &v1beta1.TaskRun{ObjectMeta: v1.ObjectMeta{Name: "foo", Namespace: "bar"}},
+				tr:   tr,
+				kc:   kc,
+				auth: auth,
 			},
 			args: args{
-				rawPayload: sampleIntotoStatementBytes,
-				signature:  "",
+				payload:   simple,
+				signature: "simplesigning",
+				storageOpts: config.StorageOpts{
+					PayloadFormat: formats.PayloadTypeSimpleSigning,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "into-to payload",
+			fields: fields{
+				tr:   tr,
+				kc:   kc,
+				auth: auth,
+			},
+			args: args{
+				payload:   intotoStatement,
+				signature: "into-to",
+				storageOpts: config.StorageOpts{
+					PayloadFormat: "in-toto",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "no subject",
+			fields: fields{
+				tr: tr,
+			},
+			args: args{
+				payload:   in_toto.Statement{},
+				signature: "",
 				storageOpts: config.StorageOpts{
 					PayloadFormat: "in-toto",
 				},
@@ -66,16 +178,21 @@ func TestBackend_StorePayload(t *testing.T) {
 			wantErr: false,
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			b := &Backend{
-				logger: logger,
+				logger: logtesting.TestLogger(t),
 				tr:     tt.fields.tr,
 				cfg:    tt.fields.cfg,
 				kc:     tt.fields.kc,
 				auth:   tt.fields.auth,
 			}
-			if err := b.StorePayload(ctx, tt.args.rawPayload, tt.args.signature, tt.args.storageOpts); (err != nil) != tt.wantErr {
+			rawPayload, err := json.Marshal(tt.args.payload)
+			if err != nil {
+				t.Fatalf("failed to marshal: %v", err)
+			}
+			if err := b.StorePayload(ctx, rawPayload, tt.args.signature, tt.args.storageOpts); (err != nil) != tt.wantErr {
 				t.Errorf("Backend.StorePayload() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

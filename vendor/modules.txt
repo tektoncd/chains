@@ -258,6 +258,21 @@ github.com/chavacava/garif
 github.com/chrismellard/docker-credential-acr-env/pkg/credhelper
 github.com/chrismellard/docker-credential-acr-env/pkg/registry
 github.com/chrismellard/docker-credential-acr-env/pkg/token
+# github.com/cloudevents/sdk-go/v2 v2.5.0
+github.com/cloudevents/sdk-go/v2
+github.com/cloudevents/sdk-go/v2/binding
+github.com/cloudevents/sdk-go/v2/binding/format
+github.com/cloudevents/sdk-go/v2/binding/spec
+github.com/cloudevents/sdk-go/v2/client
+github.com/cloudevents/sdk-go/v2/context
+github.com/cloudevents/sdk-go/v2/event
+github.com/cloudevents/sdk-go/v2/event/datacodec
+github.com/cloudevents/sdk-go/v2/event/datacodec/json
+github.com/cloudevents/sdk-go/v2/event/datacodec/text
+github.com/cloudevents/sdk-go/v2/event/datacodec/xml
+github.com/cloudevents/sdk-go/v2/protocol
+github.com/cloudevents/sdk-go/v2/protocol/http
+github.com/cloudevents/sdk-go/v2/types
 # github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be
 github.com/common-nighthawk/go-figure
 # github.com/containerd/stargz-snapshotter/estargz v0.10.1
@@ -501,6 +516,7 @@ github.com/google/go-cmp/cmp/internal/value
 github.com/google/go-containerregistry/internal/and
 github.com/google/go-containerregistry/internal/estargz
 github.com/google/go-containerregistry/internal/gzip
+github.com/google/go-containerregistry/internal/httptest
 github.com/google/go-containerregistry/internal/redact
 github.com/google/go-containerregistry/internal/retry
 github.com/google/go-containerregistry/internal/retry/wait
@@ -508,6 +524,7 @@ github.com/google/go-containerregistry/internal/verify
 github.com/google/go-containerregistry/pkg/authn
 github.com/google/go-containerregistry/pkg/logs
 github.com/google/go-containerregistry/pkg/name
+github.com/google/go-containerregistry/pkg/registry
 github.com/google/go-containerregistry/pkg/v1
 github.com/google/go-containerregistry/pkg/v1/empty
 github.com/google/go-containerregistry/pkg/v1/google
@@ -1070,6 +1087,7 @@ github.com/tektoncd/pipeline/pkg/apis/pipeline/pod
 github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1
 github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1
 github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1
+github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1/cloudevent
 github.com/tektoncd/pipeline/pkg/apis/run/v1alpha1
 github.com/tektoncd/pipeline/pkg/apis/validate
 github.com/tektoncd/pipeline/pkg/client/clientset/versioned
@@ -1088,15 +1106,47 @@ github.com/tektoncd/pipeline/pkg/client/injection/client
 github.com/tektoncd/pipeline/pkg/client/injection/client/fake
 github.com/tektoncd/pipeline/pkg/client/injection/informers/factory
 github.com/tektoncd/pipeline/pkg/client/injection/informers/factory/fake
+github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1alpha1/condition
+github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1alpha1/condition/fake
+github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1alpha1/run
+github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1alpha1/run/fake
+github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/clustertask
+github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/clustertask/fake
+github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/pipeline
+github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/pipeline/fake
+github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/pipelinerun
+github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/pipelinerun/fake
+github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/task
+github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/task/fake
 github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/taskrun
 github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/taskrun/fake
 github.com/tektoncd/pipeline/pkg/client/injection/reconciler/pipeline/v1beta1/taskrun
 github.com/tektoncd/pipeline/pkg/client/listers/pipeline/v1alpha1
 github.com/tektoncd/pipeline/pkg/client/listers/pipeline/v1beta1
+github.com/tektoncd/pipeline/pkg/client/resource/clientset/versioned
+github.com/tektoncd/pipeline/pkg/client/resource/clientset/versioned/fake
+github.com/tektoncd/pipeline/pkg/client/resource/clientset/versioned/scheme
+github.com/tektoncd/pipeline/pkg/client/resource/clientset/versioned/typed/resource/v1alpha1
+github.com/tektoncd/pipeline/pkg/client/resource/clientset/versioned/typed/resource/v1alpha1/fake
+github.com/tektoncd/pipeline/pkg/client/resource/informers/externalversions
+github.com/tektoncd/pipeline/pkg/client/resource/informers/externalversions/internalinterfaces
+github.com/tektoncd/pipeline/pkg/client/resource/informers/externalversions/resource
+github.com/tektoncd/pipeline/pkg/client/resource/informers/externalversions/resource/v1alpha1
+github.com/tektoncd/pipeline/pkg/client/resource/injection/client
+github.com/tektoncd/pipeline/pkg/client/resource/injection/client/fake
+github.com/tektoncd/pipeline/pkg/client/resource/injection/informers/factory
+github.com/tektoncd/pipeline/pkg/client/resource/injection/informers/factory/fake
+github.com/tektoncd/pipeline/pkg/client/resource/injection/informers/resource/v1alpha1/pipelineresource
+github.com/tektoncd/pipeline/pkg/client/resource/injection/informers/resource/v1alpha1/pipelineresource/fake
+github.com/tektoncd/pipeline/pkg/client/resource/listers/resource/v1alpha1
 github.com/tektoncd/pipeline/pkg/list
 github.com/tektoncd/pipeline/pkg/names
+github.com/tektoncd/pipeline/pkg/reconciler/events/cloudevent
 github.com/tektoncd/pipeline/pkg/reconciler/pipeline/dag
+github.com/tektoncd/pipeline/pkg/remote
+github.com/tektoncd/pipeline/pkg/remote/oci
 github.com/tektoncd/pipeline/pkg/substitution
+github.com/tektoncd/pipeline/test
 # github.com/tektoncd/plumbing v0.0.0-20211012143332-c7cc43d9bc0c
 ## explicit
 github.com/tektoncd/plumbing
@@ -2018,6 +2068,17 @@ knative.dev/pkg/apis/duck/v1beta1
 knative.dev/pkg/changeset
 knative.dev/pkg/client/injection/kube/client
 knative.dev/pkg/client/injection/kube/client/fake
+knative.dev/pkg/client/injection/kube/informers/core/v1/configmap
+knative.dev/pkg/client/injection/kube/informers/core/v1/configmap/fake
+knative.dev/pkg/client/injection/kube/informers/core/v1/limitrange
+knative.dev/pkg/client/injection/kube/informers/core/v1/limitrange/fake
+knative.dev/pkg/client/injection/kube/informers/core/v1/pod/filtered
+knative.dev/pkg/client/injection/kube/informers/core/v1/pod/filtered/fake
+knative.dev/pkg/client/injection/kube/informers/core/v1/serviceaccount
+knative.dev/pkg/client/injection/kube/informers/core/v1/serviceaccount/fake
+knative.dev/pkg/client/injection/kube/informers/factory
+knative.dev/pkg/client/injection/kube/informers/factory/fake
+knative.dev/pkg/client/injection/kube/informers/factory/filtered
 knative.dev/pkg/configmap
 knative.dev/pkg/configmap/informer
 knative.dev/pkg/controller
