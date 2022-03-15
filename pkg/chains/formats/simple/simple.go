@@ -14,6 +14,7 @@ limitations under the License.
 package simple
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/sigstore/sigstore/pkg/signature/payload"
@@ -30,7 +31,7 @@ type SimpleSigning struct {
 type SimpleContainerImage payload.SimpleContainerImage
 
 // CreatePayload implements the Payloader interface.
-func (i *SimpleSigning) CreatePayload(obj interface{}) (interface{}, error) {
+func (i *SimpleSigning) CreatePayload(ctx context.Context, obj interface{}) (interface{}, error) {
 	switch v := obj.(type) {
 	case name.Digest:
 		format := NewSimpleStruct(v)

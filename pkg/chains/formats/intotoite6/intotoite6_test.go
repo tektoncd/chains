@@ -17,6 +17,7 @@ limitations under the License.
 package intotoite6
 
 import (
+	"context"
 	"encoding/json"
 	"io/ioutil"
 	"testing"
@@ -105,7 +106,7 @@ func TestCreatePayload1(t *testing.T) {
 	}
 	i, _ := NewFormatter(cfg, logtesting.TestLogger(t))
 
-	got, err := i.CreatePayload(tr)
+	got, err := i.CreatePayload(context.Background(), tr)
 
 	if err != nil {
 		t.Errorf("unexpected error: %s", err.Error())
@@ -151,7 +152,7 @@ func TestCreatePayload2(t *testing.T) {
 		},
 	}
 	i, _ := NewFormatter(cfg, logtesting.TestLogger(t))
-	got, err := i.CreatePayload(tr)
+	got, err := i.CreatePayload(context.Background(), tr)
 
 	if err != nil {
 		t.Errorf("unexpected error: %s", err.Error())
@@ -171,7 +172,7 @@ func TestCreatePayloadNilTaskRef(t *testing.T) {
 	}
 	f, _ := NewFormatter(cfg, logtesting.TestLogger(t))
 
-	p, err := f.CreatePayload(tr)
+	p, err := f.CreatePayload(context.Background(), tr)
 	if err != nil {
 		t.Errorf("unexpected error: %s", err.Error())
 	}
@@ -231,7 +232,7 @@ func TestMultipleSubjects(t *testing.T) {
 	}
 
 	i, _ := NewFormatter(cfg, logtesting.TestLogger(t))
-	got, err := i.CreatePayload(tr)
+	got, err := i.CreatePayload(context.Background(), tr)
 	if err != nil {
 		t.Errorf("unexpected error: %s", err.Error())
 	}
@@ -266,7 +267,7 @@ func TestCreatePayloadError(t *testing.T) {
 	f, _ := NewFormatter(cfg, logtesting.TestLogger(t))
 
 	t.Run("Invalid type", func(t *testing.T) {
-		p, err := f.CreatePayload("not a task ref")
+		p, err := f.CreatePayload(context.Background(), "not a task ref")
 
 		if p != nil {
 			t.Errorf("Unexpected payload")

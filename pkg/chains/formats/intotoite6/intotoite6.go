@@ -17,6 +17,7 @@ limitations under the License.
 package intotoite6
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strings"
@@ -29,6 +30,8 @@ import (
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	"github.com/tektoncd/pipeline/pkg/spire"
+	spireconfig "github.com/tektoncd/pipeline/pkg/spire/config"
 	"go.uber.org/zap"
 
 	"github.com/google/go-containerregistry/pkg/name"
@@ -42,14 +45,20 @@ const (
 )
 
 type InTotoIte6 struct {
-	builderID string
-	logger    *zap.SugaredLogger
+	builderID          string
+	logger             *zap.SugaredLogger
+	spireEnabled       bool
+	spireControllerAPI *spire.SpireControllerApiClient
 }
 
 func NewFormatter(cfg config.Config, logger *zap.SugaredLogger) (formats.Payloader, error) {
 	return &InTotoIte6{
-		builderID: cfg.Builder.ID,
-		logger:    logger,
+		builderID:    cfg.Builder.ID,
+		logger:       logger,
+		spireEnabled: cfg.SPIRE.Enabled,
+		spireControllerAPI: spire.NewSpireControllerApiClient(spireconfig.SpireConfig{
+			SocketPath: cfg.SPIRE.SocketPath,
+		}),
 	}, nil
 }
 
@@ -57,11 +66,16 @@ func (i *InTotoIte6) Wrap() bool {
 	return true
 }
 
-func (i *InTotoIte6) CreatePayload(obj interface{}) (interface{}, error) {
+func (i *InTotoIte6) CreatePayload(ctx context.Context, obj interface{}) (interface{}, error) {
 	var tr *v1beta1.TaskRun
 	switch v := obj.(type) {
 	case *v1beta1.TaskRun:
 		tr = v
+		if i.spireEnabled {
+			if err := formats.VerifySpire(ctx, tr, i.spireControllerAPI, i.logger); err != nil {
+				return nil, err
+			}
+		}
 	default:
 		return nil, fmt.Errorf("intoto does not support type: %s", v)
 	}

@@ -86,7 +86,7 @@ func AllFormatters(cfg config.Config, l *zap.SugaredLogger) map[formats.PayloadT
 	for _, f := range formats.AllFormatters {
 		switch f {
 		case formats.PayloadTypeTekton:
-			formatter, err := tekton.NewFormatter()
+			formatter, err := tekton.NewFormatter(cfg, l)
 			if err != nil {
 				l.Warnf("error configuring tekton formatter: %s", err)
 			}
@@ -149,9 +149,10 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 		// Go through each object one at a time.
 		for _, obj := range objects {
 
-			payload, err := payloader.CreatePayload(obj)
+			payload, err := payloader.CreatePayload(ctx, obj)
 			if err != nil {
 				logger.Error(err)
+				merr = multierror.Append(merr, err)
 				continue
 			}
 			logger.Infof("Created payload of type %s for TaskRun %s/%s", string(payloadFormat), tr.Namespace, tr.Name)

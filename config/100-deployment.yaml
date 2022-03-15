@@ -92,6 +92,9 @@ spec:
           mountPath: /etc/signing-secrets
         - name: oidc-info
           mountPath: /var/run/sigstore/cosign
+        - name: spiffe-workload-api
+          mountPath: /spiffe-workload-api
+          readOnly: true
         env:
         - name: SYSTEM_NAMESPACE
           valueFrom:
@@ -120,3 +123,6 @@ spec:
                 path: oidc-token
                 expirationSeconds: 600 # Use as short-lived as possible.
                 audience: sigstore
+      - name: spiffe-workload-api
+        csi:
+          driver: "csi.spiffe.io"
