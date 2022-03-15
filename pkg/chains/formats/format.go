@@ -15,13 +15,11 @@ package formats
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/pkg/errors"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/spire"
 	"go.uber.org/zap"
-	"knative.dev/pkg/apis"
 )
 
 // Payloader is an interface to generate a chains Payload from a TaskRun
@@ -43,31 +41,18 @@ const (
 var AllFormatters = []PayloadType{PayloadTypeTekton, PayloadTypeSimpleSigning, PayloadTypeInTotoIte6}
 
 func VerifySpire(ctx context.Context, tr *v1beta1.TaskRun, spireControllerAPI *spire.SpireControllerApiClient, logger *zap.SugaredLogger) error {
-	if err := verifySignedTaskrrunResults(tr); err != nil {
-		return err
-	} else {
-		if len(tr.Status.TaskRunResults) > 0 {
+	if len(tr.Status.TaskRunResults) > 0 {
+		if !tr.IsTaskRunResultVerified() {
+			return errors.New("taskrun status condition not verified. Spire taskrun results verification failure")
+		} else {
 			logger.Info("spire taskrun status condition verified")
 		}
 	}
+
 	if err := spireControllerAPI.VerifyStatusInternalAnnotation(ctx, tr, logger); err != nil {
 		return errors.Wrap(err, "verifying SPIRE")
 	} else {
 		logger.Info("internal status annotation verified by spire")
-	}
-	return nil
-}
-
-func verifySignedTaskrrunResults(tr *v1beta1.TaskRun) error {
-	if len(tr.Status.TaskRunResults) > 0 {
-		taskRunCondition := tr.Status.GetCondition(apis.ConditionType(v1beta1.TaskRunConditionResultsVerified.String()))
-		if taskRunCondition != nil {
-			if taskRunCondition.IsFalse() {
-				return errors.New("taskrun status condition not verified. Spire taskrun results verification failure")
-			}
-		} else {
-			return fmt.Errorf("could not find condition Type %s in taskrun status", v1beta1.TaskRunConditionResultsVerified.String())
-		}
 	}
 	return nil
 }
