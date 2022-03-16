@@ -226,3 +226,27 @@ func (id ID) ReplaceSegments(segments ...string) (ID, error) {
 	id.path = path
 	return id, nil
 }
+
+// MarshalText returns a text representation of the ID. If the ID is the zero
+// value, nil is returned.
+func (id ID) MarshalText() ([]byte, error) {
+	if id.IsZero() {
+		return nil, nil
+	}
+	return []byte(id.String()), nil
+}
+
+// UnmarshalText decodes a text representation of the ID. If the text is empty,
+// the ID is set to the zero value.
+func (id *ID) UnmarshalText(text []byte) error {
+	if len(text) == 0 {
+		*id = ID{}
+		return nil
+	}
+	unmarshaled, err := FromString(string(text))
+	if err != nil {
+		return err
+	}
+	*id = unmarshaled
+	return nil
+}

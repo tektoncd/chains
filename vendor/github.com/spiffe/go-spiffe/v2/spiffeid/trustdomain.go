@@ -81,6 +81,31 @@ func (td TrustDomain) Compare(other TrustDomain) int {
 	return strings.Compare(td.name, other.name)
 }
 
+// MarshalText returns a text representation of the trust domain. If the trust
+// domain is the zero value, nil is returned.
+func (td TrustDomain) MarshalText() ([]byte, error) {
+	if td.IsZero() {
+		return nil, nil
+	}
+	return []byte(td.String()), nil
+}
+
+// UnmarshalText decodes a text representation of the trust domain. If the text
+// is empty, the trust domain is set to the zero value.
+func (td *TrustDomain) UnmarshalText(text []byte) error {
+	if len(text) == 0 {
+		*td = TrustDomain{}
+		return nil
+	}
+
+	unmarshaled, err := TrustDomainFromString(string(text))
+	if err != nil {
+		return err
+	}
+	*td = unmarshaled
+	return nil
+}
+
 func isValidTrustDomainChar(c uint8) bool {
 	switch {
 	case c >= 'a' && c <= 'z':
