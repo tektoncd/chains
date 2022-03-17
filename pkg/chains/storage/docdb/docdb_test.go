@@ -31,10 +31,10 @@ func TestBackend_StorePayload(t *testing.T) {
 	ctx := context.Background()
 
 	type args struct {
-		tr        *v1beta1.TaskRun
-		signed    interface{}
-		signature string
-		key       string
+		tr         *v1beta1.TaskRun
+		rawPayload interface{}
+		signature  string
+		key        string
 	}
 	tests := []struct {
 		name    string
@@ -51,9 +51,9 @@ func TestBackend_StorePayload(t *testing.T) {
 						UID:       types.UID("uid"),
 					},
 				},
-				signed:    &v1beta1.TaskRun{ObjectMeta: metav1.ObjectMeta{UID: "foo"}},
-				signature: "signature",
-				key:       "foo",
+				rawPayload: &v1beta1.TaskRun{ObjectMeta: metav1.ObjectMeta{UID: "foo"}},
+				signature:  "signature",
+				key:        "foo",
 			},
 		},
 	}
@@ -70,17 +70,16 @@ func TestBackend_StorePayload(t *testing.T) {
 			// Prepare the document.
 			b := &Backend{
 				logger: logtesting.TestLogger(t),
-				tr:     tt.args.tr,
 				coll:   coll,
 			}
-			sb, err := json.Marshal(tt.args.signed)
+			sb, err := json.Marshal(tt.args.rawPayload)
 			if err != nil {
 				t.Fatal(err)
 			}
 
 			// Store the document.
 			opts := config.StorageOpts{Key: tt.args.key}
-			if err := b.StorePayload(ctx, sb, tt.args.signature, opts); (err != nil) != tt.wantErr {
+			if err := b.StorePayload(ctx, tt.args.tr, sb, tt.args.signature, opts); (err != nil) != tt.wantErr {
 				t.Fatalf("Backend.StorePayload() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			obj := SignedDocument{
@@ -91,7 +90,7 @@ func TestBackend_StorePayload(t *testing.T) {
 			}
 
 			// Check the signature.
-			signatures, err := b.RetrieveSignatures(ctx, opts)
+			signatures, err := b.RetrieveSignatures(ctx, tt.args.tr, opts)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -104,12 +103,12 @@ func TestBackend_StorePayload(t *testing.T) {
 			}
 
 			// Check the payload.
-			payloads, err := b.RetrievePayloads(ctx, opts)
+			payloads, err := b.RetrievePayloads(ctx, tt.args.tr, opts)
 			if err != nil {
 				t.Fatal(err)
 			}
 			if payloads[obj.Name] != string(sb) {
-				t.Errorf("wrong payload, expected %s, got %s", tt.args.signed, payloads[obj.Name])
+				t.Errorf("wrong payload, expected %s, got %s", tt.args.rawPayload, payloads[obj.Name])
 			}
 		})
 	}

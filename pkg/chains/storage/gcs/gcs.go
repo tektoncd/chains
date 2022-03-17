@@ -39,14 +39,13 @@ const (
 // It is stored as base64 encoded JSON.
 type Backend struct {
 	logger *zap.SugaredLogger
-	tr     *v1beta1.TaskRun
 	writer gcsWriter
 	reader gcsReader
 	cfg    config.Config
 }
 
 // NewStorageBackend returns a new Tekton StorageBackend that stores signatures on a TaskRun
-func NewStorageBackend(ctx context.Context, logger *zap.SugaredLogger, tr *v1beta1.TaskRun, cfg config.Config) (*Backend, error) {
+func NewStorageBackend(ctx context.Context, logger *zap.SugaredLogger, cfg config.Config) (*Backend, error) {
 	client, err := storage.NewClient(ctx)
 	if err != nil {
 		return nil, err
@@ -54,7 +53,6 @@ func NewStorageBackend(ctx context.Context, logger *zap.SugaredLogger, tr *v1bet
 	bucket := cfg.Storage.GCS.Bucket
 	return &Backend{
 		logger: logger,
-		tr:     tr,
 		writer: &writer{client: client, bucket: bucket},
 		reader: &reader{client: client, bucket: bucket},
 		cfg:    cfg,
@@ -62,12 +60,12 @@ func NewStorageBackend(ctx context.Context, logger *zap.SugaredLogger, tr *v1bet
 }
 
 // StorePayload implements the storage.Backend interface.
-func (b *Backend) StorePayload(ctx context.Context, rawPayload []byte, signature string, opts config.StorageOpts) error {
+func (b *Backend) StorePayload(ctx context.Context, tr *v1beta1.TaskRun, rawPayload []byte, signature string, opts config.StorageOpts) error {
 	// We need multiple objects: the signature and the payload. We want to make these unique to the UID, but easy to find based on the
 	// name/namespace as well.
 	// $bucket/taskrun-$namespace-$name/$key.signature
 	// $bucket/taskrun-$namespace-$name/$key.payload
-	sigName := b.sigName(opts)
+	sigName := sigName(tr, opts)
 	b.logger.Infof("Storing signature at %s", sigName)
 
 	sigObj := b.writer.GetWriter(ctx, sigName)
@@ -78,7 +76,7 @@ func (b *Backend) StorePayload(ctx context.Context, rawPayload []byte, signature
 		return err
 	}
 
-	payloadObj := b.writer.GetWriter(ctx, b.payloadName(opts))
+	payloadObj := b.writer.GetWriter(ctx, payloadName(tr, opts))
 	defer payloadObj.Close()
 	if _, err := payloadObj.Write(rawPayload); err != nil {
 		return err
@@ -90,7 +88,7 @@ func (b *Backend) StorePayload(ctx context.Context, rawPayload []byte, signature
 	if opts.Cert == "" {
 		return nil
 	}
-	certName := b.certName(opts)
+	certName := certName(tr, opts)
 	certObj := b.writer.GetWriter(ctx, certName)
 	defer certObj.Close()
 	if _, err := certObj.Write([]byte(opts.Cert)); err != nil {
@@ -100,7 +98,7 @@ func (b *Backend) StorePayload(ctx context.Context, rawPayload []byte, signature
 		return err
 	}
 
-	chainName := b.chainName(opts)
+	chainName := chainName(tr, opts)
 	chainObj := b.writer.GetWriter(ctx, chainName)
 	defer chainObj.Close()
 	if _, err := chainObj.Write([]byte(opts.Chain)); err != nil {
@@ -143,8 +141,8 @@ func (r *reader) GetReader(ctx context.Context, object string) (io.ReadCloser, e
 	return r.client.Bucket(r.bucket).Object(object).NewReader(ctx)
 }
 
-func (b *Backend) RetrieveSignatures(ctx context.Context, opts config.StorageOpts) (map[string][]string, error) {
-	object := b.sigName(opts)
+func (b *Backend) RetrieveSignatures(ctx context.Context, tr *v1beta1.TaskRun, opts config.StorageOpts) (map[string][]string, error) {
+	object := sigName(tr, opts)
 	signature, err := b.retrieveObject(ctx, object)
 	if err != nil {
 		return nil, err
@@ -155,8 +153,8 @@ func (b *Backend) RetrieveSignatures(ctx context.Context, opts config.StorageOpt
 	return m, nil
 }
 
-func (b *Backend) RetrievePayloads(ctx context.Context, opts config.StorageOpts) (map[string]string, error) {
-	object := b.payloadName(opts)
+func (b *Backend) RetrievePayloads(ctx context.Context, tr *v1beta1.TaskRun, opts config.StorageOpts) (map[string]string, error) {
+	object := payloadName(tr, opts)
 	m := make(map[string]string)
 	payload, err := b.retrieveObject(ctx, object)
 	if err != nil {
@@ -181,18 +179,18 @@ func (b *Backend) retrieveObject(ctx context.Context, object string) (string, er
 	return string(payload), nil
 }
 
-func (b *Backend) sigName(opts config.StorageOpts) string {
-	return fmt.Sprintf(SignatureNameFormat, b.tr.Namespace, b.tr.Name, opts.Key)
+func sigName(tr *v1beta1.TaskRun, opts config.StorageOpts) string {
+	return fmt.Sprintf(SignatureNameFormat, tr.Namespace, tr.Name, opts.Key)
 }
 
-func (b *Backend) payloadName(opts config.StorageOpts) string {
-	return fmt.Sprintf(PayloadNameFormat, b.tr.Namespace, b.tr.Name, opts.Key)
+func payloadName(tr *v1beta1.TaskRun, opts config.StorageOpts) string {
+	return fmt.Sprintf(PayloadNameFormat, tr.Namespace, tr.Name, opts.Key)
 }
 
-func (b *Backend) certName(opts config.StorageOpts) string {
-	return fmt.Sprintf(CertNameFormat, b.tr.Namespace, b.tr.Name, opts.Key)
+func certName(tr *v1beta1.TaskRun, opts config.StorageOpts) string {
+	return fmt.Sprintf(CertNameFormat, tr.Namespace, tr.Name, opts.Key)
 }
 
-func (b *Backend) chainName(opts config.StorageOpts) string {
-	return fmt.Sprintf(ChainNameFormat, b.tr.Namespace, b.tr.Name, opts.Key)
+func chainName(tr *v1beta1.TaskRun, opts config.StorageOpts) string {
+	return fmt.Sprintf(ChainNameFormat, tr.Namespace, tr.Name, opts.Key)
 }

@@ -26,7 +26,6 @@ import (
 	"github.com/tektoncd/chains/pkg/config"
 
 	"github.com/google/go-containerregistry/pkg/authn"
-	"github.com/google/go-containerregistry/pkg/authn/k8schain"
 	"github.com/google/go-containerregistry/pkg/registry"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/in-toto/in-toto-golang/in_toto"
@@ -34,9 +33,8 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature/payload"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	remotetest "github.com/tektoncd/pipeline/test"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/kubernetes"
 	logtesting "knative.dev/pkg/logging/testing"
 )
 
@@ -46,13 +44,6 @@ const (
 )
 
 var (
-	sa = &corev1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      serviceAccount,
-		},
-	}
-
 	tr = &v1beta1.TaskRun{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
@@ -63,14 +54,6 @@ var (
 
 func TestBackend_StorePayload(t *testing.T) {
 	ctx := context.Background()
-	kc, err := k8schain.New(ctx, fake.NewSimpleClientset(sa), k8schain.Options{
-		Namespace:          namespace,
-		ServiceAccountName: serviceAccount,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	auth := remote.WithAuthFromKeychain(authn.DefaultKeychain)
 
 	// Create registry server
 	s := httptest.NewServer(registry.New())
@@ -115,10 +98,7 @@ func TestBackend_StorePayload(t *testing.T) {
 	}
 
 	type fields struct {
-		tr   *v1beta1.TaskRun
-		cfg  config.Config
-		kc   authn.Keychain
-		auth remote.Option
+		tr *v1beta1.TaskRun
 	}
 	type args struct {
 		payload     interface{}
@@ -134,9 +114,7 @@ func TestBackend_StorePayload(t *testing.T) {
 		{
 			name: "simplesigning payload",
 			fields: fields{
-				tr:   tr,
-				kc:   kc,
-				auth: auth,
+				tr: tr,
 			},
 			args: args{
 				payload:   simple,
@@ -150,9 +128,7 @@ func TestBackend_StorePayload(t *testing.T) {
 		{
 			name: "into-to payload",
 			fields: fields{
-				tr:   tr,
-				kc:   kc,
-				auth: auth,
+				tr: tr,
 			},
 			args: args{
 				payload:   intotoStatement,
@@ -183,16 +159,15 @@ func TestBackend_StorePayload(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			b := &Backend{
 				logger: logtesting.TestLogger(t),
-				tr:     tt.fields.tr,
-				cfg:    tt.fields.cfg,
-				kc:     tt.fields.kc,
-				auth:   tt.fields.auth,
+				getAuthenticator: func(_ context.Context, _ *v1beta1.TaskRun, _ kubernetes.Interface) (remote.Option, error) {
+					return remote.WithAuthFromKeychain(authn.DefaultKeychain), nil
+				},
 			}
 			rawPayload, err := json.Marshal(tt.args.payload)
 			if err != nil {
 				t.Fatalf("failed to marshal: %v", err)
 			}
-			if err := b.StorePayload(ctx, rawPayload, tt.args.signature, tt.args.storageOpts); (err != nil) != tt.wantErr {
+			if err := b.StorePayload(ctx, tt.fields.tr, rawPayload, tt.args.signature, tt.args.storageOpts); (err != nil) != tt.wantErr {
 				t.Errorf("Backend.StorePayload() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

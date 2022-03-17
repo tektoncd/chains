@@ -46,13 +46,12 @@ const (
 // is built on the top of grafeas i.e. container analysis.
 type Backend struct {
 	logger *zap.SugaredLogger
-	tr     *v1beta1.TaskRun
 	client pb.GrafeasV1Beta1Client
 	cfg    config.Config
 }
 
 // NewStorageBackend returns a new Grafeas StorageBackend that stores signatures in a Grafeas server
-func NewStorageBackend(ctx context.Context, logger *zap.SugaredLogger, tr *v1beta1.TaskRun, cfg config.Config) (*Backend, error) {
+func NewStorageBackend(ctx context.Context, logger *zap.SugaredLogger, cfg config.Config) (*Backend, error) {
 	// build connection through grpc
 	// implicit uses Application Default Credentials to authenticate.
 	// Requires `gcloud auth application-default login` to work locally
@@ -78,14 +77,13 @@ func NewStorageBackend(ctx context.Context, logger *zap.SugaredLogger, tr *v1bet
 	// create backend instance
 	return &Backend{
 		logger: logger,
-		tr:     tr,
 		client: client,
 		cfg:    cfg,
 	}, nil
 }
 
 // StorePayload implements the storage.Backend interface.
-func (b *Backend) StorePayload(ctx context.Context, rawPayload []byte, signature string, opts config.StorageOpts) error {
+func (b *Backend) StorePayload(ctx context.Context, tr *v1beta1.TaskRun, rawPayload []byte, signature string, opts config.StorageOpts) error {
 	// We only support simplesigning for OCI images, and in-toto for taskrun.
 	if opts.PayloadFormat == formats.PayloadTypeTekton || opts.PayloadFormat == formats.PayloadTypeProvenance {
 		return errors.New("Grafeas storage backend only supports for OCI images and in-toto attestations")
@@ -98,11 +96,11 @@ func (b *Backend) StorePayload(ctx context.Context, rawPayload []byte, signature
 
 	// check if noteID is configured. If not, we give it a name as `tekton-<namespace>`
 	if b.cfg.Storage.Grafeas.NoteID == "" {
-		generatedNoteID := fmt.Sprintf("tekton-%s", b.tr.GetNamespace())
+		generatedNoteID := fmt.Sprintf("tekton-%s", tr.GetNamespace())
 		b.cfg.Storage.Grafeas.NoteID = generatedNoteID
 	}
 
-	b.logger.Infof("Trying to store payload on TaskRun %s/%s", b.tr.Namespace, b.tr.Name)
+	b.logger.Infof("Trying to store payload on TaskRun %s/%s", tr.Namespace, tr.Name)
 
 	// step1: create note
 	if err := b.createNote(ctx); err != nil && status.Code(err) != codes.AlreadyExists {
@@ -110,7 +108,7 @@ func (b *Backend) StorePayload(ctx context.Context, rawPayload []byte, signature
 	}
 
 	// step2: create occurrence request
-	occurrenceReq, err := b.createOccurrenceRequest(rawPayload, signature, opts)
+	occurrenceReq, err := b.createOccurrenceRequest(tr, rawPayload, signature, opts)
 	if err != nil {
 		return err
 	}
@@ -121,17 +119,17 @@ func (b *Backend) StorePayload(ctx context.Context, rawPayload []byte, signature
 		return err
 	}
 
-	b.logger.Infof("Successfully created an occurrence %s (Occurrence_ID is automatically generated) for Taskrun %s/%s", occurrence.GetName(), b.tr.Namespace, b.tr.Name)
+	b.logger.Infof("Successfully created an occurrence %s (Occurrence_ID is automatically generated) for Taskrun %s/%s", occurrence.GetName(), tr.Namespace, tr.Name)
 	return nil
 }
 
-// RetrievePayloads retrieves payloads from grafeas server and store it in a map
-func (b *Backend) RetrievePayloads(ctx context.Context, opts config.StorageOpts) (map[string]string, error) {
+// Retrieve payloads from grafeas server and store it in a map
+func (b *Backend) RetrievePayloads(ctx context.Context, tr *v1beta1.TaskRun, opts config.StorageOpts) (map[string]string, error) {
 	// initialize an empty map for result
 	result := make(map[string]string)
 
 	// get all occurrences created using this backend
-	occurrences, err := b.getOccurrences(ctx)
+	occurrences, err := b.getOccurrences(tr, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -148,13 +146,13 @@ func (b *Backend) RetrievePayloads(ctx context.Context, opts config.StorageOpts)
 	return result, nil
 }
 
-// RetrieveSignatures retrieves signatures from grafeas server and store it in a map
-func (b *Backend) RetrieveSignatures(ctx context.Context, opts config.StorageOpts) (map[string][]string, error) {
+// Retrieve signatures from grafeas server and store it in a map
+func (b *Backend) RetrieveSignatures(ctx context.Context, tr *v1beta1.TaskRun, opts config.StorageOpts) (map[string][]string, error) {
 	// initialize an empty map for result
 	result := make(map[string][]string)
 
 	// get all occurrences created using this backend
-	occurrences, err := b.getOccurrences(ctx)
+	occurrences, err := b.getOccurrences(tr, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -211,7 +209,7 @@ func (b *Backend) createNote(ctx context.Context) error {
 	return nil
 }
 
-func (b *Backend) createOccurrenceRequest(payload []byte, signature string, opts config.StorageOpts) (*pb.CreateOccurrenceRequest, error) {
+func (b *Backend) createOccurrenceRequest(tr *v1beta1.TaskRun, payload []byte, signature string, opts config.StorageOpts) (*pb.CreateOccurrenceRequest, error) {
 	occurrenceDetails := &pb.Occurrence_Attestation{
 		Attestation: &attestationpb.Details{
 			Attestation: &attestationpb.Attestation{
@@ -242,7 +240,7 @@ func (b *Backend) createOccurrenceRequest(payload []byte, signature string, opts
 		},
 	}
 
-	uri, err := b.getResourceURI(opts)
+	uri, err := b.getResourceURI(tr, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -287,11 +285,11 @@ func (b *Backend) getContentType(opts config.StorageOpts) attestationpb.GenericS
 }
 
 // retrieve all occurrences created under a taskrun by filtering resource URI
-func (b *Backend) getOccurrences(ctx context.Context) ([]*pb.Occurrence, error) {
+func (b *Backend) getOccurrences(tr *v1beta1.TaskRun, ctx context.Context) ([]*pb.Occurrence, error) {
 	// step 1: get all resource URIs created under the taskrun
 	uriFilters := []string{}
-	uriFilters = append(uriFilters, b.retrieveAllOCIURIs()...)
-	uriFilters = append(uriFilters, b.getTaskRunURI())
+	uriFilters = append(uriFilters, b.retrieveAllOCIURIs(tr)...)
+	uriFilters = append(uriFilters, b.getTaskRunURI(tr))
 
 	// step 2: find all occurrences by using ListOccurrences filters
 	occs, err := b.findOccurrencesForCriteria(ctx, b.getProjectPath(), uriFilters)
@@ -324,12 +322,12 @@ func (b *Backend) findOccurrencesForCriteria(ctx context.Context, projectPath st
 }
 
 // get resource uri based on the configured payload format that helps differentiate artifact type as well.
-func (b *Backend) getResourceURI(opts config.StorageOpts) (string, error) {
+func (b *Backend) getResourceURI(tr *v1beta1.TaskRun, opts config.StorageOpts) (string, error) {
 	switch opts.PayloadFormat {
 	case formats.PayloadTypeSimpleSigning:
-		return b.getOCIURI(opts), nil
+		return b.getOCIURI(tr, opts), nil
 	case formats.PayloadTypeInTotoIte6:
-		return b.getTaskRunURI(), nil
+		return b.getTaskRunURI(tr), nil
 	default:
 		return "", errors.New("Invalid payload format. Only in-toto and simplesigning are supported.")
 	}
@@ -338,19 +336,19 @@ func (b *Backend) getResourceURI(opts config.StorageOpts) (string, error) {
 // get resource uri for a taskrun in the format of namespace-scoped resource uri
 // `/apis/GROUP/VERSION/namespaces/NAMESPACE/RESOURCETYPE/NAME``
 // see more details here https://kubernetes.io/docs/reference/using-api/api-concepts/#resource-uris
-func (b *Backend) getTaskRunURI() string {
+func (b *Backend) getTaskRunURI(tr *v1beta1.TaskRun) string {
 	return fmt.Sprintf("/apis/%s/namespaces/%s/%s/%s@%s",
-		b.tr.GetGroupVersionKind().GroupVersion().String(),
-		b.tr.GetNamespace(),
-		b.tr.GetGroupVersionKind().Kind,
-		b.tr.GetName(),
-		string(b.tr.UID),
+		tr.GetGroupVersionKind().GroupVersion().String(),
+		tr.GetNamespace(),
+		tr.GetGroupVersionKind().Kind,
+		tr.GetName(),
+		string(tr.UID),
 	)
 }
 
 // get resource uri for an oci image in the format of `IMAGE_URL@IMAGE_DIGEST`
-func (b *Backend) getOCIURI(opts config.StorageOpts) string {
-	imgs := b.retrieveAllOCIURIs()
+func (b *Backend) getOCIURI(tr *v1beta1.TaskRun, opts config.StorageOpts) string {
+	imgs := b.retrieveAllOCIURIs(tr)
 	for _, img := range imgs {
 		// get digest part of the image representation
 		digest := strings.Split(img, "sha256:")[1]
@@ -366,9 +364,9 @@ func (b *Backend) getOCIURI(opts config.StorageOpts) string {
 }
 
 // get the uri of all images for a specific taskrun in the format of `IMAGE_URL@IMAGE_DIGEST`
-func (b *Backend) retrieveAllOCIURIs() []string {
+func (b *Backend) retrieveAllOCIURIs(tr *v1beta1.TaskRun) []string {
 	result := []string{}
-	images := artifacts.ExtractOCIImagesFromResults(b.tr, b.logger)
+	images := artifacts.ExtractOCIImagesFromResults(tr, b.logger)
 
 	for _, image := range images {
 		ref := image.(name.Digest)
