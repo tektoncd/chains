@@ -195,7 +195,6 @@ func TestBackend_StorePayload(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			backend := Backend{
 				logger: logtesting.TestLogger(t),
-				tr:     test.args.tr,
 				client: client,
 				cfg: config.Config{
 					Storage: config.StorageConfigs{
@@ -227,18 +226,18 @@ func TestBackend_StorePayload(t *testing.T) {
 
 // test attestation storage and retrieval
 func testInterface(ctx context.Context, t *testing.T, test testConfig, backend Backend) {
-	if err := backend.StorePayload(ctx, test.args.payload, test.args.signature, test.args.opts); (err != nil) != test.wantErr {
+	if err := backend.StorePayload(ctx, test.args.tr, test.args.payload, test.args.signature, test.args.opts); (err != nil) != test.wantErr {
 		t.Fatalf("Backend.StorePayload() failed. error:%v, wantErr:%v", err, test.wantErr)
 	}
 
-	objectIdentifier, err := backend.getResourceURI(test.args.opts)
+	objectIdentifier, err := backend.getResourceURI(test.args.tr, test.args.opts)
 	if (err != nil) != test.wantErr {
 		t.Fatalf("Backend.getResourceURI() failed. error:%v, wantErr:%v", err, test.wantErr)
 	}
 
 	// check signature
 	expectSignature := map[string][]string{objectIdentifier: {test.args.signature}}
-	gotSignature, err := backend.RetrieveSignatures(ctx, test.args.opts)
+	gotSignature, err := backend.RetrieveSignatures(ctx, test.args.tr, test.args.opts)
 	if err != nil {
 		t.Fatal("Backend.RetrieveSignatures() failed. error:", err)
 	}
@@ -249,7 +248,7 @@ func testInterface(ctx context.Context, t *testing.T, test testConfig, backend B
 
 	// check payload
 	expectPayload := map[string]string{objectIdentifier: string(test.args.payload)}
-	gotPayload, err := backend.RetrievePayloads(ctx, test.args.opts)
+	gotPayload, err := backend.RetrievePayloads(ctx, test.args.tr, test.args.opts)
 	if err != nil {
 		t.Fatalf("RetrievePayloads.RetrievePayloads() failed. error:%v", err)
 	}

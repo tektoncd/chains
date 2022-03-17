@@ -42,21 +42,19 @@ const (
 type Backend struct {
 	pipelienclientset versioned.Interface
 	logger            *zap.SugaredLogger
-	tr                *v1beta1.TaskRun
 }
 
 // NewStorageBackend returns a new Tekton StorageBackend that stores signatures on a TaskRun
-func NewStorageBackend(ps versioned.Interface, logger *zap.SugaredLogger, tr *v1beta1.TaskRun) *Backend {
+func NewStorageBackend(ps versioned.Interface, logger *zap.SugaredLogger) *Backend {
 	return &Backend{
 		pipelienclientset: ps,
 		logger:            logger,
-		tr:                tr,
 	}
 }
 
 // StorePayload implements the Payloader interface.
-func (b *Backend) StorePayload(ctx context.Context, rawPayload []byte, signature string, opts config.StorageOpts) error {
-	b.logger.Infof("Storing payload on TaskRun %s/%s", b.tr.Namespace, b.tr.Name)
+func (b *Backend) StorePayload(ctx context.Context, tr *v1beta1.TaskRun, rawPayload []byte, signature string, opts config.StorageOpts) error {
+	b.logger.Infof("Storing payload on TaskRun %s/%s", tr.Namespace, tr.Name)
 
 	// Use patch instead of update to prevent race conditions.
 	patchBytes, err := patch.GetAnnotationsPatch(map[string]string{
@@ -69,8 +67,8 @@ func (b *Backend) StorePayload(ctx context.Context, rawPayload []byte, signature
 	if err != nil {
 		return err
 	}
-	if _, err := b.pipelienclientset.TektonV1beta1().TaskRuns(b.tr.Namespace).Patch(
-		ctx, b.tr.Name, types.MergePatchType, patchBytes, v1.PatchOptions{}); err != nil {
+	if _, err := b.pipelienclientset.TektonV1beta1().TaskRuns(tr.Namespace).Patch(
+		ctx, tr.Name, types.MergePatchType, patchBytes, v1.PatchOptions{}); err != nil {
 		return err
 	}
 	return nil
@@ -81,10 +79,10 @@ func (b *Backend) Type() string {
 }
 
 // retrieveAnnotationValue retrieve the value of an annotation and base64 decode it if needed.
-func (b *Backend) retrieveAnnotationValue(ctx context.Context, annotationKey string, decode bool) (string, error) {
+func (b *Backend) retrieveAnnotationValue(ctx context.Context, tr *v1beta1.TaskRun, annotationKey string, decode bool) (string, error) {
 	// Retrieve the TaskRun.
-	b.logger.Infof("Retrieving annotation %q on TaskRun %s/%s", annotationKey, b.tr.Namespace, b.tr.Name)
-	tr, err := b.pipelienclientset.TektonV1beta1().TaskRuns(b.tr.Namespace).Get(ctx, b.tr.Name, v1.GetOptions{})
+	b.logger.Infof("Retrieving annotation %q on TaskRun %s/%s", annotationKey, tr.Namespace, tr.Name)
+	tr, err := b.pipelienclientset.TektonV1beta1().TaskRuns(tr.Namespace).Get(ctx, tr.Name, v1.GetOptions{})
 	if err != nil {
 		return "", fmt.Errorf("error retrieving taskrun: %s", err)
 	}
@@ -110,17 +108,17 @@ func (b *Backend) retrieveAnnotationValue(ctx context.Context, annotationKey str
 	return annotationValue, nil
 }
 
-// RetrieveSignatures retrieves the signature stored in the taskrun.
-func (b *Backend) RetrieveSignatures(ctx context.Context, opts config.StorageOpts) (map[string][]string, error) {
-	b.logger.Infof("Retrieving signature on TaskRun %s/%s", b.tr.Namespace, b.tr.Name)
+// RetrieveSignature retrieve the signature stored in the taskrun.
+func (b *Backend) RetrieveSignatures(ctx context.Context, tr *v1beta1.TaskRun, opts config.StorageOpts) (map[string][]string, error) {
+	b.logger.Infof("Retrieving signature on TaskRun %s/%s", tr.Namespace, tr.Name)
 	signatureAnnotation := sigName(opts)
-	signature, err := b.retrieveAnnotationValue(ctx, signatureAnnotation, true)
+	signature, err := b.retrieveAnnotationValue(ctx, tr, signatureAnnotation, true)
 	if err != nil {
 		return nil, err
 	}
 
 	m := make(map[string][]string)
-	for _, res := range b.tr.Status.TaskRunResults {
+	for _, res := range tr.Status.TaskRunResults {
 		if strings.HasSuffix(res.Name, "IMAGE_URL") {
 			m[signatureAnnotation] = []string{signature}
 			break
@@ -129,16 +127,16 @@ func (b *Backend) RetrieveSignatures(ctx context.Context, opts config.StorageOpt
 	return m, nil
 }
 
-// RetrievePayloads retrieves the payload stored in the taskrun.
-func (b *Backend) RetrievePayloads(ctx context.Context, opts config.StorageOpts) (map[string]string, error) {
-	b.logger.Infof("Retrieving payload on TaskRun %s/%s", b.tr.Namespace, b.tr.Name)
+// RetrievePayload retrieve the payload stored in the taskrun.
+func (b *Backend) RetrievePayloads(ctx context.Context, tr *v1beta1.TaskRun, opts config.StorageOpts) (map[string]string, error) {
+	b.logger.Infof("Retrieving payload on TaskRun %s/%s", tr.Namespace, tr.Name)
 	payloadAnnotation := payloadName(opts)
-	payload, err := b.retrieveAnnotationValue(ctx, payloadAnnotation, true)
+	payload, err := b.retrieveAnnotationValue(ctx, tr, payloadAnnotation, true)
 	if err != nil {
 		return nil, err
 	}
 	m := make(map[string]string)
-	for _, res := range b.tr.Status.TaskRunResults {
+	for _, res := range tr.Status.TaskRunResults {
 		if strings.HasSuffix(res.Name, "IMAGE_URL") {
 			m[payloadAnnotation] = payload
 			break

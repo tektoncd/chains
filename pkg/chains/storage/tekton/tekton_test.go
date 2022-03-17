@@ -66,7 +66,6 @@ func TestBackend_StorePayload(t *testing.T) {
 			b := &Backend{
 				pipelienclientset: c,
 				logger:            logtesting.TestLogger(t),
-				tr:                tr,
 			}
 			payload, err := json.Marshal(tt.payload)
 			if err != nil {
@@ -74,7 +73,7 @@ func TestBackend_StorePayload(t *testing.T) {
 			}
 			opts := config.StorageOpts{Key: "mockpayload"}
 			mockSignature := "mocksignature"
-			if err := b.StorePayload(ctx, payload, mockSignature, opts); (err != nil) != tt.wantErr {
+			if err := b.StorePayload(ctx, tr, payload, mockSignature, opts); (err != nil) != tt.wantErr {
 				t.Errorf("Backend.StorePayload() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
@@ -84,7 +83,7 @@ func TestBackend_StorePayload(t *testing.T) {
 			}
 
 			payloadAnnotation := payloadName(opts)
-			payloads, err := b.RetrievePayloads(ctx, opts)
+			payloads, err := b.RetrievePayloads(ctx, tr, opts)
 			if err != nil {
 				t.Errorf("error base64 decoding: %v", err)
 			}
@@ -101,7 +100,7 @@ func TestBackend_StorePayload(t *testing.T) {
 
 			// Compare the signature.
 			signatureAnnotation := sigName(opts)
-			sigs, err := b.RetrieveSignatures(ctx, opts)
+			sigs, err := b.RetrieveSignatures(ctx, tr, opts)
 			if err != nil {
 				t.Fatal(err)
 			}

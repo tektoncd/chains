@@ -30,17 +30,17 @@ import (
 
 // Backend is an interface to store a chains Payload
 type Backend interface {
-	StorePayload(ctx context.Context, rawPayload []byte, signature string, opts config.StorageOpts) error
+	StorePayload(ctx context.Context, tr *v1beta1.TaskRun, rawPayload []byte, signature string, opts config.StorageOpts) error
 	// RetrievePayloads maps [ref]:[payload] for a TaskRun
-	RetrievePayloads(ctx context.Context, opts config.StorageOpts) (map[string]string, error)
+	RetrievePayloads(ctx context.Context, tr *v1beta1.TaskRun, opts config.StorageOpts) (map[string]string, error)
 	// RetrieveSignatures maps [ref]:[list of signatures] for a TaskRun
-	RetrieveSignatures(ctx context.Context, opts config.StorageOpts) (map[string][]string, error)
+	RetrieveSignatures(ctx context.Context, tr *v1beta1.TaskRun, opts config.StorageOpts) (map[string][]string, error)
 	// Type is the string representation of the backend
 	Type() string
 }
 
 // InitializeBackends creates and initializes every configured storage backend.
-func InitializeBackends(ctx context.Context, ps versioned.Interface, kc kubernetes.Interface, logger *zap.SugaredLogger, tr *v1beta1.TaskRun, cfg config.Config) (map[string]Backend, error) {
+func InitializeBackends(ctx context.Context, ps versioned.Interface, kc kubernetes.Interface, logger *zap.SugaredLogger, cfg config.Config) (map[string]Backend, error) {
 	// Add an entry here for every configured backend
 	configuredBackends := []string{}
 	if cfg.Artifacts.TaskRuns.Enabled() {
@@ -55,27 +55,24 @@ func InitializeBackends(ctx context.Context, ps versioned.Interface, kc kubernet
 	for _, backendType := range configuredBackends {
 		switch backendType {
 		case gcs.StorageBackendGCS:
-			gcsBackend, err := gcs.NewStorageBackend(ctx, logger, tr, cfg)
+			gcsBackend, err := gcs.NewStorageBackend(ctx, logger, cfg)
 			if err != nil {
 				return nil, err
 			}
 			backends[backendType] = gcsBackend
 		case tekton.StorageBackendTekton:
-			backends[backendType] = tekton.NewStorageBackend(ps, logger, tr)
+			backends[backendType] = tekton.NewStorageBackend(ps, logger)
 		case oci.StorageBackendOCI:
-			ociBackend, err := oci.NewStorageBackend(ctx, logger, kc, tr, cfg)
-			if err != nil {
-				return nil, err
-			}
+			ociBackend := oci.NewStorageBackend(ctx, logger, kc, cfg)
 			backends[backendType] = ociBackend
 		case docdb.StorageTypeDocDB:
-			docdbBackend, err := docdb.NewStorageBackend(ctx, logger, tr, cfg)
+			docdbBackend, err := docdb.NewStorageBackend(ctx, logger, cfg)
 			if err != nil {
 				return nil, err
 			}
 			backends[backendType] = docdbBackend
 		case grafeas.StorageBackendGrafeas:
-			grafeasBackend, err := grafeas.NewStorageBackend(ctx, logger, tr, cfg)
+			grafeasBackend, err := grafeas.NewStorageBackend(ctx, logger, cfg)
 			if err != nil {
 				return nil, err
 			}

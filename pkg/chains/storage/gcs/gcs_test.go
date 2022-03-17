@@ -80,18 +80,17 @@ func TestBackend_StorePayload(t *testing.T) {
 			mockGcsRead := &mockGcsReader{objects: mockGcsWrite.objects}
 			b := &Backend{
 				logger: logtesting.TestLogger(t),
-				tr:     tt.args.tr,
 				writer: mockGcsWrite,
 				reader: mockGcsRead,
 				cfg:    config.Config{Storage: config.StorageConfigs{GCS: config.GCSStorageConfig{Bucket: "foo"}}},
 			}
-			if err := b.StorePayload(ctx, tt.args.signed, tt.args.signature, tt.args.opts); (err != nil) != tt.wantErr {
+			if err := b.StorePayload(ctx, tt.args.tr, tt.args.signed, tt.args.signature, tt.args.opts); (err != nil) != tt.wantErr {
 				t.Errorf("Backend.StorePayload() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
-			objectSig := b.sigName(tt.args.opts)
-			objectPayload := b.payloadName(tt.args.opts)
-			got, err := b.RetrieveSignatures(ctx, tt.args.opts)
+			objectSig := sigName(tt.args.tr, tt.args.opts)
+			objectPayload := payloadName(tt.args.tr, tt.args.opts)
+			got, err := b.RetrieveSignatures(ctx, tt.args.tr, tt.args.opts)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -99,7 +98,7 @@ func TestBackend_StorePayload(t *testing.T) {
 				t.Errorf("wrong signature, expected %q, got %q", tt.args.signature, got[objectSig][0])
 			}
 			var gotPayload map[string]string
-			gotPayload, err = b.RetrievePayloads(ctx, tt.args.opts)
+			gotPayload, err = b.RetrievePayloads(ctx, tt.args.tr, tt.args.opts)
 			if err != nil {
 				t.Fatal(err)
 			}

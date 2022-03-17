@@ -43,7 +43,7 @@ failed=0
 
 # Run the integration tests
 header "Running Go e2e tests"
-go_test_e2e -timeout=20m ./test/... || failed=1
+go_test_e2e -timeout=35m ./test/... || failed=1
 
 (( failed )) && dump_logs && fail_test
 success
