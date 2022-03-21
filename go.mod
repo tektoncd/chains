@@ -11,7 +11,7 @@ require (
 	github.com/armon/go-radix v1.0.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/golang/snappy v0.0.4
-	github.com/golangci/golangci-lint v1.44.2
+	github.com/golangci/golangci-lint v1.45.0
 	github.com/google/addlicense v1.0.0
 	github.com/google/go-cmp v0.5.7
 	github.com/google/go-containerregistry v0.8.1-0.20220202214207-9c35968ef47e
@@ -45,7 +45,7 @@ require (
 	go.uber.org/atomic v1.9.0
 	go.uber.org/zap v1.21.0
 	gocloud.dev v0.24.1-0.20211119014450-028788aaaa4c
-	golang.org/x/crypto v0.0.0-20220131195533-30dcbda58838
+	golang.org/x/crypto v0.0.0-20220214200702-86341886e292
 	google.golang.org/protobuf v1.27.1
 	k8s.io/api v0.22.5
 	k8s.io/apimachinery v0.22.5
