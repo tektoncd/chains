@@ -63,7 +63,7 @@ func TestBackend_StorePayload(t *testing.T) {
 					PayloadFormat: "in-toto",
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
