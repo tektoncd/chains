@@ -571,16 +571,36 @@ github.com/gostaticanalysis/comment/passes/commentmap
 github.com/gostaticanalysis/forcetypeassert
 # github.com/gostaticanalysis/nilerr v0.1.1
 github.com/gostaticanalysis/nilerr
+# github.com/grafeas/grafeas v0.2.0
+## explicit
+github.com/grafeas/grafeas/proto/v1beta1/attestation_go_proto
+github.com/grafeas/grafeas/proto/v1beta1/build_go_proto
+github.com/grafeas/grafeas/proto/v1beta1/common_go_proto
+github.com/grafeas/grafeas/proto/v1beta1/cvss_go_proto
+github.com/grafeas/grafeas/proto/v1beta1/deployment_go_proto
+github.com/grafeas/grafeas/proto/v1beta1/discovery_go_proto
+github.com/grafeas/grafeas/proto/v1beta1/grafeas_go_proto
+github.com/grafeas/grafeas/proto/v1beta1/image_go_proto
+github.com/grafeas/grafeas/proto/v1beta1/intoto_go_proto
+github.com/grafeas/grafeas/proto/v1beta1/package_go_proto
+github.com/grafeas/grafeas/proto/v1beta1/provenance_go_proto
+github.com/grafeas/grafeas/proto/v1beta1/source_go_proto
+github.com/grafeas/grafeas/proto/v1beta1/spdx_go_proto
+github.com/grafeas/grafeas/proto/v1beta1/vulnerability_go_proto
 # github.com/grpc-ecosystem/grpc-gateway v1.16.0
 github.com/grpc-ecosystem/grpc-gateway/internal
 github.com/grpc-ecosystem/grpc-gateway/runtime
 github.com/grpc-ecosystem/grpc-gateway/utilities
+# github.com/grpc-ecosystem/grpc-gateway/v2 v2.7.0
+github.com/grpc-ecosystem/grpc-gateway/v2/internal/httprule
+github.com/grpc-ecosystem/grpc-gateway/v2/runtime
+github.com/grpc-ecosystem/grpc-gateway/v2/utilities
 # github.com/hashicorp/errwrap v1.1.0
 ## explicit
 github.com/hashicorp/errwrap
 # github.com/hashicorp/go-cleanhttp v0.5.2
 github.com/hashicorp/go-cleanhttp
-# github.com/hashicorp/go-hclog v1.2.0
+# github.com/hashicorp/go-hclog v1.1.0
 ## explicit
 github.com/hashicorp/go-hclog
 # github.com/hashicorp/go-immutable-radix v1.3.1
@@ -1401,6 +1421,7 @@ google.golang.org/genproto/googleapis/type/expr
 google.golang.org/genproto/googleapis/type/latlng
 google.golang.org/genproto/protobuf/field_mask
 # google.golang.org/grpc v1.44.0
+## explicit
 google.golang.org/grpc
 google.golang.org/grpc/attributes
 google.golang.org/grpc/backoff
@@ -1481,6 +1502,7 @@ google.golang.org/protobuf/internal/filetype
 google.golang.org/protobuf/internal/flags
 google.golang.org/protobuf/internal/genid
 google.golang.org/protobuf/internal/impl
+google.golang.org/protobuf/internal/msgfmt
 google.golang.org/protobuf/internal/order
 google.golang.org/protobuf/internal/pragma
 google.golang.org/protobuf/internal/set
@@ -1492,6 +1514,7 @@ google.golang.org/protobuf/reflect/protoreflect
 google.golang.org/protobuf/reflect/protoregistry
 google.golang.org/protobuf/runtime/protoiface
 google.golang.org/protobuf/runtime/protoimpl
+google.golang.org/protobuf/testing/protocmp
 google.golang.org/protobuf/types/descriptorpb
 google.golang.org/protobuf/types/known/anypb
 google.golang.org/protobuf/types/known/durationpb

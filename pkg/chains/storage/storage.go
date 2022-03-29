@@ -18,6 +18,7 @@ import (
 
 	"github.com/tektoncd/chains/pkg/chains/storage/docdb"
 	"github.com/tektoncd/chains/pkg/chains/storage/gcs"
+	"github.com/tektoncd/chains/pkg/chains/storage/grafeas"
 	"github.com/tektoncd/chains/pkg/chains/storage/oci"
 	"github.com/tektoncd/chains/pkg/chains/storage/tekton"
 	"github.com/tektoncd/chains/pkg/config"
@@ -73,6 +74,12 @@ func InitializeBackends(ctx context.Context, ps versioned.Interface, kc kubernet
 				return nil, err
 			}
 			backends[backendType] = docdbBackend
+		case grafeas.StorageBackendGrafeas:
+			grafeasBackend, err := grafeas.NewStorageBackend(ctx, logger, tr, cfg)
+			if err != nil {
+				return nil, err
+			}
+			backends[backendType] = grafeasBackend
 		}
 	}
 	return backends, nil
