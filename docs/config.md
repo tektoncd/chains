@@ -50,15 +50,17 @@ Supported keys include:
 | Key | Description | Supported Values | Default |
 | :--- | :--- | :--- | :--- |
 | `artifacts.taskrun.format` | The format to store `TaskRun` payloads in. | `tekton`, `in-toto`| `tekton` |
-| `artifacts.taskrun.storage` | The storage backend to store `TaskRun` signatures in. Multiple backends can be specified with comma-separated list ("tekton,oci"). To disable the `TaskRun` artifact input an empty string ("").  | `tekton`, `oci`, `gcs`, `docdb` | `tekton` |
+| `artifacts.taskrun.storage` | The storage backend to store `TaskRun` signatures in. Multiple backends can be specified with comma-separated list ("tekton,oci"). To disable the `TaskRun` artifact input an empty string ("").  | `tekton`, `oci`, `gcs`, `docdb`, `grafeas` | `tekton` |
 | `artifacts.taskrun.signer` | The signature backend to sign `Taskrun` payloads with. | `x509`, `kms` | `x509` |
+
+> NOTE: For grafeas storage backend, currently we only support Container Analysis. We will make grafeas server address configurabe within a short time.
 
 ### OCI Configuration
 
 | Key | Description | Supported Values | Default |
 | :--- | :--- | :--- | :--- |
 | `artifacts.oci.format` | The format to store `OCI` payloads in. | `simplesigning` | `simplesigning` |
-| `artifacts.oci.storage` | The storage backend to store `OCI` signatures in. Multiple backends can be specified with comma-separated list ("oci,tekton"). To disable the `OCI` artifact input an empty string ("").| `tekton`, `oci`, `gcs`, `docdb` | `oci` |
+| `artifacts.oci.storage` | The storage backend to store `OCI` signatures in. Multiple backends can be specified with comma-separated list ("oci,tekton"). To disable the `OCI` artifact input an empty string ("").| `tekton`, `oci`, `gcs`, `docdb`, `grafeas` | `oci` |
 | `artifacts.oci.signer` | The signature backend to sign `OCI` payloads with. | `x509`, `kms` | `x509` |
 
 ### KMS Configuration
@@ -74,6 +76,8 @@ Supported keys include:
 | `storage.gcs.bucket` | The GCS bucket for storage | | |
 | `storage.oci.repository` | The OCI repo to store OCI signatures in  | | |
 | `storage.docdb.url` | The go-cloud URI reference to a docstore collection | `firestore://projects/[PROJECT]/databases/(default)/documents/[COLLECTION]?name_field=name`| |
+|`storage.grafeas.projectid`|The project ID to store occurrences|||
+|`storage.grafeas.noteid` (optional)|The note ID to link occurrences. If noteid is not provided, a name in the format of `tekton-<NAMESPACE>` will be used.|||
 
 ### In-toto Configuration
 

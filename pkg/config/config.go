@@ -49,10 +49,11 @@ type Artifact struct {
 
 // StorageConfig contains the configuration to instantiate different storage providers
 type StorageConfigs struct {
-	GCS    GCSStorageConfig
-	OCI    OCIStorageConfig
-	Tekton TektonStorageConfig
-	DocDB  DocDBStorageConfig
+	GCS     GCSStorageConfig
+	OCI     OCIStorageConfig
+	Tekton  TektonStorageConfig
+	DocDB   DocDBStorageConfig
+	Grafeas GrafeasConfig
 }
 
 // SigningConfig contains the configuration to instantiate different signers
@@ -90,6 +91,13 @@ type DocDBStorageConfig struct {
 	URL string
 }
 
+type GrafeasConfig struct {
+	// project id that is used to store notes and occurences
+	ProjectID string
+	// note id used to create a note that an occurrence will be attached to
+	NoteID string
+}
+
 type TransparencyConfig struct {
 	Enabled          bool
 	VerifyAnnotation bool
@@ -109,6 +117,8 @@ const (
 	ociRepositoryKey         = "storage.oci.repository"
 	ociRepositoryInsecureKey = "storage.oci.repository.insecure"
 	docDBUrlKey              = "storage.docdb.url"
+	grafeasProjectIDKey      = "storage.grafeas.projectid"
+	grafeasNoteIDKey         = "storage.grafeas.noteid"
 	// No config needed for Tekton object storage
 
 	// No config needed for x509 signer
@@ -169,11 +179,11 @@ func NewConfigFromMap(data map[string]string) (*Config, error) {
 		// Artifact-specific configs
 		// TaskRuns
 		asString(taskrunFormatKey, &cfg.Artifacts.TaskRuns.Format, "tekton", "in-toto", "tekton-provenance"),
-		asStringSet(taskrunStorageKey, &cfg.Artifacts.TaskRuns.StorageBackend, sets.NewString("tekton", "oci", "gcs", "docdb")),
+		asStringSet(taskrunStorageKey, &cfg.Artifacts.TaskRuns.StorageBackend, sets.NewString("tekton", "oci", "gcs", "docdb", "grafeas")),
 		asString(taskrunSignerKey, &cfg.Artifacts.TaskRuns.Signer, "x509", "kms"),
 		// OCI
 		asString(ociFormatKey, &cfg.Artifacts.OCI.Format, "simplesigning"),
-		asStringSet(ociStorageKey, &cfg.Artifacts.OCI.StorageBackend, sets.NewString("tekton", "oci", "gcs", "docdb")),
+		asStringSet(ociStorageKey, &cfg.Artifacts.OCI.StorageBackend, sets.NewString("tekton", "oci", "gcs", "docdb", "grafeas")),
 		asString(ociSignerKey, &cfg.Artifacts.OCI.Signer, "x509", "kms"),
 
 		// Storage level configs
@@ -181,6 +191,8 @@ func NewConfigFromMap(data map[string]string) (*Config, error) {
 		asString(ociRepositoryKey, &cfg.Storage.OCI.Repository),
 		asBool(ociRepositoryInsecureKey, &cfg.Storage.OCI.Insecure),
 		asString(docDBUrlKey, &cfg.Storage.DocDB.URL),
+		asString(grafeasProjectIDKey, &cfg.Storage.Grafeas.ProjectID),
+		asString(grafeasNoteIDKey, &cfg.Storage.Grafeas.NoteID),
 
 		oneOf(transparencyEnabledKey, &cfg.Transparency.Enabled, "true", "manual"),
 		oneOf(transparencyEnabledKey, &cfg.Transparency.VerifyAnnotation, "manual"),
