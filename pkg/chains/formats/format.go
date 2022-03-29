@@ -41,18 +41,16 @@ const (
 var AllFormatters = []PayloadType{PayloadTypeTekton, PayloadTypeSimpleSigning, PayloadTypeInTotoIte6}
 
 func VerifySpire(ctx context.Context, tr *v1beta1.TaskRun, spireControllerAPI *spire.SpireControllerApiClient, logger *zap.SugaredLogger) error {
-	if len(tr.Status.TaskRunResults) > 0 {
-		if !tr.IsTaskRunResultVerified() {
-			return errors.New("taskrun status condition not verified. Spire taskrun results verification failure")
-		} else {
-			logger.Info("spire taskrun status condition verified")
-		}
+
+	if !tr.IsTaskRunResultVerified() {
+		return errors.New("taskrun status condition not verified. Spire taskrun results verification failure")
 	}
+	logger.Info("spire taskrun status condition verified")
 
 	if err := spireControllerAPI.VerifyStatusInternalAnnotation(ctx, tr, logger); err != nil {
 		return errors.Wrap(err, "verifying SPIRE")
-	} else {
-		logger.Info("internal status annotation verified by spire")
 	}
+	logger.Info("internal status annotation verified by spire")
+
 	return nil
 }

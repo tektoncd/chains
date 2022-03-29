@@ -79,7 +79,7 @@ func (i *Provenance) CreatePayload(ctx context.Context, obj interface{}) (interf
 	switch v := obj.(type) {
 	case *v1beta1.TaskRun:
 		tr = v
-		if i.spireEnabled {
+		if i.spireEnabled && tr.IsSuccessful() {
 			if err := formats.VerifySpire(ctx, tr, i.spireControllerAPI, i.logger); err != nil {
 				return nil, err
 			}
