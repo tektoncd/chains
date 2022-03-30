@@ -90,9 +90,13 @@ func (b *Backend) StorePayload(ctx context.Context, rawPayload []byte, signature
 		}
 
 		// This can happen if the Task/TaskRun does not adhere to specific naming conventions
-		// like *IMAGE_URL that would serve as hints.
+		// like *IMAGE_URL that would serve as hints. This may be intentional for a Task/TaskRun
+		// that is not intended to produce an image, e.g. git-clone.
 		if len(attestation.Subject) == 0 {
-			return errors.New("Did not find anything to attest")
+			b.logger.Infof(
+				"No image subject to attest for TaskRun %s/%s. Skipping upload to registry",
+				b.tr.Namespace, b.tr.Name)
+			return nil
 		}
 
 		return b.uploadAttestation(attestation, signature, storageOpts)
