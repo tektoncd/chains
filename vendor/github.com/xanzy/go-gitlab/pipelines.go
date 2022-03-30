@@ -46,6 +46,7 @@ type Pipeline struct {
 	ID             int             `json:"id"`
 	ProjectID      int             `json:"project_id"`
 	Status         string          `json:"status"`
+	Source         string          `json:"source"`
 	Ref            string          `json:"ref"`
 	SHA            string          `json:"sha"`
 	BeforeSHA      string          `json:"before_sha"`
@@ -135,6 +136,7 @@ type PipelineInfo struct {
 	ID        int        `json:"id"`
 	ProjectID int        `json:"project_id"`
 	Status    string     `json:"status"`
+	Source    string     `json:"source"`
 	Ref       string     `json:"ref"`
 	SHA       string     `json:"sha"`
 	WebURL    string     `json:"web_url"`
@@ -153,6 +155,7 @@ type ListProjectPipelinesOptions struct {
 	ListOptions
 	Scope         *string          `url:"scope,omitempty" json:"scope,omitempty"`
 	Status        *BuildStateValue `url:"status,omitempty" json:"status,omitempty"`
+	Source        *string          `url:"source,omitempty" json:"source,omitempty"`
 	Ref           *string          `url:"ref,omitempty" json:"ref,omitempty"`
 	SHA           *string          `url:"sha,omitempty" json:"sha,omitempty"`
 	YamlErrors    *bool            `url:"yaml_errors,omitempty" json:"yaml_errors,omitempty"`
@@ -239,14 +242,14 @@ func (s *PipelinesService) GetPipelineVariables(pid interface{}, pipeline int, o
 // GetPipelineTestReport gets the test report of a single project pipeline.
 //
 // GitLab API docs: https://docs.gitlab.com/ee/api/pipelines.html#get-a-pipelines-test-report
-func (s *PipelinesService) GetPipelineTestReport(pid interface{}, pipeline int) (*PipelineTestReport, *Response, error) {
+func (s *PipelinesService) GetPipelineTestReport(pid interface{}, pipeline int, options ...RequestOptionFunc) (*PipelineTestReport, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
 	u := fmt.Sprintf("projects/%s/pipelines/%d/test_report", PathEscape(project), pipeline)
 
-	req, err := s.client.NewRequest(http.MethodGet, u, nil, nil)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
