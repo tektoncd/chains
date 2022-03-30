@@ -127,10 +127,12 @@ type Client struct {
 	GenericPackages       *GenericPackagesService
 	GeoNodes              *GeoNodesService
 	GitIgnoreTemplates    *GitIgnoreTemplatesService
+	GroupAccessTokens     *GroupAccessTokensService
 	GroupBadges           *GroupBadgesService
 	GroupCluster          *GroupClustersService
 	GroupImportExport     *GroupImportExportService
 	GroupIssueBoards      *GroupIssueBoardsService
+	GroupIterations       *GroupIterationsService
 	GroupLabels           *GroupLabelsService
 	GroupMembers          *GroupMembersService
 	GroupMilestones       *GroupMilestonesService
@@ -167,6 +169,7 @@ type Client struct {
 	ProjectAccessTokens   *ProjectAccessTokensService
 	ProjectCluster        *ProjectClustersService
 	ProjectImportExport   *ProjectImportExportService
+	ProjectIterations     *ProjectIterationsService
 	ProjectMembers        *ProjectMembersService
 	ProjectMirrors        *ProjectMirrorService
 	ProjectSnippets       *ProjectSnippetsService
@@ -321,10 +324,12 @@ func newClient(options ...ClientOptionFunc) (*Client, error) {
 	c.GenericPackages = &GenericPackagesService{client: c}
 	c.GeoNodes = &GeoNodesService{client: c}
 	c.GitIgnoreTemplates = &GitIgnoreTemplatesService{client: c}
+	c.GroupAccessTokens = &GroupAccessTokensService{client: c}
 	c.GroupBadges = &GroupBadgesService{client: c}
 	c.GroupCluster = &GroupClustersService{client: c}
 	c.GroupImportExport = &GroupImportExportService{client: c}
 	c.GroupIssueBoards = &GroupIssueBoardsService{client: c}
+	c.GroupIterations = &GroupIterationsService{client: c}
 	c.GroupLabels = &GroupLabelsService{client: c}
 	c.GroupMembers = &GroupMembersService{client: c}
 	c.GroupMilestones = &GroupMilestonesService{client: c}
@@ -361,6 +366,7 @@ func newClient(options ...ClientOptionFunc) (*Client, error) {
 	c.ProjectAccessTokens = &ProjectAccessTokensService{client: c}
 	c.ProjectCluster = &ProjectClustersService{client: c}
 	c.ProjectImportExport = &ProjectImportExportService{client: c}
+	c.ProjectIterations = &ProjectIterationsService{client: c}
 	c.ProjectMembers = &ProjectMembersService{client: c}
 	c.ProjectMirrors = &ProjectMirrorService{client: c}
 	c.ProjectSnippets = &ProjectSnippetsService{client: c}
