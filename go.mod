@@ -17,7 +17,7 @@ require (
 	github.com/google/go-containerregistry v0.8.1-0.20220216220642-00c59d91847c
 	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20220219142810-1571d7fdc46e
 	github.com/google/go-licenses v0.0.0-20210816172045-3099c18c36e1
-	github.com/grafeas/grafeas v0.2.0
+	github.com/grafeas/grafeas v0.2.1
 	github.com/hashicorp/errwrap v1.1.0
 	github.com/hashicorp/go-hclog v1.2.0
 	github.com/hashicorp/go-immutable-radix v1.3.1
@@ -30,7 +30,6 @@ require (
 	github.com/hashicorp/go-version v1.4.0
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/hashicorp/hcl v1.0.0
-	github.com/hashicorp/vault/api/auth/approle v0.1.1 // indirect
 	github.com/hashicorp/vault/sdk v0.4.1
 	github.com/in-toto/in-toto-golang v0.3.4-0.20211211042327-af1f9fb822bf
 	github.com/mitchellh/copystructure v1.2.0
