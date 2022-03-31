@@ -18,6 +18,7 @@ jobs:
       matrix:
         k8s-version:
         - v1.21.x
+        - v1.22.x
 
     env:
       KNATIVE_VERSION: "1.1.0"
@@ -30,15 +31,6 @@ jobs:
       TEKTON_PIPELINES_RELEASE: "https://storage.googleapis.com/tekton-releases-nightly/pipeline/latest/release.yaml"
 
     steps:
-    - name: Configure DockerHub mirror
-      working-directory: ./
-      run: |
-        tmp=$(mktemp)
-        jq '."registry-mirrors" = ["https://mirror.gcr.io"]' /etc/docker/daemon.json > "$tmp"
-        sudo mv "$tmp" /etc/docker/daemon.json
-        sudo service docker restart
-
-
     # https://github.com/mvdan/github-actions-golang#how-do-i-set-up-caching-between-builds
     - uses: actions/cache@v2
       with:
@@ -73,35 +65,8 @@ jobs:
       with:
         path: ./src/github.com/tektoncd/chains
 
-    - name: Setup Cluster
-      run: |
-        curl -Lo ./setup-kind.sh https://github.com/vaikas/sigstore-scaffolding/releases/download/${{ env.SIGSTORE_SCAFFOLDING_RELEASE_VERSION }}/setup-kind.sh
-        chmod u+x ./setup-kind.sh
-        ./setup-kind.sh \
-          --registry-url $(echo ${KO_DOCKER_REPO} | cut -d'/' -f 1) \
-          --cluster-suffix cluster.local \
-          --k8s-version ${{ matrix.k8s-version }} \
-          --knative-version ${KNATIVE_VERSION}
-
-    - name: Install sigstore pieces
-      timeout-minutes: 10
-      run: |
-        curl -L https://github.com/vaikas/sigstore-scaffolding/releases/download/${{ env.SIGSTORE_SCAFFOLDING_RELEASE_VERSION }}/release.yaml | kubectl apply -f -
-
-        # Wait for all the ksvc to be up.
-        kubectl wait --timeout 10m -A --for=condition=Ready ksvc --all
-
-    - name: Run sigstore tests to make sure all is well
-      run: |
-        # Grab the secret from the ctlog-system namespace and make a copy
-        # in our namespace so we can get access to the CT Log public key
-        # so we can verify the SCT coming from there.
-        kubectl -n ctlog-system get secrets ctlog-public-key -oyaml | sed 's/namespace: .*/namespace: default/' | kubectl apply -f -
-
-        curl -L https://github.com/vaikas/sigstore-scaffolding/releases/download/${{ env.SIGSTORE_SCAFFOLDING_RELEASE_VERSION }}/testrelease.yaml | kubectl create -f -
-
-        kubectl wait --for=condition=Complete --timeout=90s job/check-oidc
-        kubectl wait --for=condition=Complete --timeout=90s job/checktree
+    - name: Install mirror, kind, knative + sigstore
+      uses: sigstore/scaffolding/actions/setup@main
 
     - name: Install Tekton pipelines
       run: |
@@ -166,46 +131,9 @@ jobs:
         # Did not find entry, fail
         exit 1
 
-    - name: Collect taskrun diagnostics
+    - name: Collect diagnostics
       if: ${{ failure() }}
-      run: |
-        for x in $(kubectl get taskruns -oname); do
-          echo "::group:: describe $x"
-          ./tkn tr describe $x
-          echo '::endgroup::'
-        done
-
-    - name: Collect node diagnostics
-      if: ${{ failure() }}
-      run: |
-        for x in $(kubectl get nodes -oname); do
-          echo "::group:: describe $x"
-          kubectl describe $x
-          echo '::endgroup::'
-        done
-
-    - name: Collect pod diagnostics
-      if: ${{ failure() }}
-      run: |
-        for ns in default tekton-chains tekton-pipelines fulcio-system rekor-system trillian-system ctlog-system; do
-          kubectl get pods -n${ns}
-
-          for x in $(kubectl get pods -n${ns} -oname); do
-            echo "::group:: describe $x"
-            kubectl describe -n${ns} $x
-            echo '::endgroup::'
-          done
-        done
-
-    - name: Collect logs
-      if: ${{ failure() }}
-      run: |
-        mkdir -p /tmp/logs
-        kind export logs /tmp/logs
-
-    - name: Upload artifacts
-      if: ${{ failure() }}
-      uses: actions/upload-artifact@v2
+      uses: chainguard-dev/actions/kind-diag@84c993eaf02da1c325854fb272a4df9184bd80fc # main
       with:
-        name: logs
-        path: /tmp/logs
+        cluster-resources: nodes
+        namespace-resources: pods,taskruns,jobs
