@@ -14,6 +14,7 @@ limitations under the License.
 package artifacts
 
 import (
+	"encoding/json"
 	"fmt"
 	"sort"
 	"testing"
@@ -22,6 +23,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logtesting "knative.dev/pkg/logging/testing"
 )
 
@@ -288,6 +290,81 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestExtractOCIImagesFromAnnotations(t *testing.T) {
+
+	// This is a sample off-the-shelf task that has been annotated to hint
+	// the image url and digest information that would be consumed by the signing
+	// process
+	sampleTask := &v1beta1.Task{
+		ObjectMeta: v1.ObjectMeta{
+			Annotations: map[string]string{
+				"chains.tekton.dev/image-0": "{\"url\": \"params.shp-output-image\", \"digest\" : \"results.shp-image-digest\"}",
+				"chains.tekton.dev/image-1": "{\"url\": \"params.url-of-the-image\", \"digest\" : \"results.some-digest\"}",
+			},
+		},
+	}
+
+	inBytes, _ := json.Marshal(sampleTask)
+	taskString := string(inBytes)
+
+	// The TaskRun would have the above annotations in the 'last-applied-configuration' ( no guarantees ?)
+	// The image url and digest information could be anywhere between the parameters and results.
+	sampleTaskRun := &v1beta1.TaskRun{
+		ObjectMeta: v1.ObjectMeta{
+			Annotations: map[string]string{
+				"kubectl.kubernetes.io/last-applied-configuration": taskString,
+			},
+		},
+		Spec: v1beta1.TaskRunSpec{
+			Params: []v1beta1.Param{
+				{
+					Name:  "shp-output-image",
+					Value: v1beta1.ArrayOrString{StringVal: "foo", Type: v1beta1.ParamTypeString},
+				},
+				{
+					Name:  "url-of-the-image",
+					Value: v1beta1.ArrayOrString{StringVal: "foo", Type: v1beta1.ParamTypeString},
+				},
+			},
+		},
+		Status: v1beta1.TaskRunStatus{
+			TaskRunStatusFields: v1beta1.TaskRunStatusFields{
+				TaskRunResults: []v1beta1.TaskRunResult{
+					{
+						Name:  "shp-image-digest",
+						Value: digest1,
+					},
+					{
+						Name:  "some-digest",
+						Value: digest2,
+					},
+				},
+			},
+		},
+	}
+
+	want := []interface{}{
+		digest(t, fmt.Sprintf("foo@%s", digest1)),
+		digest(t, fmt.Sprintf("foo@%s", digest2)),
+	}
+
+	images := ExtractOCIImagesFromAnnotations(sampleTaskRun, logtesting.TestLogger(t))
+	for _, w := range want {
+		found := false
+		t.Logf("%v", images...)
+		for _, i := range images {
+			if i.(name.Digest) == w.(name.Digest) {
+				t.Logf("Matched %v", i)
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("%v not found", w)
+		}
+	}
+
 }
 
 func TestExtractOCIImagesFromResults(t *testing.T) {
