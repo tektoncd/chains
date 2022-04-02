@@ -77,7 +77,7 @@ func fulcioSigner(ctx context.Context, addr string, logger *zap.SugaredLogger) (
 	if err != nil {
 		return nil, errors.Wrap(err, "creating Fulcio client")
 	}
-	k, err := fulcio.NewSigner(ctx, tok, defaultOIDCIssuer, defaultOIDCClientID, "", fClient)
+	k, err := fulcio.NewSigner(ctx, tok, defaultOIDCIssuer, defaultOIDCClientID, "", "", fClient)
 	if err != nil {
 		return nil, errors.Wrap(err, "new signer")
 	}

@@ -19,6 +19,7 @@ package version
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"runtime"
 	"runtime/debug"
 	"strings"
@@ -55,6 +56,7 @@ type Info struct {
 	Platform     string `json:"platform"`
 
 	ASCIIName   string `json:"-"`
+	FontName    string `json:"-"`
 	Name        string `json:"-"`
 	Description string `json:"-"`
 }
@@ -99,7 +101,7 @@ func (i *Info) String() string {
 	// name and description are optional.
 	if i.Name != "" {
 		if i.ASCIIName == "true" {
-			f := figure.NewFigure(strings.ToUpper(i.Name), "", true)
+			f := figure.NewFigure(strings.ToUpper(i.Name), i.FontName, true)
 			_, _ = fmt.Fprint(w, f.String())
 		}
 		_, _ = fmt.Fprint(w, i.Name)
@@ -129,4 +131,17 @@ func (i *Info) JSONString() (string, error) {
 	}
 
 	return string(b), nil
+}
+
+func (i *Info) CheckFontName(fontName string) bool {
+	assetNames := figure.AssetNames()
+
+	for _, font := range assetNames {
+		if strings.Contains(font, fontName) {
+			return true
+		}
+	}
+
+	fmt.Fprintln(os.Stderr, "font not valid, using default")
+	return false
 }
