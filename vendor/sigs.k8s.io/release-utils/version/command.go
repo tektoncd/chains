@@ -17,7 +17,8 @@ limitations under the License.
 package version
 
 import (
-	"github.com/pkg/errors"
+	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
@@ -26,6 +27,18 @@ import (
 //	rootCmd.AddCommand(version.Version())
 // ```
 func Version() *cobra.Command {
+	return version("")
+}
+
+// WithFont returns a cobra command to be added to another cobra command with a select font for ASCII, like:
+// ```go
+//	rootCmd.AddCommand(version.WithFont("starwars"))
+// ```
+func WithFont(fontName string) *cobra.Command {
+	return version(fontName)
+}
+
+func version(fontName string) *cobra.Command {
 	var outputJSON bool
 	cmd := &cobra.Command{
 		Use:   "version",
@@ -34,10 +47,16 @@ func Version() *cobra.Command {
 			v := GetVersionInfo()
 			v.Name = cmd.Root().Name()
 			v.Description = cmd.Root().Short
+
+			v.FontName = ""
+			if fontName != "" && v.CheckFontName(fontName) {
+				v.FontName = fontName
+			}
+
 			if outputJSON {
 				out, err := v.JSONString()
 				if err != nil {
-					return errors.Wrap(err, "unable to generate JSON from version info")
+					return fmt.Errorf("unable to generate JSON from version info: %w", err)
 				}
 				cmd.Println(out)
 			} else {
