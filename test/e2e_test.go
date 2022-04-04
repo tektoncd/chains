@@ -593,8 +593,8 @@ func TestVaultKMSSpire(t *testing.T) {
 		"artifacts.taskrun.signer":        "kms",
 		"signers.kms.kmsref":              "hashivault://e2e",
 		"signers.kms.auth.address":        "http://vault.vault:8200",
-		"signers.kms.auth.path":           "jwt",
-		"signers.kms.auth.role":           "spire-chains-controller",
+		"signers.kms.auth.oidc.path":      "jwt",
+		"signers.kms.auth.oidc.role":      "spire-chains-controller",
 		"signers.kms.auth.spire.sock":     "unix:///tmp/spire-agent/public/api.sock",
 		"signers.kms.auth.spire.audience": "e2e",
 	})
