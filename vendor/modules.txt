@@ -121,7 +121,7 @@ github.com/asaskevich/govalidator
 # github.com/ashanbrown/forbidigo v1.3.0
 ## explicit; go 1.12
 github.com/ashanbrown/forbidigo/forbidigo
-# github.com/ashanbrown/makezero v1.1.0
+# github.com/ashanbrown/makezero v1.1.1
 ## explicit; go 1.12
 github.com/ashanbrown/makezero/makezero
 # github.com/aws/aws-sdk-go v1.43.28
@@ -281,7 +281,7 @@ github.com/blang/semver/v4
 # github.com/blendle/zapdriver v1.3.1
 ## explicit; go 1.12
 github.com/blendle/zapdriver
-# github.com/blizzy78/varnamelen v0.6.0
+# github.com/blizzy78/varnamelen v0.6.1
 ## explicit; go 1.16
 github.com/blizzy78/varnamelen
 # github.com/bmatcuk/doublestar/v4 v4.0.2
@@ -355,7 +355,7 @@ github.com/coreos/go-oidc/v3/oidc
 # github.com/cyberphone/json-canonicalization v0.0.0-20210823021906-dc406ceaf94b
 ## explicit
 github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer
-# github.com/daixiang0/gci v0.3.1-0.20220208004058-76d765e3ab48
+# github.com/daixiang0/gci v0.3.3
 ## explicit; go 1.17
 github.com/daixiang0/gci/pkg/analyzer
 github.com/daixiang0/gci/pkg/configuration
@@ -368,9 +368,9 @@ github.com/daixiang0/gci/pkg/io
 # github.com/davecgh/go-spew v1.1.1
 ## explicit
 github.com/davecgh/go-spew/spew
-# github.com/denis-tingajkin/go-header v0.4.2
-## explicit; go 1.15
-github.com/denis-tingajkin/go-header
+# github.com/denis-tingaikin/go-header v0.4.3
+## explicit; go 1.17
+github.com/denis-tingaikin/go-header
 # github.com/dimchansky/utfbom v1.1.1
 ## explicit
 github.com/dimchansky/utfbom
@@ -591,8 +591,8 @@ github.com/golangci/go-misc/deadcode
 ## explicit
 github.com/golangci/gofmt/gofmt
 github.com/golangci/gofmt/goimports
-# github.com/golangci/golangci-lint v1.44.2
-## explicit; go 1.16
+# github.com/golangci/golangci-lint v1.45.2
+## explicit; go 1.18
 github.com/golangci/golangci-lint/cmd/golangci-lint
 github.com/golangci/golangci-lint/internal/cache
 github.com/golangci/golangci-lint/internal/errorutil
@@ -978,9 +978,6 @@ github.com/matttproud/golang_protobuf_extensions/pbutil
 # github.com/mbilski/exhaustivestruct v1.2.0
 ## explicit; go 1.15
 github.com/mbilski/exhaustivestruct/pkg/analyzer
-# github.com/mgechev/dots v0.0.0-20210922191527-e955255bf517
-## explicit
-github.com/mgechev/dots
 # github.com/mgechev/revive v1.1.4
 ## explicit; go 1.12
 github.com/mgechev/revive/config
@@ -1151,7 +1148,7 @@ github.com/sassoftware/relic/signers/sigerrors
 ## explicit; go 1.17
 github.com/secure-systems-lab/go-securesystemslib/cjson
 github.com/secure-systems-lab/go-securesystemslib/dsse
-# github.com/securego/gosec/v2 v2.9.6
+# github.com/securego/gosec/v2 v2.10.0
 ## explicit; go 1.16
 github.com/securego/gosec/v2
 github.com/securego/gosec/v2/cwe
@@ -1250,7 +1247,7 @@ github.com/sigstore/sigstore/pkg/signature/payload
 # github.com/sirupsen/logrus v1.8.1
 ## explicit; go 1.13
 github.com/sirupsen/logrus
-# github.com/sivchari/containedctx v1.0.1
+# github.com/sivchari/containedctx v1.0.2
 ## explicit; go 1.17
 github.com/sivchari/containedctx
 # github.com/sivchari/tenv v1.4.7
@@ -1443,7 +1440,7 @@ github.com/timakin/bodyclose/passes/bodyclose
 # github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399
 ## explicit
 github.com/titanous/rocacheck
-# github.com/tomarrell/wrapcheck/v2 v2.4.0
+# github.com/tomarrell/wrapcheck/v2 v2.5.0
 ## explicit; go 1.16
 github.com/tomarrell/wrapcheck/v2/wrapcheck
 # github.com/tommy-muehle/go-mnd/v2 v2.5.0
@@ -2456,7 +2453,7 @@ knative.dev/pkg/tracker
 knative.dev/pkg/version
 knative.dev/pkg/webhook
 knative.dev/pkg/webhook/certificates/resources
-# mvdan.cc/gofumpt v0.2.1
+# mvdan.cc/gofumpt v0.3.0
 ## explicit; go 1.16
 mvdan.cc/gofumpt/format
 mvdan.cc/gofumpt/internal/version

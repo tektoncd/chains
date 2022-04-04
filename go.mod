@@ -11,7 +11,7 @@ require (
 	github.com/armon/go-radix v1.0.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/golang/snappy v0.0.4
-	github.com/golangci/golangci-lint v1.44.2
+	github.com/golangci/golangci-lint v1.45.2
 	github.com/google/addlicense v1.0.0
 	github.com/google/go-cmp v0.5.7
 	github.com/google/go-containerregistry v0.8.1-0.20220216220642-00c59d91847c
@@ -94,7 +94,7 @@ require (
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/ashanbrown/forbidigo v1.3.0 // indirect
-	github.com/ashanbrown/makezero v1.1.0 // indirect
+	github.com/ashanbrown/makezero v1.1.1 // indirect
 	github.com/aws/aws-sdk-go v1.43.28 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.14.0 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.14.0 // indirect
@@ -116,7 +116,7 @@ require (
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/blendle/zapdriver v1.3.1 // indirect
-	github.com/blizzy78/varnamelen v0.6.0 // indirect
+	github.com/blizzy78/varnamelen v0.6.1 // indirect
 	github.com/bmatcuk/doublestar/v4 v4.0.2 // indirect
 	github.com/bombsimon/wsl/v3 v3.3.0 // indirect
 	github.com/breml/bidichk v0.2.2 // indirect
@@ -133,9 +133,9 @@ require (
 	github.com/containerd/stargz-snapshotter/estargz v0.11.0 // indirect
 	github.com/coreos/go-oidc/v3 v3.1.0 // indirect
 	github.com/cyberphone/json-canonicalization v0.0.0-20210823021906-dc406ceaf94b // indirect
-	github.com/daixiang0/gci v0.3.1-0.20220208004058-76d765e3ab48 // indirect
+	github.com/daixiang0/gci v0.3.3 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/denis-tingajkin/go-header v0.4.2 // indirect
+	github.com/denis-tingaikin/go-header v0.4.3 // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/docker/cli v20.10.12+incompatible // indirect
 	github.com/docker/distribution v2.8.1+incompatible // indirect
@@ -250,7 +250,6 @@ require (
 	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
 	github.com/mbilski/exhaustivestruct v1.2.0 // indirect
-	github.com/mgechev/dots v0.0.0-20210922191527-e955255bf517 // indirect
 	github.com/mgechev/revive v1.1.4 // indirect
 	github.com/miekg/pkcs11 v1.1.1 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
@@ -287,14 +286,14 @@ require (
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/sanposhiho/wastedassign/v2 v2.0.6 // indirect
 	github.com/sassoftware/relic v0.0.0-20210427151427-dfb082b79b74 // indirect
-	github.com/securego/gosec/v2 v2.9.6 // indirect
+	github.com/securego/gosec/v2 v2.10.0 // indirect
 	github.com/segmentio/ksuid v1.0.4 // indirect
 	github.com/sergi/go-diff v1.2.0 // indirect
 	github.com/shazow/go-diff v0.0.0-20160112020656-b6b7b6733b8c // indirect
 	github.com/shibumi/go-pathspec v1.3.0 // indirect
 	github.com/sigstore/fulcio v0.1.2-0.20220114150912-86a2036f9bc7 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
-	github.com/sivchari/containedctx v1.0.1 // indirect
+	github.com/sivchari/containedctx v1.0.2 // indirect
 	github.com/sivchari/tenv v1.4.7 // indirect
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 // indirect
 	github.com/sonatard/noctx v0.0.1 // indirect
@@ -319,7 +318,7 @@ require (
 	github.com/thales-e-security/pool v0.0.2 // indirect
 	github.com/theupdateframework/go-tuf v0.0.0-20220211205608-f0c3294f63b9 // indirect
 	github.com/timakin/bodyclose v0.0.0-20210704033933-f49887972144 // indirect
-	github.com/tomarrell/wrapcheck/v2 v2.4.0 // indirect
+	github.com/tomarrell/wrapcheck/v2 v2.5.0 // indirect
 	github.com/tommy-muehle/go-mnd/v2 v2.5.0 // indirect
 	github.com/ultraware/funlen v0.0.3 // indirect
 	github.com/ultraware/whitespace v0.0.5 // indirect
@@ -361,7 +360,7 @@ require (
 	k8s.io/klog/v2 v2.60.1-0.20220317184644-43cc75f9ae89 // indirect
 	k8s.io/kube-openapi v0.0.0-20220124234850-424119656bbf // indirect
 	k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9 // indirect
-	mvdan.cc/gofumpt v0.2.1 // indirect
+	mvdan.cc/gofumpt v0.3.0 // indirect
 	mvdan.cc/interfacer v0.0.0-20180901003855-c20040233aed // indirect
 	mvdan.cc/lint v0.0.0-20170908181259-adc824a0674b // indirect
 	mvdan.cc/unparam v0.0.0-20211214103731-d0ef000c54e5 // indirect
