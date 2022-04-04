@@ -9,6 +9,7 @@ require (
 	cloud.google.com/go/storage v1.21.0
 	github.com/armon/go-metrics v0.3.10
 	github.com/armon/go-radix v1.0.0
+	github.com/docker/distribution v2.8.1+incompatible // indirect
 	github.com/ghodss/yaml v1.0.0
 	github.com/golang/snappy v0.0.4
 	github.com/golangci/golangci-lint v1.44.2
