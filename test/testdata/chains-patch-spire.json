@@ -1,0 +1,55 @@
+{
+  "spec": {
+    "template": {
+      "spec": {
+        "$setElementOrder/containers": [
+          {
+            "name": "tekton-chains-controller"
+          }
+        ],
+        "$setElementOrder/volumes": [
+          {
+            "name": "signing-secrets"
+          },
+          {
+            "name": "oidc-info"
+          },
+          {
+            "name": "spire-agent-socket"
+          }
+        ],
+        "containers": [
+          {
+            "$setElementOrder/volumeMounts": [
+              {
+                "mountPath": "/etc/signing-secrets"
+              },
+              {
+                "mountPath": "/var/run/sigstore/cosign"
+              },
+              {
+                "mountPath": "/tmp/spire-agent/public"
+              }
+            ],
+            "name": "tekton-chains-controller",
+            "volumeMounts": [
+              {
+                "mountPath": "/tmp/spire-agent/public",
+                "name": "spire-agent-socket"
+              }
+            ]
+          }
+        ],
+        "volumes": [
+          {
+            "hostPath": {
+              "path": "/run/spire/sockets",
+              "type": "DirectoryOrCreate"
+            },
+            "name": "spire-agent-socket"
+          }
+        ]
+      }
+    }
+  }
+}

@@ -68,11 +68,6 @@ Supported keys include:
 | Key | Description | Supported Values | Default |
 | :--- | :--- | :--- | :--- |
 | `signers.kms.kmsref` | The URI reference to a KMS service to use in `KMS` signers. | `gcpkms://projects/[PROJECT]/locations/[LOCATION]>/keyRings/[KEYRING]/cryptoKeys/[KEY]`| |
-| `signers.kms.auth.address` | URI of KMS server (e.g. the value of `VAULT_TOKEN`) | |
-| `signers.kms.auth.path` | Path used for authentication (e.g. `jwt` for Vault) | |
-| `signers.kms.auth.role` | Role used for authentication | |
-| `signers.kms.auth.spire.sock` | URI of the Spire socket used for KMS auth (e.g. `unix:///run/spire/sockets/agent.sock`) | |
-| `signers.kms.auth.spire.audience` | Audience for requesting a SVID from Spire | |
 
 ### Storage Configuration
 
@@ -111,3 +106,14 @@ chains.tekton.dev/transparency-upload: "true"
 | :--- | :--- | :--- | :--- |
 | `signers.x509.fulcio.enabled` | EXPERIMENTAL. Whether to enable automatic certificates from fulcio. | `true`, `false` | `false`|
 | `signers.x509.fulcio.address` | EXPERIMENTAL. Fulcio address to request certificate from, if enabled | |`https://v1.fulcio.sigstore.dev` |
+
+#### KMS OIDC and Spire Configuration
+
+| Key | Description | Supported Values | Default |
+| :--- | :--- | :--- | :--- |
+| `signers.kms.auth.address` | URI of KMS server (e.g. the value of `VAULT_ADDR`) | |
+| `signers.kms.auth.token` | Auth token KMS server (e.g. the value of `VAULT_TOKEN`) | |
+| `signers.kms.auth.oidc.path` | Path used for OIDC authentication (e.g. `jwt` for Vault) | |
+| `signers.kms.auth.oidc.role` | Role used for OIDC authentication | |
+| `signers.kms.auth.spire.sock` | URI of the Spire socket used for KMS token (e.g. `unix:///tmp/spire-agent/public/api.sock`) | |
+| `signers.kms.auth.spire.audience` | Audience for requesting a SVID from Spire | |

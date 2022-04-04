@@ -11,6 +11,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package kms creates a signer using a key management server
 package kms
 
 import (
@@ -42,29 +43,25 @@ type Signer struct {
 // NewSigner returns a configured Signer
 func NewSigner(ctx context.Context, cfg config.KMSSigner, logger *zap.SugaredLogger) (*Signer, error) {
 	kmsOpts := []signature.RPCOption{}
+	// pass through configuration options to RPCAuth used by KMS in sigstore
 	rpcAuth := options.RPCAuth{
 		Address: cfg.Auth.Address,
+		Token:   cfg.Auth.Token,
 		OIDC: options.RPCAuthOIDC{
-			Role: cfg.Auth.Role,
-			Path: cfg.Auth.Path,
+			Role: cfg.Auth.OIDC.Role,
+			Path: cfg.Auth.OIDC.Path,
 		},
 	}
-	// get token from spire socket
+	// get token from spire
 	if cfg.Auth.Spire.Sock != "" {
-		jwtSource, err := workloadapi.NewJWTSource(
-			ctx,
-			workloadapi.WithClientOptions(workloadapi.WithAddr(cfg.Auth.Spire.Sock)),
-		)
+		token, err := newSpireToken(ctx, cfg, logger)
 		if err != nil {
 			return nil, err
 		}
-		svid, err := jwtSource.FetchJWTSVID(ctx, jwtsvid.Params{Audience: cfg.Auth.Spire.Audience})
-		if err != nil {
-			return nil, err
-		}
-		rpcAuth.OIDC.Token = svid.Marshal()
+		rpcAuth.OIDC.Token = token
 	}
 	kmsOpts = append(kmsOpts, options.WithRPCAuthOpts(rpcAuth))
+	// get the signer/verifier from sigstore
 	k, err := kms.Get(ctx, cfg.KMSRef, crypto.SHA256, kmsOpts...)
 	if err != nil {
 		return nil, err
@@ -75,16 +72,33 @@ func NewSigner(ctx context.Context, cfg config.KMSSigner, logger *zap.SugaredLog
 	}, nil
 }
 
+// newSpireToken retrieves an SVID token from Spire
+func newSpireToken(ctx context.Context, cfg config.KMSSigner, logger *zap.SugaredLogger) (string, error) {
+	jwtSource, err := workloadapi.NewJWTSource(
+		ctx,
+		workloadapi.WithClientOptions(workloadapi.WithAddr(cfg.Auth.Spire.Sock)),
+	)
+	if err != nil {
+		return "", err
+	}
+	svid, err := jwtSource.FetchJWTSVID(ctx, jwtsvid.Params{Audience: cfg.Auth.Spire.Audience})
+	if err != nil {
+		return "", err
+	}
+	return svid.Marshal(), nil
+}
+
+// Type returns the type of the signer
 func (s *Signer) Type() string {
 	return signing.TypeKMS
 }
 
-// there is no cert, return nothing
+// Cert there is no cert, return nothing
 func (s *Signer) Cert() string {
 	return ""
 }
 
-// there is no cert or chain, return nothing
+// Chain there is no chain, return nothing
 func (s *Signer) Chain() string {
 	return ""
 }

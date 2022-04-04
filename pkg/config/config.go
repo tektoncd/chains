@@ -76,13 +76,21 @@ type KMSSigner struct {
 	Auth   KMSAuth
 }
 
+// KMSAuth configures authentication to the KMS server
 type KMSAuth struct {
-	Spire   KMSAuthSpire
 	Address string
-	Path    string
-	Role    string
+	Token   string
+	OIDC    KMSAuthOIDC
+	Spire   KMSAuthSpire
 }
 
+// KMSAuthOIDC configures settings to authenticate with OIDC
+type KMSAuthOIDC struct {
+	Path string
+	Role string
+}
+
+// KMSAuthSpire configures settings to get an auth token from spire
 type KMSAuthSpire struct {
 	Sock     string
 	Audience string
@@ -139,8 +147,9 @@ const (
 	// KMS
 	kmsSignerKMSRef      = "signers.kms.kmsref"
 	kmsAuthAddress       = "signers.kms.auth.address"
-	kmsAuthPath          = "signers.kms.auth.path"
-	kmsAuthRole          = "signers.kms.auth.role"
+	kmsAuthToken         = "signers.kms.auth.token"
+	kmsAuthOIDCPath      = "signers.kms.auth.oidc.path"
+	kmsAuthOIDCRole      = "signers.kms.auth.oidc.role"
 	kmsAuthSpireSock     = "signers.kms.auth.spire.sock"
 	kmsAuthSpireAudience = "signers.kms.auth.spire.audience"
 
@@ -217,11 +226,12 @@ func NewConfigFromMap(data map[string]string) (*Config, error) {
 		asString(transparencyURLKey, &cfg.Transparency.URL),
 
 		asString(kmsSignerKMSRef, &cfg.Signers.KMS.KMSRef),
+		asString(kmsAuthAddress, &cfg.Signers.KMS.Auth.Address),
+		asString(kmsAuthToken, &cfg.Signers.KMS.Auth.Token),
+		asString(kmsAuthOIDCPath, &cfg.Signers.KMS.Auth.OIDC.Path),
+		asString(kmsAuthOIDCRole, &cfg.Signers.KMS.Auth.OIDC.Role),
 		asString(kmsAuthSpireSock, &cfg.Signers.KMS.Auth.Spire.Sock),
 		asString(kmsAuthSpireAudience, &cfg.Signers.KMS.Auth.Spire.Audience),
-		asString(kmsAuthAddress, &cfg.Signers.KMS.Auth.Address),
-		asString(kmsAuthPath, &cfg.Signers.KMS.Auth.Path),
-		asString(kmsAuthRole, &cfg.Signers.KMS.Auth.Role),
 
 		asBool(x509SignerFulcioEnabled, &cfg.Signers.X509.FulcioEnabled),
 		asString(x509SignerFulcioAddr, &cfg.Signers.X509.FulcioAddr),

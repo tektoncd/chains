@@ -37,6 +37,8 @@ install_spire
 
 install_vault
 
+chains_patch_spire
+
 failed=0
 
 # Run the integration tests

@@ -67,6 +67,13 @@ function install_chains() {
   wait_until_pods_running tekton-chains || fail_test "Tekton Chains did not come up"
 }
 
+function chains_patch_spire() {
+  kubectl patch -n tekton-chains deployment tekton-chains-controller \
+    --patch-file "$(dirname $0)/testdata/chains-patch-spire.json"
+  # Wait for pods to be running in the namespaces we are deploying to
+  wait_until_pods_running tekton-chains || fail_test "Tekton Chains did not come up after patching"
+}
+
 function dump_logs() {
   echo ">> Tekton Chains Logs"
   kubectl logs deployment/tekton-chains-controller -n tekton-chains
