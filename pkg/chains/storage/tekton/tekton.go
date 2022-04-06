@@ -110,7 +110,7 @@ func (b *Backend) retrieveAnnotationValue(ctx context.Context, annotationKey str
 	return annotationValue, nil
 }
 
-// RetrieveSignature retrieve the signature stored in the taskrun.
+// RetrieveSignatures retrieves the signature stored in the taskrun.
 func (b *Backend) RetrieveSignatures(ctx context.Context, opts config.StorageOpts) (map[string][]string, error) {
 	b.logger.Infof("Retrieving signature on TaskRun %s/%s", b.tr.Namespace, b.tr.Name)
 	signatureAnnotation := sigName(opts)
@@ -129,7 +129,7 @@ func (b *Backend) RetrieveSignatures(ctx context.Context, opts config.StorageOpt
 	return m, nil
 }
 
-// RetrievePayload retrieve the payload stored in the taskrun.
+// RetrievePayloads retrieves the payload stored in the taskrun.
 func (b *Backend) RetrievePayloads(ctx context.Context, opts config.StorageOpts) (map[string]string, error) {
 	b.logger.Infof("Retrieving payload on TaskRun %s/%s", b.tr.Namespace, b.tr.Name)
 	payloadAnnotation := payloadName(opts)

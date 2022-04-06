@@ -34,7 +34,7 @@ type Config struct {
 	Transparency TransparencyConfig
 }
 
-// ArtifactConfig contains the configuration for how to sign/store/format the signatures for each artifact type
+// ArtifactConfigs contains the configuration for how to sign/store/format the signatures for each artifact type
 type ArtifactConfigs struct {
 	TaskRuns Artifact
 	OCI      Artifact
@@ -47,7 +47,7 @@ type Artifact struct {
 	Signer         string
 }
 
-// StorageConfig contains the configuration to instantiate different storage providers
+// StorageConfigs contains the configuration to instantiate different storage providers
 type StorageConfigs struct {
 	GCS     GCSStorageConfig
 	OCI     OCIStorageConfig
@@ -56,7 +56,7 @@ type StorageConfigs struct {
 	Grafeas GrafeasConfig
 }
 
-// SigningConfig contains the configuration to instantiate different signers
+// SignerConfigs contains the configuration to instantiate different signers
 type SignerConfigs struct {
 	X509 X509Signer
 	KMS  KMSSigner
@@ -127,7 +127,6 @@ const (
 	kmsSignerKMSRef = "signers.kms.kmsref"
 	// Fulcio
 	x509SignerFulcioEnabled = "signers.x509.fulcio.enabled"
-	x509SignerFulcioAuth    = "signers.x509.fulcio.auth"
 	x509SignerFulcioAddr    = "signers.x509.fulcio.address"
 
 	// Builder config
