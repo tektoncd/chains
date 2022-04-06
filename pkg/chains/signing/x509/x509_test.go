@@ -90,8 +90,8 @@ func TestSigner_SignECDSA(t *testing.T) {
 }
 
 func TestSigner_SignED25519(t *testing.T) {
-	ctx := context.Background()
 	t.Skip("skip test until ed25519 signing is implemented")
+	ctx := context.Background()
 	logger := logtesting.TestLogger(t)
 	d := t.TempDir()
 	p := filepath.Join(d, "x509.pem")

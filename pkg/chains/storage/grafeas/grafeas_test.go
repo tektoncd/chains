@@ -24,6 +24,7 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/formats"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
 
 	attestationpb "github.com/grafeas/grafeas/proto/v1beta1/attestation_go_proto"
 	commonpb "github.com/grafeas/grafeas/proto/v1beta1/common_go_proto"
@@ -66,7 +67,10 @@ func TestBackend_ListOccurrences(t *testing.T) {
 
 	// store occurrences into the fake server
 	for _, occ := range occs {
-		client.CreateOccurrence(ctx, &pb.CreateOccurrenceRequest{Occurrence: occ})
+		_, err := client.CreateOccurrence(ctx, &pb.CreateOccurrenceRequest{Occurrence: occ})
+		if err != nil {
+			t.Fatal("Failed to initialize server")
+		}
 	}
 
 	// construct expected ListOccurrencesResponse
@@ -233,25 +237,25 @@ func testInterface(ctx context.Context, t *testing.T, test testConfig, backend B
 	}
 
 	// check signature
-	expect_signature := map[string][]string{objectIdentifier: []string{test.args.signature}}
-	got_signature, err := backend.RetrieveSignatures(ctx, test.args.opts)
+	expectSignature := map[string][]string{objectIdentifier: {test.args.signature}}
+	gotSignature, err := backend.RetrieveSignatures(ctx, test.args.opts)
 	if err != nil {
 		t.Fatal("Backend.RetrieveSignatures() failed. error:", err)
 	}
 
-	if !cmp.Equal(got_signature, expect_signature) && !test.wantErr {
-		t.Errorf("Wrong signature object received, got=%v", cmp.Diff(got_signature, expect_signature))
+	if !cmp.Equal(gotSignature, expectSignature) && !test.wantErr {
+		t.Errorf("Wrong signature object received, got=%v", cmp.Diff(gotSignature, expectSignature))
 	}
 
 	// check payload
-	expect_payload := map[string]string{objectIdentifier: string(test.args.payload)}
-	got_payload, err := backend.RetrievePayloads(ctx, test.args.opts)
+	expectPayload := map[string]string{objectIdentifier: string(test.args.payload)}
+	gotPayload, err := backend.RetrievePayloads(ctx, test.args.opts)
 	if err != nil {
 		t.Fatalf("RetrievePayloads.RetrievePayloads() failed. error:%v", err)
 	}
 
-	if !cmp.Equal(got_payload, expect_payload) && !test.wantErr {
-		t.Errorf("Wrong payload object received, got=%s", cmp.Diff(got_payload, expect_payload))
+	if !cmp.Equal(gotPayload, expectPayload) && !test.wantErr {
+		t.Errorf("Wrong payload object received, got=%s", cmp.Diff(gotPayload, expectPayload))
 	}
 }
 
@@ -346,7 +350,7 @@ func setupConnection() (*grpc.ClientConn, pb.GrafeasV1Beta1Client, error) {
 
 	go serv.Serve(lis)
 
-	conn, err := grpc.Dial(lis.Addr().String(), grpc.WithInsecure())
+	conn, err := grpc.Dial(lis.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, nil, err
 	}

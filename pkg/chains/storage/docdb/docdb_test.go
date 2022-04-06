@@ -58,8 +58,8 @@ func TestBackend_StorePayload(t *testing.T) {
 		},
 	}
 
-	memUrl := "mem://chains/name"
-	coll, err := docstore.OpenCollection(ctx, memUrl)
+	memURL := "mem://chains/name"
+	coll, err := docstore.OpenCollection(ctx, memURL)
 	if err != nil {
 		t.Fatal(err)
 	}

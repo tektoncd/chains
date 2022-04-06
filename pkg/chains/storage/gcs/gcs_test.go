@@ -98,13 +98,13 @@ func TestBackend_StorePayload(t *testing.T) {
 			if got[objectSig][0] != tt.args.signature {
 				t.Errorf("wrong signature, expected %q, got %q", tt.args.signature, got[objectSig][0])
 			}
-			var got_payload map[string]string
-			got_payload, err = b.RetrievePayloads(ctx, tt.args.opts)
+			var gotPayload map[string]string
+			gotPayload, err = b.RetrievePayloads(ctx, tt.args.opts)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if got_payload[objectPayload] != string(tt.args.signed) {
-				t.Errorf("wrong signature, expected %s, got %s", tt.args.signed, got_payload[objectPayload])
+			if gotPayload[objectPayload] != string(tt.args.signed) {
+				t.Errorf("wrong signature, expected %s, got %s", tt.args.signed, gotPayload[objectPayload])
 			}
 		})
 	}

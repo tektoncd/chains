@@ -21,7 +21,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/in-toto/in-toto-golang/in_toto"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
@@ -130,7 +129,7 @@ func invocation(tr *v1beta1.TaskRun) slsa.ProvenanceInvocation {
 				if v == "" {
 					v = fmt.Sprintf("%v", p.Default.ArrayVal)
 				}
-				params[p.Name] = fmt.Sprintf("%s", v)
+				params[p.Name] = v
 			}
 		}
 	}
@@ -179,7 +178,7 @@ func GetSubjectDigests(tr *v1beta1.TaskRun, logger *zap.SugaredLogger) []intoto.
 					}
 				}
 			}
-			subjects = append(subjects, in_toto.Subject{
+			subjects = append(subjects, intoto.Subject{
 				Name: url,
 				Digest: slsa.DigestSet{
 					"sha256": strings.TrimPrefix(digest, "sha256:"),

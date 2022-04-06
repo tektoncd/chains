@@ -125,7 +125,7 @@ func (b *Backend) StorePayload(ctx context.Context, rawPayload []byte, signature
 	return nil
 }
 
-// Retrieve payloads from grafeas server and store it in a map
+// RetrievePayloads retrieves payloads from grafeas server and store it in a map
 func (b *Backend) RetrievePayloads(ctx context.Context, opts config.StorageOpts) (map[string]string, error) {
 	// initialize an empty map for result
 	result := make(map[string]string)
@@ -148,7 +148,7 @@ func (b *Backend) RetrievePayloads(ctx context.Context, opts config.StorageOpts)
 	return result, nil
 }
 
-// Retrieve signatures from grafeas server and store it in a map
+// RetrieveSignatures retrieves signatures from grafeas server and store it in a map
 func (b *Backend) RetrieveSignatures(ctx context.Context, opts config.StorageOpts) (map[string][]string, error) {
 	// initialize an empty map for result
 	result := make(map[string][]string)
