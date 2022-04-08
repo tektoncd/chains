@@ -14,14 +14,14 @@ cloud.google.com/go/compute/metadata
 # cloud.google.com/go/firestore v1.6.1
 ## explicit; go 1.11
 cloud.google.com/go/firestore/apiv1
-# cloud.google.com/go/iam v0.1.1
-## explicit; go 1.11
+# cloud.google.com/go/iam v0.3.0
+## explicit; go 1.15
 cloud.google.com/go/iam
 # cloud.google.com/go/kms v1.4.0
 ## explicit; go 1.16
 cloud.google.com/go/kms/apiv1
 cloud.google.com/go/kms/internal
-# cloud.google.com/go/storage v1.21.0
+# cloud.google.com/go/storage v1.22.0
 ## explicit; go 1.15
 cloud.google.com/go/storage
 cloud.google.com/go/storage/internal
@@ -722,6 +722,9 @@ github.com/googleapis/gnostic/compiler
 github.com/googleapis/gnostic/extensions
 github.com/googleapis/gnostic/jsonschema
 github.com/googleapis/gnostic/openapiv2
+# github.com/googleapis/go-type-adapters v1.0.0
+## explicit; go 1.11
+github.com/googleapis/go-type-adapters/adapters
 # github.com/gordonklaus/ineffassign v0.0.0-20210914165742-4cc7213b9bc8
 ## explicit; go 1.14
 github.com/gordonklaus/ineffassign/pkg/ineffassign
@@ -1756,7 +1759,7 @@ google.golang.org/appengine/internal/socket
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/socket
 google.golang.org/appengine/urlfetch
-# google.golang.org/genproto v0.0.0-20220324131243-acbaeb5b85eb
+# google.golang.org/genproto v0.0.0-20220405205423-9d709892a2bf
 ## explicit; go 1.15
 google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/api/httpbody
@@ -1767,9 +1770,14 @@ google.golang.org/genproto/googleapis/rpc/code
 google.golang.org/genproto/googleapis/rpc/errdetails
 google.golang.org/genproto/googleapis/rpc/status
 google.golang.org/genproto/googleapis/storage/v2
+google.golang.org/genproto/googleapis/type/color
 google.golang.org/genproto/googleapis/type/date
+google.golang.org/genproto/googleapis/type/datetime
+google.golang.org/genproto/googleapis/type/decimal
 google.golang.org/genproto/googleapis/type/expr
+google.golang.org/genproto/googleapis/type/fraction
 google.golang.org/genproto/googleapis/type/latlng
+google.golang.org/genproto/googleapis/type/month
 google.golang.org/genproto/protobuf/field_mask
 # google.golang.org/grpc v1.45.0
 ## explicit; go 1.14
