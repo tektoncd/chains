@@ -26,7 +26,7 @@ require (
 	github.com/hashicorp/go-secure-stdlib/mlock v0.1.2
 	github.com/hashicorp/go-secure-stdlib/strutil v0.1.2
 	github.com/hashicorp/go-sockaddr v1.0.2
-	github.com/hashicorp/go-uuid v1.0.2
+	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/go-version v1.4.0
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/hashicorp/hcl v1.0.0
@@ -39,9 +39,9 @@ require (
 	github.com/pierrec/lz4 v2.6.1+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/secure-systems-lab/go-securesystemslib v0.3.1
-	github.com/sigstore/cosign v1.6.1-0.20220401112351-80034ba3b905
+	github.com/sigstore/cosign v1.7.3-0.20220412212047-427d83a63109
 	github.com/sigstore/rekor v0.4.1-0.20220114213500-23f583409af3
-	github.com/sigstore/sigstore v1.2.1-0.20220330193110-d7475aecf1db
+	github.com/sigstore/sigstore v1.2.1-0.20220401110139-0e610e39782f
 	github.com/spiffe/go-spiffe/v2 v2.0.0
 	github.com/tektoncd/pipeline v0.31.1-0.20220105002759-3e137645be61
 	github.com/tektoncd/plumbing v0.0.0-20211012143332-c7cc43d9bc0c
@@ -73,7 +73,7 @@ require (
 	github.com/Antonboom/nilnil v0.1.0 // indirect
 	github.com/Azure/azure-sdk-for-go v63.0.0+incompatible // indirect
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
-	github.com/Azure/go-autorest/autorest v0.11.24 // indirect
+	github.com/Azure/go-autorest/autorest v0.11.25 // indirect
 	github.com/Azure/go-autorest/autorest/adal v0.9.18 // indirect
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.11 // indirect
 	github.com/Azure/go-autorest/autorest/azure/cli v0.4.5 // indirect
@@ -96,7 +96,7 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/ashanbrown/forbidigo v1.3.0 // indirect
 	github.com/ashanbrown/makezero v1.1.0 // indirect
-	github.com/aws/aws-sdk-go v1.43.28 // indirect
+	github.com/aws/aws-sdk-go v1.43.30 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.14.0 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.14.0 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.9.0 // indirect
@@ -216,7 +216,7 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.0 // indirect
 	github.com/hashicorp/go-rootcerts v1.0.2 // indirect
-	github.com/hashicorp/go-secure-stdlib/parseutil v0.1.3 // indirect
+	github.com/hashicorp/go-secure-stdlib/parseutil v0.1.4 // indirect
 	github.com/hashicorp/vault/api v1.5.0 // indirect
 	github.com/hashicorp/yamux v0.0.0-20211028200310-0bc27b27de87 // indirect
 	github.com/hexops/gotextdiff v1.0.3 // indirect
@@ -326,7 +326,7 @@ require (
 	github.com/ultraware/whitespace v0.0.5 // indirect
 	github.com/uudashr/gocognit v1.0.5 // indirect
 	github.com/vbatts/tar-split v0.11.2 // indirect
-	github.com/xanzy/go-gitlab v0.60.0 // indirect
+	github.com/xanzy/go-gitlab v0.63.0 // indirect
 	github.com/xanzy/ssh-agent v0.2.1 // indirect
 	github.com/yagipy/maintidx v1.0.0 // indirect
 	github.com/yeya24/promlinter v0.1.1-0.20210918184747-d757024714a1 // indirect
