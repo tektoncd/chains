@@ -26,6 +26,12 @@ import (
 	// which providers they pull in, by linking their own variants in their
 	// own binary entrypoint.
 	_ "github.com/sigstore/cosign/pkg/providers/all"
+
+	// Register the provider-specific plugins
+	_ "github.com/sigstore/sigstore/pkg/signature/kms/aws"
+	_ "github.com/sigstore/sigstore/pkg/signature/kms/azure"
+	_ "github.com/sigstore/sigstore/pkg/signature/kms/gcp"
+	_ "github.com/sigstore/sigstore/pkg/signature/kms/hashivault"
 )
 
 var namespace = flag.String("namespace", "", "Namespace to restrict informer to. Optional, defaults to all namespaces.")
