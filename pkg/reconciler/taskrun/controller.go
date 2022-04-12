@@ -36,6 +36,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	pipelineClient := pipelineclient.Get(ctx)
 
 	tsSigner := &chains.TaskRunSigner{
+		SecretPath:        SecretPath,
 		Pipelineclientset: pipelineClient,
 	}
 
@@ -47,10 +48,10 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 			// get updated config
 			cfg := *value.(*config.Config)
 
-			// get all the things we need (storage formatters, signers and backends) to create, sign and store payload
+			// get all formatters for formatting payload
 			tsSigner.Formatters = chains.AllFormatters(cfg, logger)
-			tsSigner.Signers = chains.AllSigners(ctx, SecretPath, cfg, logger)
 
+			// get all backends for storing provenance
 			backends, err := storage.InitializeBackends(ctx, pipelineClient, kubeClient, logger, cfg)
 			if err != nil {
 				logger.Error(err)

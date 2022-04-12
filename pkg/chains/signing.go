@@ -47,19 +47,15 @@ type TaskRunSigner struct {
 	// The values are actual `Payloader` interfaces that can generate payload in different format from taskrun.
 	Formatters map[formats.PayloadType]formats.Payloader
 
-	// Signers: sign payload
-	// The keys are the names of the signers. {x509, kms}
-	// The values are key signers used to sign the payload.
-	Signers map[string]signing.Signer
-
 	// Backends: store payload and signature
 	// The keys are different storage option's name. {docdb, gcs, grafeas, oci, tekton}
 	// The values are the actual storage backends that will be used to store and retrieve provenance.
 	Backends          map[string]storage.Backend
+	SecretPath        string
 	Pipelineclientset versioned.Interface
 }
 
-func AllSigners(ctx context.Context, sp string, cfg config.Config, l *zap.SugaredLogger) map[string]signing.Signer {
+func allSigners(ctx context.Context, sp string, cfg config.Config, l *zap.SugaredLogger) map[string]signing.Signer {
 	all := map[string]signing.Signer{}
 	for _, s := range signing.AllSigners {
 		switch s {
@@ -131,6 +127,8 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 		&artifacts.OCIArtifact{Logger: logger},
 	}
 
+	signers := allSigners(ctx, ts.SecretPath, cfg, logger)
+
 	rekorClient, err := getRekor(cfg.Transparency.URL, logger)
 	if err != nil {
 		return err
@@ -167,7 +165,7 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 
 			// Sign it!
 			signerType := signableType.Signer(cfg)
-			signer, ok := ts.Signers[signerType]
+			signer, ok := signers[signerType]
 			if !ok {
 				logger.Warnf("No signer %s configured for %s", signerType, signableType.Type())
 				continue
