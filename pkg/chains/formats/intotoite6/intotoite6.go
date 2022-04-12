@@ -38,8 +38,6 @@ const (
 	tektonID                     = "https://tekton.dev/attestations/chains@v2"
 	commitParam                  = "CHAINS-GIT_COMMIT"
 	urlParam                     = "CHAINS-GIT_URL"
-	ociDigestResult              = "IMAGE_DIGEST"
-	chainsDigestSuffix           = "_DIGEST"
 	ChainsReproducibleAnnotation = "chains.tekton.dev/reproducible"
 )
 

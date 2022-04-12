@@ -155,11 +155,3 @@ func sigName(opts config.StorageOpts) string {
 func payloadName(opts config.StorageOpts) string {
 	return fmt.Sprintf(PayloadAnnotationFormat, opts.Key)
 }
-
-func certName(opts config.StorageOpts) string {
-	return fmt.Sprintf(CertAnnotationsFormat, opts.Key)
-}
-
-func chainName(opts config.StorageOpts) string {
-	return fmt.Sprintf(ChainAnnotationFormat, opts.Key)
-}

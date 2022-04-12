@@ -15,7 +15,6 @@ package chains
 
 import (
 	"context"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/sigstore/cosign/pkg/cosign"
@@ -31,11 +30,6 @@ import (
 
 const (
 	RekorAnnotation = "chains.tekton.dev/transparency-upload"
-)
-
-var (
-	// using cosign default
-	timeout = 30 * time.Second
 )
 
 type rekor struct {
