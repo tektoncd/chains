@@ -364,7 +364,7 @@ func TestOCIStorage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating task: %s", err)
 	}
-	waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, successful, 60*time.Second)
+	waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, successful, 120*time.Second)
 	verifySignature(ctx, t, c, tr)
 }
 

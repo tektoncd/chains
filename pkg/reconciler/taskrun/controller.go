@@ -17,6 +17,7 @@ import (
 	"context"
 
 	"github.com/tektoncd/chains/pkg/chains"
+	"github.com/tektoncd/chains/pkg/chains/storage"
 	"github.com/tektoncd/chains/pkg/config"
 	pipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client"
 	taskruninformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/taskrun"
@@ -31,15 +32,34 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	logger := logging.FromContext(ctx)
 	taskRunInformer := taskruninformer.Get(ctx)
 
+	kubeClient := kubeclient.Get(ctx)
+	pipelineClient := pipelineclient.Get(ctx)
+
+	tsSigner := &chains.TaskRunSigner{
+		SecretPath:        SecretPath,
+		Pipelineclientset: pipelineClient,
+	}
+
 	c := &Reconciler{
-		TaskRunSigner: &chains.TaskRunSigner{
-			KubeClient:        kubeclient.Get(ctx),
-			Pipelineclientset: pipelineclient.Get(ctx),
-			SecretPath:        SecretPath,
-		},
+		TaskRunSigner: tsSigner,
 	}
 	impl := taskrunreconciler.NewImpl(ctx, c, func(impl *controller.Impl) controller.Options {
-		cfgStore := config.NewConfigStore(logger)
+		cfgStore := config.NewConfigStore(logger, func(name string, value interface{}) {
+			// get updated config
+			cfg := *value.(*config.Config)
+
+			// get all formatters for formatting payload
+			tsSigner.Formatters = chains.AllFormatters(cfg, logger)
+
+			// get all backends for storing provenance
+			backends, err := storage.InitializeBackends(ctx, pipelineClient, kubeClient, logger, cfg)
+			if err != nil {
+				logger.Error(err)
+			}
+			tsSigner.Backends = backends
+		})
+
+		// setup watches for the config names provided by client
 		cfgStore.WatchConfigs(cmw)
 
 		return controller.Options{

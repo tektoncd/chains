@@ -34,7 +34,6 @@ import (
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	versioned "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	"go.uber.org/zap"
-	"k8s.io/client-go/kubernetes"
 	"knative.dev/pkg/logging"
 )
 
@@ -43,13 +42,18 @@ type Signer interface {
 }
 
 type TaskRunSigner struct {
-	KubeClient        kubernetes.Interface
-	Pipelineclientset versioned.Interface
-	SecretPath        string
-}
+	// Formatters: format payload
+	// The keys are the names of different formatters {tekton, in-toto, simplesigning}. The first two are for TaskRun artifact, and simplesigning is for OCI artifact.
+	// The values are actual `Payloader` interfaces that can generate payload in different format from taskrun.
+	Formatters map[formats.PayloadType]formats.Payloader
 
-// Set this as a var for mocking.
-var getBackends = storage.InitializeBackends
+	// Backends: store payload and signature
+	// The keys are different storage option's name. {docdb, gcs, grafeas, oci, tekton}
+	// The values are the actual storage backends that will be used to store and retrieve provenance.
+	Backends          map[string]storage.Backend
+	SecretPath        string
+	Pipelineclientset versioned.Interface
+}
 
 func allSigners(ctx context.Context, sp string, cfg config.Config, l *zap.SugaredLogger) map[string]signing.Signer {
 	all := map[string]signing.Signer{}
@@ -77,7 +81,7 @@ func allSigners(ctx context.Context, sp string, cfg config.Config, l *zap.Sugare
 	return all
 }
 
-func allFormatters(cfg config.Config, l *zap.SugaredLogger) map[formats.PayloadType]formats.Payloader {
+func AllFormatters(cfg config.Config, l *zap.SugaredLogger) map[formats.PayloadType]formats.Payloader {
 	all := map[formats.PayloadType]formats.Payloader{}
 
 	for _, f := range formats.AllFormatters {
@@ -114,7 +118,6 @@ func allFormatters(cfg config.Config, l *zap.SugaredLogger) map[formats.PayloadT
 
 // SignTaskRun signs a TaskRun, and marks it as signed.
 func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) error {
-	// Get all the things we might need (storage backends, signers and formatters)
 	cfg := *config.FromContext(ctx)
 	logger := logging.FromContext(ctx)
 
@@ -124,14 +127,7 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 		&artifacts.OCIArtifact{Logger: logger},
 	}
 
-	// Storage
-	allBackends, err := getBackends(ctx, ts.Pipelineclientset, ts.KubeClient, logger, tr, cfg)
-	if err != nil {
-		return err
-	}
-
 	signers := allSigners(ctx, ts.SecretPath, cfg, logger)
-	allFormats := allFormatters(cfg, logger)
 
 	rekorClient, err := getRekor(cfg.Transparency.URL, logger)
 	if err != nil {
@@ -146,7 +142,7 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 		}
 		payloadFormat := signableType.PayloadFormat(cfg)
 		// Find the right payload format and format the object
-		payloader, ok := allFormats[payloadFormat]
+		payloader, ok := ts.Formatters[payloadFormat]
 
 		if !ok {
 			logger.Warnf("Format %s configured for TaskRun: %v %s was not found", payloadFormat, tr, signableType.Type())
@@ -199,14 +195,14 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 
 			// Now store those!
 			for _, backend := range signableType.StorageBackend(cfg).List() {
-				b := allBackends[backend]
+				b := ts.Backends[backend]
 				storageOpts := config.StorageOpts{
 					Key:           signableType.Key(obj),
 					Cert:          signer.Cert(),
 					Chain:         signer.Chain(),
 					PayloadFormat: payloadFormat,
 				}
-				if err := b.StorePayload(ctx, rawPayload, string(signature), storageOpts); err != nil {
+				if err := b.StorePayload(ctx, tr, rawPayload, string(signature), storageOpts); err != nil {
 					logger.Error(err)
 					merr = multierror.Append(merr, err)
 				}
@@ -215,7 +211,6 @@ func (ts *TaskRunSigner) SignTaskRun(ctx context.Context, tr *v1beta1.TaskRun) e
 			if shouldUploadTlog(cfg, tr) {
 				entry, err := rekorClient.UploadTlog(ctx, signer, signature, rawPayload, signer.Cert(), string(payloadFormat))
 				if err != nil {
-					logger.Error(err)
 					merr = multierror.Append(merr, err)
 				} else {
 					logger.Infof("Uploaded entry to %s with index %d", cfg.Transparency.URL, *entry.LogIndex)
