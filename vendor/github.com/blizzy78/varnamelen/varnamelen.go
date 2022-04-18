@@ -110,14 +110,12 @@ const (
 
 // conventionalDecls is a list of conventional variable declarations.
 var conventionalDecls = []declaration{
-	parseDeclaration("ctx context.Context"),
-
-	parseDeclaration("b *testing.B"),
-	parseDeclaration("f *testing.F"),
-	parseDeclaration("m *testing.M"),
-	parseDeclaration("pb *testing.PB"),
 	parseDeclaration("t *testing.T"),
+	parseDeclaration("b *testing.B"),
 	parseDeclaration("tb testing.TB"),
+	parseDeclaration("pb *testing.PB"),
+	parseDeclaration("m *testing.M"),
+	parseDeclaration("ctx context.Context"),
 }
 
 // NewAnalyzer returns a new analyzer that checks variable name length.

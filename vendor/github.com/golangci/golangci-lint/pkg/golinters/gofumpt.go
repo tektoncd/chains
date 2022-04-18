@@ -37,7 +37,6 @@ func NewGofumpt() *goanalysis.Linter {
 
 		options := format.Options{
 			LangVersion: getLangVersion(settings),
-			ModulePath:  settings.ModulePath,
 			ExtraRules:  settings.ExtraRules,
 		}
 

@@ -110,10 +110,6 @@ func NewExecutor(version, commit, date string) *Executor {
 		e.log.Fatalf("Can't read config: %s", err)
 	}
 
-	if (commandLineCfg == nil || commandLineCfg.Run.Go == "") && e.cfg != nil && e.cfg.Run.Go == "" {
-		e.cfg.Run.Go = config.DetectGoVersion()
-	}
-
 	// recreate after getting config
 	e.DBManager = lintersdb.NewManager(e.cfg, e.log).WithCustomLinters()
 
