@@ -17,6 +17,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"sort"
 	"strings"
 	"testing"
 
@@ -398,23 +399,32 @@ func (s *mockGrafeasV1Beta1Server) CreateNote(ctx context.Context, req *pb.Creat
 }
 
 func (s *mockGrafeasV1Beta1Server) ListOccurrences(ctx context.Context, req *pb.ListOccurrencesRequest) (*pb.ListOccurrencesResponse, error) {
-	occurrences := []*pb.Occurrence{}
+	// to make sure the occurrences we get are in order.
+	occurrencesInServer := []*pb.Occurrence{}
+	keys := []string{}
+	for k := range s.occurences {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		occurrencesInServer = append(occurrencesInServer, s.occurences[k])
+	}
 
 	// if filter string is empty, the expected behaviour will be to return all.
 	if len(req.GetFilter()) == 0 {
-		for _, occ := range s.occurences {
-			occurrences = append(occurrences, occ)
-		}
-		return &pb.ListOccurrencesResponse{Occurrences: occurrences}, nil
+		return &pb.ListOccurrencesResponse{Occurrences: occurrencesInServer}, nil
 	}
 
 	// if the filter string is not empty, do the filtering.
 	// mock how uri filter works
 	uris := parseURIFilterString(req.GetFilter())
 
+	// result occurrences
+	occurrences := []*pb.Occurrence{}
+
 	for _, uri := range uris {
-		for id, occ := range s.occurences {
-			if uri == id {
+		for _, occ := range occurrencesInServer {
+			if uri == occ.Resource.Uri {
 				occurrences = append(occurrences, occ)
 			}
 		}
