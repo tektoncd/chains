@@ -18,15 +18,46 @@ This doc will cover how to set this up!
 
 The Chains controller will use the same service account your Task runs under as credentials for pushing signatures to an OCI registry. This section will cover how to set up a service account that has the necessary credentials.
 
-First, you will need access to credentials for your registry (they are in a file called `credentials.json` in this example).
-Next, create a [Docker config type Kubernetes secret](https://kubernetes.io/docs/concepts/configuration/secret/#docker-config-secrets), which will contain the credentials required to push signatures:
-
 Set the namespace and name of the Kubernetes service account:
 
 ```shell
 export NAMESPACE=<your namespace>
 export SERVICE_ACCOUNT_NAME=<service account name>
 ```
+
+### Create a Secret based on existing credentials
+
+If you already ran `docker login`, you can copy the credentials stored in
+config.json into Kubernetes.
+
+> Note: Make sure that any external credentials store, such as the native
+> keychain of the operating system, is not used to store the credentials and
+> the config.json is of the format:
+> ```json
+> {
+>   "auths": {
+>     "<registry>": {
+>       "auth": "redacted"
+>     }
+>   }
+> }
+> ```
+
+Create a secret with config.json:
+
+```shell
+kubectl create secret generic docker-registry \
+    --from-file=.dockerconfigjson=<path/to/.docker/config.json> \
+    --type=kubernetes.io/dockerconfigjson
+    -n $NAMESPACE
+```
+
+More details around creating this secret can be found [here](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/#registry-secret-existing-credentials).
+
+### Create a Secret by providing credentials on the command line
+
+First, you will need access to credentials for your registry (they are in a file called `credentials.json` in this example).
+Next, create a [Docker config type Kubernetes secret](https://kubernetes.io/docs/concepts/configuration/secret/#docker-config-secrets), which will contain the credentials required to push signatures:
 
 Then, create a `.dockerconfig` type secret:
 
@@ -39,7 +70,9 @@ kubectl create secret docker-registry registry-credentials \
   -n $NAMESPACE
 ```
 
-More details around creating this secret can be found [here](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/#registry-secret-existing-credentials).
+More details around creating this secret can be found [here](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/#create-a-secret-by-providing-credentials-on-the-command-line).
+
+### Grant access to the service account
 
 Finally, give the service account access to the secret above:
 
