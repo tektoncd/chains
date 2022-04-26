@@ -85,7 +85,7 @@ for more information.
 
    ```bash
    oc new-project tekton-chains
-   oc adm policy add-scc-to-user anyuid -z tekton-chains-controller
+   oc adm policy add-scc-to-user nonroot -z tekton-chains-controller
    ```
 
 1. Install Tekton Chains:
