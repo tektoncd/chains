@@ -13,7 +13,7 @@ require (
 	github.com/golang/snappy v0.0.4
 	github.com/golangci/golangci-lint v1.45.2
 	github.com/google/addlicense v1.0.0
-	github.com/google/go-cmp v0.5.7
+	github.com/google/go-cmp v0.5.8
 	github.com/google/go-containerregistry v0.8.1-0.20220216220642-00c59d91847c
 	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20220310143843-f1fa40b162a1
 	github.com/google/go-licenses v0.0.0-20210816172045-3099c18c36e1
