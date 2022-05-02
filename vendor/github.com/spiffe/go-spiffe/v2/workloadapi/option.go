@@ -81,9 +81,10 @@ type BundleSourceOption interface {
 }
 
 type clientConfig struct {
-	address     string
-	dialOptions []grpc.DialOption
-	log         logger.Logger
+	address       string
+	namedPipeName string
+	dialOptions   []grpc.DialOption
+	log           logger.Logger
 }
 
 type clientOption func(*clientConfig)
