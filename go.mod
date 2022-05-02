@@ -42,7 +42,7 @@ require (
 	github.com/sigstore/cosign v1.7.3-0.20220414204004-70a3d8c68ad9
 	github.com/sigstore/rekor v0.4.1-0.20220114213500-23f583409af3
 	github.com/sigstore/sigstore v1.2.1-0.20220401110139-0e610e39782f
-	github.com/spiffe/go-spiffe/v2 v2.0.0
+	github.com/spiffe/go-spiffe/v2 v2.1.0
 	github.com/tektoncd/pipeline v0.31.1-0.20220105002759-3e137645be61
 	github.com/tektoncd/plumbing v0.0.0-20211012143332-c7cc43d9bc0c
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399
@@ -51,7 +51,7 @@ require (
 	gocloud.dev v0.25.0
 	gocloud.dev/pubsub/kafkapubsub v0.25.0
 	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4
-	google.golang.org/grpc v1.45.0
+	google.golang.org/grpc v1.46.0
 	google.golang.org/protobuf v1.28.0
 	gopkg.in/square/go-jose.v2 v2.6.0
 	gopkg.in/yaml.v2 v2.4.0
@@ -87,6 +87,7 @@ require (
 	github.com/BurntSushi/toml v1.0.0 // indirect
 	github.com/Djarvur/go-err113 v0.0.0-20210108212216-aea10b59be24 // indirect
 	github.com/Masterminds/semver v1.5.0 // indirect
+	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/OpenPeeDeeP/depguard v1.1.0 // indirect
 	github.com/PaesslerAG/gval v1.0.0 // indirect
 	github.com/PaesslerAG/jsonpath v0.1.1 // indirect

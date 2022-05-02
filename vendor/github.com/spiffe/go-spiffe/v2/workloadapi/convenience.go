@@ -71,6 +71,16 @@ func FetchJWTSVID(ctx context.Context, params jwtsvid.Params, options ...ClientO
 	return c.FetchJWTSVID(ctx, params)
 }
 
+// FetchJWTSVID fetches all JWT-SVIDs.
+func FetchJWTSVIDs(ctx context.Context, params jwtsvid.Params, options ...ClientOption) ([]*jwtsvid.SVID, error) {
+	c, err := New(ctx, options...)
+	if err != nil {
+		return nil, err
+	}
+	defer c.Close()
+	return c.FetchJWTSVIDs(ctx, params)
+}
+
 // FetchJWTBundles fetches the JWT bundles for JWT-SVID validation, keyed
 // by a SPIFFE ID of the trust domain to which they belong.
 func FetchJWTBundles(ctx context.Context, options ...ClientOption) (*jwtbundle.Set, error) {
@@ -90,6 +100,16 @@ func WatchJWTBundles(ctx context.Context, watcher JWTBundleWatcher, options ...C
 	}
 	defer c.Close()
 	return c.WatchJWTBundles(ctx, watcher)
+}
+
+// WatchX509Bundles watches for changes to the X.509 bundles.
+func WatchX509Bundles(ctx context.Context, watcher X509BundleWatcher, options ...ClientOption) error {
+	c, err := New(ctx, options...)
+	if err != nil {
+		return err
+	}
+	defer c.Close()
+	return c.WatchX509Bundles(ctx, watcher)
 }
 
 // ValidateJWTSVID validates the JWT-SVID token. The parsed and validated

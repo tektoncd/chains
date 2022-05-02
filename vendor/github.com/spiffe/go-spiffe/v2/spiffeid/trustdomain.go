@@ -57,10 +57,10 @@ func (td TrustDomain) String() string {
 
 // ID returns the SPIFFE ID of the trust domain.
 func (td TrustDomain) ID() ID {
-	return ID{
-		td:   td,
-		path: "",
+	if id, err := makeID(td, ""); err == nil {
+		return id
 	}
+	return ID{}
 }
 
 // IDString returns a string representation of the the SPIFFE ID of the trust

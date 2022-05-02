@@ -17,6 +17,10 @@ func GetDefaultAddress() (string, bool) {
 	return os.LookupEnv(SocketEnv)
 }
 
+// ValidateAddress validates that the provided address
+// can be parsed to a gRPC target string for dialing
+// a Workload API endpoint exposed as either a Unix
+// Domain Socket or TCP socket.
 func ValidateAddress(addr string) error {
 	_, err := parseTargetFromAddr(addr)
 	return err

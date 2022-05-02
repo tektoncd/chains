@@ -63,6 +63,15 @@ func (s *JWTSource) FetchJWTSVID(ctx context.Context, params jwtsvid.Params) (*j
 	return s.watcher.client.FetchJWTSVID(ctx, params)
 }
 
+// FetchJWTSVIDs fetches all JWT-SVIDs from the source with the given parameters.
+// It implements the jwtsvid.Source interface.
+func (s *JWTSource) FetchJWTSVIDs(ctx context.Context, params jwtsvid.Params) ([]*jwtsvid.SVID, error) {
+	if err := s.checkClosed(); err != nil {
+		return nil, err
+	}
+	return s.watcher.client.FetchJWTSVIDs(ctx, params)
+}
+
 // GetJWTBundleForTrustDomain returns the JWT bundle for the given trust
 // domain. It implements the jwtbundle.Source interface.
 func (s *JWTSource) GetJWTBundleForTrustDomain(trustDomain spiffeid.TrustDomain) (*jwtbundle.Bundle, error) {
