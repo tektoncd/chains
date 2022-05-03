@@ -42,11 +42,12 @@ func TestInitializeBackends(t *testing.T) {
 			want: []string{"tekton"},
 			cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: sets.NewString("tekton")}}},
 		},
-		{
-			name: "gcs",
-			want: []string{"gcs"},
-			cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: sets.NewString("gcs")}}},
-		},
+		// TODO: Re-enable this test when it doesn't rely on ambient GCP credentials.
+		//{
+		//	name: "gcs",
+		//	want: []string{"gcs"},
+		//	cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: sets.NewString("gcs")}}},
+		//},
 		{
 			name: "oci",
 			want: []string{"oci"},
@@ -59,8 +60,8 @@ func TestInitializeBackends(t *testing.T) {
 		},
 		{
 			name: "multi",
-			want: []string{"gcs", "grafeas", "oci", "tekton"},
-			cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: sets.NewString("gcs", "grafeas", "oci", "tekton", "not-exist")}}},
+			want: []string{"grafeas", "oci", "tekton"},
+			cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: sets.NewString("grafeas", "oci", "tekton", "not-exist")}}},
 		},
 		{
 			name: "pubsub",
