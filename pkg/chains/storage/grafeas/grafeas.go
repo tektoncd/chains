@@ -36,6 +36,13 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// TODOs
+// - switch to grafeas v1 api once it gets updated to support slsa 0.2 predicate
+// - create one BUILD occurrence per image built with same content but differing in URI
+// - create one BUILD note per taskrun
+// - change unit tests accordingly
+// - make HumanReadableName in the attestation note configurable
+
 const (
 	StorageBackendGrafeas = "grafeas"
 	projectNameFormat     = "projects/%s"
