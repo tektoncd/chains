@@ -26,7 +26,6 @@ import (
 	// which providers they pull in, by linking their own variants in their
 	// own binary entrypoint.
 	_ "github.com/sigstore/cosign/pkg/providers/all"
-	_ "github.com/sigstore/cosign/pkg/providers/spiffe"
 
 	// Register the provider-specific plugins
 	_ "github.com/sigstore/sigstore/pkg/signature/kms/aws"

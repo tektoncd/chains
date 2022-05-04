@@ -106,6 +106,8 @@ chains.tekton.dev/transparency-upload: "true"
 | :--- | :--- | :--- | :--- |
 | `signers.x509.fulcio.enabled` | EXPERIMENTAL. Whether to enable automatic certificates from fulcio. | `true`, `false` | `false`|
 | `signers.x509.fulcio.address` | EXPERIMENTAL. Fulcio address to request certificate from, if enabled | |`https://v1.fulcio.sigstore.dev` |
+| `signers.x509.fulcio.issuer` | EXPERIMENTAL. Expected OIDC issuer. | |`https://oauth2.sigstore.dev/auth` |
+| `signers.x509.fulcio.provider` | EXPERIMENTAL. Provider to request ID Token from | `google`, `spiffe`, `github`, `filesystem` | Unset, each provider will be attempted. |
 
 #### KMS OIDC and Spire Configuration
 

@@ -25,6 +25,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sigstore/cosign/cmd/cosign/cli/fulcio"
+	"github.com/sigstore/cosign/cmd/cosign/cli/options"
 	"github.com/sigstore/cosign/pkg/cosign"
 	"github.com/sigstore/cosign/pkg/providers"
 
@@ -52,7 +53,7 @@ func NewSigner(ctx context.Context, secretPath string, cfg config.Config, logger
 	cosignPrivateKeypath := filepath.Join(secretPath, "cosign.key")
 
 	if cfg.Signers.X509.FulcioEnabled {
-		return fulcioSigner(ctx, cfg.Signers.X509.FulcioAddr, cfg.Signers.X509.FulcioOIDCIssuer, logger)
+		return fulcioSigner(ctx, cfg.Signers.X509, logger)
 	} else if contents, err := ioutil.ReadFile(x509PrivateKeyPath); err == nil {
 		return x509Signer(contents, logger)
 	} else if contents, err := ioutil.ReadFile(cosignPrivateKeypath); err == nil {
@@ -61,22 +62,36 @@ func NewSigner(ctx context.Context, secretPath string, cfg config.Config, logger
 	return nil, errors.New("no valid private key found, looked for: [x509.pem, cosign.key]")
 }
 
-func fulcioSigner(ctx context.Context, addr, oidcIssuer string, logger *zap.SugaredLogger) (*Signer, error) {
+func fulcioSigner(ctx context.Context, cfg config.X509Signer, logger *zap.SugaredLogger) (*Signer, error) {
 	if !providers.Enabled(ctx) {
 		return nil, fmt.Errorf("no auth provider for fulcio is enabled")
 	}
-
-	tok, err := providers.Provide(ctx, defaultOIDCClientID)
+	var tok string
+	var err error
+	if cfg.FulcioProvider != "" {
+		logger.Infof("Attempting to get id token from provider %s", cfg.FulcioProvider)
+		p, err := providers.ProvideFrom(ctx, cfg.FulcioProvider)
+		if err != nil {
+			return nil, errors.Wrap(err, "provide from")
+		}
+		tok, err = p.Provide(ctx, defaultOIDCClientID)
+		if err != nil {
+			return nil, errors.Wrapf(err, "getting token from provider %s", cfg.FulcioProvider)
+		}
+	} else {
+		tok, err = providers.Provide(ctx, defaultOIDCClientID)
+	}
 	if err != nil {
 		return nil, errors.Wrap(err, "getting provider")
 	}
-	logger.Info("Signing with fulcio ...")
 
-	fClient, err := fulcio.NewClient(addr)
-	if err != nil {
-		return nil, errors.Wrap(err, "creating Fulcio client")
-	}
-	k, err := fulcio.NewSigner(ctx, tok, oidcIssuer, defaultOIDCClientID, "", "", fClient)
+	logger.Info("Signing with fulcio ...")
+	k, err := fulcio.NewSigner(ctx, options.KeyOpts{
+		FulcioURL:    cfg.FulcioAddr,
+		IDToken:      tok,
+		OIDCIssuer:   cfg.FulcioOIDCIssuer,
+		OIDCClientID: defaultOIDCClientID,
+	})
 	if err != nil {
 		return nil, errors.Wrap(err, "new signer")
 	}

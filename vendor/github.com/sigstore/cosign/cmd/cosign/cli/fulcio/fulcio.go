@@ -30,8 +30,9 @@ import (
 	"golang.org/x/term"
 
 	"github.com/sigstore/cosign/cmd/cosign/cli/fulcio/fulcioroots"
-	clioptions "github.com/sigstore/cosign/cmd/cosign/cli/options"
+	"github.com/sigstore/cosign/cmd/cosign/cli/options"
 	"github.com/sigstore/cosign/pkg/cosign"
+	"github.com/sigstore/cosign/pkg/providers"
 	"github.com/sigstore/fulcio/pkg/api"
 	"github.com/sigstore/sigstore/pkg/oauthflow"
 	"github.com/sigstore/sigstore/pkg/signature"
@@ -110,7 +111,21 @@ type Signer struct {
 	*signature.ECDSASignerVerifier
 }
 
-func NewSigner(ctx context.Context, idToken, oidcIssuer, oidcClientID, oidcClientSecret, oidcRedirectURL string, fClient api.Client) (*Signer, error) {
+func NewSigner(ctx context.Context, ko options.KeyOpts) (*Signer, error) {
+	fClient, err := NewClient(ko.FulcioURL)
+	if err != nil {
+		return nil, errors.Wrap(err, "creating Fulcio client")
+	}
+
+	idToken := ko.IDToken
+	// If token is not set in the options, get one from the provders
+	if idToken == "" && providers.Enabled(ctx) && !ko.OIDCDisableProviders {
+		idToken, err = providers.Provide(ctx, "sigstore")
+		if err != nil {
+			return nil, errors.Wrap(err, "fetching ambient OIDC credentials")
+		}
+	}
+
 	priv, err := cosign.GeneratePrivateKey()
 	if err != nil {
 		return nil, errors.Wrap(err, "generating cert")
@@ -123,6 +138,9 @@ func NewSigner(ctx context.Context, idToken, oidcIssuer, oidcClientID, oidcClien
 
 	var flow string
 	switch {
+	case ko.FulcioAuthFlow != "":
+		// Caller manually set flow option.
+		flow = ko.FulcioAuthFlow
 	case idToken != "":
 		flow = FlowToken
 	case !term.IsTerminal(0):
@@ -131,7 +149,7 @@ func NewSigner(ctx context.Context, idToken, oidcIssuer, oidcClientID, oidcClien
 	default:
 		flow = FlowNormal
 	}
-	Resp, err := GetCert(ctx, priv, idToken, flow, oidcIssuer, oidcClientID, oidcClientSecret, oidcRedirectURL, fClient) // TODO, use the chain.
+	Resp, err := GetCert(ctx, priv, idToken, flow, ko.OIDCIssuer, ko.OIDCClientID, ko.OIDCClientSecret, ko.OIDCRedirectURL, fClient) // TODO, use the chain.
 	if err != nil {
 		return nil, errors.Wrap(err, "retrieving cert")
 	}
@@ -166,6 +184,6 @@ func NewClient(fulcioURL string) (api.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	fClient := api.NewClient(fulcioServer, api.WithUserAgent(clioptions.UserAgent()))
+	fClient := api.NewClient(fulcioServer, api.WithUserAgent(options.UserAgent()))
 	return fClient, nil
 }
