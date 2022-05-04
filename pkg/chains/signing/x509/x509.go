@@ -35,7 +35,6 @@ import (
 )
 
 const (
-	defaultOIDCIssuer   = "https://oauth2.sigstore.dev/auth"
 	defaultOIDCClientID = "sigstore"
 )
 
@@ -53,7 +52,7 @@ func NewSigner(ctx context.Context, secretPath string, cfg config.Config, logger
 	cosignPrivateKeypath := filepath.Join(secretPath, "cosign.key")
 
 	if cfg.Signers.X509.FulcioEnabled {
-		return fulcioSigner(ctx, cfg.Signers.X509.FulcioAddr, logger)
+		return fulcioSigner(ctx, cfg.Signers.X509.FulcioAddr, cfg.Signers.X509.FulcioOIDCIssuer, logger)
 	} else if contents, err := ioutil.ReadFile(x509PrivateKeyPath); err == nil {
 		return x509Signer(contents, logger)
 	} else if contents, err := ioutil.ReadFile(cosignPrivateKeypath); err == nil {
@@ -62,7 +61,7 @@ func NewSigner(ctx context.Context, secretPath string, cfg config.Config, logger
 	return nil, errors.New("no valid private key found, looked for: [x509.pem, cosign.key]")
 }
 
-func fulcioSigner(ctx context.Context, addr string, logger *zap.SugaredLogger) (*Signer, error) {
+func fulcioSigner(ctx context.Context, addr, oidcIssuer string, logger *zap.SugaredLogger) (*Signer, error) {
 	if !providers.Enabled(ctx) {
 		return nil, fmt.Errorf("no auth provider for fulcio is enabled")
 	}
@@ -77,7 +76,7 @@ func fulcioSigner(ctx context.Context, addr string, logger *zap.SugaredLogger) (
 	if err != nil {
 		return nil, errors.Wrap(err, "creating Fulcio client")
 	}
-	k, err := fulcio.NewSigner(ctx, tok, defaultOIDCIssuer, defaultOIDCClientID, "", "", fClient)
+	k, err := fulcio.NewSigner(ctx, tok, oidcIssuer, defaultOIDCClientID, "", "", fClient)
 	if err != nil {
 		return nil, errors.Wrap(err, "new signer")
 	}

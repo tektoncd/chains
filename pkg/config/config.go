@@ -68,8 +68,9 @@ type BuilderConfig struct {
 }
 
 type X509Signer struct {
-	FulcioEnabled bool
-	FulcioAddr    string
+	FulcioEnabled    bool
+	FulcioAddr       string
+	FulcioOIDCIssuer string
 }
 
 type KMSSigner struct {
@@ -174,8 +175,9 @@ const (
 	kmsAuthSpireAudience = "signers.kms.auth.spire.audience"
 
 	// Fulcio
-	x509SignerFulcioEnabled = "signers.x509.fulcio.enabled"
-	x509SignerFulcioAddr    = "signers.x509.fulcio.address"
+	x509SignerFulcioEnabled    = "signers.x509.fulcio.enabled"
+	x509SignerFulcioAddr       = "signers.x509.fulcio.address"
+	x509SignerFulcioOIDCIssuer = "signers.x509.fulcio.issuer"
 
 	// Builder config
 	builderIDKey = "builder.id"
@@ -209,7 +211,8 @@ func defaultConfig() *Config {
 		},
 		Signers: SignerConfigs{
 			X509: X509Signer{
-				FulcioAddr: "https://fulcio.sigstore.dev",
+				FulcioAddr:       "https://fulcio.sigstore.dev",
+				FulcioOIDCIssuer: "https://oauth2.sigstore.dev/auth",
 			},
 		},
 		Builder: BuilderConfig{
@@ -261,8 +264,10 @@ func NewConfigFromMap(data map[string]string) (*Config, error) {
 		asString(kmsAuthSpireSock, &cfg.Signers.KMS.Auth.Spire.Sock),
 		asString(kmsAuthSpireAudience, &cfg.Signers.KMS.Auth.Spire.Audience),
 
+		// Fulcio
 		asBool(x509SignerFulcioEnabled, &cfg.Signers.X509.FulcioEnabled),
 		asString(x509SignerFulcioAddr, &cfg.Signers.X509.FulcioAddr),
+		asString(x509SignerFulcioOIDCIssuer, &cfg.Signers.X509.FulcioOIDCIssuer),
 
 		// Build config
 		asString(builderIDKey, &cfg.Builder.ID),
