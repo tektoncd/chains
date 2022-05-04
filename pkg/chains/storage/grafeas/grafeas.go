@@ -85,8 +85,8 @@ func NewStorageBackend(ctx context.Context, logger *zap.SugaredLogger, cfg confi
 // StorePayload implements the storage.Backend interface.
 func (b *Backend) StorePayload(ctx context.Context, tr *v1beta1.TaskRun, rawPayload []byte, signature string, opts config.StorageOpts) error {
 	// We only support simplesigning for OCI images, and in-toto for taskrun.
-	if opts.PayloadFormat == formats.PayloadTypeTekton || opts.PayloadFormat == formats.PayloadTypeProvenance {
-		return errors.New("Grafeas storage backend only supports for OCI images and in-toto attestations")
+	if opts.PayloadFormat == formats.PayloadTypeTekton {
+		return errors.New("Grafeas storage backend only supports OCI images and in-toto attestations")
 	}
 
 	// Check if projectID is configured. If not, stop and return an error

@@ -86,7 +86,7 @@ func (b *Backend) StorePayload(ctx context.Context, tr *v1beta1.TaskRun, rawPayl
 		return b.uploadSignature(format, rawPayload, signature, storageOpts, auth)
 	}
 
-	if storageOpts.PayloadFormat == formats.PayloadTypeInTotoIte6 || storageOpts.PayloadFormat == formats.PayloadTypeProvenance {
+	if storageOpts.PayloadFormat == formats.PayloadTypeInTotoIte6 {
 		attestation := in_toto.Statement{}
 		if err := json.Unmarshal(rawPayload, &attestation); err != nil {
 			return errors.Wrap(err, "unmarshal attestation")
