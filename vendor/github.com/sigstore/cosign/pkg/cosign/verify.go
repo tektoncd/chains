@@ -31,7 +31,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sigstore/cosign/pkg/apis/cosigned/v1alpha1"
+	"github.com/sigstore/cosign/cmd/cosign/cli/fulcio/fulcioverifier/ctl"
 	cbundle "github.com/sigstore/cosign/pkg/cosign/bundle"
 	"github.com/sigstore/cosign/pkg/cosign/tuf"
 
@@ -56,6 +56,13 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature/options"
 	sigPayload "github.com/sigstore/sigstore/pkg/signature/payload"
 )
+
+// Identity specifies an issuer/subject to verify a signature against.
+// Both Issuer/Subject support regexp.
+type Identity struct {
+	Issuer  string
+	Subject string
+}
 
 // CheckOpts are the options for checking signatures.
 type CheckOpts struct {
@@ -83,6 +90,9 @@ type CheckOpts struct {
 	CertEmail string
 	// CertOidcIssuer is the OIDC issuer expected for a certificate to be valid. The empty string means any certificate can be valid.
 	CertOidcIssuer string
+	// EnforceSCT requires that a certificate contain an embedded SCT during verification. An SCT is proof of inclusion in a
+	// certificate transparency log.
+	EnforceSCT bool
 
 	// SignatureRef is the reference to the signature file
 	SignatureRef string
@@ -90,7 +100,7 @@ type CheckOpts struct {
 	// Identities is an array of Identity (Subject, Issuer) matchers that have
 	// to be met for the signature to ve valid.
 	// Supercedes CertEmail / CertOidcIssuer
-	Identities []v1alpha1.Identity
+	Identities []Identity
 }
 
 func getSignedEntity(signedImgRef name.Reference, regClientOpts []ociremote.Option) (oci.SignedEntity, v1.Hash, error) {
@@ -158,7 +168,8 @@ func ValidateAndUnpackCert(cert *x509.Certificate, co *CheckOpts) (signature.Ver
 	}
 
 	// Now verify the cert, then the signature.
-	if err := TrustedCert(cert, co.RootCerts, co.IntermediateCerts); err != nil {
+	chains, err := TrustedCert(cert, co.RootCerts, co.IntermediateCerts)
+	if err != nil {
 		return nil, err
 	}
 	if co.CertEmail != "" {
@@ -184,7 +195,6 @@ func ValidateAndUnpackCert(cert *x509.Certificate, co *CheckOpts) (signature.Ver
 		for _, identity := range co.Identities {
 			issuerMatches := false
 			// Check the issuer first
-			fmt.Fprintf(os.Stderr, "Checking identity: %+v", identity)
 			if identity.Issuer != "" {
 				issuer := getIssuer(cert)
 				if regex, err := regexp.Compile(identity.Issuer); err != nil {
@@ -220,6 +230,22 @@ func ValidateAndUnpackCert(cert *x509.Certificate, co *CheckOpts) (signature.Ver
 			}
 		}
 		return nil, errors.New("none of the expected identities matched what was in the certificate")
+	}
+	contains, err := ctl.ContainsSCT(cert.Raw)
+	if err != nil {
+		return nil, err
+	}
+	if co.EnforceSCT && !contains {
+		return nil, errors.New("certificate does not include required embedded SCT")
+	}
+	if contains {
+		// handle if chains has more than one chain - grab first and print message
+		if len(chains) > 1 {
+			fmt.Fprintf(os.Stderr, "**Info** Multiple valid certificate chains found. Selecting the first to verify the SCT.\n")
+		}
+		if err := ctl.VerifyEmbeddedSCT(context.Background(), chains[0]); err != nil {
+			return nil, err
+		}
 	}
 	return verifier, nil
 }
@@ -277,15 +303,7 @@ func tlogValidatePublicKey(ctx context.Context, rekorClient *client.Rekor, pub c
 	if err != nil {
 		return err
 	}
-	b64sig, err := sig.Base64Signature()
-	if err != nil {
-		return err
-	}
-	payload, err := sig.Payload()
-	if err != nil {
-		return err
-	}
-	_, err = FindTlogEntry(ctx, rekorClient, b64sig, payload, pemBytes)
+	_, err = tlogValidateEntry(ctx, rekorClient, sig, pemBytes)
 	return err
 }
 
@@ -298,23 +316,28 @@ func tlogValidateCertificate(ctx context.Context, rekorClient *client.Rekor, sig
 	if err != nil {
 		return err
 	}
-	b64sig, err := sig.Base64Signature()
+	e, err := tlogValidateEntry(ctx, rekorClient, sig, pemBytes)
 	if err != nil {
-		return err
-	}
-	payload, err := sig.Payload()
-	if err != nil {
-		return err
-	}
-	e, err := FindTlogEntry(ctx, rekorClient, b64sig, payload, pemBytes)
-	if err != nil {
-		return err
-	}
-	if err := VerifyTLogEntry(ctx, rekorClient, e); err != nil {
 		return err
 	}
 	// if we have a cert, we should check expiry
 	return CheckExpiry(cert, time.Unix(*e.IntegratedTime, 0))
+}
+
+func tlogValidateEntry(ctx context.Context, client *client.Rekor, sig oci.Signature, pem []byte) (*models.LogEntryAnon, error) {
+	b64sig, err := sig.Base64Signature()
+	if err != nil {
+		return nil, err
+	}
+	payload, err := sig.Payload()
+	if err != nil {
+		return nil, err
+	}
+	e, err := FindTlogEntry(ctx, client, b64sig, payload, pem)
+	if err != nil {
+		return nil, err
+	}
+	return e, VerifyTLogEntry(ctx, client, e)
 }
 
 type fakeOCISignatures struct {
@@ -449,7 +472,8 @@ func VerifyImageSignature(ctx context.Context, sig oci.Signature, h v1.Hash, co 
 		// If the chain annotation is not present or there is only a root
 		if chain == nil || len(chain) <= 1 {
 			co.IntermediateCerts = nil
-		} else {
+		} else if co.IntermediateCerts == nil {
+			// If the intermediate certs have not been loaded in by TUF
 			pool := x509.NewCertPool()
 			for _, cert := range chain[:len(chain)-1] {
 				pool.AddCert(cert)
@@ -627,7 +651,8 @@ func verifyImageAttestations(ctx context.Context, atts oci.Signatures, h v1.Hash
 				// If the chain annotation is not present or there is only a root
 				if chain == nil || len(chain) <= 1 {
 					co.IntermediateCerts = nil
-				} else {
+				} else if co.IntermediateCerts == nil {
+					// If the intermediate certs have not been loaded in by TUF
 					pool := x509.NewCertPool()
 					for _, cert := range chain[:len(chain)-1] {
 						pool.AddCert(cert)
@@ -731,13 +756,14 @@ func VerifyBundle(ctx context.Context, sig oci.Signature) (bool, error) {
 	cert, err := sig.Cert()
 	if err != nil {
 		return false, err
-	} else if cert == nil {
-		return true, nil
 	}
 
-	// verify the cert against the integrated time
-	if err := CheckExpiry(cert, time.Unix(bundle.Payload.IntegratedTime, 0)); err != nil {
-		return false, errors.Wrap(err, "checking expiry on cert")
+	if cert != nil {
+		// Verify the cert against the integrated time.
+		// Note that if the caller requires the certificate to be present, it has to ensure that itself.
+		if err := CheckExpiry(cert, time.Unix(bundle.Payload.IntegratedTime, 0)); err != nil {
+			return false, errors.Wrap(err, "checking expiry on cert")
+		}
 	}
 
 	payload, err := sig.Payload()
@@ -901,8 +927,8 @@ func VerifySET(bundlePayload cbundle.RekorPayload, signature []byte, pub *ecdsa.
 	return nil
 }
 
-func TrustedCert(cert *x509.Certificate, roots *x509.CertPool, intermediates *x509.CertPool) error {
-	if _, err := cert.Verify(x509.VerifyOptions{
+func TrustedCert(cert *x509.Certificate, roots *x509.CertPool, intermediates *x509.CertPool) ([][]*x509.Certificate, error) {
+	chains, err := cert.Verify(x509.VerifyOptions{
 		// THIS IS IMPORTANT: WE DO NOT CHECK TIMES HERE
 		// THE CERTIFICATE IS TREATED AS TRUSTED FOREVER
 		// WE CHECK THAT THE SIGNATURES WERE CREATED DURING THIS WINDOW
@@ -912,10 +938,11 @@ func TrustedCert(cert *x509.Certificate, roots *x509.CertPool, intermediates *x5
 		KeyUsages: []x509.ExtKeyUsage{
 			x509.ExtKeyUsageCodeSigning,
 		},
-	}); err != nil {
-		return err
+	})
+	if err != nil {
+		return nil, err
 	}
-	return nil
+	return chains, nil
 }
 
 func correctAnnotations(wanted, have map[string]interface{}) bool {

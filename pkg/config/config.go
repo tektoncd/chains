@@ -71,6 +71,7 @@ type X509Signer struct {
 	FulcioEnabled    bool
 	FulcioAddr       string
 	FulcioOIDCIssuer string
+	FulcioProvider   string
 }
 
 type KMSSigner struct {
@@ -178,6 +179,7 @@ const (
 	x509SignerFulcioEnabled    = "signers.x509.fulcio.enabled"
 	x509SignerFulcioAddr       = "signers.x509.fulcio.address"
 	x509SignerFulcioOIDCIssuer = "signers.x509.fulcio.issuer"
+	x509SignerFulcioProvider   = "signers.x509.fulcio.provider"
 
 	// Builder config
 	builderIDKey = "builder.id"
@@ -268,6 +270,7 @@ func NewConfigFromMap(data map[string]string) (*Config, error) {
 		asBool(x509SignerFulcioEnabled, &cfg.Signers.X509.FulcioEnabled),
 		asString(x509SignerFulcioAddr, &cfg.Signers.X509.FulcioAddr),
 		asString(x509SignerFulcioOIDCIssuer, &cfg.Signers.X509.FulcioOIDCIssuer),
+		asString(x509SignerFulcioProvider, &cfg.Signers.X509.FulcioProvider),
 
 		// Build config
 		asString(builderIDKey, &cfg.Builder.ID),
