@@ -10,6 +10,7 @@ import (
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
 
+	"github.com/golangci/golangci-lint/pkg/exitcodes"
 	"github.com/golangci/golangci-lint/pkg/fsutils"
 	"github.com/golangci/golangci-lint/pkg/logutils"
 	"github.com/golangci/golangci-lint/pkg/sliceutil"
@@ -45,6 +46,11 @@ func (r *FileReader) Read() error {
 
 	if configFile != "" {
 		viper.SetConfigFile(configFile)
+
+		// Assume YAML if the file has no extension.
+		if filepath.Ext(configFile) == "" {
+			viper.SetConfigType("yaml")
+		}
 	} else {
 		r.setupConfigFileSearch()
 	}
@@ -87,7 +93,7 @@ func (r *FileReader) parseConfig() error {
 
 	if r.cfg.InternalTest { // just for testing purposes: to detect config file usage
 		fmt.Fprintln(logutils.StdOut, "test")
-		os.Exit(0)
+		os.Exit(exitcodes.Success)
 	}
 
 	return nil

@@ -15,6 +15,7 @@ package x509
 
 import (
 	"bytes"
+	"context"
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/sha256"
@@ -48,6 +49,7 @@ MC4CAQAwBQYDK2VwBCIEIGQn0bJwshjwuVdnd/FylMk3Gvb89aGgH49bQpgzCY0n
 -----END PRIVATE KEY-----`
 
 func TestSigner_SignECDSA(t *testing.T) {
+	ctx := context.Background()
 	logger := logtesting.TestLogger(t)
 	d := t.TempDir()
 	p := filepath.Join(d, "x509.pem")
@@ -56,7 +58,7 @@ func TestSigner_SignECDSA(t *testing.T) {
 	}
 
 	// create a signer
-	signer, err := NewSigner(d, config.Config{}, logger)
+	signer, err := NewSigner(ctx, d, config.Config{}, logger)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,6 +91,7 @@ func TestSigner_SignECDSA(t *testing.T) {
 
 func TestSigner_SignED25519(t *testing.T) {
 	t.Skip("skip test until ed25519 signing is implemented")
+	ctx := context.Background()
 	logger := logtesting.TestLogger(t)
 	d := t.TempDir()
 	p := filepath.Join(d, "x509.pem")
@@ -97,7 +100,7 @@ func TestSigner_SignED25519(t *testing.T) {
 	}
 
 	// create a signer
-	signer, err := NewSigner(d, config.Config{}, logger)
+	signer, err := NewSigner(ctx, d, config.Config{}, logger)
 	if err != nil {
 		t.Fatal(err)
 	}

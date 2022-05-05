@@ -50,15 +50,17 @@ Supported keys include:
 | Key | Description | Supported Values | Default |
 | :--- | :--- | :--- | :--- |
 | `artifacts.taskrun.format` | The format to store `TaskRun` payloads in. | `tekton`, `in-toto`| `tekton` |
-| `artifacts.taskrun.storage` | The storage backend to store `TaskRun` signatures in. Multiple backends can be specified with comma-separated list ("tekton,oci"). To disable the `TaskRun` artifact input an empty string ("").  | `tekton`, `oci`, `gcs`, `docdb` | `tekton` |
+| `artifacts.taskrun.storage` | The storage backend to store `TaskRun` signatures in. Multiple backends can be specified with comma-separated list ("tekton,oci"). To disable the `TaskRun` artifact input an empty string ("").  | `tekton`, `oci`, `gcs`, `docdb`, `grafeas` | `tekton` |
 | `artifacts.taskrun.signer` | The signature backend to sign `Taskrun` payloads with. | `x509`, `kms` | `x509` |
+
+> NOTE: For grafeas storage backend, currently we only support Container Analysis. We will make grafeas server address configurabe within a short time.
 
 ### OCI Configuration
 
 | Key | Description | Supported Values | Default |
 | :--- | :--- | :--- | :--- |
 | `artifacts.oci.format` | The format to store `OCI` payloads in. | `simplesigning` | `simplesigning` |
-| `artifacts.oci.storage` | The storage backend to store `OCI` signatures in. Multiple backends can be specified with comma-separated list ("oci,tekton"). To disable the `OCI` artifact input an empty string ("").| `tekton`, `oci`, `gcs`, `docdb` | `oci` |
+| `artifacts.oci.storage` | The storage backend to store `OCI` signatures in. Multiple backends can be specified with comma-separated list ("oci,tekton"). To disable the `OCI` artifact input an empty string ("").| `tekton`, `oci`, `gcs`, `docdb`, `grafeas` | `oci` |
 | `artifacts.oci.signer` | The signature backend to sign `OCI` payloads with. | `x509`, `kms` | `x509` |
 
 ### KMS Configuration
@@ -74,6 +76,8 @@ Supported keys include:
 | `storage.gcs.bucket` | The GCS bucket for storage | | |
 | `storage.oci.repository` | The OCI repo to store OCI signatures in  | | |
 | `storage.docdb.url` | The go-cloud URI reference to a docstore collection | `firestore://projects/[PROJECT]/databases/(default)/documents/[COLLECTION]?name_field=name`| |
+|`storage.grafeas.projectid`|The project ID to store occurrences|||
+|`storage.grafeas.noteid` (optional)|The note ID to link occurrences. If noteid is not provided, a name in the format of `tekton-<NAMESPACE>` will be used.|||
 
 ### In-toto Configuration
 
@@ -102,3 +106,16 @@ chains.tekton.dev/transparency-upload: "true"
 | :--- | :--- | :--- | :--- |
 | `signers.x509.fulcio.enabled` | EXPERIMENTAL. Whether to enable automatic certificates from fulcio. | `true`, `false` | `false`|
 | `signers.x509.fulcio.address` | EXPERIMENTAL. Fulcio address to request certificate from, if enabled | |`https://v1.fulcio.sigstore.dev` |
+| `signers.x509.fulcio.issuer` | EXPERIMENTAL. Expected OIDC issuer. | |`https://oauth2.sigstore.dev/auth` |
+| `signers.x509.fulcio.provider` | EXPERIMENTAL. Provider to request ID Token from | `google`, `spiffe`, `github`, `filesystem` | Unset, each provider will be attempted. |
+
+#### KMS OIDC and Spire Configuration
+
+| Key | Description | Supported Values | Default |
+| :--- | :--- | :--- | :--- |
+| `signers.kms.auth.address` | URI of KMS server (e.g. the value of `VAULT_ADDR`) | |
+| `signers.kms.auth.token` | Auth token KMS server (e.g. the value of `VAULT_TOKEN`) | |
+| `signers.kms.auth.oidc.path` | Path used for OIDC authentication (e.g. `jwt` for Vault) | |
+| `signers.kms.auth.oidc.role` | Role used for OIDC authentication | |
+| `signers.kms.auth.spire.sock` | URI of the Spire socket used for KMS token (e.g. `unix:///tmp/spire-agent/public/api.sock`) | |
+| `signers.kms.auth.spire.audience` | Audience for requesting a SVID from Spire | |

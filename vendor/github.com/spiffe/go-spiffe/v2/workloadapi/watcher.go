@@ -13,6 +13,7 @@ type sourceClient interface {
 	WatchX509Context(context.Context, X509ContextWatcher) error
 	WatchJWTBundles(context.Context, JWTBundleWatcher) error
 	FetchJWTSVID(context.Context, jwtsvid.Params) (*jwtsvid.SVID, error)
+	FetchJWTSVIDs(context.Context, jwtsvid.Params) ([]*jwtsvid.SVID, error)
 	Close() error
 }
 

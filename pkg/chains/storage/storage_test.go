@@ -15,10 +15,10 @@ package storage
 
 import (
 	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/tektoncd/chains/pkg/config"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	fakepipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client/fake"
 	"k8s.io/apimachinery/pkg/util/sets"
 	fakekubeclient "knative.dev/pkg/client/injection/kube/client/fake"
@@ -32,34 +32,60 @@ func TestInitializeBackends(t *testing.T) {
 		name string
 		cfg  config.Config
 		want []string
-	}{{
-		name: "none",
-		want: []string{},
-	}, {
-		name: "tekton",
-		want: []string{"tekton"},
-		cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: sets.NewString("tekton")}}},
-	}, {
-		name: "multi",
-		want: []string{"tekton"},
-		cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: sets.NewString("tekton", "mock")}}},
-	}}
+	}{
+		{
+			name: "none",
+			want: []string{},
+		},
+		{
+			name: "tekton",
+			want: []string{"tekton"},
+			cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: sets.NewString("tekton")}}},
+		},
+		// TODO: Re-enable this test when it doesn't rely on ambient GCP credentials.
+		//{
+		//	name: "gcs",
+		//	want: []string{"gcs"},
+		//	cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: sets.NewString("gcs")}}},
+		//},
+		{
+			name: "oci",
+			want: []string{"oci"},
+			cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: sets.NewString("oci")}}},
+		},
+		{
+			name: "grafeas",
+			want: []string{"grafeas"},
+			cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: sets.NewString("grafeas")}}},
+		},
+		{
+			name: "multi",
+			want: []string{"grafeas", "oci", "tekton"},
+			cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: sets.NewString("grafeas", "oci", "tekton", "not-exist")}}},
+		},
+		{
+			name: "pubsub",
+			want: []string{"pubsub"},
+			cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: sets.NewString("pubsub")}}}},
+	}
 	logger := logtesting.TestLogger(t)
 	ctx, _ := rtesting.SetupFakeContext(t)
 	ps := fakepipelineclient.Get(ctx)
 	kc := fakekubeclient.Get(ctx)
-	tr := &v1beta1.TaskRun{}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := InitializeBackends(ps, kc, logger, tr, tt.cfg)
+			got, err := InitializeBackends(ctx, ps, kc, logger, tt.cfg)
 			if err != nil {
 				t.Errorf("InitializeBackends() error = %v", err)
 				return
 			}
+			logger.Debugf("Backend: %v", got)
 			gotTypes := []string{}
 			for _, g := range got {
 				gotTypes = append(gotTypes, g.Type())
 			}
+			sort.Strings(gotTypes)
+			sort.Strings(tt.want)
 			if !reflect.DeepEqual(gotTypes, tt.want) {
 				t.Errorf("InitializeBackends() = %v, want %v", gotTypes, tt.want)
 			}

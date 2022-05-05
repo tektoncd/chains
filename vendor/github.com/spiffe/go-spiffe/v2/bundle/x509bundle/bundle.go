@@ -76,6 +76,23 @@ func Parse(trustDomain spiffeid.TrustDomain, b []byte) (*Bundle, error) {
 	return bundle, nil
 }
 
+// ParseRaw parses a bundle from bytes. The certificate must be ASN.1 DER (concatenated
+// with no intermediate padding if there are more than one certificate)
+func ParseRaw(trustDomain spiffeid.TrustDomain, b []byte) (*Bundle, error) {
+	bundle := New(trustDomain)
+	certs, err := x509.ParseCertificates(b)
+	if err != nil {
+		return nil, x509bundleErr.New("cannot parse certificate: %v", err)
+	}
+	if len(certs) == 0 {
+		return nil, x509bundleErr.New("no certificates found")
+	}
+	for _, cert := range certs {
+		bundle.AddX509Authority(cert)
+	}
+	return bundle, nil
+}
+
 // TrustDomain returns the trust domain that the bundle belongs to.
 func (b *Bundle) TrustDomain() spiffeid.TrustDomain {
 	return b.trustDomain
