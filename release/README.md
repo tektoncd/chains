@@ -91,6 +91,14 @@ EOF
     TEKTON_PACKAGE=tektoncd/chains
     ```
 
+    1. Find the Rekor UUID for the release
+    ```bash
+    RELEASE_FILE=https://storage.googleapis.com/tekton-releases/chains/previous/${VERSION_TAG}/release.yaml
+    CONTROLLER_IMAGE_SHA=$(curl $RELEASE_FILE | sed -n 's/"//g;s/.*gcr\.io.*controller.*@//p;')
+    REKOR_UUID=$(rekor-cli search --sha $CONTROLLER_IMAGE_SHA | grep -v Found | head -1)
+    echo -e "CONTROLLER_IMAGE_SHA: ${CONTROLLER_IMAGE_SHA}\nREKOR_UUID: ${REKOR_UUID}"
+    ```
+
     1. Create a `PipelineResource` of type `git`
 
     ```shell
@@ -110,20 +118,23 @@ EOF
     EOF
     ```
 
-    1. Execute the Draft Release task.
+    1. Execute the Draft Release pipeline.
 
     ```bash
-    tkn --context dogfooding task start \
-      -i source="tekton-chains-$(echo $VERSION_TAG | tr '.' '-')" \
-      -i release-bucket=tekton-chains-bucket \
+    tkn --context dogfooding pipeline start \
+      --workspace name=shared,volumeClaimTemplateFile=workspace-template.yaml \
+      --workspace name=credentials,secret=release-secret \
       -p package=tektoncd/chains \
       -p release-tag="${VERSION_TAG}" \
+      -p bucket="gs://tekton-releases/chains" \
       -p previous-release-tag="${CHAINS_OLD_VERSION}" \
       -p release-name="Tekton Chains" \
-      create-draft-release
+      -p git-revision="${CHAINS_RELEASE_GIT_SHA}" \
+      -p rekor-uuid="$REKOR_UUID" \
+      release-draft
     ```
 
-    1. Watch logs of create-draft-release
+    1. Watch logs of release-draft
 
     1. On successful completion, a URL will be logged. Visit that URL and look through the release notes.
       1. Manually add upgrade and deprecation notices based on the generated release notes
