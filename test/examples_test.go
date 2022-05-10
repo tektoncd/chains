@@ -62,11 +62,31 @@ func TestExamples(t *testing.T) {
 	cleanUpInTotoFormatter()
 }
 
+func TestExamplesWithSpire(t *testing.T) {
+	ctx := context.Background()
+	c, ns, cleanup := setup(ctx, t, setupOpts{})
+	defer cleanup()
+
+	cleanUpInTotoFormatter := setupInTotoFormatterWithSpire(ctx, t, c)
+	runInTotoFormatterTests(ctx, t, ns, c)
+	cleanUpInTotoFormatter()
+}
+
 func setupInTotoFormatter(ctx context.Context, t *testing.T, c *clients) func() {
 	// Setup the right config.
 	return setConfigMap(ctx, t, c, map[string]string{
 		"artifacts.taskrun.format": "in-toto",
 		"artifacts.oci.storage":    "tekton",
+	})
+}
+
+func setupInTotoFormatterWithSpire(ctx context.Context, t *testing.T, c *clients) func() {
+	// Setup the right config.
+	return setConfigMap(ctx, t, c, map[string]string{
+		"artifacts.taskrun.format": "in-toto",
+		"artifacts.oci.storage":    "tekton",
+		"spire.enabled":            "true",
+		"spire.socketPath":         SpireSocketPath,
 	})
 }
 

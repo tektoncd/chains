@@ -30,6 +30,7 @@ import (
 	"github.com/in-toto/in-toto-golang/in_toto"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	ttesting "github.com/tektoncd/pipeline/pkg/reconciler/testing"
 	logtesting "knative.dev/pkg/logging/testing"
 )
 
@@ -38,7 +39,7 @@ var e1BuildFinished = time.Unix(1617011415, 0)
 
 func TestCreatePayload1(t *testing.T) {
 	tr := taskrunFromFile(t, "testdata/taskrun1.json")
-
+	ctx, _ := ttesting.SetupDefaultContext(t)
 	cfg := config.Config{
 		Builder: config.BuilderConfig{
 			ID: "test_builder-1",
@@ -104,7 +105,7 @@ func TestCreatePayload1(t *testing.T) {
 			},
 		},
 	}
-	i, _ := NewFormatter(cfg, logtesting.TestLogger(t))
+	i, _ := NewFormatter(ctx, cfg, logtesting.TestLogger(t))
 
 	got, err := i.CreatePayload(context.Background(), tr)
 
@@ -118,6 +119,7 @@ func TestCreatePayload1(t *testing.T) {
 
 func TestCreatePayload2(t *testing.T) {
 	tr := taskrunFromFile(t, "testdata/taskrun2.json")
+	ctx, _ := ttesting.SetupDefaultContext(t)
 	cfg := config.Config{
 		Builder: config.BuilderConfig{
 			ID: "test_builder-2",
@@ -151,7 +153,7 @@ func TestCreatePayload2(t *testing.T) {
 			},
 		},
 	}
-	i, _ := NewFormatter(cfg, logtesting.TestLogger(t))
+	i, _ := NewFormatter(ctx, cfg, logtesting.TestLogger(t))
 	got, err := i.CreatePayload(context.Background(), tr)
 
 	if err != nil {
@@ -164,13 +166,14 @@ func TestCreatePayload2(t *testing.T) {
 
 func TestCreatePayloadNilTaskRef(t *testing.T) {
 	tr := taskrunFromFile(t, "testdata/taskrun1.json")
+	ctx, _ := ttesting.SetupDefaultContext(t)
 	tr.Spec.TaskRef = nil
 	cfg := config.Config{
 		Builder: config.BuilderConfig{
 			ID: "testid",
 		},
 	}
-	f, _ := NewFormatter(cfg, logtesting.TestLogger(t))
+	f, _ := NewFormatter(ctx, cfg, logtesting.TestLogger(t))
 
 	p, err := f.CreatePayload(context.Background(), tr)
 	if err != nil {
@@ -185,6 +188,7 @@ func TestCreatePayloadNilTaskRef(t *testing.T) {
 
 func TestMultipleSubjects(t *testing.T) {
 	tr := taskrunFromFile(t, "testdata/taskrun-multiple-subjects.json")
+	ctx, _ := ttesting.SetupDefaultContext(t)
 	cfg := config.Config{
 		Builder: config.BuilderConfig{
 			ID: "test_builder-multiple",
@@ -231,7 +235,7 @@ func TestMultipleSubjects(t *testing.T) {
 		},
 	}
 
-	i, _ := NewFormatter(cfg, logtesting.TestLogger(t))
+	i, _ := NewFormatter(ctx, cfg, logtesting.TestLogger(t))
 	got, err := i.CreatePayload(context.Background(), tr)
 	if err != nil {
 		t.Errorf("unexpected error: %s", err.Error())
@@ -242,13 +246,14 @@ func TestMultipleSubjects(t *testing.T) {
 }
 
 func TestNewFormatter(t *testing.T) {
+	ctx, _ := ttesting.SetupDefaultContext(t)
 	t.Run("Ok", func(t *testing.T) {
 		cfg := config.Config{
 			Builder: config.BuilderConfig{
 				ID: "testid",
 			},
 		}
-		f, err := NewFormatter(cfg, logtesting.TestLogger(t))
+		f, err := NewFormatter(ctx, cfg, logtesting.TestLogger(t))
 		if f == nil {
 			t.Error("Failed to create formatter")
 		}
@@ -259,12 +264,13 @@ func TestNewFormatter(t *testing.T) {
 }
 
 func TestCreatePayloadError(t *testing.T) {
+	ctx, _ := ttesting.SetupDefaultContext(t)
 	cfg := config.Config{
 		Builder: config.BuilderConfig{
 			ID: "testid",
 		},
 	}
-	f, _ := NewFormatter(cfg, logtesting.TestLogger(t))
+	f, _ := NewFormatter(ctx, cfg, logtesting.TestLogger(t))
 
 	t.Run("Invalid type", func(t *testing.T) {
 		p, err := f.CreatePayload(context.Background(), "not a task ref")

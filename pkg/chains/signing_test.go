@@ -178,7 +178,7 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 
 			logger := logging.FromContext(ctx)
 			ts := &TaskRunSigner{
-				Formatters:        AllFormatters(*cfg, logger),
+				Formatters:        AllFormatters(ctx, *cfg, logger),
 				Backends:          fakeAllBackends(tt.backends),
 				SecretPath:        "./signing/x509/testdata/",
 				Pipelineclientset: ps,
@@ -251,7 +251,7 @@ func TestTaskRunSigner_Transparency(t *testing.T) {
 
 		logger := logging.FromContext(ctx)
 		ts := &TaskRunSigner{
-			Formatters:        AllFormatters(*cfg, logger),
+			Formatters:        AllFormatters(ctx, *cfg, logger),
 			Backends:          fakeAllBackends(backends),
 			SecretPath:        "./signing/x509/testdata/",
 			Pipelineclientset: ps,

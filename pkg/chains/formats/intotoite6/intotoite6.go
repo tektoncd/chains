@@ -28,7 +28,6 @@ import (
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/formats"
 	"github.com/tektoncd/chains/pkg/config"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/spire"
 	spireconfig "github.com/tektoncd/pipeline/pkg/spire/config"
@@ -48,18 +47,23 @@ type InTotoIte6 struct {
 	builderID          string
 	logger             *zap.SugaredLogger
 	spireEnabled       bool
-	spireControllerAPI *spire.SpireControllerApiClient
+	spireControllerAPI spire.ControllerAPIClient
 }
 
-func NewFormatter(cfg config.Config, logger *zap.SugaredLogger) (formats.Payloader, error) {
-	return &InTotoIte6{
-		builderID:    cfg.Builder.ID,
-		logger:       logger,
-		spireEnabled: cfg.SPIRE.Enabled,
-		spireControllerAPI: spire.NewSpireControllerApiClient(spireconfig.SpireConfig{
-			SocketPath: cfg.SPIRE.SocketPath,
-		}),
-	}, nil
+func NewFormatter(ctx context.Context, cfg config.Config, logger *zap.SugaredLogger) (formats.Payloader, error) {
+
+	intotoIte6 := &InTotoIte6{
+		builderID:          cfg.Builder.ID,
+		logger:             logger,
+		spireEnabled:       cfg.SPIRE.Enabled,
+		spireControllerAPI: spire.GetControllerAPIClient(ctx),
+	}
+
+	intotoIte6.spireControllerAPI.SetConfig((spireconfig.SpireConfig{
+		SocketPath: cfg.SPIRE.SocketPath,
+	}))
+
+	return intotoIte6, nil
 }
 
 func (i *InTotoIte6) Wrap() bool {
@@ -71,7 +75,7 @@ func (i *InTotoIte6) CreatePayload(ctx context.Context, obj interface{}) (interf
 	switch v := obj.(type) {
 	case *v1beta1.TaskRun:
 		tr = v
-		if i.spireEnabled && tr.IsSuccessful() {
+		if i.spireEnabled {
 			if err := formats.VerifySpire(ctx, tr, i.spireControllerAPI, i.logger); err != nil {
 				return nil, err
 			}
@@ -191,7 +195,7 @@ func GetSubjectDigests(tr *v1beta1.TaskRun, logger *zap.SugaredLogger) []intoto.
 			continue
 		}
 		// similarly, we could do this for other pipeline resources or whatever thing replaces them
-		if output.PipelineResourceBinding.ResourceSpec.Type == v1alpha1.PipelineResourceTypeImage {
+		if output.PipelineResourceBinding.ResourceSpec.Type == v1beta1.PipelineResourceTypeImage {
 			// get the url and digest, and save as a subject
 			var url, digest string
 			for _, s := range tr.Status.ResourcesResult {
@@ -238,7 +242,7 @@ func materials(tr *v1beta1.TaskRun) []slsa.ProvenanceMaterial {
 
 	// check for a Git PipelineResource
 	for _, input := range tr.Spec.Resources.Inputs {
-		if input.ResourceSpec == nil || input.ResourceSpec.Type != v1alpha1.PipelineResourceTypeGit {
+		if input.ResourceSpec == nil || input.ResourceSpec.Type != v1beta1.PipelineResourceTypeGit {
 			continue
 		}
 

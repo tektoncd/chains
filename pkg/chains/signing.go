@@ -80,13 +80,13 @@ func allSigners(ctx context.Context, sp string, cfg config.Config, l *zap.Sugare
 	return all
 }
 
-func AllFormatters(cfg config.Config, l *zap.SugaredLogger) map[formats.PayloadType]formats.Payloader {
+func AllFormatters(ctx context.Context, cfg config.Config, l *zap.SugaredLogger) map[formats.PayloadType]formats.Payloader {
 	all := map[formats.PayloadType]formats.Payloader{}
 
 	for _, f := range formats.AllFormatters {
 		switch f {
 		case formats.PayloadTypeTekton:
-			formatter, err := tekton.NewFormatter(cfg, l)
+			formatter, err := tekton.NewFormatter(ctx, cfg, l)
 			if err != nil {
 				l.Warnf("error configuring tekton formatter: %s", err)
 			}
@@ -98,7 +98,7 @@ func AllFormatters(cfg config.Config, l *zap.SugaredLogger) map[formats.PayloadT
 			}
 			all[f] = formatter
 		case formats.PayloadTypeInTotoIte6:
-			formatter, err := intotoite6.NewFormatter(cfg, l)
+			formatter, err := intotoite6.NewFormatter(ctx, cfg, l)
 			if err != nil {
 				l.Warnf("error configuring intoto formatter: %s", err)
 			}

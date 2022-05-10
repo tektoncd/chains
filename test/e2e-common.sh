@@ -29,6 +29,7 @@ RELEASE_YAML=${RELEASE_YAML:-}
 
 source $(dirname $0)/../vendor/github.com/tektoncd/plumbing/scripts/e2e-tests.sh
 
+# install_tkn installs tekton cli
 function install_tkn() {
   echo ">> Installing tkn"
   TKN_VERSION=0.20.0
@@ -38,6 +39,7 @@ function install_tkn() {
   tar xvzf tkn_$TKN_VERSION_Linux_x86_64.tar.gz -C /usr/local/bin/ tkn
 }
 
+# install_pipeline_crd installs tekton pipelines
 function install_pipeline_crd() {
   local latestreleaseyaml
   echo ">> Deploying Tekton Pipelines"
@@ -59,6 +61,107 @@ function install_pipeline_crd() {
   wait_until_pods_running tekton-pipelines || fail_test "Tekton Pipeline did not come up"
 }
 
+# spire_apply is used to create spire registration entries into the spire server
+function spire_apply() {
+  if [ $# -lt 2 -o "$1" != "-spiffeID" ]; then
+    echo "spire_apply requires a spiffeID as the first arg" >&2
+    exit 1
+  fi
+  show=$(kubectl exec -n spire deployment/spire-server -- \
+    /opt/spire/bin/spire-server entry show $1 $2)
+  if [ "$show" != "Found 0 entries" ]; then
+    # delete to recreate
+    entryid=$(echo "$show" | grep "^Entry ID" | cut -f2 -d:)
+    kubectl exec -n spire deployment/spire-server -- \
+      /opt/spire/bin/spire-server entry delete -entryID $entryid
+  fi
+  kubectl exec -n spire deployment/spire-server -- \
+    /opt/spire/bin/spire-server entry create "$@"
+}
+
+# install_spire uses the vendored spire deployment yamls to install spire server, agent and the CSI driver.
+# once the server is running, registering the spire agent node, pipeline controller and chains controller
+function install_spire() {
+  echo ">> Deploying Spire"
+  DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
+  echo "Creating SPIRE namespace..."
+  kubectl create ns spire
+
+  echo "Applying SPIFFE CSI Driver configuration..."
+  kubectl apply -f "$DIR"/testdata/spire/spiffe-csi-driver.yaml
+
+  echo "Deploying SPIRE server"
+  kubectl apply -f "$DIR"/testdata/spire/spire-server.yaml
+
+  echo "Deploying SPIRE agent"
+  kubectl apply -f "$DIR"/testdata/spire/spire-agent.yaml
+
+  wait_until_pods_running spire || fail_test "SPIRE did not come up"
+
+  spire_apply \
+    -spiffeID spiffe://example.org/ns/spire/node/example \
+    -selector k8s_psat:cluster:example-cluster \
+    -selector k8s_psat:agent_ns:spire \
+    -selector k8s_psat:agent_sa:spire-agent \
+    -node
+  spire_apply \
+    -spiffeID spiffe://example.org/ns/tekton-pipelines/sa/tekton-pipelines-controller \
+    -parentID spiffe://example.org/ns/spire/node/example \
+    -selector k8s:ns:tekton-pipelines \
+    -selector k8s:pod-label:app:tekton-pipelines-controller \
+    -selector k8s:sa:tekton-pipelines-controller \
+    -admin
+  spire_apply \
+    -spiffeID spiffe://example.org/ns/tekton-chains/sa/tekton-chains-controller \
+    -parentID spiffe://example.org/ns/spire/node/example \
+    -selector k8s:ns:tekton-chains \
+    -selector k8s:pod-label:app:tekton-chains-controller \
+    -selector k8s:sa:tekton-chains-controller
+}
+
+# patch_pipline_spire patches the pipeline controller to add in the Spire agent workload API mount
+function patch_pipline_spire() {
+  echo ">> Patching Tekton Pipelines for Spire"
+  kubectl patch \
+      deployment tekton-pipelines-controller \
+      -n tekton-pipelines \
+      --patch-file "$DIR"/testdata/patch/pipeline-controller-spire.json
+      
+  verify_pipeline_installation
+}
+
+# patch_pipline_CM_spire patches the pipeline feature-flags configMap to enable spire
+function patch_pipline_CM_spire() {
+  echo ">> Patching Tekton Pipelines CM feature-flags for Spire"
+  kubectl patch \
+      cm feature-flags \
+      -n tekton-pipelines \
+      --patch-file "$DIR"/testdata/patch/pipeline-cm-spire.json
+      
+  verify_pipeline_installation
+}
+
+# patch_chains_spire patches the Chains controller to add in the Spire agent workload API and vault mount
+function patch_chains_spire() {
+  echo ">> Patching Tekton Chains for Spire"
+  kubectl patch \
+      deployment tekton-chains-controller \
+      -n tekton-chains \
+      --patch-file "$DIR"/testdata/patch/chains-controller-spire.json
+      
+  # Wait for pods to be running in the namespaces we are deploying to
+  wait_until_pods_running tekton-chains || fail_test "Tekton Chains did not come up"
+}
+
+function verify_pipeline_installation() {
+  # Make sure that everything is cleaned up in the current namespace.
+  delete_pipeline_resources
+
+  # Wait for pods to be running in the namespaces we are deploying to
+  wait_until_pods_running tekton-pipelines || fail_test "Tekton Pipeline did not come up"
+}
+
 function install_chains() {
   echo ">> Deploying Tekton Chains"
   ko apply -f config/ || fail_test "Tekton Chains installation failed"
@@ -67,51 +170,9 @@ function install_chains() {
   wait_until_pods_running tekton-chains || fail_test "Tekton Chains did not come up"
 }
 
-function chains_patch_spire() {
-  kubectl patch -n tekton-chains deployment tekton-chains-controller \
-    --patch-file "$(dirname $0)/testdata/chains-patch-spire.json"
-  # Wait for pods to be running in the namespaces we are deploying to
-  wait_until_pods_running tekton-chains || fail_test "Tekton Chains did not come up after patching"
-}
-
 function dump_logs() {
   echo ">> Tekton Chains Logs"
   kubectl logs deployment/tekton-chains-controller -n tekton-chains
-}
-
-function spire_apply() {
-  if [ $# -lt 2 -o "$1" != "-spiffeID" ]; then
-    echo "spire_apply requires a spiffeID as the first arg" >&2
-    exit 1
-  fi
-  show=$(kubectl exec -n spire spire-server-0 -c spire-server -- \
-    /opt/spire/bin/spire-server entry show $1 $2)
-  if [ "$show" != "Found 0 entries" ]; then
-    # delete to recreate
-    entryid=$(echo "$show" | grep "^Entry ID" | cut -f2 -d:)
-    kubectl exec -n spire spire-server-0 -c spire-server -- \
-      /opt/spire/bin/spire-server entry delete -entryID $entryid
-  fi
-  kubectl exec -n spire spire-server-0 -c spire-server -- \
-    /opt/spire/bin/spire-server entry create "$@"
-}
-
-function install_spire() {
-  echo ">> Deploying Spire"
-  kubectl create ns spire --dry-run=client -o yaml | kubectl apply -f -
-  kubectl -n spire apply -f "$(dirname $0)/testdata/spire.yaml"
-  wait_until_pods_running spire || fail_test "Spire did not come up"
-  spire_apply \
-    -spiffeID spiffe://example.org/ns/spire/node/example \
-    -selector k8s_psat:cluster:example \
-    -selector k8s_psat:agent_ns:spire \
-    -selector k8s_psat:agent_sa:spire-agent \
-    -node
-  spire_apply \
-    -spiffeID spiffe://example.org/ns/tekton-chains/sa/tekton-chains-controller \
-    -parentID spiffe://example.org/ns/spire/node/example \
-    -selector k8s:ns:tekton-chains \
-    -selector k8s:sa:tekton-chains-controller
 }
 
 function vault_exec() {
@@ -167,6 +228,7 @@ EOF
   vault_exec read -format=json transit/keys/e2e \
     | jq -r .data.keys.\"1\".public_key >"$(dirname $0)/testdata/vault.pub"
 }
+
 function install_kafka() {
   echo ">> Deploying Kafka"
   helm repo add bitnami https://charts.bitnami.com/bitnami

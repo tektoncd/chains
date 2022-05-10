@@ -19,24 +19,41 @@ import (
 	"testing"
 
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	ttesting "github.com/tektoncd/pipeline/pkg/reconciler/testing"
+	"github.com/tektoncd/pipeline/pkg/spire"
+	"knative.dev/pkg/logging"
 )
 
 func TestTekton_CreatePayload(t *testing.T) {
+	spireMockClient := &spire.MockClient{}
+	ctx, _ := ttesting.SetupDefaultContext(t)
+	logger := logging.FromContext(ctx)
+	var (
+		cc spire.ControllerAPIClient = spireMockClient
+	)
+
 	tests := []struct {
-		name string
-		tr   *v1beta1.TaskRun
+		name   string
+		tr     *v1beta1.TaskRun
+		tekton *Tekton
 	}{
 		{
 			name: "tr",
 			tr: &v1beta1.TaskRun{
 				Status: v1beta1.TaskRunStatus{},
 			},
+			tekton: &Tekton{
+				logger:             logger,
+				spireEnabled:       false,
+				spireControllerAPI: cc,
+			},
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			i := &Tekton{}
-			got, err := i.CreatePayload(context.Background(), tt.tr)
+
+			got, err := tt.tekton.CreatePayload(context.Background(), tt.tr)
 			if err != nil {
 				t.Errorf("Tekton.CreatePayload() error = %v", err)
 				return

@@ -40,7 +40,7 @@ const (
 
 var AllFormatters = []PayloadType{PayloadTypeTekton, PayloadTypeSimpleSigning, PayloadTypeInTotoIte6}
 
-func VerifySpire(ctx context.Context, tr *v1beta1.TaskRun, spireControllerAPI *spire.SpireControllerApiClient, logger *zap.SugaredLogger) error {
+func VerifySpire(ctx context.Context, tr *v1beta1.TaskRun, spireControllerAPI spire.ControllerAPIClient, logger *zap.SugaredLogger) error {
 
 	if !tr.IsTaskRunResultVerified() {
 		return errors.New("taskrun status condition not verified. Spire taskrun results verification failure")

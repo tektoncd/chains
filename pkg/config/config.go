@@ -231,8 +231,8 @@ func defaultConfig() *Config {
 			ID: "https://tekton.dev/chains/v2",
 		},
 		SPIRE: SPIREConfig{
-			Enabled:    true,
-			SocketPath: "/spiffe-workload-api/spire-agent.sock",
+			Enabled:    false,
+			SocketPath: "unix:///spiffe-workload-api/spire-agent.sock",
 		},
 	}
 }
@@ -274,7 +274,7 @@ func NewConfigFromMap(data map[string]string) (*Config, error) {
 
 		// Spire config
 		asBool(spireEnabledKey, &cfg.SPIRE.Enabled),
-		asString(spireSocketPath, &cfg.SPIRE.SocketPath, "/spiffe-workload-api/spire-agent.sock"),
+		asString(spireSocketPath, &cfg.SPIRE.SocketPath),
 
 		asString(kmsSignerKMSRef, &cfg.Signers.KMS.KMSRef),
 		asString(kmsAuthAddress, &cfg.Signers.KMS.Auth.Address),

@@ -39,6 +39,8 @@ import (
 	"knative.dev/pkg/logging"
 )
 
+const SpireSocketPath string = "unix:///spiffe-workload-api/spire-agent.sock"
+
 func getTr(ctx context.Context, t *testing.T, c pipelineclientset.Interface, name, ns string) (tr *v1beta1.TaskRun) {
 	t.Helper()
 	tr, err := c.TektonV1beta1().TaskRuns(ns).Get(ctx, name, metav1.GetOptions{})
@@ -267,4 +269,9 @@ func verifySignature(ctx context.Context, t *testing.T, c *clients, tr *v1beta1.
 			}
 		}
 	}
+}
+
+func enableCMSpire(cm map[string]string) {
+	cm["spire.enabled"] = "true"
+	cm["spire.socketPath"] = SpireSocketPath
 }

@@ -30,17 +30,21 @@ import (
 type Tekton struct {
 	logger             *zap.SugaredLogger
 	spireEnabled       bool
-	spireControllerAPI *spire.SpireControllerApiClient
+	spireControllerAPI spire.ControllerAPIClient
 }
 
-func NewFormatter(cfg config.Config, l *zap.SugaredLogger) (formats.Payloader, error) {
-	return &Tekton{
-		logger:       l,
-		spireEnabled: cfg.SPIRE.Enabled,
-		spireControllerAPI: spire.NewSpireControllerApiClient(spireconfig.SpireConfig{
-			SocketPath: cfg.SPIRE.SocketPath,
-		}),
-	}, nil
+func NewFormatter(ctx context.Context, cfg config.Config, l *zap.SugaredLogger) (formats.Payloader, error) {
+	tekton := &Tekton{
+		logger:             l,
+		spireEnabled:       cfg.SPIRE.Enabled,
+		spireControllerAPI: spire.GetControllerAPIClient(ctx),
+	}
+
+	tekton.spireControllerAPI.SetConfig((spireconfig.SpireConfig{
+		SocketPath: cfg.SPIRE.SocketPath,
+	}))
+
+	return tekton, nil
 }
 
 // CreatePayload implements the Payloader interface.
@@ -49,7 +53,7 @@ func (i *Tekton) CreatePayload(ctx context.Context, obj interface{}) (interface{
 	switch v := obj.(type) {
 	case *v1beta1.TaskRun:
 		tr = v
-		if i.spireEnabled && tr.IsSuccessful() {
+		if i.spireEnabled {
 			if err := formats.VerifySpire(ctx, tr, i.spireControllerAPI, i.logger); err != nil {
 				return nil, err
 			}

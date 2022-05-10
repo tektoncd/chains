@@ -49,7 +49,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 			cfg := *value.(*config.Config)
 
 			// get all formatters for formatting payload
-			tsSigner.Formatters = chains.AllFormatters(cfg, logger)
+			tsSigner.Formatters = chains.AllFormatters(ctx, cfg, logger)
 
 			// get all backends for storing provenance
 			backends, err := storage.InitializeBackends(ctx, pipelineClient, kubeClient, logger, cfg)

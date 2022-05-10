@@ -34,15 +34,10 @@ import (
 
 func init() {
 	injection.Fake.RegisterClient(withFakeControllerClient)
-	injection.Fake.RegisterClient(withFakeEntrypointerClient)
 }
 
 func withFakeControllerClient(ctx context.Context, cfg *rest.Config) context.Context {
 	return context.WithValue(ctx, controllerKey{}, &spireControllerAPIClient{})
-}
-
-func withFakeEntrypointerClient(ctx context.Context, cfg *rest.Config) context.Context {
-	return context.WithValue(ctx, entrypointerKey{}, &spireEntrypointerAPIClient{})
 }
 
 // MockClient is a client used for mocking the this package for unit testing
