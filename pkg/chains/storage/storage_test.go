@@ -53,15 +53,16 @@ func TestInitializeBackends(t *testing.T) {
 			want: []string{"oci"},
 			cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: sets.NewString("oci")}}},
 		},
-		{
-			name: "grafeas",
-			want: []string{"grafeas"},
-			cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: sets.NewString("grafeas")}}},
-		},
+		// TODO: Re-enable this test when it doesn't rely on ambient GCP credentials.
+		// {
+		// 	name: "grafeas",
+		// 	want: []string{"grafeas"},
+		// 	cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: sets.NewString("grafeas")}}},
+		// },
 		{
 			name: "multi",
-			want: []string{"grafeas", "oci", "tekton"},
-			cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: sets.NewString("grafeas", "oci", "tekton", "not-exist")}}},
+			want: []string{"oci", "tekton"},
+			cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: sets.NewString("oci", "tekton")}}},
 		},
 		{
 			name: "pubsub",
