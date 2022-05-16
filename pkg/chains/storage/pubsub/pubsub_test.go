@@ -93,7 +93,7 @@ func TestBackend_StorePayload(t *testing.T) {
 			}
 			defer func() {
 				if err := topic.Shutdown(ctx); err != nil {
-					fmt.Println(err)
+					logger.Error(err)
 				}
 			}()
 
@@ -104,7 +104,7 @@ func TestBackend_StorePayload(t *testing.T) {
 			}
 			defer func() {
 				if err := sub.Shutdown(ctx); err != nil {
-					fmt.Println(err)
+					logger.Error(err)
 				}
 			}()
 
