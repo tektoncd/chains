@@ -114,23 +114,38 @@ func metadata(tr *v1beta1.TaskRun) *slsa.ProvenanceMetadata {
 // which material the Task definition came from
 func invocation(tr *v1beta1.TaskRun) slsa.ProvenanceInvocation {
 	i := slsa.ProvenanceInvocation{}
-	// get parameters
 	params := make(map[string]string)
-	for _, p := range tr.Spec.Params {
-		params[p.Name] = fmt.Sprintf("%v", p.Value)
-	}
-	// add params
+
+	// get implicit parameters from defaults
 	if ts := tr.Status.TaskSpec; ts != nil {
 		for _, p := range ts.Params {
 			if p.Default != nil {
-				v := p.Default.StringVal
-				if v == "" {
+				// TODO: Consider using p.Default.MarshalJSON()
+				var v string
+				switch p.Default.Type {
+				case v1beta1.ParamTypeString:
+					v = p.Default.StringVal
+				case v1beta1.ParamTypeArray:
 					v = fmt.Sprintf("%v", p.Default.ArrayVal)
 				}
 				params[p.Name] = v
 			}
 		}
 	}
+
+	// get explicit parameters
+	for _, p := range tr.Spec.Params {
+		// TODO: Consider using p.Value.MarshalJSON()
+		var v string
+		switch p.Value.Type {
+		case v1beta1.ParamTypeString:
+			v = p.Value.StringVal
+		case v1beta1.ParamTypeArray:
+			v = fmt.Sprintf("%v", p.Value.ArrayVal)
+		}
+		params[p.Name] = v
+	}
+
 	i.Parameters = params
 	return i
 }

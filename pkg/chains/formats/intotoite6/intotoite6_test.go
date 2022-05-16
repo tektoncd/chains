@@ -66,10 +66,10 @@ func TestCreatePayload1(t *testing.T) {
 			},
 			Invocation: slsa.ProvenanceInvocation{
 				Parameters: map[string]string{
-					"IMAGE":             "{string test.io/test/image []}",
-					"CHAINS-GIT_COMMIT": "{string abcd []}",
-					"CHAINS-GIT_URL":    "{string https://git.test.com []}",
-					"filename":          "{string /bin/ls []}",
+					"IMAGE":             "test.io/test/image",
+					"CHAINS-GIT_COMMIT": "abcd",
+					"CHAINS-GIT_URL":    "https://git.test.com",
+					"filename":          "/bin/ls",
 				},
 			},
 			Builder: slsa.ProvenanceBuilder{
