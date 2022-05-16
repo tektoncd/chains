@@ -195,7 +195,42 @@ spec:
   - name: my-array-param
     value:
     - "my"
-    - "array"`
+    - "array"
+  - name: my-empty-string-param
+    value: ""
+  - name: my-empty-array-param
+    value: []
+status:
+  taskSpec:
+    params:
+    - name: my-param
+      default: ignored
+    - name: my-array-param
+      type: array
+      default:
+      - "also"
+      - "ignored"
+    - name: my-default-param
+      default: string-default-param
+    - name: my-default-array-param
+      type: array
+      default:
+      - "array"
+      - "default"
+      - "param"
+    - name: my-empty-string-param
+      default: "ignored"
+    - name: my-empty-array-param
+      type: array
+      default:
+      - "also"
+      - "ignored"
+    - name: my-default-empty-string-param
+      default: ""
+    - name: my-default-empty-array-param
+      type: array
+      default: []
+`
 
 	var taskRun *v1beta1.TaskRun
 	if err := yaml.Unmarshal([]byte(taskrun), &taskRun); err != nil {
@@ -204,8 +239,14 @@ spec:
 
 	expected := slsa.ProvenanceInvocation{
 		Parameters: map[string]string{
-			"my-param":       "{string string-param []}",
-			"my-array-param": "{array  [my array]}",
+			"my-param":                      "string-param",
+			"my-array-param":                "[my array]",
+			"my-default-param":              "string-default-param",
+			"my-default-array-param":        "[array default param]",
+			"my-empty-string-param":         "",
+			"my-empty-array-param":          "[]",
+			"my-default-empty-string-param": "",
+			"my-default-empty-array-param":  "[]",
 		},
 	}
 
