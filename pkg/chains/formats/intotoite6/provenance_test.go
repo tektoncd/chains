@@ -238,15 +238,15 @@ status:
 	}
 
 	expected := slsa.ProvenanceInvocation{
-		Parameters: map[string]string{
-			"my-param":                      "string-param",
-			"my-array-param":                "[my array]",
-			"my-default-param":              "string-default-param",
-			"my-default-array-param":        "[array default param]",
-			"my-empty-string-param":         "",
-			"my-empty-array-param":          "[]",
-			"my-default-empty-string-param": "",
-			"my-default-empty-array-param":  "[]",
+		Parameters: map[string]v1beta1.ArrayOrString{
+			"my-param":                      {Type: "string", StringVal: "string-param"},
+			"my-array-param":                {Type: "array", ArrayVal: []string{"my", "array"}},
+			"my-default-param":              {Type: "string", StringVal: "string-default-param"},
+			"my-default-array-param":        {Type: "array", ArrayVal: []string{"array", "default", "param"}},
+			"my-empty-string-param":         {Type: "string", StringVal: ""},
+			"my-empty-array-param":          {Type: "array", ArrayVal: []string{}},
+			"my-default-empty-string-param": {Type: "string", StringVal: ""},
+			"my-default-empty-array-param":  {Type: "array", ArrayVal: []string{}},
 		},
 	}
 

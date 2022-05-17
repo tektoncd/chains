@@ -65,11 +65,11 @@ func TestCreatePayload1(t *testing.T) {
 				{URI: "git+https://git.test.com.git", Digest: slsa.DigestSet{"sha1": "abcd"}},
 			},
 			Invocation: slsa.ProvenanceInvocation{
-				Parameters: map[string]string{
-					"IMAGE":             "test.io/test/image",
-					"CHAINS-GIT_COMMIT": "abcd",
-					"CHAINS-GIT_URL":    "https://git.test.com",
-					"filename":          "/bin/ls",
+				Parameters: map[string]v1beta1.ArrayOrString{
+					"IMAGE":             {Type: "string", StringVal: "test.io/test/image"},
+					"CHAINS-GIT_COMMIT": {Type: "string", StringVal: "abcd"},
+					"CHAINS-GIT_URL":    {Type: "string", StringVal: "https://git.test.com"},
+					"filename":          {Type: "string", StringVal: "/bin/ls"},
 				},
 			},
 			Builder: slsa.ProvenanceBuilder{
@@ -134,7 +134,7 @@ func TestCreatePayload2(t *testing.T) {
 				ID: "test_builder-2",
 			},
 			Invocation: slsa.ProvenanceInvocation{
-				Parameters: map[string]string{},
+				Parameters: map[string]v1beta1.ArrayOrString{},
 			},
 			BuildType: "https://tekton.dev/attestations/chains@v2",
 			BuildConfig: BuildConfig{
@@ -214,7 +214,7 @@ func TestMultipleSubjects(t *testing.T) {
 				ID: "test_builder-multiple",
 			},
 			Invocation: slsa.ProvenanceInvocation{
-				Parameters: map[string]string{},
+				Parameters: map[string]v1beta1.ArrayOrString{},
 			},
 			BuildConfig: BuildConfig{
 				Steps: []Step{
