@@ -101,12 +101,6 @@ github.com/PaesslerAG/gval
 # github.com/PaesslerAG/jsonpath v0.1.1
 ## explicit
 github.com/PaesslerAG/jsonpath
-# github.com/PuerkitoBio/purell v1.1.1
-## explicit
-github.com/PuerkitoBio/purell
-# github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578
-## explicit
-github.com/PuerkitoBio/urlesc
 # github.com/ReneKroon/ttlcache/v2 v2.11.0
 ## explicit; go 1.15
 github.com/ReneKroon/ttlcache/v2
@@ -568,9 +562,10 @@ github.com/go-openapi/errors
 # github.com/go-openapi/jsonpointer v0.19.5
 ## explicit; go 1.13
 github.com/go-openapi/jsonpointer
-# github.com/go-openapi/jsonreference v0.19.6
+# github.com/go-openapi/jsonreference v0.20.0
 ## explicit; go 1.13
 github.com/go-openapi/jsonreference
+github.com/go-openapi/jsonreference/internal
 # github.com/go-openapi/loads v0.21.1
 ## explicit; go 1.13
 github.com/go-openapi/loads
@@ -585,7 +580,7 @@ github.com/go-openapi/runtime/middleware/header
 github.com/go-openapi/runtime/middleware/untyped
 github.com/go-openapi/runtime/security
 github.com/go-openapi/runtime/yamlpc
-# github.com/go-openapi/spec v0.20.4
+# github.com/go-openapi/spec v0.20.5
 ## explicit; go 1.13
 github.com/go-openapi/spec
 # github.com/go-openapi/strfmt v0.21.2
@@ -604,7 +599,7 @@ github.com/go-playground/locales/currency
 # github.com/go-playground/universal-translator v0.18.0
 ## explicit; go 1.13
 github.com/go-playground/universal-translator
-# github.com/go-playground/validator/v10 v10.10.0
+# github.com/go-playground/validator/v10 v10.10.1
 ## explicit; go 1.13
 github.com/go-playground/validator/v10
 # github.com/go-stack/stack v1.8.1
@@ -1056,8 +1051,8 @@ github.com/jcmturner/gokrb5/v8/types
 ## explicit; go 1.13
 github.com/jcmturner/rpc/v2/mstypes
 github.com/jcmturner/rpc/v2/ndr
-# github.com/jedisct1/go-minisign v0.0.0-20210703085342-c1f07ee84431
-## explicit; go 1.16
+# github.com/jedisct1/go-minisign v0.0.0-20211028175153-1c139d1cc84b
+## explicit; go 1.17
 github.com/jedisct1/go-minisign
 # github.com/jgautheron/goconst v1.5.1
 ## explicit; go 1.13
@@ -1425,7 +1420,7 @@ github.com/sigstore/fulcio/pkg/config
 github.com/sigstore/fulcio/pkg/ctl
 github.com/sigstore/fulcio/pkg/log
 github.com/sigstore/fulcio/pkg/oauthflow
-# github.com/sigstore/rekor v0.4.1-0.20220114213500-23f583409af3
+# github.com/sigstore/rekor v0.5.0
 ## explicit; go 1.16
 github.com/sigstore/rekor/pkg/client
 github.com/sigstore/rekor/pkg/generated/client
