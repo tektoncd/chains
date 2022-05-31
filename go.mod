@@ -6,7 +6,7 @@ replace k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20211109043538-2043435
 
 require (
 	cloud.google.com/go/compute v1.6.1
-	cloud.google.com/go/storage v1.22.0
+	cloud.google.com/go/storage v1.22.1
 	github.com/armon/go-metrics v0.3.11
 	github.com/armon/go-radix v1.0.0
 	github.com/ghodss/yaml v1.0.0
@@ -407,7 +407,7 @@ require (
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
 	google.golang.org/api v0.77.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20220421151946-72621c1f0bd3 // indirect
+	google.golang.org/genproto v0.0.0-20220518221133-4f43b3371335 // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.28 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.66.4 // indirect
