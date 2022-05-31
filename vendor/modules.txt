@@ -24,7 +24,7 @@ cloud.google.com/go/iam
 ## explicit; go 1.16
 cloud.google.com/go/kms/apiv1
 cloud.google.com/go/kms/internal
-# cloud.google.com/go/storage v1.22.0
+# cloud.google.com/go/storage v1.22.1
 ## explicit; go 1.15
 cloud.google.com/go/storage
 cloud.google.com/go/storage/internal
@@ -2244,7 +2244,7 @@ google.golang.org/appengine/internal/socket
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/socket
 google.golang.org/appengine/urlfetch
-# google.golang.org/genproto v0.0.0-20220421151946-72621c1f0bd3
+# google.golang.org/genproto v0.0.0-20220518221133-4f43b3371335
 ## explicit; go 1.15
 google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/api/expr/v1alpha1
