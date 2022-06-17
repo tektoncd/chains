@@ -16,6 +16,7 @@ package artifacts
 import (
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/tektoncd/chains/pkg/chains/formats"
@@ -23,6 +24,11 @@ import (
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/util/sets"
+)
+
+const (
+	// These have the form: sha256:<hex string>
+	digestChars = "sh:0123456789abcdef"
 )
 
 type Signable interface {
@@ -74,6 +80,20 @@ type OCIArtifact struct {
 type image struct {
 	url    string
 	digest string
+}
+
+// StructuredSignable contains info for signable targets to become either subjects or materials in Intoto statements.
+// Name is the identifier used within TaskRun results to identify the target.
+// Uri is the resource uri for the target needed iff the target is a material.
+// Digest is the target's SHA digest.
+// Description describes some basic info of this signable target.
+// ProvType determines whether the target is a input (material) or a output (subject). Options are "input" or "output".
+type StructuredSignable struct {
+	Name        string
+	Description string
+	Uri         string
+	Digest      string
+	ProvType    string
 }
 
 func (oa *OCIArtifact) ExtractObjects(tr *v1beta1.TaskRun) []interface{} {
@@ -173,6 +193,86 @@ func ExtractOCIImagesFromResults(tr *v1beta1.TaskRun, logger *zap.SugaredLogger)
 	}
 
 	return objs
+}
+
+// ExtractMavenPackagesFromResults extracts Maven packages within TaskRun results and store them as StructuredSignable.
+func ExtractMavenPackagesFromResults(tr *v1beta1.TaskRun, logger *zap.SugaredLogger) []interface{} {
+	mavenPackages := map[string]*StructuredSignable{}
+	var objs []interface{}
+	// suffises stores the package, POM and source suffises of a Maven package.
+	// Structure is {name_of_target_suffix, digest_suffix, prefix_marker}.
+	suffises := [][]string{{"MAVEN_PKG", "MAVEN_PKG_DIGEST", "PKG_"}, {"MAVEN_POM", "MAVEN_POM_DIGEST", "POM_"}, {"MAVEN_SRC", "MAVEN_SRC_DIGEST", "SRC_"}}
+
+	for _, res := range tr.Status.TaskRunResults {
+		for _, s := range suffises {
+			nameSuffix := s[0]
+			digestSuffix := s[1]
+			markerPrefix := s[2]
+			if strings.HasSuffix(res.Name, nameSuffix) {
+				p := strings.TrimSuffix(res.Name, nameSuffix)
+				marker := markerPrefix + p
+				if v, ok := mavenPackages[marker]; ok {
+					v.Name = strings.Trim(res.Value, "\n")
+				} else {
+					mavenPackages[marker] = &StructuredSignable{Name: strings.Trim(res.Value, "\n")}
+				}
+				// TODO: add logic for adding Maven package as input.
+				mavenPackages[marker].ProvType = "output"
+			}
+			if strings.HasSuffix(res.Name, digestSuffix) {
+				p := strings.TrimSuffix(res.Name, digestSuffix)
+				marker := markerPrefix + p
+				if v, ok := mavenPackages[marker]; ok {
+					v.Digest = strings.Trim(res.Value, "\n")
+				} else {
+					mavenPackages[marker] = &StructuredSignable{Digest: strings.Trim(res.Value, "\n")}
+				}
+				mavenPackages[marker].ProvType = "output"
+			}
+
+		}
+	}
+	// Only add it if we got both the package name and digest.
+	// TODO: add logic for adding Maven package as input.
+	for _, mvn := range mavenPackages {
+		if mvn.ProvType == "output" && mvn != nil && mvn.Name != "" && mvn.Digest != "" {
+			err := checkDigest(mvn.Digest)
+			if err != nil {
+				logger.Errorf("error getting digest: %v", err)
+			} else {
+				objs = append(objs, mvn)
+			}
+		}
+	}
+
+	return objs
+}
+
+func checkDigest(name string) error {
+	return checkElement("digest", name, digestChars, 7+64, 7+64)
+}
+
+// stripRunesFn returns a function which returns -1 (i.e. a value which
+// signals deletion in strings.Map) for runes in 'runes', and the rune otherwise.
+func stripRunesFn(runes string) func(rune) rune {
+	return func(r rune) rune {
+		if strings.ContainsRune(runes, r) {
+			return -1
+		}
+		return r
+	}
+}
+
+// checkElement checks a given named element matches character and length restrictions.
+// Returns true if the given element adheres to the given restrictions, false otherwise.
+func checkElement(name, element, allowedRunes string, minRunes, maxRunes int) error {
+	numRunes := utf8.RuneCountInString(element)
+	if (numRunes < minRunes) || (maxRunes < numRunes) {
+		return fmt.Errorf("%s must be between %d and %d characters in length: %s", name, minRunes, maxRunes, element)
+	} else if len(strings.Map(stripRunesFn(allowedRunes), element)) != 0 {
+		return fmt.Errorf("%s can only contain the characters `%s`: %s", name, allowedRunes, element)
+	}
+	return nil
 }
 
 // split allows IMAGES to be separated either by commas (for backwards compatibility)
