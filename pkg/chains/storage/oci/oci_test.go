@@ -140,6 +140,34 @@ func TestBackend_StorePayload(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "in-toto-and-simple-payload",
+			fields: fields{
+				tr: tr,
+			},
+			args: args{
+				payload:   simple,
+				signature: "",
+				storageOpts: config.StorageOpts{
+					PayloadFormat: "in-toto",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "tekton-and-simple-payload",
+			fields: fields{
+				tr: tr,
+			},
+			args: args{
+				payload:   simple,
+				signature: "",
+				storageOpts: config.StorageOpts{
+					PayloadFormat: "tekton",
+				},
+			},
+			wantErr: false,
+		},
+		{
 			name: "no subject",
 			fields: fields{
 				tr: tr,
