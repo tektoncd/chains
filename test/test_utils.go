@@ -35,7 +35,6 @@ import (
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	pipelineclientset "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"knative.dev/pkg/logging"
 )
@@ -112,9 +111,7 @@ func signed(tr *v1beta1.TaskRun) bool {
 var simpleTaskspec = v1beta1.TaskSpec{
 	Steps: []v1beta1.Step{
 		{
-			Container: corev1.Container{
-				Image: "busybox",
-			},
+			Image:  "busybox",
 			Script: "echo true",
 		},
 	},

@@ -54,7 +54,7 @@ func TestBackend_StorePayload(t *testing.T) {
 				Status: v1beta1.TaskRunStatus{
 					TaskRunStatusFields: v1beta1.TaskRunStatusFields{
 						TaskRunResults: []v1beta1.TaskRunResult{
-							{Name: "IMAGE_URL", Value: "mockImage"},
+							{Name: "IMAGE_URL", Value: *v1beta1.NewArrayOrString("mockImage")},
 						},
 					},
 				},

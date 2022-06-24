@@ -284,11 +284,11 @@ func TestGetSubjectDigests(t *testing.T) {
 				TaskRunResults: []v1beta1.TaskRunResult{
 					{
 						Name:  "IMAGE_URL",
-						Value: "registry/myimage",
+						Value: *v1beta1.NewArrayOrString("registry/myimage"),
 					},
 					{
 						Name:  "IMAGE_DIGEST",
-						Value: digest1,
+						Value: *v1beta1.NewArrayOrString(digest1),
 					},
 				},
 				ResourcesResult: []v1beta1.PipelineResourceResult{
