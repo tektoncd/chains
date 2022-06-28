@@ -43,7 +43,6 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/provenance"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logtesting "knative.dev/pkg/logging/testing"
 )
@@ -457,9 +456,7 @@ func TestRetryFailed(t *testing.T) {
 var imageTaskSpec = v1beta1.TaskSpec{
 	Steps: []v1beta1.Step{
 		{
-			Container: corev1.Container{
-				Image: "busybox",
-			},
+			Image: "busybox",
 			Script: `set -e
 cat <<EOF > $(outputs.resources.image.path)/index.json
 {

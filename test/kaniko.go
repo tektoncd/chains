@@ -61,46 +61,40 @@ func kanikoTask(t *testing.T, namespace, destinationImage string) *v1beta1.Task 
 			},
 			Steps: []v1beta1.Step{
 				{
-					Container: v1.Container{
-						Name:  "create-dockerfile",
-						Image: "bash:latest",
-						VolumeMounts: []v1.VolumeMount{
-							{
-								Name:      "dockerfile",
-								MountPath: "/dockerfile",
-							},
+					Name:  "create-dockerfile",
+					Image: "bash:latest",
+					VolumeMounts: []v1.VolumeMount{
+						{
+							Name:      "dockerfile",
+							MountPath: "/dockerfile",
 						},
 					},
 					Script: "#!/usr/bin/env bash\necho \"FROM gcr.io/distroless/base@sha256:6ec6da1888b18dd971802c2a58a76a7702902b4c9c1be28f38e75e871cedc2df\" > /dockerfile/Dockerfile",
 				}, {
-					Container: v1.Container{
-						Name:    "build-and-push",
-						Image:   "gcr.io/kaniko-project/executor:v1.6.0",
-						Command: []string{"/kaniko/executor"},
-						Args: []string{
-							"--dockerfile=/dockerfile/Dockerfile",
-							fmt.Sprintf("--destination=%s", destinationImage),
-							"--context=/dockerfile",
-							"--digest-file=$(results.IMAGE_DIGEST.path)",
-							// Need this to push the image to the insecure registry
-							"--insecure",
-						},
-						VolumeMounts: []v1.VolumeMount{
-							{
-								Name:      "dockerfile",
-								MountPath: "/dockerfile",
-							},
+					Name:    "build-and-push",
+					Image:   "gcr.io/kaniko-project/executor:v1.6.0",
+					Command: []string{"/kaniko/executor"},
+					Args: []string{
+						"--dockerfile=/dockerfile/Dockerfile",
+						fmt.Sprintf("--destination=%s", destinationImage),
+						"--context=/dockerfile",
+						"--digest-file=$(results.IMAGE_DIGEST.path)",
+						// Need this to push the image to the insecure registry
+						"--insecure",
+					},
+					VolumeMounts: []v1.VolumeMount{
+						{
+							Name:      "dockerfile",
+							MountPath: "/dockerfile",
 						},
 					},
 				}, {
-					Container: v1.Container{
-						Name:  "save-image-url",
-						Image: "bash:latest",
-						VolumeMounts: []v1.VolumeMount{
-							{
-								Name:      "dockerfile",
-								MountPath: "/dockerfile",
-							},
+					Name:  "save-image-url",
+					Image: "bash:latest",
+					VolumeMounts: []v1.VolumeMount{
+						{
+							Name:      "dockerfile",
+							MountPath: "/dockerfile",
 						},
 					},
 					Script: fmt.Sprintf("#!/usr/bin/env bash\necho %s | tee $(results.IMAGE_URL.path)", ref.String()),
@@ -140,10 +134,8 @@ cosign verify-attestation --allow-insecure-registry --key cosign.pub %s`
 			TaskSpec: &v1beta1.TaskSpec{
 				Steps: []v1beta1.Step{
 					{
-						Container: v1.Container{
-							Name:  "verify-image",
-							Image: "gcr.io/projectsigstore/cosign/ci/cosign:d764e8b89934dc1043bd1b13112a66641c63a038@sha256:228c37f9f37415efbd6a4ff16aae81197206ce1410a227bcab8ac8b039b36237",
-						},
+						Name:   "verify-image",
+						Image:  "gcr.io/projectsigstore/cosign/ci/cosign:d764e8b89934dc1043bd1b13112a66641c63a038@sha256:228c37f9f37415efbd6a4ff16aae81197206ce1410a227bcab8ac8b039b36237",
 						Script: script,
 					},
 				},

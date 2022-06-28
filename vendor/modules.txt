@@ -796,7 +796,7 @@ github.com/google/go-containerregistry/pkg/v1/remote/transport
 github.com/google/go-containerregistry/pkg/v1/stream
 github.com/google/go-containerregistry/pkg/v1/tarball
 github.com/google/go-containerregistry/pkg/v1/types
-# github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20220310143843-f1fa40b162a1
+# github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20220328141311-efc62d802606
 ## explicit; go 1.17
 github.com/google/go-containerregistry/pkg/authn/k8schain
 # github.com/google/go-containerregistry/pkg/authn/kubernetes v0.0.0-20220301182634-bfe2ffc6b6bd
@@ -1100,7 +1100,7 @@ github.com/julz/importas
 # github.com/kelseyhightower/envconfig v1.4.0
 ## explicit
 github.com/kelseyhightower/envconfig
-# github.com/kevinburke/ssh_config v0.0.0-20190725054713-01f96b0aa0cd
+# github.com/kevinburke/ssh_config v0.0.0-20201106050909-4977a11b4351
 ## explicit
 github.com/kevinburke/ssh_config
 # github.com/kisielk/errcheck v1.6.0
@@ -1576,8 +1576,8 @@ github.com/syndtr/goleveldb/leveldb/util
 # github.com/tdakkota/asciicheck v0.1.1
 ## explicit; go 1.13
 github.com/tdakkota/asciicheck
-# github.com/tektoncd/pipeline v0.31.1-0.20220105002759-3e137645be61
-## explicit; go 1.13
+# github.com/tektoncd/pipeline v0.37.0
+## explicit; go 1.17
 github.com/tektoncd/pipeline/pkg/apis/config
 github.com/tektoncd/pipeline/pkg/apis/pipeline
 github.com/tektoncd/pipeline/pkg/apis/pipeline/pod
@@ -1603,8 +1603,6 @@ github.com/tektoncd/pipeline/pkg/client/injection/client
 github.com/tektoncd/pipeline/pkg/client/injection/client/fake
 github.com/tektoncd/pipeline/pkg/client/injection/informers/factory
 github.com/tektoncd/pipeline/pkg/client/injection/informers/factory/fake
-github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1alpha1/condition
-github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1alpha1/condition/fake
 github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1alpha1/run
 github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1alpha1/run/fake
 github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/clustertask
@@ -1638,16 +1636,39 @@ github.com/tektoncd/pipeline/pkg/client/resource/injection/informers/resource/v1
 github.com/tektoncd/pipeline/pkg/client/resource/listers/resource/v1alpha1
 github.com/tektoncd/pipeline/pkg/list
 github.com/tektoncd/pipeline/pkg/names
+github.com/tektoncd/pipeline/pkg/reconciler/events/cache
 github.com/tektoncd/pipeline/pkg/reconciler/events/cloudevent
 github.com/tektoncd/pipeline/pkg/reconciler/pipeline/dag
 github.com/tektoncd/pipeline/pkg/remote
 github.com/tektoncd/pipeline/pkg/remote/oci
 github.com/tektoncd/pipeline/pkg/substitution
 github.com/tektoncd/pipeline/test
-# github.com/tektoncd/plumbing v0.0.0-20211012143332-c7cc43d9bc0c
+# github.com/tektoncd/plumbing v0.0.0-20220329085922-d765a5cba75f
 ## explicit; go 1.13
 github.com/tektoncd/plumbing
 github.com/tektoncd/plumbing/scripts
+# github.com/tektoncd/resolution v0.0.0-20220331203013-e4203c70c5eb
+## explicit; go 1.17
+github.com/tektoncd/resolution/pkg/apis/resolution
+github.com/tektoncd/resolution/pkg/apis/resolution/v1alpha1
+github.com/tektoncd/resolution/pkg/client/clientset/versioned
+github.com/tektoncd/resolution/pkg/client/clientset/versioned/fake
+github.com/tektoncd/resolution/pkg/client/clientset/versioned/scheme
+github.com/tektoncd/resolution/pkg/client/clientset/versioned/typed/resolution/v1alpha1
+github.com/tektoncd/resolution/pkg/client/clientset/versioned/typed/resolution/v1alpha1/fake
+github.com/tektoncd/resolution/pkg/client/informers/externalversions
+github.com/tektoncd/resolution/pkg/client/informers/externalversions/internalinterfaces
+github.com/tektoncd/resolution/pkg/client/informers/externalversions/resolution
+github.com/tektoncd/resolution/pkg/client/informers/externalversions/resolution/v1alpha1
+github.com/tektoncd/resolution/pkg/client/injection/client
+github.com/tektoncd/resolution/pkg/client/injection/client/fake
+github.com/tektoncd/resolution/pkg/client/injection/informers/factory
+github.com/tektoncd/resolution/pkg/client/injection/informers/factory/fake
+github.com/tektoncd/resolution/pkg/client/injection/informers/resolution/v1alpha1/resolutionrequest
+github.com/tektoncd/resolution/pkg/client/injection/informers/resolution/v1alpha1/resolutionrequest/fake
+github.com/tektoncd/resolution/pkg/client/listers/resolution/v1alpha1
+github.com/tektoncd/resolution/pkg/common
+github.com/tektoncd/resolution/pkg/resource
 # github.com/tent/canonical-json-go v0.0.0-20130607151641-96e4ba3a7613
 ## explicit
 github.com/tent/canonical-json-go
@@ -1706,7 +1727,7 @@ github.com/vbatts/tar-split/archive/tar
 # github.com/xanzy/go-gitlab v0.64.0
 ## explicit; go 1.17
 github.com/xanzy/go-gitlab
-# github.com/xanzy/ssh-agent v0.2.1
+# github.com/xanzy/ssh-agent v0.3.0
 ## explicit
 github.com/xanzy/ssh-agent
 # github.com/xdg-go/pbkdf2 v1.0.0
@@ -2502,7 +2523,7 @@ gopkg.in/warnings.v0
 # gopkg.in/yaml.v2 v2.4.0
 ## explicit; go 1.15
 gopkg.in/yaml.v2
-# gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
+# gopkg.in/yaml.v3 v3.0.1
 ## explicit
 gopkg.in/yaml.v3
 # honnef.co/go/tools v0.3.1

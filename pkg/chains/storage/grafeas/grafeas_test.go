@@ -150,8 +150,8 @@ func TestBackend_StorePayload(t *testing.T) {
 								// the image digest for test purpose also needs to follow image digest protocol to pass the check.
 								// i.e. only contain chars in "sh:0123456789abcdef", and the lenth is 7+64. See more details here:
 								// https://github.com/google/go-containerregistry/blob/d9bfbcb99e526b2a9417160e209b816e1b1fb6bd/pkg/name/digest.go#L63
-								{Name: "IMAGE_DIGEST", Value: "sha256:cfe4f0bf41c80609214f9b8ec0408b1afb28b3ced343b944aaa05d47caba3e00"},
-								{Name: "IMAGE_URL", Value: "gcr.io/test/kaniko-chains1"},
+								{Name: "IMAGE_DIGEST", Value: *v1beta1.NewArrayOrString("sha256:cfe4f0bf41c80609214f9b8ec0408b1afb28b3ced343b944aaa05d47caba3e00")},
+								{Name: "IMAGE_URL", Value: *v1beta1.NewArrayOrString("gcr.io/test/kaniko-chains1")},
 							},
 						},
 					},

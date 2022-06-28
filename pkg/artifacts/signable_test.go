@@ -146,11 +146,11 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 						TaskRunResults: []v1beta1.TaskRunResult{
 							{
 								Name:  "IMAGE_URL",
-								Value: "gcr.io/foo/bat",
+								Value: *v1beta1.NewArrayOrString("gcr.io/foo/bat"),
 							},
 							{
 								Name:  "IMAGE_DIGEST",
-								Value: "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b4",
+								Value: *v1beta1.NewArrayOrString("sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b4"),
 							},
 						},
 						TaskSpec: &v1beta1.TaskSpec{
@@ -188,11 +188,11 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 						TaskRunResults: []v1beta1.TaskRunResult{
 							{
 								Name:  "IMAGE_URL",
-								Value: "foo",
+								Value: *v1beta1.NewArrayOrString("foo"),
 							},
 							{
 								Name:  "gibberish",
-								Value: "baz",
+								Value: *v1beta1.NewArrayOrString("baz"),
 							},
 						},
 						ResourcesResult: []v1beta1.PipelineResourceResult{
@@ -241,7 +241,7 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 						TaskRunResults: []v1beta1.TaskRunResult{
 							{
 								Name:  "IMAGES",
-								Value: fmt.Sprintf("  \n \tgcr.io/foo/bar@%s\n,gcr.io/baz/bar@%s", digest1, digest2),
+								Value: *v1beta1.NewArrayOrString(fmt.Sprintf("  \n \tgcr.io/foo/bar@%s\n,gcr.io/baz/bar@%s", digest1, digest2)),
 							},
 						},
 					},
@@ -259,7 +259,7 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 						TaskRunResults: []v1beta1.TaskRunResult{
 							{
 								Name:  "IMAGES",
-								Value: fmt.Sprintf("gcr.io/foo/bar@%s\ngcr.io/baz/bar@%s\n\n", digest1, digest2),
+								Value: *v1beta1.NewArrayOrString(fmt.Sprintf("gcr.io/foo/bar@%s\ngcr.io/baz/bar@%s\n\n", digest1, digest2)),
 							},
 						},
 					},
@@ -295,12 +295,12 @@ func TestExtractOCIImagesFromResults(t *testing.T) {
 		Status: v1beta1.TaskRunStatus{
 			TaskRunStatusFields: v1beta1.TaskRunStatusFields{
 				TaskRunResults: []v1beta1.TaskRunResult{
-					{Name: "img1_IMAGE_URL", Value: "img1"},
-					{Name: "img1_IMAGE_DIGEST", Value: digest1},
-					{Name: "img2_IMAGE_URL", Value: "img2"},
-					{Name: "img2_IMAGE_DIGEST", Value: digest2},
-					{Name: "IMAGE_URL", Value: "img3"},
-					{Name: "IMAGE_DIGEST", Value: digest1},
+					{Name: "img1_IMAGE_URL", Value: *v1beta1.NewArrayOrString("img1")},
+					{Name: "img1_IMAGE_DIGEST", Value: *v1beta1.NewArrayOrString(digest1)},
+					{Name: "img2_IMAGE_URL", Value: *v1beta1.NewArrayOrString("img2")},
+					{Name: "img2_IMAGE_DIGEST", Value: *v1beta1.NewArrayOrString(digest2)},
+					{Name: "IMAGE_URL", Value: *v1beta1.NewArrayOrString("img3")},
+					{Name: "IMAGE_DIGEST", Value: *v1beta1.NewArrayOrString(digest1)},
 				},
 			},
 		},

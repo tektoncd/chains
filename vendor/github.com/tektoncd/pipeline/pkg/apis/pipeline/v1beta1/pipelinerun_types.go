@@ -20,12 +20,16 @@ import (
 	"context"
 	"time"
 
+	"k8s.io/apimachinery/pkg/runtime"
+
 	"github.com/tektoncd/pipeline/pkg/apis/config"
+	apisconfig "github.com/tektoncd/pipeline/pkg/apis/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline"
 	runv1alpha1 "github.com/tektoncd/pipeline/pkg/apis/run/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/clock"
 	"knative.dev/pkg/apis"
 	duckv1beta1 "knative.dev/pkg/apis/duck/v1beta1"
 )
@@ -92,19 +96,53 @@ func (pr *PipelineRun) IsGracefullyStopped() bool {
 	return pr.Spec.Status == PipelineRunSpecStatusStoppedRunFinally
 }
 
-// GetTimeout returns the the applicable timeout for the PipelineRun
-func (pr *PipelineRun) GetTimeout(ctx context.Context) time.Duration {
-	// Use the platform default if no timeout is set
-	if pr.Spec.Timeout == nil && pr.Spec.Timeouts == nil {
-		defaultTimeout := time.Duration(config.FromContextOrDefaults(ctx).Defaults.DefaultTimeoutMinutes)
-		return defaultTimeout * time.Minute
-	}
-
+// PipelineTimeout returns the the applicable timeout for the PipelineRun
+func (pr *PipelineRun) PipelineTimeout(ctx context.Context) time.Duration {
 	if pr.Spec.Timeout != nil {
 		return pr.Spec.Timeout.Duration
 	}
+	if pr.Spec.Timeouts != nil && pr.Spec.Timeouts.Pipeline != nil {
+		return pr.Spec.Timeouts.Pipeline.Duration
+	}
+	return time.Duration(config.FromContextOrDefaults(ctx).Defaults.DefaultTimeoutMinutes) * time.Minute
+}
 
-	return pr.Spec.Timeouts.Pipeline.Duration
+// TasksTimeout returns the the tasks timeout for the PipelineRun, if set,
+// or the tasks timeout computed from the Pipeline and Finally timeouts, if those are set.
+func (pr *PipelineRun) TasksTimeout() *metav1.Duration {
+	t := pr.Spec.Timeouts
+	if t == nil {
+		return nil
+	}
+	if t.Tasks != nil {
+		return t.Tasks
+	}
+	if t.Pipeline != nil && t.Finally != nil {
+		if t.Pipeline.Duration == apisconfig.NoTimeoutDuration || t.Finally.Duration == apisconfig.NoTimeoutDuration {
+			return nil
+		}
+		return &metav1.Duration{Duration: (t.Pipeline.Duration - t.Finally.Duration)}
+	}
+	return nil
+}
+
+// FinallyTimeout returns the the finally timeout for the PipelineRun, if set,
+// or the finally timeout computed from the Pipeline and Tasks timeouts, if those are set.
+func (pr *PipelineRun) FinallyTimeout() *metav1.Duration {
+	t := pr.Spec.Timeouts
+	if t == nil {
+		return nil
+	}
+	if t.Finally != nil {
+		return t.Finally
+	}
+	if t.Pipeline != nil && t.Tasks != nil {
+		if t.Pipeline.Duration == apisconfig.NoTimeoutDuration || t.Tasks.Duration == apisconfig.NoTimeoutDuration {
+			return nil
+		}
+		return &metav1.Duration{Duration: (t.Pipeline.Duration - t.Tasks.Duration)}
+	}
+	return nil
 }
 
 // IsPending returns true if the PipelineRun's spec status is set to Pending state
@@ -117,39 +155,21 @@ func (pr *PipelineRun) GetNamespacedName() types.NamespacedName {
 	return types.NamespacedName{Namespace: pr.Namespace, Name: pr.Name}
 }
 
-// IsTimedOut returns true if a pipelinerun has exceeded its spec.Timeout based on its status.Timeout
-func (pr *PipelineRun) IsTimedOut() bool {
-	return pr.HasTimedOut()
-}
-
 // HasTimedOut returns true if a pipelinerun has exceeded its spec.Timeout based on its status.Timeout
-func (pr *PipelineRun) HasTimedOut() bool {
-	pipelineTimeout := pr.Spec.Timeout
+func (pr *PipelineRun) HasTimedOut(ctx context.Context, c clock.PassiveClock) bool {
+	timeout := pr.PipelineTimeout(ctx)
 	startTime := pr.Status.StartTime
 
-	if !startTime.IsZero() && pipelineTimeout != nil {
-		timeout := pipelineTimeout.Duration
+	if !startTime.IsZero() {
 		if timeout == config.NoTimeoutDuration {
 			return false
 		}
-		runtime := time.Since(startTime.Time)
+		runtime := c.Since(startTime.Time)
 		if runtime > timeout {
 			return true
 		}
 	}
 	return false
-}
-
-// GetServiceAccountName returns the service account name for a given
-// PipelineTask if configured, otherwise it returns the PipelineRun's serviceAccountName.
-func (pr *PipelineRun) GetServiceAccountName(pipelineTaskName string) string {
-	serviceAccountName := pr.Spec.ServiceAccountName
-	for _, sa := range pr.Spec.ServiceAccountNames {
-		if sa.TaskName == pipelineTaskName {
-			serviceAccountName = sa.ServiceAccountName
-		}
-	}
-	return serviceAccountName
 }
 
 // HasVolumeClaimTemplate returns true if PipelineRun contains volumeClaimTemplates that is
@@ -172,27 +192,25 @@ type PipelineRunSpec struct {
 	// Resources is a list of bindings specifying which actual instances of
 	// PipelineResources to use for the resources the Pipeline has declared
 	// it needs.
+	// +listType=atomic
 	Resources []PipelineResourceBinding `json:"resources,omitempty"`
 	// Params is a list of parameter names and values.
+	// +listType=atomic
 	Params []Param `json:"params,omitempty"`
 	// +optional
 	ServiceAccountName string `json:"serviceAccountName,omitempty"`
 
-	// Deprecated: use taskRunSpecs.ServiceAccountName instead
-	// +optional
-	ServiceAccountNames []PipelineRunSpecServiceAccountName `json:"serviceAccountNames,omitempty"`
 	// Used for cancelling a pipelinerun (and maybe more later on)
 	// +optional
 	Status PipelineRunSpecStatus `json:"status,omitempty"`
-	// This is an alpha field. You must set the "enable-api-fields" feature flag to "alpha"
-	// for this field to be supported.
-	//
 	// Time after which the Pipeline times out.
 	// Currently three keys are accepted in the map
 	// pipeline, tasks and finally
 	// with Timeouts.pipeline >= Timeouts.tasks + Timeouts.finally
 	// +optional
 	Timeouts *TimeoutFields `json:"timeouts,omitempty"`
+
+	// Timeout Deprecated: use pipelineRunSpec.Timeouts.Pipeline instead
 	// Time after which the Pipeline times out. Defaults to never.
 	// Refer to Go's ParseDuration documentation for expected format: https://golang.org/pkg/time/#ParseDuration
 	// +optional
@@ -202,9 +220,11 @@ type PipelineRunSpec struct {
 	// Workspaces holds a set of workspace bindings that must match names
 	// with those declared in the pipeline.
 	// +optional
+	// +listType=atomic
 	Workspaces []WorkspaceBinding `json:"workspaces,omitempty"`
 	// TaskRunSpecs holds a set of runtime specs
 	// +optional
+	// +listType=atomic
 	TaskRunSpecs []PipelineTaskRunSpec `json:"taskRunSpecs,omitempty"`
 }
 
@@ -255,6 +275,12 @@ type PipelineRef struct {
 	// Bundle url reference to a Tekton Bundle.
 	// +optional
 	Bundle string `json:"bundle,omitempty"`
+
+	// ResolverRef allows referencing a Pipeline in a remote location
+	// like a git repo. This field is only supported when the alpha
+	// feature gate is enabled.
+	// +optional
+	ResolverRef `json:",omitempty"`
 }
 
 // PipelineRunStatus defines the observed state of PipelineRun
@@ -311,7 +337,7 @@ func (pr *PipelineRunStatus) GetCondition(t apis.ConditionType) *apis.Condition 
 
 // InitializeConditions will set all conditions in pipelineRunCondSet to unknown for the PipelineRun
 // and set the started time to the current time
-func (pr *PipelineRunStatus) InitializeConditions() {
+func (pr *PipelineRunStatus) InitializeConditions(c clock.PassiveClock) {
 	started := false
 	if pr.TaskRuns == nil {
 		pr.TaskRuns = make(map[string]*PipelineRunTaskRunStatus)
@@ -320,7 +346,7 @@ func (pr *PipelineRunStatus) InitializeConditions() {
 		pr.Runs = make(map[string]*PipelineRunRunStatus)
 	}
 	if pr.StartTime.IsZero() {
-		pr.StartTime = &metav1.Time{Time: time.Now()}
+		pr.StartTime = &metav1.Time{Time: c.Now()}
 		started = true
 	}
 	conditionManager := pipelineRunCondSet.Manage(pr)
@@ -360,6 +386,20 @@ func (pr *PipelineRunStatus) MarkRunning(reason, messageFormat string, messageA 
 	pipelineRunCondSet.Manage(pr).MarkUnknown(apis.ConditionSucceeded, reason, messageFormat, messageA...)
 }
 
+// ChildStatusReference is used to point to the statuses of individual TaskRuns and Runs within this PipelineRun.
+type ChildStatusReference struct {
+	runtime.TypeMeta `json:",inline"`
+	// Name is the name of the TaskRun or Run this is referencing.
+	Name string `json:"name,omitempty"`
+	// PipelineTaskName is the name of the PipelineTask this is referencing.
+	PipelineTaskName string `json:"pipelineTaskName,omitempty"`
+
+	// WhenExpressions is the list of checks guarding the execution of the PipelineTask
+	// +optional
+	// +listType=atomic
+	WhenExpressions []WhenExpression `json:"whenExpressions,omitempty"`
+}
+
 // PipelineRunStatusFields holds the fields of PipelineRunStatus' status.
 // This is defined separately and inlined so that other types can readily
 // consume these fields via duck typing.
@@ -372,16 +412,19 @@ type PipelineRunStatusFields struct {
 	// +optional
 	CompletionTime *metav1.Time `json:"completionTime,omitempty"`
 
+	// Deprecated - use ChildReferences instead.
 	// map of PipelineRunTaskRunStatus with the taskRun name as the key
 	// +optional
 	TaskRuns map[string]*PipelineRunTaskRunStatus `json:"taskRuns,omitempty"`
 
+	// Deprecated - use ChildReferences instead.
 	// map of PipelineRunRunStatus with the run name as the key
 	// +optional
 	Runs map[string]*PipelineRunRunStatus `json:"runs,omitempty"`
 
 	// PipelineResults are the list of results written out by the pipeline task's containers
 	// +optional
+	// +listType=atomic
 	PipelineResults []PipelineRunResult `json:"pipelineResults,omitempty"`
 
 	// PipelineRunSpec contains the exact spec used to instantiate the run
@@ -389,7 +432,13 @@ type PipelineRunStatusFields struct {
 
 	// list of tasks that were skipped due to when expressions evaluating to false
 	// +optional
+	// +listType=atomic
 	SkippedTasks []SkippedTask `json:"skippedTasks,omitempty"`
+
+	// list of TaskRun and Run names, PipelineTask names, and API versions/kinds for children of this PipelineRun.
+	// +optional
+	// +listType=atomic
+	ChildReferences []ChildStatusReference `json:"childReferences,omitempty"`
 }
 
 // SkippedTask is used to describe the Tasks that were skipped due to their When Expressions
@@ -398,10 +447,33 @@ type PipelineRunStatusFields struct {
 type SkippedTask struct {
 	// Name is the Pipeline Task name
 	Name string `json:"name"`
+	// Reason is the cause of the PipelineTask being skipped.
+	Reason SkippingReason `json:"reason"`
 	// WhenExpressions is the list of checks guarding the execution of the PipelineTask
 	// +optional
+	// +listType=atomic
 	WhenExpressions []WhenExpression `json:"whenExpressions,omitempty"`
 }
+
+// SkippingReason explains why a PipelineTask was skipped.
+type SkippingReason string
+
+const (
+	// WhenExpressionsSkip means the task was skipped due to at least one of its when expressions evaluating to false
+	WhenExpressionsSkip SkippingReason = "When Expressions evaluated to false"
+	// ParentTasksSkip means the task was skipped because its parent was skipped
+	ParentTasksSkip SkippingReason = "Parent Tasks were skipped"
+	// StoppingSkip means the task was skipped because the pipeline run is stopping
+	StoppingSkip SkippingReason = "PipelineRun was stopping"
+	// GracefullyCancelledSkip means the task was skipped because the pipeline run has been gracefully cancelled
+	GracefullyCancelledSkip SkippingReason = "PipelineRun was gracefully cancelled"
+	// GracefullyStoppedSkip means the task was skipped because the pipeline run has been gracefully stopped
+	GracefullyStoppedSkip SkippingReason = "PipelineRun was gracefully stopped"
+	// MissingResultsSkip means the task was skipped because it's missing necessary results
+	MissingResultsSkip SkippingReason = "Results were missing"
+	// None means the task was not skipped
+	None SkippingReason = "None"
+)
 
 // PipelineRunResult used to describe the results of a pipeline
 type PipelineRunResult struct {
@@ -419,11 +491,9 @@ type PipelineRunTaskRunStatus struct {
 	// Status is the TaskRunStatus for the corresponding TaskRun
 	// +optional
 	Status *TaskRunStatus `json:"status,omitempty"`
-	// ConditionChecks maps the name of a condition check to its Status
-	// +optional
-	ConditionChecks map[string]*PipelineRunConditionCheckStatus `json:"conditionChecks,omitempty"`
 	// WhenExpressions is the list of checks guarding the execution of the PipelineTask
 	// +optional
+	// +listType=atomic
 	WhenExpressions []WhenExpression `json:"whenExpressions,omitempty"`
 }
 
@@ -436,23 +506,8 @@ type PipelineRunRunStatus struct {
 	Status *runv1alpha1.RunStatus `json:"status,omitempty"`
 	// WhenExpressions is the list of checks guarding the execution of the PipelineTask
 	// +optional
+	// +listType=atomic
 	WhenExpressions []WhenExpression `json:"whenExpressions,omitempty"`
-}
-
-// PipelineRunConditionCheckStatus returns the condition check status
-type PipelineRunConditionCheckStatus struct {
-	// ConditionName is the name of the Condition
-	ConditionName string `json:"conditionName,omitempty"`
-	// Status is the ConditionCheckStatus for the corresponding ConditionCheck
-	// +optional
-	Status *ConditionCheckStatus `json:"status,omitempty"`
-}
-
-// PipelineRunSpecServiceAccountName can be used to configure specific
-// ServiceAccountName for a concrete Task
-type PipelineRunSpecServiceAccountName struct {
-	TaskName           string `json:"taskName,omitempty"`
-	ServiceAccountName string `json:"serviceAccountName,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -478,6 +533,13 @@ type PipelineTaskRunSpec struct {
 	PipelineTaskName       string       `json:"pipelineTaskName,omitempty"`
 	TaskServiceAccountName string       `json:"taskServiceAccountName,omitempty"`
 	TaskPodTemplate        *PodTemplate `json:"taskPodTemplate,omitempty"`
+	// +listType=atomic
+	StepOverrides []TaskRunStepOverride `json:"stepOverrides,omitempty"`
+	// +listType=atomic
+	SidecarOverrides []TaskRunSidecarOverride `json:"sidecarOverrides,omitempty"`
+
+	// +optional
+	Metadata *PipelineTaskMetadata `json:"metadata,omitempty"`
 }
 
 // GetTaskRunSpec returns the task specific spec for a given
@@ -485,7 +547,7 @@ type PipelineTaskRunSpec struct {
 func (pr *PipelineRun) GetTaskRunSpec(pipelineTaskName string) PipelineTaskRunSpec {
 	s := PipelineTaskRunSpec{
 		PipelineTaskName:       pipelineTaskName,
-		TaskServiceAccountName: pr.GetServiceAccountName(pipelineTaskName),
+		TaskServiceAccountName: pr.Spec.ServiceAccountName,
 		TaskPodTemplate:        pr.Spec.PodTemplate,
 	}
 	for _, task := range pr.Spec.TaskRunSpecs {
@@ -496,6 +558,9 @@ func (pr *PipelineRun) GetTaskRunSpec(pipelineTaskName string) PipelineTaskRunSp
 			if task.TaskServiceAccountName != "" {
 				s.TaskServiceAccountName = task.TaskServiceAccountName
 			}
+			s.StepOverrides = task.StepOverrides
+			s.SidecarOverrides = task.SidecarOverrides
+			s.Metadata = task.Metadata
 		}
 	}
 	return s
