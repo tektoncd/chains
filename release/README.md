@@ -84,11 +84,20 @@ EOF
 
     1. The YAMLs are now released! Anyone installing Tekton Chains will now get the new version. Time to create a new GitHub release announcement:
 
+    1. Find the Rekor UUID for the release
+    ```bash
+    RELEASE_FILE=https://storage.googleapis.com/tekton-releases/chains/previous/${VERSION_TAG}/release.yaml
+    CONTROLLER_IMAGE_SHA=$(curl $RELEASE_FILE | egrep 'gcr.io.*controller' | cut -d'@' -f2)
+    REKOR_UUID=$(rekor-cli search --sha $CONTROLLER_IMAGE_SHA | grep -v Found | head -1)
+    echo -e "CONTROLLER_IMAGE_SHA: ${CONTROLLER_IMAGE_SHA}\nREKOR_UUID: ${REKOR_UUID}"
+    ```
+
     1. Create additional environment variables
 
     ```bash
     CHAINS_OLD_VERSION=# Example: v0.11.1
-    TEKTON_PACKAGE=tektoncd/chains
+    CHAINS_RELEASE_NAME=$VERSION_TAG
+    CHAINS_PACKAGE=tektoncd/chains
     ```
 
     1. Create a `PipelineResource` of type `git`
@@ -113,14 +122,17 @@ EOF
     1. Execute the Draft Release task.
 
     ```bash
-    tkn --context dogfooding task start \
-      -i source="tekton-chains-$(echo $VERSION_TAG | tr '.' '-')" \
-      -i release-bucket=tekton-chains-bucket \
-      -p package=tektoncd/chains \
-      -p release-tag="${VERSION_TAG}" \
+    tkn --context dogfooding pipeline start \
+      --workspace name=shared,volumeClaimTemplateFile=workspace-template.yaml \
+      --workspace name=credentials,secret=release-secret \
+      -p package="${CHAINS_PACKAGE}" \
+      -p git-revision="$CHAINS_RELEASE_GIT_SHA" \
+      -p release-tag="${CHAINS_VERSION}" \
       -p previous-release-tag="${CHAINS_OLD_VERSION}" \
-      -p release-name="Tekton Chains" \
-      create-draft-release
+      -p release-name="${CHAINS_RELEASE_NAME}" \
+      -p bucket="gs://tekton-releases/chains" \
+      -p rekor-uuid="$REKOR_UUID" \
+      release-draft
     ```
 
     1. Watch logs of create-draft-release
