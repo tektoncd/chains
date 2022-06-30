@@ -57,7 +57,9 @@ To verify that installation was successful, wait until all Pods have Status
 `Running`:
 
 ```shell
-$ kubectl get po -n tekton-chains --watch
+kubectl get po -n tekton-chains --watch
+```
+```
 NAME                                       READY   STATUS      RESTARTS   AGE
 tekton-chains-controller-c4f7c57c4-nrjb2   1/1     Running     0          160m
 ```
