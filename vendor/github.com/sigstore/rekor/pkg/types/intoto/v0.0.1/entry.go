@@ -27,6 +27,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+	"strings"
 
 	"github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
@@ -78,6 +79,11 @@ func (v V001Entry) IndexKeys() ([]string, error) {
 
 	switch v.env.PayloadType {
 	case in_toto.PayloadType:
+		if v.IntotoObj.Content != nil && v.IntotoObj.Content.Hash != nil {
+			hashkey := strings.ToLower(fmt.Sprintf("%s:%s", swag.StringValue(v.IntotoObj.Content.Hash.Algorithm), swag.StringValue(v.IntotoObj.Content.Hash.Value)))
+			result = append(result, hashkey)
+		}
+
 		statement, err := parseStatement(v.env.Payload)
 		if err != nil {
 			return result, err
@@ -85,6 +91,18 @@ func (v V001Entry) IndexKeys() ([]string, error) {
 		for _, s := range statement.Subject {
 			for alg, ds := range s.Digest {
 				result = append(result, alg+":"+ds)
+			}
+		}
+		// Not all in-toto statements will contain a SLSA provenance predicate.
+		// See https://github.com/in-toto/attestation/blob/main/spec/README.md#predicate
+		// for other predicates.
+		if predicate, err := parseSlsaPredicate(v.env.Payload); err == nil {
+			if predicate.Predicate.Materials != nil {
+				for _, s := range predicate.Predicate.Materials {
+					for alg, ds := range s.Digest {
+						result = append(result, alg+":"+ds)
+					}
+				}
 			}
 		}
 	default:
@@ -103,6 +121,18 @@ func parseStatement(p string) (*in_toto.Statement, error) {
 		return nil, err
 	}
 	return &ps, nil
+}
+
+func parseSlsaPredicate(p string) (*in_toto.ProvenanceStatement, error) {
+	predicate := in_toto.ProvenanceStatement{}
+	payload, err := base64.StdEncoding.DecodeString(p)
+	if err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(payload, &predicate); err != nil {
+		return nil, err
+	}
+	return &predicate, nil
 }
 
 func (v *V001Entry) Unmarshal(pe models.ProposedEntry) error {
@@ -150,6 +180,13 @@ func (v *V001Entry) Canonicalize(ctx context.Context) ([]byte, error) {
 			},
 		},
 	}
+	attKey, attValue := v.AttestationKeyValue()
+	if attValue != nil {
+		canonicalEntry.Content.PayloadHash = &models.IntotoV001SchemaContentPayloadHash{
+			Algorithm: swag.String(models.IntotoV001SchemaContentHashAlgorithmSha256),
+			Value:     swag.String(strings.Replace(attKey, fmt.Sprintf("%s:", models.IntotoV001SchemaContentHashAlgorithmSha256), "", 1)),
+		}
+	}
 
 	itObj := models.Intoto{}
 	itObj.APIVersion = swag.String(APIVERSION)
@@ -193,12 +230,25 @@ func (v *V001Entry) validate() error {
 	return nil
 }
 
-func (v *V001Entry) Attestation() []byte {
-	if len(v.env.Payload) > viper.GetInt("max_attestation_size") {
-		log.Logger.Infof("Skipping attestation storage, size %d is greater than max %d", len(v.env.Payload), viper.GetInt("max_attestation_size"))
-		return nil
+// AttestationKey returns the digest of the attestation that was uploaded, to be used to lookup the attestation from storage
+func (v *V001Entry) AttestationKey() string {
+	if v.IntotoObj.Content != nil && v.IntotoObj.Content.PayloadHash != nil {
+		return fmt.Sprintf("%s:%s", *v.IntotoObj.Content.PayloadHash.Algorithm, *v.IntotoObj.Content.PayloadHash.Value)
 	}
-	return []byte(v.env.Payload)
+	return ""
+}
+
+// AttestationKeyValue returns both the key and value to be persisted into attestation storage
+func (v *V001Entry) AttestationKeyValue() (string, []byte) {
+	storageSize := base64.StdEncoding.DecodedLen(len(v.env.Payload))
+	if storageSize > viper.GetInt("max_attestation_size") {
+		log.Logger.Infof("Skipping attestation storage, size %d is greater than max %d", storageSize, viper.GetInt("max_attestation_size"))
+		return "", nil
+	}
+	attBytes, _ := base64.StdEncoding.DecodeString(v.env.Payload)
+	attHash := sha256.Sum256(attBytes)
+	attKey := fmt.Sprintf("%s:%s", models.IntotoV001SchemaContentHashAlgorithmSha256, hex.EncodeToString(attHash[:]))
+	return attKey, attBytes
 }
 
 type verifier struct {
@@ -269,6 +319,11 @@ func (v V001Entry) CreateFromArtifactProperties(_ context.Context, props types.A
 			},
 			PublicKey: &kb,
 		},
+	}
+	h := sha256.Sum256([]byte(re.IntotoObj.Content.Envelope))
+	re.IntotoObj.Content.Hash = &models.IntotoV001SchemaContentHash{
+		Algorithm: swag.String(models.IntotoV001SchemaContentHashAlgorithmSha256),
+		Value:     swag.String(hex.EncodeToString(h[:])),
 	}
 
 	returnVal.Spec = re.IntotoObj
