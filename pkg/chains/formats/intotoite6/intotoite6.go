@@ -42,33 +42,15 @@ const (
 	StructuredTargetVCS          = "SIGNABLE_VCS"
 )
 
-type ProvenanceSchema struct {
-	// Properties is the JSON Schema properties to support key-value pairs parameter.
-	// +optional
-	Properties map[string]PropertySpec `json:"properties,omitempty"`
-}
-
-var structuredSignableSchema = ProvenanceSchema{
-	Properties: map[string]PropertySpec{""},
-}
-
 type InTotoIte6 struct {
-	builderID        string
-	logger           *zap.SugaredLogger
-	provenanceFormat string
-}
-
-// TaskRunStructuredArtifact represents the artifacts that provides the provenence metadata in a structured format in TaskRun results, and the metadata is capable generating in-toto provenences.
-type StructuredArtifactMetadata struct {
-	StructuredArtifactType string
-	Metadata               *ArrayOrString
+	builderID string
+	logger    *zap.SugaredLogger
 }
 
 func NewFormatter(cfg config.Config, logger *zap.SugaredLogger) (formats.Payloader, error) {
 	return &InTotoIte6{
-		builderID:        cfg.Builder.ID,
-		logger:           logger,
-		provenanceFormat: "string",
+		builderID: cfg.Builder.ID,
+		logger:    logger,
 	}, nil
 }
 
@@ -90,13 +72,7 @@ func (i *InTotoIte6) CreatePayload(obj interface{}) (interface{}, error) {
 // generateAttestationFromTaskRun translates a Tekton TaskRun into an in-toto attestation
 // with the slsa-provenance predicate type
 func (i *InTotoIte6) generateAttestationFromTaskRun(tr *v1beta1.TaskRun) (interface{}, error) {
-	att := intoto.ProvenanceStatement{}
-
-	return generateProvenenceForStringFormat()
-}
-
-func generateProvenenceForStringFormat(tr *v1beta1.TaskRun, logger *zap.SugaredLogger) (interface{}, error) {
-	subjects := GetSubjectDigests(tr, logger)
+	subjects := GetSubjectDigests(tr, i.logger)
 
 	att := intoto.ProvenanceStatement{
 		StatementHeader: intoto.StatementHeader{
