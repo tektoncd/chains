@@ -294,32 +294,32 @@ func TestGetSubjectDigests(t *testing.T) {
 						Value: *v1beta1.NewArrayOrString(digest1),
 					},
 					{
-						Name:  "MAVEN_PKG",
-						Value: "maven-test-0.1.1.jar",
+						Name:  "mvn1_INTOTO_TARGET_NAME",
+						Value: *v1beta1.NewArrayOrString("maven-test-0.1.1.jar"),
 					},
 					{
-						Name:  "MAVEN_PKG_DIGEST",
-						Value: digest3,
+						Name:  "mvn1_INTOTO_TARGET_DIGEST",
+						Value: *v1beta1.NewArrayOrString(digest3),
 					},
 					{
-						Name:  "MAVEN_POM",
-						Value: "maven-test-0.1.1.pom",
+						Name:  "mvn1_pom_INTOTO_TARGET_NAME",
+						Value: *v1beta1.NewArrayOrString("maven-test-0.1.1.pom"),
 					},
 					{
-						Name:  "MAVEN_POM_DIGEST",
-						Value: digest4,
+						Name:  "mvn1_pom_INTOTO_TARGET_DIGEST",
+						Value: *v1beta1.NewArrayOrString(digest4),
 					},
 					{
-						Name:  "MAVEN_SRC",
-						Value: "maven-test-0.1.1-sources.jar",
+						Name:  "mvn1_src_INTOTO_TARGET_NAME",
+						Value: *v1beta1.NewArrayOrString("maven-test-0.1.1-sources.jar"),
 					},
 					{
-						Name:  "MAVEN_SRC_DIGEST",
-						Value: digest5,
+						Name:  "mvn1_src_INTOTO_TARGET_DIGEST",
+						Value: *v1beta1.NewArrayOrString(digest5),
 					},
 					{
-						Name:  "invalid_MAVEN_SRC_DIGEST",
-						Value: digest5,
+						Name:  "invalid_INTOTO_TARGET_DIGEST",
+						Value: *v1beta1.NewArrayOrString(digest5),
 					},
 				},
 				ResourcesResult: []v1beta1.PipelineResourceResult{
