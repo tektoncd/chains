@@ -27,6 +27,7 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/google/go-cmp/cmp"
 	"github.com/in-toto/in-toto-golang/in_toto"
+	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/formats/intotoite6/extract"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -102,50 +103,68 @@ status:
 		},
 	}
 
-	got := materials(objects.NewTaskRunObject(taskRun))
+	got := materials(objects.NewTaskRunObject(taskRun), logtesting.TestLogger(t))
 	if !reflect.DeepEqual(expected, got) {
 		t.Fatalf("expected %v got %v", expected, got)
 	}
 }
 
 func TestMaterials(t *testing.T) {
-	// make sure this works with Git resources
-	taskrun := `apiVersion: tekton.dev/v1beta1
-kind: TaskRun
-spec:
-  resources:
-    inputs:
-    - name: nil-resource-spec
-    - name: repo
-      resourceSpec:
-        params:
-        - name: url
-          value: https://github.com/GoogleContainerTools/distroless
-        type: git
-  taskSpec:
-    resources:
-      inputs:
-      - name: repo
-        type: git
-status:
-  resourcesResult:
-  - key: commit
-    resourceName: repo
-    resourceRef:
-      name: repo
-    value: 50c56a48cfb3a5a80fa36ed91c739bdac8381cbe
-  - key: url
-    resourceName: repo
-    resourceRef:
-      name: repo
-    value: https://github.com/GoogleContainerTools/distroless`
-
-	var taskRun *v1beta1.TaskRun
-	if err := yaml.Unmarshal([]byte(taskrun), &taskRun); err != nil {
-		t.Fatal(err)
+	taskrun := &v1beta1.TaskRun{
+		Spec: v1beta1.TaskRunSpec{
+			Resources: &v1beta1.TaskRunResources{
+				Inputs: []v1beta1.TaskResourceBinding{
+					{
+						PipelineResourceBinding: v1beta1.PipelineResourceBinding{
+							Name: "nil-resource-spec",
+						},
+					}, {
+						PipelineResourceBinding: v1beta1.PipelineResourceBinding{
+							Name: "repo",
+							ResourceSpec: &v1alpha1.PipelineResourceSpec{
+								Params: []v1alpha1.ResourceParam{
+									{Name: "url", Value: "https://github.com/GoogleContainerTools/distroless"},
+								},
+								Type: v1alpha1.PipelineResourceTypeGit,
+							},
+						},
+					},
+				},
+			},
+		},
+		Status: v1beta1.TaskRunStatus{
+			TaskRunStatusFields: v1beta1.TaskRunStatusFields{
+				TaskRunResults: []v1beta1.TaskRunResult{
+					{
+						Name: "img1_input" + "-" + artifacts.ArtifactsInputsResultName,
+						Value: *v1beta1.NewObject(map[string]string{
+							"uri":    "gcr.io/foo/bar",
+							"digest": digest3,
+						}),
+					},
+				},
+				ResourcesResult: []v1beta1.PipelineResourceResult{
+					{
+						ResourceName: "repo",
+						Key:          "commit",
+						Value:        "50c56a48cfb3a5a80fa36ed91c739bdac8381cbe",
+					}, {
+						ResourceName: "repo",
+						Key:          "url",
+						Value:        "https://github.com/GoogleContainerTools/distroless",
+					},
+				},
+			},
+		},
 	}
 
 	expected := []slsa.ProvenanceMaterial{
+		{
+			URI: "gcr.io/foo/bar",
+			Digest: slsa.DigestSet{
+				"sha256": strings.TrimPrefix(digest3, "sha256:"),
+			},
+		},
 		{
 			URI: "git+https://github.com/GoogleContainerTools/distroless.git",
 			Digest: slsa.DigestSet{
@@ -154,25 +173,20 @@ status:
 		},
 	}
 
-	got := materials(objects.NewTaskRunObject(taskRun))
+	got := materials(objects.NewTaskRunObject(taskrun), logtesting.TestLogger(t))
 	if !reflect.DeepEqual(expected, got) {
 		t.Fatalf("expected %v got %v", expected, got)
 	}
 
 	// make sure this works with GIT* results as well
-	taskrun = `apiVersion: tekton.dev/v1beta1
-kind: TaskRun
-spec:
-  params:
-  - name: CHAINS-GIT_COMMIT
-    value: my-commit
-  - name: CHAINS-GIT_URL
-    value: github.com/something`
-	taskRun = &v1beta1.TaskRun{}
-	if err := yaml.Unmarshal([]byte(taskrun), &taskRun); err != nil {
-		t.Fatal(err)
+	taskRun := &v1beta1.TaskRun{
+		Spec: v1beta1.TaskRunSpec{
+			Params: []v1beta1.Param{
+				{Name: "CHAINS-GIT_COMMIT", Value: v1beta1.ArrayOrString{StringVal: "my-commit"}},
+				{Name: "CHAINS-GIT_URL", Value: v1beta1.ArrayOrString{StringVal: "github.com/something"}},
+			},
+		},
 	}
-
 	expected = []slsa.ProvenanceMaterial{
 		{
 			URI: "git+github.com/something.git",
@@ -182,7 +196,7 @@ spec:
 		},
 	}
 
-	got = materials(objects.NewTaskRunObject(taskRun))
+	got = materials(objects.NewTaskRunObject(taskRun), logtesting.TestLogger(t))
 	if !reflect.DeepEqual(expected, got) {
 		t.Fatalf("expected %v got %v", expected, got)
 	}
@@ -323,6 +337,27 @@ func TestGetSubjectDigests(t *testing.T) {
 						Name:  "invalid_ARTIFACT_DIGEST",
 						Value: *v1beta1.NewArrayOrString(digest5),
 					},
+					{
+						Name: "mvn1_pkg" + "-" + artifacts.ArtifactsOutputsResultName,
+						Value: *v1beta1.NewObject(map[string]string{
+							"uri":    "projects/test-project-1/locations/us-west4/repositories/test-repo/mavenArtifacts/com.google.guava:guava:31.0-jre",
+							"digest": digest1,
+						}),
+					},
+					{
+						Name: "mvn1_pom_sha512" + "-" + artifacts.ArtifactsOutputsResultName,
+						Value: *v1beta1.NewObject(map[string]string{
+							"uri":    "com.google.guava:guava:1.0-jre.pom",
+							"digest": digest2,
+						}),
+					},
+					{
+						Name: "img1_input" + "-" + artifacts.ArtifactsInputsResultName,
+						Value: *v1beta1.NewObject(map[string]string{
+							"uri":    "gcr.io/foo/bar",
+							"digest": digest3,
+						}),
+					},
 				},
 				ResourcesResult: []v1beta1.PipelineResourceResult{
 					{
@@ -341,6 +376,11 @@ func TestGetSubjectDigests(t *testing.T) {
 
 	expected := []in_toto.Subject{
 		{
+			Name: "com.google.guava:guava:1.0-jre.pom",
+			Digest: slsa.DigestSet{
+				"sha256": strings.TrimPrefix(digest2, "sha256:"),
+			},
+		}, {
 			Name: "index.docker.io/registry/myimage",
 			Digest: slsa.DigestSet{
 				"sha256": strings.TrimPrefix(digest1, "sha256:"),
@@ -359,6 +399,11 @@ func TestGetSubjectDigests(t *testing.T) {
 			Name: "maven-test-0.1.1.pom",
 			Digest: slsa.DigestSet{
 				"sha256": strings.TrimPrefix(digest4, "sha256:"),
+			},
+		}, {
+			Name: "projects/test-project-1/locations/us-west4/repositories/test-repo/mavenArtifacts/com.google.guava:guava:31.0-jre",
+			Digest: slsa.DigestSet{
+				"sha256": strings.TrimPrefix(digest1, "sha256:"),
 			},
 		}, {
 			Name: "registry/resource-image",

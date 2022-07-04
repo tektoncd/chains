@@ -84,14 +84,14 @@ subject `pkg:/docker/test/foo@sha256:abcd?repository_url=gcr.io`
 is created. Note that image references are represented using [Package
 URL](https://github.com/package-url/purl-spec) format.
 
-## Limitations
+### Limitations
 This is an MVP implementation of the in-toto attestation
 format. More work would be required to properly capture the
 `Entrypoint` field in the provenance predicate, now the `TaskRef`'s name
 is used. Also metadata related to hermeticity/reproducibility are
 currently not populated.
 
-## Examples
+### Examples
 
 Example `TaskRun` attestation:
 
@@ -401,3 +401,56 @@ Example `PipelineRun` attestation:
 }
 
 ```
+
+### Structured Result Type Hinting
+
+**_A new feature will be implemented to have better support for artifact provenance retrieval. More details can be found in [Tekton Pipelines](https://github.com/tektoncd/pipeline/issues/5455)._**
+
+The feature requires **Tekton Pipeline v0.38** or later.
+
+To capture artifacts created by a task in a structured manner, Tekton Chains integrated with structured results and retrieve artifacts' provenances.
+The result should be in the following format in a Task:
+``` yaml
+results:
+  - name: {artifact_name}-ARTIFACT_INPUTS
+    description: Digest of the image just built.
+    type: object
+    properties:
+      uri:
+        type: string
+      digest:
+        type:string
+  - name: {artifact_name}-ARTIFACT_OUTPUTS
+    description: Digest of the image just built.
+    type: object
+    properties:
+      uri:
+        type: string
+      digest:
+        type:string
+```
+Suffix `-ARTIFACT_INPUTS` will retrieve the artifact provenance and put them in [Intoto Materials](https://github.com/in-toto/attestation/blob/v0.1.0/spec/predicates/provenance.md#fields), and `-ARTIFACT_OUTPUTS` will retrieve the artifact provenance and put them in [Intoto Subjects](https://github.com/in-toto/attestation/tree/v0.1.0/spec#statement).
+
+`uri` is the unique identifier for this artifact, and `digest` needs to be a string on the format `alg:digest`.
+
+An example structured result in a TaskRun:
+``` yaml
+results:
+        - name: img_1-ARTIFACT_INPUTS
+           value:
+               uri: gcr.io/foo/bar
+               digest: sha123@89dedecaca1b85346600c7db9939a4fe090a42ef
+        - name: mvn1_pkg-ARTIFACT_OUTPUTS
+           value:
+               uri: maven-test-0.0.1.jar
+               digest: sha256@89dedecaca1b85346600c7db9939a4fe090a42ee
+        - name: mvn1_pom-ARTIFACT_OUTPUTS
+           value:
+               uri: maven-test-0.0.1.pom
+               digest: sha256@89dedecaca1b85346600c7db9939a4fe090a42eg
+        - name: mvn1_src-ARTIFACT_OUTPUTS
+           value:
+               uri: maven-test-0.0.1-sources.jar
+               digest: sha256@89dedecaca1b85346600c7db9939a4fe090a42ez
+```
+
