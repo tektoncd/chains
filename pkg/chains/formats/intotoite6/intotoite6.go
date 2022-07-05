@@ -39,7 +39,6 @@ const (
 	commitParam                  = "CHAINS-GIT_COMMIT"
 	urlParam                     = "CHAINS-GIT_URL"
 	ChainsReproducibleAnnotation = "chains.tekton.dev/reproducible"
-	StructuredTargetVCS          = "SIGNABLE_VCS"
 )
 
 type InTotoIte6 struct {
@@ -153,19 +152,15 @@ func GetSubjectDigests(tr *v1beta1.TaskRun, logger *zap.SugaredLogger) []intoto.
 	}
 
 	sts := artifacts.ExtractIntotoSignableTargetFromResults(tr, logger)
-	for i, obj := range sts {
-		if m, ok := obj.(*artifacts.StructuredSignable); ok {
-			splits := strings.Split(m.Digest, ":")
-			logger.Warnf("Split %s %s", splits[0], splits[1])
-			subjects = append(subjects, intoto.Subject{
-				Name: m.Name,
-				Digest: slsa.DigestSet{
-					splits[0]: splits[1],
-				},
-			})
-		} else {
-			logger.Warnf("Unable to parse %sth object into StructuredSignable: obj", i, obj)
-		}
+	for _, obj := range sts {
+		splits := strings.Split(obj.(*artifacts.StructuredSignable).Digest, ":")
+		logger.Warnf("Split %s %s", splits[0], splits[1])
+		subjects = append(subjects, intoto.Subject{
+			Name: obj.(*artifacts.StructuredSignable).Name,
+			Digest: slsa.DigestSet{
+				splits[0]: splits[1],
+			},
+		})
 	}
 
 	if tr.Spec.Resources == nil {
