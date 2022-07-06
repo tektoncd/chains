@@ -154,7 +154,10 @@ func GetSubjectDigests(tr *v1beta1.TaskRun, logger *zap.SugaredLogger) []intoto.
 	sts := artifacts.ExtractIntotoSignableTargetFromResults(tr, logger)
 	for _, obj := range sts {
 		splits := strings.Split(obj.(*artifacts.StructuredSignable).Digest, ":")
-		logger.Warnf("Split %s %s", splits[0], splits[1])
+		if len(splits) != 2 {
+			logger.Errorf("Digest %s should be in the format of: algorthm:abc", obj.(*artifacts.StructuredSignable).Digest)
+			continue
+		}
 		subjects = append(subjects, intoto.Subject{
 			Name: obj.(*artifacts.StructuredSignable).Name,
 			Digest: slsa.DigestSet{

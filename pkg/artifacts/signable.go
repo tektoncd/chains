@@ -188,26 +188,26 @@ func extractTargetFromResults(tr *v1beta1.TaskRun, identifierSuffix string, dige
 	// Only add it if we got both the artifact name and digest.
 	// TODO: add logic for adding signable target as input.
 	for _, s := range ss {
-		if s != nil && s.Digest != "" {
-			err := checkDigest(s.Digest)
-			if err == nil {
-				if s.Name != "" {
-					if isOCIImage {
-						dgst, err := name.NewDigest(fmt.Sprintf("%s@%s", s.Name, s.Digest))
-						if err != nil {
-							logger.Errorf("error getting digest: %v", err)
-						} else {
-							objs = append(objs, dgst)
-						}
-					} else {
-						objs = append(objs, s)
-					}
+		if s == nil || s.Digest == "" {
+			continue
+		}
+		if err := checkDigest(s.Digest); err != nil {
+			logger.Errorf("error getting digest %s: %v", s.Digest, err)
+			continue
+		}
 
+		var objToAppend interface{}
+		objToAppend = s
+		if s.Name != "" {
+			if isOCIImage {
+				dgst, err := name.NewDigest(fmt.Sprintf("%s@%s", s.Name, s.Digest))
+				if err != nil {
+					logger.Errorf("error getting digest: %v", err)
+					continue
 				}
-			} else {
-				logger.Errorf("error getting digest %s: %v", s.Digest, err)
+				objToAppend = dgst
 			}
-
+			objs = append(objs, objToAppend)
 		}
 	}
 
