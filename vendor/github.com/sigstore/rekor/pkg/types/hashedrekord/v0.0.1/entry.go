@@ -18,9 +18,11 @@ package hashedrekord
 import (
 	"bytes"
 	"context"
+	"crypto/ed25519"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
@@ -29,7 +31,6 @@ import (
 	"github.com/asaskevich/govalidator"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/pkg/errors"
 
 	"github.com/sigstore/rekor/pkg/generated/models"
 	"github.com/sigstore/rekor/pkg/log"
@@ -159,6 +160,11 @@ func (v *V001Entry) validate() (pki.Signature, pki.PublicKey, error) {
 		return nil, nil, types.ValidationError(err)
 	}
 
+	_, isEd25519 := keyObj.CryptoPubKey().(ed25519.PublicKey)
+	if isEd25519 {
+		return nil, nil, types.ValidationError(errors.New("ed25519 unsupported for hashedrekord"))
+	}
+
 	data := v.HashedRekordObj.Data
 	if data == nil {
 		return nil, nil, types.ValidationError(errors.New("missing data"))
@@ -177,14 +183,18 @@ func (v *V001Entry) validate() (pki.Signature, pki.PublicKey, error) {
 		return nil, nil, err
 	}
 	if err := sigObj.Verify(nil, keyObj, options.WithDigest(decoded)); err != nil {
-		return nil, nil, types.ValidationError(errors.Wrap(err, "verifying signature"))
+		return nil, nil, types.ValidationError(fmt.Errorf("verifying signature: %w", err))
 	}
 
 	return sigObj, keyObj, nil
 }
 
-func (v V001Entry) Attestation() []byte {
-	return nil
+func (v V001Entry) AttestationKey() string {
+	return ""
+}
+
+func (v V001Entry) AttestationKeyValue() (string, []byte) {
+	return "", nil
 }
 
 func (v V001Entry) CreateFromArtifactProperties(ctx context.Context, props types.ArtifactProperties) (models.ProposedEntry, error) {
