@@ -294,31 +294,31 @@ func TestGetSubjectDigests(t *testing.T) {
 						Value: *v1beta1.NewArrayOrString(digest1),
 					},
 					{
-						Name:  "mvn1_INTOTO_TARGET_NAME",
+						Name:  "mvn1_CHAINS_SIGNABLE_NAME",
 						Value: *v1beta1.NewArrayOrString("maven-test-0.1.1.jar"),
 					},
 					{
-						Name:  "mvn1_INTOTO_TARGET_DIGEST",
+						Name:  "mvn1_CHAINS_SIGNABLE_DIGEST",
 						Value: *v1beta1.NewArrayOrString(digest3),
 					},
 					{
-						Name:  "mvn1_pom_INTOTO_TARGET_NAME",
+						Name:  "mvn1_pom_CHAINS_SIGNABLE_NAME",
 						Value: *v1beta1.NewArrayOrString("maven-test-0.1.1.pom"),
 					},
 					{
-						Name:  "mvn1_pom_INTOTO_TARGET_DIGEST",
+						Name:  "mvn1_pom_CHAINS_SIGNABLE_DIGEST",
 						Value: *v1beta1.NewArrayOrString(digest4),
 					},
 					{
-						Name:  "mvn1_src_INTOTO_TARGET_NAME",
+						Name:  "mvn1_src_CHAINS_SIGNABLE_NAME",
 						Value: *v1beta1.NewArrayOrString("maven-test-0.1.1-sources.jar"),
 					},
 					{
-						Name:  "mvn1_src_INTOTO_TARGET_DIGEST",
+						Name:  "mvn1_src_CHAINS_SIGNABLE_DIGEST",
 						Value: *v1beta1.NewArrayOrString(digest5),
 					},
 					{
-						Name:  "invalid_INTOTO_TARGET_DIGEST",
+						Name:  "invalid_CHAINS_SIGNABLE_DIGEST",
 						Value: *v1beta1.NewArrayOrString(digest5),
 					},
 				},
