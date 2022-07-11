@@ -14,18 +14,26 @@ limitations under the License.
 package artifacts
 
 import (
-	_ "crypto/sha256" // Recommended by go-digest.
 	"fmt"
+	"regexp"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/google/go-containerregistry/pkg/name"
-	"github.com/opencontainers/go-digest"
 	"github.com/tektoncd/chains/pkg/chains/formats"
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
+
+const (
+	digestFormat = `sha[0-9]+\:[a-zA-Z0-9]+`
+	// Runes of digest format
+	digestRunes = 64 + 7
+)
+
+var digestRegex = regexp.MustCompile(digestFormat)
 
 type Signable interface {
 	ExtractObjects(tr *v1beta1.TaskRun) []interface{}
@@ -78,13 +86,14 @@ type image struct {
 	digest string
 }
 
-// StructuredSignable contains info for signable targets to become either subjects or materials in intoto Statements.
-// Name is the identifier that uniquely identifies the signable. It can be the same as URI.
-// URI is the resource uri for the target needed iff the target is a material.
+// StructuredSignable contains info for signable targets to become either subjects or materials in Intoto statements.
+// Name is the identifier used within TaskRun results to identify the target.
+// Uri is the resource uri for the target needed iff the target is a material.
 // Digest is the target's SHA digest.
+// Description describes some basic info of this signable target.
 type StructuredSignable struct {
 	Name   string
-	URI    string
+	Uri    string
 	Digest string
 }
 
@@ -129,7 +138,40 @@ func (oa *OCIArtifact) ExtractObjects(tr *v1beta1.TaskRun) []interface{} {
 }
 
 func ExtractOCIImagesFromResults(tr *v1beta1.TaskRun, logger *zap.SugaredLogger) []interface{} {
-	objs := extractTargetFromResults(tr, "IMAGE_URL", "IMAGE_DIGEST", logger, true)
+	taskResultImages := map[string]*image{}
+	var objs []interface{}
+	urlSuffix := "IMAGE_URL"
+	digestSuffix := "IMAGE_DIGEST"
+	for _, res := range tr.Status.TaskRunResults {
+		if strings.HasSuffix(res.Name, urlSuffix) {
+			p := strings.TrimSuffix(res.Name, urlSuffix)
+			if v, ok := taskResultImages[p]; ok {
+				v.url = strings.Trim(res.Value.StringVal, "\n")
+			} else {
+				taskResultImages[p] = &image{url: strings.Trim(res.Value.StringVal, "\n")}
+			}
+		}
+		if strings.HasSuffix(res.Name, digestSuffix) {
+			p := strings.TrimSuffix(res.Name, digestSuffix)
+			if v, ok := taskResultImages[p]; ok {
+				v.digest = strings.Trim(res.Value.StringVal, "\n")
+			} else {
+				taskResultImages[p] = &image{digest: strings.Trim(res.Value.StringVal, "\n")}
+			}
+		}
+	}
+	// Only add it if we got both the URL and digest.
+	for _, img := range taskResultImages {
+		if img != nil && img.url != "" && img.digest != "" {
+			dgst, err := name.NewDigest(fmt.Sprintf("%s@%s", img.url, img.digest))
+			if err != nil {
+				logger.Errorf("error getting digest: %v", err)
+				return nil
+			}
+			objs = append(objs, dgst)
+		}
+	}
+
 	// look for a comma separated list of images
 	for _, key := range tr.Status.TaskRunResults {
 		if key.Name != "IMAGES" {
@@ -154,74 +196,57 @@ func ExtractOCIImagesFromResults(tr *v1beta1.TaskRun, logger *zap.SugaredLogger)
 	return objs
 }
 
-// ExtractIntotoSignableTargetFromResults extracts signable targets that aim to generate intoto provenance as materials within TaskRun results and store them as structuredSignable.
+// ExtractIntotoSignableTargetFromResults extracts signable targets that aim to generate Intoto provenance as materials within TaskRun results and store them as StructuredSignable.
 func ExtractIntotoSignableTargetFromResults(tr *v1beta1.TaskRun, logger *zap.SugaredLogger) []interface{} {
-	return extractTargetFromResults(tr, "INTOTO_TARGET_NAME", "INTOTO_TARGET_DIGEST", logger, false)
-}
-
-func extractTargetFromResults(tr *v1beta1.TaskRun, identifierSuffix string, digestSuffix string, logger *zap.SugaredLogger, isOCIImage bool) []interface{} {
 	ss := map[string]*StructuredSignable{}
 	var objs []interface{}
+	suffises := []string{"INTOTO_TARGET_NAME", "INTOTO_TARGET_DIGEST"}
 
 	for _, res := range tr.Status.TaskRunResults {
-		if strings.HasSuffix(res.Name, identifierSuffix) {
-			marker := strings.TrimSuffix(res.Name, identifierSuffix)
+		nameSuffix := suffises[0]
+		digestSuffix := suffises[1]
+		if strings.HasSuffix(res.Name, nameSuffix) {
+			marker := strings.TrimSuffix(res.Name, nameSuffix)
 			if v, ok := ss[marker]; ok {
-				v.Name = strings.TrimSpace(res.Value.StringVal)
-
+				v.Name = strings.Trim(res.Value.StringVal, "\n")
 			} else {
-				ss[marker] = &StructuredSignable{Name: strings.TrimSpace(res.Value.StringVal)}
+				ss[marker] = &StructuredSignable{Name: strings.Trim(res.Value.StringVal, "\n")}
 			}
 			// TODO: add logic for Intoto signable target as input.
 		}
 		if strings.HasSuffix(res.Name, digestSuffix) {
 			marker := strings.TrimSuffix(res.Name, digestSuffix)
 			if v, ok := ss[marker]; ok {
-				v.Digest = strings.TrimSpace(res.Value.StringVal)
+				v.Digest = strings.Trim(res.Value.StringVal, "\n")
 			} else {
-				ss[marker] = &StructuredSignable{Digest: strings.TrimSpace(res.Value.StringVal)}
+				ss[marker] = &StructuredSignable{Digest: strings.Trim(res.Value.StringVal, "\n")}
 			}
 		}
 
 	}
-
-	// Only add it if we got both the artifact name and digest.
+	// Only add it if we got both the package name and digest.
 	// TODO: add logic for adding signable target as input.
 	for _, s := range ss {
-		if s != nil && s.Digest != "" {
+		if s != nil && s.Name != "" && s.Digest != "" {
 			err := checkDigest(s.Digest)
-			if err == nil {
-				if s.Name != "" {
-					if isOCIImage {
-						dgst, err := name.NewDigest(fmt.Sprintf("%s@%s", s.Name, s.Digest))
-						if err != nil {
-							logger.Errorf("error getting digest: %v", err)
-						} else {
-							objs = append(objs, dgst)
-						}
-					} else {
-						objs = append(objs, s)
-					}
-
-				}
+			if err != nil {
+				logger.Errorf("error getting digest: %v", err)
 			} else {
-				logger.Errorf("error getting digest %s: %v", s.Digest, err)
+				objs = append(objs, s)
 			}
-
 		}
 	}
 
 	return objs
 }
 
-func checkDigest(dig string) error {
-	prefix := digest.Canonical.String() + ":"
-	if !strings.HasPrefix(dig, prefix) {
-		return fmt.Errorf("unsupported digest algorithm: %s", dig)
+func checkDigest(digest string) error {
+	if !digestRegex.MatchString(digest) {
+		return fmt.Errorf("%s need to follow the digest format: `%s`", digest, digestFormat)
 	}
-	hex := strings.TrimPrefix(dig, prefix)
-	if err := digest.Canonical.Validate(hex); err != nil {
-		return err
+	numRunes := utf8.RuneCountInString(digest)
+	if numRunes != digestRunes {
+		return fmt.Errorf("%s must be between %d characters in length", digest, digestRunes)
 	}
 	return nil
 }

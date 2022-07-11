@@ -73,7 +73,7 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 					},
 				},
 			},
-			want: []interface{}{createDigest(t, "gcr.io/foo/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5")},
+			want: []interface{}{digest(t, "gcr.io/foo/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5")},
 		},
 		{
 			name: "two images",
@@ -124,8 +124,8 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 				},
 			},
 			want: []interface{}{
-				createDigest(t, "gcr.io/foo/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5"),
-				createDigest(t, "gcr.io/foo/baz@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b6"),
+				digest(t, "gcr.io/foo/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5"),
+				digest(t, "gcr.io/foo/baz@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b6"),
 			},
 		},
 		{
@@ -179,8 +179,8 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 				},
 			},
 			want: []interface{}{
-				createDigest(t, "gcr.io/foo/bat@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b4"),
-				createDigest(t, "gcr.io/foo/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5")},
+				digest(t, "gcr.io/foo/bat@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b4"),
+				digest(t, "gcr.io/foo/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5")},
 		},
 		{
 			name: "extra",
@@ -234,7 +234,7 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 					},
 				},
 			},
-			want: []interface{}{createDigest(t, "gcr.io/foo/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5")},
+			want: []interface{}{digest(t, "gcr.io/foo/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5")},
 		}, {
 			name: "images",
 			tr: &v1beta1.TaskRun{
@@ -250,8 +250,8 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 				},
 			},
 			want: []interface{}{
-				createDigest(t, "gcr.io/foo/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5"),
-				createDigest(t, "gcr.io/baz/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b6"),
+				digest(t, "gcr.io/foo/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5"),
+				digest(t, "gcr.io/baz/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b6"),
 			},
 		}, {
 			name: "images-newline",
@@ -268,8 +268,8 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 				},
 			},
 			want: []interface{}{
-				createDigest(t, "gcr.io/foo/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5"),
-				createDigest(t, "gcr.io/baz/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b6"),
+				digest(t, "gcr.io/foo/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5"),
+				digest(t, "gcr.io/baz/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b6"),
 			},
 		},
 	}
@@ -308,9 +308,9 @@ func TestExtractOCIImagesFromResults(t *testing.T) {
 		},
 	}
 	want := []interface{}{
-		createDigest(t, fmt.Sprintf("img1@%s", digest1)),
-		createDigest(t, fmt.Sprintf("img2@%s", digest2)),
-		createDigest(t, fmt.Sprintf("img3@%s", digest1)),
+		digest(t, fmt.Sprintf("img1@%s", digest1)),
+		digest(t, fmt.Sprintf("img2@%s", digest2)),
+		digest(t, fmt.Sprintf("img3@%s", digest1)),
 	}
 	got := ExtractOCIImagesFromResults(tr, logtesting.TestLogger(t))
 	sort.Slice(got, func(i, j int) bool {
@@ -319,7 +319,7 @@ func TestExtractOCIImagesFromResults(t *testing.T) {
 		return a.String() < b.String()
 	})
 	if !cmp.Equal(got, want, ignore...) {
-		t.Fatalf("not the same %s", cmp.Diff(want, got, ignore...))
+		t.Fatalf("not the same %s", cmp.Diff(got, want, ignore...))
 	}
 }
 
@@ -354,17 +354,21 @@ func TestExtractIntotoSignableTargetFromResults(t *testing.T) {
 	}
 	got := ExtractIntotoSignableTargetFromResults(tr, logtesting.TestLogger(t))
 	sort.Slice(got, func(i, j int) bool {
-		return got[i].(*StructuredSignable).Name < got[j].(*StructuredSignable).Name
+		a := got[i].(*StructuredSignable)
+		b := got[j].(*StructuredSignable)
+		return a.Name < b.Name
 	})
 	sort.Slice(want, func(i, j int) bool {
-		return want[i].(*StructuredSignable).Name < want[j].(*StructuredSignable).Name
+		a := want[i].(*StructuredSignable)
+		b := want[j].(*StructuredSignable)
+		return a.Name < b.Name
 	})
 	if !cmp.Equal(got, want, ignore...) {
 		t.Fatalf("not the same %s", cmp.Diff(want, got, ignore...))
 	}
 }
 
-func createDigest(t *testing.T, dgst string) name.Digest {
+func digest(t *testing.T, dgst string) name.Digest {
 	result, err := name.NewDigest(dgst)
 	if err != nil {
 		t.Fatal(err)
