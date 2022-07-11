@@ -325,41 +325,41 @@ func TestExtractOCIImagesFromResults(t *testing.T) {
 	}
 }
 
-func TestExtractSignableTargetFromResults(t *testing.T) {
+func TestExtractIntotoSignableTargetFromResults(t *testing.T) {
 	tr := &v1beta1.TaskRun{
 		Status: v1beta1.TaskRunStatus{
 			TaskRunStatusFields: v1beta1.TaskRunStatusFields{
 				TaskRunResults: []v1beta1.TaskRunResult{
-					{Name: "mvn1_CHAINS_SIGNABLE_NAME", Value: *v1beta1.NewArrayOrString("projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/com.google.guava:guava:31.0-jre")},
-					{Name: "mvn1_CHAINS_SIGNABLE_DIGEST", Value: *v1beta1.NewArrayOrString(digest1)},
-					{Name: "mvn1_pom_CHAINS_SIGNABLE_NAME", Value: *v1beta1.NewArrayOrString("com.google.guava:guava:31.0-jre.pom")},
-					{Name: "mvn1_pom_CHAINS_SIGNABLE_DIGEST", Value: *v1beta1.NewArrayOrString(digest2)},
-					{Name: "mvn1_src_CHAINS_SIGNABLE_NAME", Value: *v1beta1.NewArrayOrString("com.google.guava:guava:31.0-jre-sources.jar")},
-					{Name: "mvn1_src_CHAINS_SIGNABLE_DIGEST", Value: *v1beta1.NewArrayOrString(digest3)},
-					{Name: "mvn2_CHAINS_SIGNABLE_NAME", Value: *v1beta1.NewArrayOrString("projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/a.b.c:d:1.0-jre")},
-					{Name: "mvn2_CHAINS_SIGNABLE_DIGEST", Value: *v1beta1.NewArrayOrString(digest4)},
-					{Name: "CHAINS_SIGNABLE_NAME", Value: *v1beta1.NewArrayOrString("projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/empty_prefix")},
-					{Name: "CHAINS_SIGNABLE_DIGEST", Value: *v1beta1.NewArrayOrString(digest1)},
-					{Name: "miss_target_name_CHAINS_SIGNABLE_DIGEST", Value: *v1beta1.NewArrayOrString(digest1)},
-					{Name: "wrong_digest_format_CHAINS_SIGNABLE_NAME", Value: *v1beta1.NewArrayOrString("projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/wrong_digest_format")},
-					{Name: "wrong_digest_format_CHAINS_SIGNABLE_DIGEST", Value: *v1beta1.NewArrayOrString("abc")},
+					{Name: "mvn1_INTOTO_TARGET_NAME", Value: *v1beta1.NewArrayOrString("projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/com.google.guava:guava:31.0-jre")},
+					{Name: "mvn1_INTOTO_TARGET_DIGEST", Value: *v1beta1.NewArrayOrString(digest1)},
+					{Name: "mvn1_pom_INTOTO_TARGET_NAME", Value: *v1beta1.NewArrayOrString("com.google.guava:guava:31.0-jre.pom")},
+					{Name: "mvn1_pom_INTOTO_TARGET_DIGEST", Value: *v1beta1.NewArrayOrString(digest2)},
+					{Name: "mvn1_src_INTOTO_TARGET_NAME", Value: *v1beta1.NewArrayOrString("com.google.guava:guava:31.0-jre-sources.jar")},
+					{Name: "mvn1_src_INTOTO_TARGET_DIGEST", Value: *v1beta1.NewArrayOrString(digest3)},
+					{Name: "mvn2_INTOTO_TARGET_NAME", Value: *v1beta1.NewArrayOrString("projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/a.b.c:d:1.0-jre")},
+					{Name: "mvn2_INTOTO_TARGET_DIGEST", Value: *v1beta1.NewArrayOrString(digest4)},
+					{Name: "INTOTO_TARGET_NAME", Value: *v1beta1.NewArrayOrString("projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/empty_prefix")},
+					{Name: "INTOTO_TARGET_DIGEST", Value: *v1beta1.NewArrayOrString(digest1)},
+					{Name: "miss_target_name_INTOTO_TARGET_DIGEST", Value: *v1beta1.NewArrayOrString(digest1)},
+					{Name: "wrong_digest_format_INTOTO_TARGET_NAME", Value: *v1beta1.NewArrayOrString("projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/wrong_digest_format")},
+					{Name: "wrong_digest_format_INTOTO_TARGET_DIGEST", Value: *v1beta1.NewArrayOrString("abc")},
 				},
 			},
 		},
 	}
-	want := []*StructuredSignable{
-		{URI: "projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/com.google.guava:guava:31.0-jre", Digest: digest1},
-		{URI: "com.google.guava:guava:31.0-jre.pom", Digest: digest2},
-		{URI: "com.google.guava:guava:31.0-jre-sources.jar", Digest: digest3},
-		{URI: "projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/a.b.c:d:1.0-jre", Digest: digest4},
-		{URI: "projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/empty_prefix", Digest: digest1},
+	want := []interface{}{
+		&StructuredSignable{Name: "projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/com.google.guava:guava:31.0-jre", Digest: digest1},
+		&StructuredSignable{Name: "com.google.guava:guava:31.0-jre.pom", Digest: digest2},
+		&StructuredSignable{Name: "com.google.guava:guava:31.0-jre-sources.jar", Digest: digest3},
+		&StructuredSignable{Name: "projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/a.b.c:d:1.0-jre", Digest: digest4},
+		&StructuredSignable{Name: "projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/empty_prefix", Digest: digest1},
 	}
-	got := ExtractSignableTargetFromResults(tr, logtesting.TestLogger(t))
+	got := ExtractIntotoSignableTargetFromResults(tr, logtesting.TestLogger(t))
 	sort.Slice(got, func(i, j int) bool {
-		return got[i].URI < got[j].URI
+		return got[i].(*StructuredSignable).Name < got[j].(*StructuredSignable).Name
 	})
 	sort.Slice(want, func(i, j int) bool {
-		return want[i].URI < want[j].URI
+		return want[i].(*StructuredSignable).Name < want[j].(*StructuredSignable).Name
 	})
 	if !cmp.Equal(got, want, ignore...) {
 		t.Fatalf("not the same %s", cmp.Diff(want, got, ignore...))
