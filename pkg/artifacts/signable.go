@@ -15,7 +15,6 @@ package artifacts
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 	"unicode/utf8"
 
@@ -29,13 +28,8 @@ import (
 
 const (
 	// These have the form: sha256:<hex string>
-	digestChars  = "sh:0123456789abcdef"
-	digestFormat = `sha[0-9]+\:[a-zA-Z0-9]+`
-	// Runes of digest format
-	digestRunes = 64 + 7
+	digestChars = "sh:0123456789abcdef"
 )
-
-var digestRegex = regexp.MustCompile(digestFormat)
 
 type Signable interface {
 	ExtractObjects(tr *v1beta1.TaskRun) []interface{}
@@ -93,11 +87,13 @@ type image struct {
 // Uri is the resource uri for the target needed iff the target is a material.
 // Digest is the target's SHA digest.
 // Description describes some basic info of this signable target.
+// ProvType determines whether the target is a input (material) or a output (subject). Options are "input" or "output".
 type StructuredSignable struct {
 	Name        string
 	Description string
 	Uri         string
 	Digest      string
+	ProvType    string
 }
 
 func (oa *OCIArtifact) ExtractObjects(tr *v1beta1.TaskRun) []interface{} {
@@ -199,43 +195,52 @@ func ExtractOCIImagesFromResults(tr *v1beta1.TaskRun, logger *zap.SugaredLogger)
 	return objs
 }
 
-// ExtractIntotoSignableTargetFromResults extracts signable targets that aim to generate Intoto provenance as materials within TaskRun results and store them as StructuredSignable.
-func ExtractIntotoSignableTargetFromResults(tr *v1beta1.TaskRun, logger *zap.SugaredLogger) []interface{} {
-	ss := map[string]*StructuredSignable{}
+// ExtractMavenPackagesFromResults extracts Maven packages within TaskRun results and store them as StructuredSignable.
+func ExtractMavenPackagesFromResults(tr *v1beta1.TaskRun, logger *zap.SugaredLogger) []interface{} {
+	mavenPackages := map[string]*StructuredSignable{}
 	var objs []interface{}
-	suffises := []string{"INTOTO_TARGET_NAME", "INTOTO_TARGET_DIGEST"}
+	// suffises stores the package, POM and source suffises of a Maven package.
+	// Structure is {name_of_target_suffix, digest_suffix, prefix_marker}.
+	suffises := [][]string{{"MAVEN_PKG", "MAVEN_PKG_DIGEST", "PKG_"}, {"MAVEN_POM", "MAVEN_POM_DIGEST", "POM_"}, {"MAVEN_SRC", "MAVEN_SRC_DIGEST", "SRC_"}}
 
 	for _, res := range tr.Status.TaskRunResults {
-		nameSuffix := suffises[0]
-		digestSuffix := suffises[1]
-		if strings.HasSuffix(res.Name, nameSuffix) {
-			marker := strings.TrimSuffix(res.Name, nameSuffix)
-			if v, ok := ss[marker]; ok {
-				v.Name = strings.Trim(res.Value.StringVal, "\n")
-			} else {
-				ss[marker] = &StructuredSignable{Name: strings.Trim(res.Value.StringVal, "\n")}
+		for _, s := range suffises {
+			nameSuffix := s[0]
+			digestSuffix := s[1]
+			markerPrefix := s[2]
+			if strings.HasSuffix(res.Name, nameSuffix) {
+				p := strings.TrimSuffix(res.Name, nameSuffix)
+				marker := markerPrefix + p
+				if v, ok := mavenPackages[marker]; ok {
+					v.Name = strings.Trim(res.Value, "\n")
+				} else {
+					mavenPackages[marker] = &StructuredSignable{Name: strings.Trim(res.Value, "\n")}
+				}
+				// TODO: add logic for adding Maven package as input.
+				mavenPackages[marker].ProvType = "output"
 			}
-			// TODO: add logic for Intoto signable target as input.
-		}
-		if strings.HasSuffix(res.Name, digestSuffix) {
-			marker := strings.TrimSuffix(res.Name, digestSuffix)
-			if v, ok := ss[marker]; ok {
-				v.Digest = strings.Trim(res.Value.StringVal, "\n")
-			} else {
-				ss[marker] = &StructuredSignable{Digest: strings.Trim(res.Value.StringVal, "\n")}
+			if strings.HasSuffix(res.Name, digestSuffix) {
+				p := strings.TrimSuffix(res.Name, digestSuffix)
+				marker := markerPrefix + p
+				if v, ok := mavenPackages[marker]; ok {
+					v.Digest = strings.Trim(res.Value, "\n")
+				} else {
+					mavenPackages[marker] = &StructuredSignable{Digest: strings.Trim(res.Value, "\n")}
+				}
+				mavenPackages[marker].ProvType = "output"
 			}
-		}
 
+		}
 	}
 	// Only add it if we got both the package name and digest.
-	// TODO: add logic for adding signable target as input.
-	for _, s := range ss {
-		if s != nil && s.Name != "" && s.Digest != "" {
-			err := checkDigest(s.Digest)
+	// TODO: add logic for adding Maven package as input.
+	for _, mvn := range mavenPackages {
+		if mvn.ProvType == "output" && mvn != nil && mvn.Name != "" && mvn.Digest != "" {
+			err := checkDigest(mvn.Digest)
 			if err != nil {
 				logger.Errorf("error getting digest: %v", err)
 			} else {
-				objs = append(objs, s)
+				objs = append(objs, mvn)
 			}
 		}
 	}
@@ -243,13 +248,29 @@ func ExtractIntotoSignableTargetFromResults(tr *v1beta1.TaskRun, logger *zap.Sug
 	return objs
 }
 
-func checkDigest(digest string) error {
-	if !digestRegex.MatchString(digest) {
-		return fmt.Errorf("%s need to follow the digest format: `%s`", digest, digestFormat)
+func checkDigest(name string) error {
+	return checkElement("digest", name, digestChars, 7+64, 7+64)
+}
+
+// stripRunesFn returns a function which returns -1 (i.e. a value which
+// signals deletion in strings.Map) for runes in 'runes', and the rune otherwise.
+func stripRunesFn(runes string) func(rune) rune {
+	return func(r rune) rune {
+		if strings.ContainsRune(runes, r) {
+			return -1
+		}
+		return r
 	}
-	numRunes := utf8.RuneCountInString(digest)
-	if numRunes != digestRunes {
-		return fmt.Errorf("%s must be between %d characters in length", digest, digestRunes)
+}
+
+// checkElement checks a given named element matches character and length restrictions.
+// Returns true if the given element adheres to the given restrictions, false otherwise.
+func checkElement(name, element, allowedRunes string, minRunes, maxRunes int) error {
+	numRunes := utf8.RuneCountInString(element)
+	if (numRunes < minRunes) || (maxRunes < numRunes) {
+		return fmt.Errorf("%s must be between %d and %d characters in length: %s", name, minRunes, maxRunes, element)
+	} else if len(strings.Map(stripRunesFn(allowedRunes), element)) != 0 {
+		return fmt.Errorf("%s can only contain the characters `%s`: %s", name, allowedRunes, element)
 	}
 	return nil
 }

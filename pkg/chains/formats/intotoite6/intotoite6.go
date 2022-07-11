@@ -176,7 +176,7 @@ func GetSubjectDigests(tr *v1beta1.TaskRun, logger *zap.SugaredLogger) []intoto.
 		}
 	}
 
-	mvns := artifacts.ExtractIntotoSignableTargetFromResults(tr, logger)
+	mvns := artifacts.ExtractMavenPackagesFromResults(tr, logger)
 	for i, obj := range mvns {
 		if m, ok := obj.(*artifacts.StructuredSignable); ok {
 			splits := strings.Split(m.Digest, ":")

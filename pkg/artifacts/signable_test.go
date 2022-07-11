@@ -323,36 +323,36 @@ func TestExtractOCIImagesFromResults(t *testing.T) {
 	}
 }
 
-func TestExtractIntotoSignableTargetFromResults(t *testing.T) {
+func TestExtractMvnPackagesFromResults(t *testing.T) {
 	tr := &v1beta1.TaskRun{
 		Status: v1beta1.TaskRunStatus{
 			TaskRunStatusFields: v1beta1.TaskRunStatusFields{
 				TaskRunResults: []v1beta1.TaskRunResult{
-					{Name: "mvn1_INTOTO_TARGET_NAME", Value: *v1beta1.NewArrayOrString("projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/com.google.guava:guava:31.0-jre")},
-					{Name: "mvn1_INTOTO_TARGET_DIGEST", Value: *v1beta1.NewArrayOrString(digest1)},
-					{Name: "mvn1_pom_INTOTO_TARGET_NAME", Value: *v1beta1.NewArrayOrString("com.google.guava:guava:31.0-jre.pom")},
-					{Name: "mvn1_pom_INTOTO_TARGET_DIGEST", Value: *v1beta1.NewArrayOrString(digest2)},
-					{Name: "mvn1_src_INTOTO_TARGET_NAME", Value: *v1beta1.NewArrayOrString("com.google.guava:guava:31.0-jre-sources.jar")},
-					{Name: "mvn1_src_INTOTO_TARGET_DIGEST", Value: *v1beta1.NewArrayOrString(digest3)},
-					{Name: "mvn2_INTOTO_TARGET_NAME", Value: *v1beta1.NewArrayOrString("projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/a.b.c:d:1.0-jre")},
-					{Name: "mvn2_INTOTO_TARGET_DIGEST", Value: *v1beta1.NewArrayOrString(digest4)},
-					{Name: "INTOTO_TARGET_NAME", Value: *v1beta1.NewArrayOrString("projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/empty_prefix")},
-					{Name: "INTOTO_TARGET_DIGEST", Value: *v1beta1.NewArrayOrString(digest1)},
-					{Name: "miss_target_name_INTOTO_TARGET_DIGEST", Value: *v1beta1.NewArrayOrString(digest1)},
-					{Name: "wrong_digest_format_INTOTO_TARGET_NAME", Value: *v1beta1.NewArrayOrString("projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/wrong_digest_format")},
-					{Name: "wrong_digest_format_INTOTO_TARGET_DIGEST", Value: *v1beta1.NewArrayOrString("abc")},
+					{Name: "mvn1_MAVEN_PKG", Value: "maven-test-0.1.1.jar"},
+					{Name: "mvn1_MAVEN_PKG_DIGEST", Value: digest1},
+					{Name: "mvn1_MAVEN_POM", Value: "maven-test-0.1.1.pom"},
+					{Name: "mvn1_MAVEN_POM_DIGEST", Value: digest2},
+					{Name: "mvn1_MAVEN_SRC", Value: "maven-test-0.1.1-sources.jar"},
+					{Name: "mvn1_MAVEN_SRC_DIGEST", Value: digest3},
+					{Name: "mvn2_MAVEN_PKG", Value: "maven-test-0.1.2.jar"},
+					{Name: "mvn2_MAVEN_PKG_DIGEST", Value: digest4},
+					{Name: "MAVEN_PKG", Value: "empty_prefix"},
+					{Name: "MAVEN_PKG_DIGEST", Value: digest1},
+					{Name: "miss_target_name_MAVEN_PKG_DIGEST", Value: digest1},
+					{Name: "wrong_digest_format_MAVEN_PKG", Value: "abc"},
+					{Name: "wrong_digest_format_MAVEN_PKG_DIGEST", Value: "abc"},
 				},
 			},
 		},
 	}
 	want := []interface{}{
-		&StructuredSignable{Name: "projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/com.google.guava:guava:31.0-jre", Digest: digest1},
-		&StructuredSignable{Name: "com.google.guava:guava:31.0-jre.pom", Digest: digest2},
-		&StructuredSignable{Name: "com.google.guava:guava:31.0-jre-sources.jar", Digest: digest3},
-		&StructuredSignable{Name: "projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/a.b.c:d:1.0-jre", Digest: digest4},
-		&StructuredSignable{Name: "projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/empty_prefix", Digest: digest1},
+		&StructuredSignable{Name: "maven-test-0.1.1.jar", Digest: digest1, ProvType: "output"},
+		&StructuredSignable{Name: "maven-test-0.1.1.pom", Digest: digest2, ProvType: "output"},
+		&StructuredSignable{Name: "maven-test-0.1.1-sources.jar", Digest: digest3, ProvType: "output"},
+		&StructuredSignable{Name: "maven-test-0.1.2.jar", Digest: digest4, ProvType: "output"},
+		&StructuredSignable{Name: "empty_prefix", Digest: digest1, ProvType: "output"},
 	}
-	got := ExtractIntotoSignableTargetFromResults(tr, logtesting.TestLogger(t))
+	got := ExtractMavenPackagesFromResults(tr, logtesting.TestLogger(t))
 	sort.Slice(got, func(i, j int) bool {
 		a := got[i].(*StructuredSignable)
 		b := got[j].(*StructuredSignable)
@@ -364,7 +364,7 @@ func TestExtractIntotoSignableTargetFromResults(t *testing.T) {
 		return a.Name < b.Name
 	})
 	if !cmp.Equal(got, want, ignore...) {
-		t.Fatalf("not the same %s", cmp.Diff(want, got, ignore...))
+		t.Fatalf("not the same %s", cmp.Diff(got, want, ignore...))
 	}
 }
 
