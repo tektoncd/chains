@@ -28,6 +28,8 @@ import (
 )
 
 const (
+	// These have the form: sha256:<hex string>
+	digestChars  = "sh:0123456789abcdef"
 	digestFormat = `sha[0-9]+\:[a-zA-Z0-9]+`
 	// Runes of digest format
 	digestRunes = 64 + 7
