@@ -176,22 +176,6 @@ func GetSubjectDigests(tr *v1beta1.TaskRun, logger *zap.SugaredLogger) []intoto.
 		}
 	}
 
-	mvns := artifacts.ExtractMavenPackagesFromResults(tr, logger)
-	for i, obj := range mvns {
-		if m, ok := obj.(*artifacts.StructuredSignable); ok {
-			splits := strings.Split(m.Digest, ":")
-			logger.Warnf("Split %s %s", splits[0], splits[1])
-			subjects = append(subjects, intoto.Subject{
-				Name: m.Name,
-				Digest: slsa.DigestSet{
-					splits[0]: splits[1],
-				},
-			})
-		} else {
-			logger.Warnf("Unable to parse %sth object into StructuredSignable: obj", i, obj)
-		}
-	}
-
 	if tr.Spec.Resources == nil {
 		return subjects
 	}

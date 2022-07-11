@@ -28,8 +28,6 @@ import (
 const (
 	digest1 = "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5"
 	digest2 = "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b6"
-	digest3 = "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b7"
-	digest4 = "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b8"
 )
 
 var ignore = []cmp.Option{cmpopts.IgnoreUnexported(name.Registry{}, name.Repository{}, name.Digest{})}
@@ -317,51 +315,6 @@ func TestExtractOCIImagesFromResults(t *testing.T) {
 		a := got[i].(name.Digest)
 		b := got[j].(name.Digest)
 		return a.String() < b.String()
-	})
-	if !cmp.Equal(got, want, ignore...) {
-		t.Fatalf("not the same %s", cmp.Diff(got, want, ignore...))
-	}
-}
-
-func TestExtractMvnPackagesFromResults(t *testing.T) {
-	tr := &v1beta1.TaskRun{
-		Status: v1beta1.TaskRunStatus{
-			TaskRunStatusFields: v1beta1.TaskRunStatusFields{
-				TaskRunResults: []v1beta1.TaskRunResult{
-					{Name: "mvn1_MAVEN_PKG", Value: "maven-test-0.1.1.jar"},
-					{Name: "mvn1_MAVEN_PKG_DIGEST", Value: digest1},
-					{Name: "mvn1_MAVEN_POM", Value: "maven-test-0.1.1.pom"},
-					{Name: "mvn1_MAVEN_POM_DIGEST", Value: digest2},
-					{Name: "mvn1_MAVEN_SRC", Value: "maven-test-0.1.1-sources.jar"},
-					{Name: "mvn1_MAVEN_SRC_DIGEST", Value: digest3},
-					{Name: "mvn2_MAVEN_PKG", Value: "maven-test-0.1.2.jar"},
-					{Name: "mvn2_MAVEN_PKG_DIGEST", Value: digest4},
-					{Name: "MAVEN_PKG", Value: "empty_prefix"},
-					{Name: "MAVEN_PKG_DIGEST", Value: digest1},
-					{Name: "miss_target_name_MAVEN_PKG_DIGEST", Value: digest1},
-					{Name: "wrong_digest_format_MAVEN_PKG", Value: "abc"},
-					{Name: "wrong_digest_format_MAVEN_PKG_DIGEST", Value: "abc"},
-				},
-			},
-		},
-	}
-	want := []interface{}{
-		&StructuredSignable{Name: "maven-test-0.1.1.jar", Digest: digest1, ProvType: "output"},
-		&StructuredSignable{Name: "maven-test-0.1.1.pom", Digest: digest2, ProvType: "output"},
-		&StructuredSignable{Name: "maven-test-0.1.1-sources.jar", Digest: digest3, ProvType: "output"},
-		&StructuredSignable{Name: "maven-test-0.1.2.jar", Digest: digest4, ProvType: "output"},
-		&StructuredSignable{Name: "empty_prefix", Digest: digest1, ProvType: "output"},
-	}
-	got := ExtractMavenPackagesFromResults(tr, logtesting.TestLogger(t))
-	sort.Slice(got, func(i, j int) bool {
-		a := got[i].(*StructuredSignable)
-		b := got[j].(*StructuredSignable)
-		return a.Name < b.Name
-	})
-	sort.Slice(want, func(i, j int) bool {
-		a := want[i].(*StructuredSignable)
-		b := want[j].(*StructuredSignable)
-		return a.Name < b.Name
 	})
 	if !cmp.Equal(got, want, ignore...) {
 		t.Fatalf("not the same %s", cmp.Diff(got, want, ignore...))
