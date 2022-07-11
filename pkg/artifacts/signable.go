@@ -79,9 +79,11 @@ type image struct {
 }
 
 // StructuredSignable contains info for signable targets to become either subjects or materials in intoto Statements.
+// Name is the identifier that uniquely identifies the signable. It can be the same as URI.
 // URI is the resource uri for the target needed iff the target is a material.
 // Digest is the target's SHA digest.
 type StructuredSignable struct {
+	Name   string
 	URI    string
 	Digest string
 }
@@ -168,7 +170,7 @@ func ExtractOCIImagesFromResults(tr *v1beta1.TaskRun, logger *zap.SugaredLogger)
 // ExtractSignableTargetFromResults extracts signable targets that aim to generate intoto provenance as materials within TaskRun results and store them as StructuredSignable.
 func ExtractSignableTargetFromResults(tr *v1beta1.TaskRun, logger *zap.SugaredLogger) []*StructuredSignable {
 	objs := []*StructuredSignable{}
-	ss := extractTargetFromResults(tr, "ARTIFACT_URI", "ARTIFACT_DIGEST", logger)
+	ss := extractTargetFromResults(tr, "CHAINS_SIGNABLE_NAME", "CHAINS_SIGNABLE_DIGEST", logger)
 	// Only add it if we got both the signable URI and digest.
 	for _, s := range ss {
 		if s == nil || s.Digest == "" || s.URI == "" {
