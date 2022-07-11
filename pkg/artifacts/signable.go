@@ -92,9 +92,10 @@ type image struct {
 // Digest is the target's SHA digest.
 // Description describes some basic info of this signable target.
 type StructuredSignable struct {
-	Name   string
-	Uri    string
-	Digest string
+	Name        string
+	Description string
+	Uri         string
+	Digest      string
 }
 
 func (oa *OCIArtifact) ExtractObjects(tr *v1beta1.TaskRun) []interface{} {
