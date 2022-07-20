@@ -13,7 +13,7 @@
         "builder": {
             "id": "https://tekton.dev/chains/v2"
         },
-        "buildType": "https://tekton.dev/attestations/chains@v2",
+        "buildType": "tekton.dev/v1beta1/TaskRun",
         "invocation": {
             "configSource": {},
             "parameters": {}

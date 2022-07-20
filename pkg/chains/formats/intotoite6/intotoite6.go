@@ -35,7 +35,6 @@ import (
 )
 
 const (
-	tektonID                     = "https://tekton.dev/attestations/chains@v2"
 	commitParam                  = "CHAINS-GIT_COMMIT"
 	urlParam                     = "CHAINS-GIT_URL"
 	ChainsReproducibleAnnotation = "chains.tekton.dev/reproducible"
@@ -83,7 +82,7 @@ func (i *InTotoIte6) generateAttestationFromTaskRun(tr *v1beta1.TaskRun) (interf
 			Builder: slsa.ProvenanceBuilder{
 				ID: i.builderID,
 			},
-			BuildType:   tektonID,
+			BuildType:   fmt.Sprintf("%s/%s", tr.GetGroupVersionKind().GroupVersion().String(), tr.GetGroupVersionKind().Kind),
 			Invocation:  invocation(tr),
 			BuildConfig: buildConfig(tr),
 			Metadata:    metadata(tr),

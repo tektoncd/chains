@@ -75,7 +75,7 @@ func TestCreatePayload1(t *testing.T) {
 			Builder: slsa.ProvenanceBuilder{
 				ID: "test_builder-1",
 			},
-			BuildType: "https://tekton.dev/attestations/chains@v2",
+			BuildType: "tekton.dev/v1beta1/TaskRun",
 			BuildConfig: BuildConfig{
 				Steps: []Step{
 					{
@@ -136,7 +136,7 @@ func TestCreatePayload2(t *testing.T) {
 			Invocation: slsa.ProvenanceInvocation{
 				Parameters: map[string]v1beta1.ArrayOrString{},
 			},
-			BuildType: "https://tekton.dev/attestations/chains@v2",
+			BuildType: "tekton.dev/v1beta1/TaskRun",
 			BuildConfig: BuildConfig{
 				Steps: []Step{
 					{
@@ -208,7 +208,7 @@ func TestMultipleSubjects(t *testing.T) {
 			},
 		},
 		Predicate: slsa.ProvenancePredicate{
-			BuildType: "https://tekton.dev/attestations/chains@v2",
+			BuildType: "tekton.dev/v1beta1/TaskRun",
 			Metadata:  &slsa.ProvenanceMetadata{},
 			Builder: slsa.ProvenanceBuilder{
 				ID: "test_builder-multiple",
