@@ -708,7 +708,7 @@ github.com/golangci/go-misc/deadcode
 ## explicit
 github.com/golangci/gofmt/gofmt
 github.com/golangci/gofmt/goimports
-# github.com/golangci/golangci-lint v1.47.1
+# github.com/golangci/golangci-lint v1.47.2
 ## explicit; go 1.18
 github.com/golangci/golangci-lint/cmd/golangci-lint
 github.com/golangci/golangci-lint/internal/cache
