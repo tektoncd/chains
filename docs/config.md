@@ -93,7 +93,7 @@ Tekton Chains supports the following docstore services:
 
 | Key | Description | Supported Values | Default |
 | :--- | :--- | :--- | :--- |
-| `builder.id` | The builder ID to set for in-toto attestations | | `tekton-chains`|
+| `builder.id` | The builder ID to set for in-toto attestations | | `https://tekton.dev/chains/v2`|
 
 ### Experimental Features Configuration
 
