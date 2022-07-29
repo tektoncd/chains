@@ -76,18 +76,20 @@ Supported keys include:
 | `storage.gcs.bucket` | The GCS bucket for storage | | |
 | `storage.oci.repository` | The OCI repo to store OCI signatures in  | | |
 | `storage.docdb.url` | The go-cloud URI reference to a docstore collection | `firestore://projects/[PROJECT]/databases/(default)/documents/[COLLECTION]?name_field=name`| |
-|`storage.grafeas.projectid`|The project ID to store occurrences|||
-|`storage.grafeas.noteid` (optional)|The note ID to link occurrences. If noteid is not provided, a name in the format of `tekton-<NAMESPACE>` will be used.|||
+|`storage.grafeas.projectid`|The project of where grafeas server is located for storing occurrences|||
+|`storage.grafeas.noteid` (optional)|This field will be used as the prefix part of the note name that will be created. The value of this field must be a string without spaces. (See more details [below](#grafeas).) |||
 
-You can read about the go-cloud docstore URI format [here](https://gocloud.dev/howto/docstore/)
+#### docstore
+You can read about the go-cloud docstore URI format [here](https://gocloud.dev/howto/docstore/). Tekton Chains supports the following docstore services:
+  * `firestore`
+  * `dynamodb`
+  * `mongo`
 
-Tekton Chains supports the following docstore services:
+#### MongoDB
+With MongoDB you will need to add a `MONGO_SERVER_URL` env var with the MongoDB connection URI to the `tekton-chains-controller`, the go-cloud URI is just to point at the db and collection
 
-* `firestore`
-* `dynamodb`
-* `mongo`
-
-**Note**: with MongoDB you will need to add a `MONGO_SERVER_URL` env var with the MongoDB connection URI to the `tekton-chains-controller`, the go-cloud URI is just to point at the db and collection
+#### Grafeas
+You can read more about Grafeas notes and occurrences [here](https://github.com/grafeas/grafeas/blob/master/docs/grafeas_concepts.md). To create occurrences, we have to create notes first that are used to link occurrences. Two types of occurrences will be created: `ATTESTATION` Occurrence and `BUILD` Occrrence. The configurable `noteid` is used as the prefix of the note name. Under the hood, the suffix `-simplesigning` will be appended for the `ATTESTATION` note, and the suffix `-intoto` will be appended for the `BUILD` note. If the `noteid` field is not configured, `tekton-<NAMESPACE>` will be used as the prefix.
 
 ### In-toto Configuration
 
