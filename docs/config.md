@@ -67,7 +67,7 @@ Supported keys include:
 
 | Key | Description | Supported Values | Default |
 | :--- | :--- | :--- | :--- |
-| `signers.kms.kmsref` | The URI reference to a KMS service to use in `KMS` signers. | `gcpkms://projects/[PROJECT]/locations/[LOCATION]>/keyRings/[KEYRING]/cryptoKeys/[KEY]`| |
+| `signers.kms.kmsref` | The URI reference to a KMS service to use in `KMS` signers. | One of the three formats: <br/>`gcpkms://projects/[PROJECT]/locations/[LOCATION]>/keyRings/[KEYRING]/cryptoKeys/[KEY]` <br/> `gcpkms://projects/[PROJECT]/locations/[LOCATION]>/keyRings/[KEYRING]/cryptoKeys/[KEY]/cryptoKeyVersions/[KEY_VERSION]` <br/> `gcpkms://projects/[PROJECT]/locations/[LOCATION]>/keyRings/[KEYRING]/cryptoKeys/[KEY]/versions/[KEY_VERSION]`| |
 
 ### Storage Configuration
 
