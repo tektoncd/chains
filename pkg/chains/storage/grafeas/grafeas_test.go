@@ -335,7 +335,7 @@ func getExpectedOccurrences() []*pb.Occurrence {
 			},
 			Envelope: &pb.Envelope{
 				Payload:     []byte("oci payload"),
-				PayloadType: "simplesigning",
+				PayloadType: "application/vnd.dev.cosign.simplesigning.v1+json",
 				Signatures: []*pb.EnvelopeSignature{
 					{Sig: []byte("oci signature")},
 				},
