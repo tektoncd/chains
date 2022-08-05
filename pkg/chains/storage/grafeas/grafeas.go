@@ -25,6 +25,7 @@ import (
 	pb "github.com/grafeas/grafeas/proto/v1/grafeas_go_proto"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/pkg/errors"
+	"github.com/sigstore/cosign/pkg/types"
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/formats"
 	"github.com/tektoncd/chains/pkg/config"
@@ -43,8 +44,6 @@ const (
 	notePath                  = "projects/%s/notes/%s"
 	attestationNoteNameFormat = "%s-simplesigning"
 	buildNoteNameFormat       = "%s-intoto"
-	simplesigningPayloadType  = "simplesigning"
-	intotoPayloadType         = "application/vnd.in-toto+json"
 )
 
 // Backend is a storage backend that stores signed payloads in the storage that
@@ -275,7 +274,7 @@ func (b *Backend) createAttestationOccurrence(ctx context.Context, tr *v1beta1.T
 	}
 	envelope := &pb.Envelope{
 		Payload:     payload,
-		PayloadType: simplesigningPayloadType,
+		PayloadType: types.SimpleSigningMediaType,
 		Signatures: []*pb.EnvelopeSignature{
 			{
 				Sig: []byte(signature),
@@ -317,7 +316,7 @@ func (b *Backend) createBuildOccurrence(ctx context.Context, tr *v1beta1.TaskRun
 
 	envelope := &pb.Envelope{
 		Payload:     payload,
-		PayloadType: intotoPayloadType,
+		PayloadType: types.IntotoPayloadType,
 		Signatures: []*pb.EnvelopeSignature{
 			{
 				Sig:   []byte(signature),
