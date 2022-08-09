@@ -67,9 +67,6 @@ jobs:
 
     - name: Install mirror, kind, knative + sigstore
       uses: sigstore/scaffolding/actions/setup@main
-      with:
-        version: v0.3.0
-        k8s-version: v1.22.x
 
     - name: Install Tekton pipelines
       run: |
