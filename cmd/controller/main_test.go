@@ -24,7 +24,9 @@ func TestNoDeps(t *testing.T) {
 		"github.com/tektoncd/chains/cmd/controller": {
 			// This conflicts with klog, we error on startup about
 			// `-log_dir` being defined multiple times.
-			"github.com/golang/glog",
+			// As a short term fix, we are replacing the dep in go.mod.
+			// See https://github.com/sigstore/policy-controller/pull/112
+			// "github.com/golang/glog",
 		},
 	})
 }

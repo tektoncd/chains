@@ -32,6 +32,8 @@ type SignOptions struct {
 	Force             bool
 	Recursive         bool
 	Attachment        string
+	SkipConfirmation  bool
+	NoTlogUpload      bool
 
 	Rekor       RekorOptions
 	Fulcio      FulcioOptions
@@ -55,10 +57,10 @@ func (o *SignOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&o.Key, "key", "",
 		"path to the private key file, KMS URI or Kubernetes Secret")
 
-	cmd.Flags().StringVar(&o.Cert, "cert", "",
+	cmd.Flags().StringVar(&o.Cert, "certificate", "",
 		"path to the X.509 certificate in PEM format to include in the OCI Signature")
 
-	cmd.Flags().StringVar(&o.CertChain, "cert-chain", "",
+	cmd.Flags().StringVar(&o.CertChain, "certificate-chain", "",
 		"path to a list of CA X.509 certificates in PEM format which will be needed "+
 			"when building the certificate chain for the signing certificate. "+
 			"Must start with the parent intermediate CA certificate of the "+
@@ -84,4 +86,10 @@ func (o *SignOptions) AddFlags(cmd *cobra.Command) {
 
 	cmd.Flags().StringVar(&o.Attachment, "attachment", "",
 		"related image attachment to sign (sbom), default none")
+
+	cmd.Flags().BoolVarP(&o.SkipConfirmation, "yes", "y", false,
+		"skip confirmation prompts for non-destructive operations")
+
+	cmd.Flags().BoolVar(&o.NoTlogUpload, "no-tlog-upload", false,
+		"whether to not upload the transparency log")
 }
