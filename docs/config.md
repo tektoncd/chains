@@ -74,7 +74,7 @@ Supported keys include:
 | Key | Description | Supported Values | Default |
 | :--- | :--- | :--- | :--- |
 | `storage.gcs.bucket` | The GCS bucket for storage | | |
-| `storage.oci.repository` | The OCI repo to store OCI signatures in | If left undefined _and_ one of `artifacts.{oci,taskrun}.storage` includes `oci` storage, attestations will be stored alongside the stored OCI artifact itself. ([example on GCP](../images/attestations-in-artifact-registry.png)) Defining this value results in the OCI bundle stored in the designated location _instead of_ alongside the image. Note that for OCI storage using Artifact Registry, this field should be a full image name like `$LOCATION-docker.pkg.dev/$PROJECT/$REPO/$STORAGE_IMAGE`, not just a repository. | |
+| `storage.oci.repository` | The OCI repo to store OCI signatures in | If left undefined _and_ one of `artifacts.{oci,taskrun}.storage` includes `oci` storage, attestations will be stored alongside the stored OCI artifact itself. ([example on GCP](../images/attestations-in-artifact-registry.png)) Defining this value results in the OCI bundle stored in the designated location _instead of_ alongside the image. See [cosign documentation](https://github.com/sigstore/cosign#specifying-registry) for additional information. | |
 | `storage.docdb.url` | The go-cloud URI reference to a docstore collection | `firestore://projects/[PROJECT]/databases/(default)/documents/[COLLECTION]?name_field=name`| |
 |`storage.grafeas.projectid`|The project ID to store occurrences|||
 |`storage.grafeas.noteid` (optional)|The note ID to link occurrences. If noteid is not provided, a name in the format of `tekton-<NAMESPACE>` will be used.|||
