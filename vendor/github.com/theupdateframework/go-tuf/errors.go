@@ -46,11 +46,12 @@ func (e ErrInsufficientSignatures) Error() string {
 }
 
 type ErrInvalidRole struct {
-	Role string
+	Role   string
+	Reason string
 }
 
 func (e ErrInvalidRole) Error() string {
-	return fmt.Sprintf("tuf: invalid role %s", e.Role)
+	return fmt.Sprintf("tuf: invalid role %s: %s", e.Role, e.Reason)
 }
 
 type ErrInvalidExpires struct {
@@ -86,4 +87,12 @@ type ErrPassphraseRequired struct {
 
 func (e ErrPassphraseRequired) Error() string {
 	return fmt.Sprintf("tuf: a passphrase is required to access the encrypted %s keys file", e.Role)
+}
+
+type ErrNoDelegatedTarget struct {
+	Path string
+}
+
+func (e ErrNoDelegatedTarget) Error() string {
+	return fmt.Sprintf("tuf: no delegated target for path %s", e.Path)
 }

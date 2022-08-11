@@ -22,6 +22,7 @@ import (
 	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -30,17 +31,17 @@ import (
 	"time"
 
 	"github.com/ReneKroon/ttlcache/v2"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/kms"
-	"github.com/pkg/errors"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/kms"
+	"github.com/aws/aws-sdk-go-v2/service/kms/types"
 	"github.com/sigstore/sigstore/pkg/signature"
 	sigkms "github.com/sigstore/sigstore/pkg/signature/kms"
 )
 
 func init() {
-	sigkms.AddProvider(ReferenceScheme, func(_ context.Context, keyResourceID string, _ crypto.Hash, _ ...signature.RPCOption) (sigkms.SignerVerifier, error) {
-		return LoadSignerVerifier(keyResourceID)
+	sigkms.AddProvider(ReferenceScheme, func(ctx context.Context, keyResourceID string, _ crypto.Hash, _ ...signature.RPCOption) (sigkms.SignerVerifier, error) {
+		return LoadSignerVerifier(ctx, keyResourceID)
 	})
 }
 
@@ -51,7 +52,7 @@ const (
 )
 
 type awsClient struct {
-	client   *kms.KMS
+	client   *kms.Client
 	endpoint string
 	keyID    string
 	alias    string
@@ -91,7 +92,8 @@ func ValidReference(ref string) error {
 	return errKMSReference
 }
 
-func parseReference(resourceID string) (endpoint, keyID, alias string, err error) {
+// ParseReference parses an awskms-scheme URI into its constituent parts.
+func ParseReference(resourceID string) (endpoint, keyID, alias string, err error) {
 	var v []string
 	for _, re := range allREs {
 		v = re.FindStringSubmatch(resourceID)
@@ -103,59 +105,70 @@ func parseReference(resourceID string) (endpoint, keyID, alias string, err error
 			return
 		}
 	}
-	err = errors.Errorf("invalid awskms format %q", resourceID)
+	err = fmt.Errorf("invalid awskms format %q", resourceID)
 	return
 }
 
-func newAWSClient(keyResourceID string) (a *awsClient, err error) {
-	a = &awsClient{}
-	a.endpoint, a.keyID, a.alias, err = parseReference(keyResourceID)
+func newAWSClient(ctx context.Context, keyResourceID string, opts ...func(*config.LoadOptions) error) (*awsClient, error) {
+	if err := ValidReference(keyResourceID); err != nil {
+		return nil, err
+	}
+	a := &awsClient{}
+	var err error
+	a.endpoint, a.keyID, a.alias, err = ParseReference(keyResourceID)
 	if err != nil {
 		return nil, err
 	}
 
-	err = a.setupClient()
-	if err != nil {
+	if err := a.setupClient(ctx, opts...); err != nil {
 		return nil, err
 	}
 
 	a.keyCache = ttlcache.NewCache()
 	a.keyCache.SetLoaderFunction(a.keyCacheLoaderFunction)
 	a.keyCache.SkipTTLExtensionOnHit(true)
-	return
+	return a, nil
 }
 
-func (a *awsClient) setupClient() (err error) {
-	var sess *session.Session
-	config := &aws.Config{}
+func (a *awsClient) setupClient(ctx context.Context, opts ...func(*config.LoadOptions) error) (err error) {
 	if a.endpoint != "" {
-		config.Endpoint = aws.String("https://" + a.endpoint)
+		opts = append(opts, config.WithEndpointResolverWithOptions(
+			aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
+				return aws.Endpoint{
+					URL: "https://" + a.endpoint,
+				}, nil
+			}),
+		))
 	}
 	if os.Getenv("AWS_TLS_INSECURE_SKIP_VERIFY") == "1" {
-		config.HTTPClient = &http.Client{
+		opts = append(opts, config.WithHTTPClient(&http.Client{
 			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}} // nolint: gosec
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // nolint: gosec
+			},
+		}))
 	}
-	sess, err = session.NewSession(config)
+
+	cfg, err := config.LoadDefaultConfig(ctx, opts...)
 	if err != nil {
-		return errors.Wrap(err, "new aws session")
+		return fmt.Errorf("loading AWS config: %w", err)
 	}
-	a.client = kms.New(sess)
+
+	a.client = kms.NewFromConfig(cfg)
 	return
 }
 
 type cmk struct {
-	KeyMetadata *kms.KeyMetadata
+	KeyMetadata *types.KeyMetadata
 	PublicKey   crypto.PublicKey
 }
 
 func (c *cmk) HashFunc() crypto.Hash {
-	switch *c.KeyMetadata.SigningAlgorithms[0] {
-	case kms.SigningAlgorithmSpecRsassaPssSha256, kms.SigningAlgorithmSpecRsassaPkcs1V15Sha256, kms.SigningAlgorithmSpecEcdsaSha256:
+	switch c.KeyMetadata.SigningAlgorithms[0] {
+	case types.SigningAlgorithmSpecRsassaPssSha256, types.SigningAlgorithmSpecRsassaPkcs1V15Sha256, types.SigningAlgorithmSpecEcdsaSha256:
 		return crypto.SHA256
-	case kms.SigningAlgorithmSpecRsassaPssSha384, kms.SigningAlgorithmSpecRsassaPkcs1V15Sha384, kms.SigningAlgorithmSpecEcdsaSha384:
+	case types.SigningAlgorithmSpecRsassaPssSha384, types.SigningAlgorithmSpecRsassaPkcs1V15Sha384, types.SigningAlgorithmSpecEcdsaSha384:
 		return crypto.SHA384
-	case kms.SigningAlgorithmSpecRsassaPssSha512, kms.SigningAlgorithmSpecRsassaPkcs1V15Sha512, kms.SigningAlgorithmSpecEcdsaSha512:
+	case types.SigningAlgorithmSpecRsassaPssSha512, types.SigningAlgorithmSpecRsassaPkcs1V15Sha512, types.SigningAlgorithmSpecEcdsaSha512:
 		return crypto.SHA512
 	default:
 		return 0
@@ -163,12 +176,12 @@ func (c *cmk) HashFunc() crypto.Hash {
 }
 
 func (c *cmk) Verifier() (signature.Verifier, error) {
-	switch *c.KeyMetadata.SigningAlgorithms[0] {
-	case kms.SigningAlgorithmSpecRsassaPssSha256, kms.SigningAlgorithmSpecRsassaPssSha384, kms.SigningAlgorithmSpecRsassaPssSha512:
+	switch c.KeyMetadata.SigningAlgorithms[0] {
+	case types.SigningAlgorithmSpecRsassaPssSha256, types.SigningAlgorithmSpecRsassaPssSha384, types.SigningAlgorithmSpecRsassaPssSha512:
 		return signature.LoadRSAPSSVerifier(c.PublicKey.(*rsa.PublicKey), c.HashFunc(), nil)
-	case kms.SigningAlgorithmSpecRsassaPkcs1V15Sha256, kms.SigningAlgorithmSpecRsassaPkcs1V15Sha384, kms.SigningAlgorithmSpecRsassaPkcs1V15Sha512:
+	case types.SigningAlgorithmSpecRsassaPkcs1V15Sha256, types.SigningAlgorithmSpecRsassaPkcs1V15Sha384, types.SigningAlgorithmSpecRsassaPkcs1V15Sha512:
 		return signature.LoadRSAPKCS1v15Verifier(c.PublicKey.(*rsa.PublicKey), c.HashFunc())
-	case kms.SigningAlgorithmSpecEcdsaSha256, kms.SigningAlgorithmSpecEcdsaSha384, kms.SigningAlgorithmSpecEcdsaSha512:
+	case types.SigningAlgorithmSpecEcdsaSha256, types.SigningAlgorithmSpecEcdsaSha384, types.SigningAlgorithmSpecEcdsaSha512:
 		return signature.LoadECDSAVerifier(c.PublicKey.(*ecdsa.PublicKey), c.HashFunc())
 	default:
 		return nil, fmt.Errorf("signing algorithm unsupported")
@@ -230,28 +243,28 @@ func (a *awsClient) createKey(ctx context.Context, algorithm string) (crypto.Pub
 	}
 
 	// return error if not *kms.NotFoundException
-	var errNotFound *kms.NotFoundException
+	var errNotFound *types.NotFoundException
 	if !errors.As(err, &errNotFound) {
-		return nil, errors.Wrap(err, "looking up key")
+		return nil, fmt.Errorf("looking up key: %w", err)
 	}
 
-	usage := kms.KeyUsageTypeSignVerify
+	usage := types.KeyUsageTypeSignVerify
 	description := "Created by Sigstore"
-	key, err := a.client.CreateKeyWithContext(ctx, &kms.CreateKeyInput{
-		CustomerMasterKeySpec: &algorithm,
-		KeyUsage:              &usage,
+	key, err := a.client.CreateKey(ctx, &kms.CreateKeyInput{
+		CustomerMasterKeySpec: types.CustomerMasterKeySpec(algorithm),
+		KeyUsage:              usage,
 		Description:           &description,
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "creating key")
+		return nil, fmt.Errorf("creating key: %w", err)
 	}
 
-	_, err = a.client.CreateAliasWithContext(ctx, &kms.CreateAliasInput{
+	_, err = a.client.CreateAlias(ctx, &kms.CreateAliasInput{
 		AliasName:   &a.alias,
 		TargetKeyId: key.KeyMetadata.KeyId,
 	})
 	if err != nil {
-		return nil, errors.Wrapf(err, "creating alias %q", a.alias)
+		return nil, fmt.Errorf("creating alias %q: %w", a.alias, err)
 	}
 
 	return a.public(ctx)
@@ -275,15 +288,17 @@ func (a *awsClient) verifyRemotely(ctx context.Context, sig []byte, digest []byt
 		return err
 	}
 	alg := cmk.KeyMetadata.SigningAlgorithms[0]
-	messageType := kms.MessageTypeDigest
-	_, err = a.client.VerifyWithContext(ctx, &kms.VerifyInput{
+	messageType := types.MessageTypeDigest
+	if _, err := a.client.Verify(ctx, &kms.VerifyInput{
 		KeyId:            &a.keyID,
 		Message:          digest,
-		MessageType:      &messageType,
+		MessageType:      messageType,
 		Signature:        sig,
 		SigningAlgorithm: alg,
-	})
-	return errors.Wrap(err, "unable to verify signature")
+	}); err != nil {
+		return fmt.Errorf("unable to verify signature: %w", err)
+	}
+	return nil
 }
 
 func (a *awsClient) public(ctx context.Context) (crypto.PublicKey, error) {
@@ -301,39 +316,39 @@ func (a *awsClient) sign(ctx context.Context, digest []byte, _ crypto.Hash) ([]b
 	}
 	alg := cmk.KeyMetadata.SigningAlgorithms[0]
 
-	messageType := kms.MessageTypeDigest
-	out, err := a.client.SignWithContext(ctx, &kms.SignInput{
+	messageType := types.MessageTypeDigest
+	out, err := a.client.Sign(ctx, &kms.SignInput{
 		KeyId:            &a.keyID,
 		Message:          digest,
-		MessageType:      &messageType,
+		MessageType:      messageType,
 		SigningAlgorithm: alg,
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "signing with kms")
+		return nil, fmt.Errorf("signing with kms: %w", err)
 	}
 	return out.Signature, nil
 }
 
 func (a *awsClient) fetchPublicKey(ctx context.Context) (crypto.PublicKey, error) {
-	out, err := a.client.GetPublicKeyWithContext(ctx, &kms.GetPublicKeyInput{
+	out, err := a.client.GetPublicKey(ctx, &kms.GetPublicKeyInput{
 		KeyId: &a.keyID,
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "getting public key")
+		return nil, fmt.Errorf("getting public key: %w", err)
 	}
 	key, err := x509.ParsePKIXPublicKey(out.PublicKey)
 	if err != nil {
-		return nil, errors.Wrap(err, "parsing public key")
+		return nil, fmt.Errorf("parsing public key: %w", err)
 	}
 	return key, nil
 }
 
-func (a *awsClient) fetchKeyMetadata(ctx context.Context) (*kms.KeyMetadata, error) {
-	out, err := a.client.DescribeKeyWithContext(ctx, &kms.DescribeKeyInput{
+func (a *awsClient) fetchKeyMetadata(ctx context.Context) (*types.KeyMetadata, error) {
+	out, err := a.client.DescribeKey(ctx, &kms.DescribeKeyInput{
 		KeyId: &a.keyID,
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "getting key metadata")
+		return nil, fmt.Errorf("getting key metadata: %w", err)
 	}
 	return out.KeyMetadata, nil
 }
