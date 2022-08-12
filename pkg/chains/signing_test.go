@@ -17,6 +17,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/sigstore/rekor/pkg/generated/models"
@@ -322,6 +323,83 @@ func TestTaskRunSigner_Transparency(t *testing.T) {
 		if len(rekor.entries) != 2 {
 			t.Error("expected two transparency log entries!")
 		}
+	}
+}
+
+func TestSigningObjects(t *testing.T) {
+	ctx, _ := rtesting.SetupFakeContext(t)
+	logger := logging.FromContext(ctx)
+	tests := []struct {
+		name       string
+		signers    []string
+		config     config.Config
+		SecretPath string
+	}{
+		{
+			name:    "x509",
+			signers: []string{signing.TypeX509},
+			config: config.Config{
+				Artifacts: config.ArtifactConfigs{
+					TaskRuns: config.Artifact{
+						Format:         "tekton",
+						StorageBackend: sets.NewString("mock"),
+						Signer:         "x509",
+					},
+				},
+			},
+			SecretPath: "./signing/x509/testdata/",
+		},
+		{
+			name:    "x509 twice",
+			signers: []string{signing.TypeX509},
+			config: config.Config{
+				Artifacts: config.ArtifactConfigs{
+					TaskRuns: config.Artifact{
+						Format:         "tekton",
+						StorageBackend: sets.NewString("mock"),
+						Signer:         "x509",
+					},
+					OCI: config.Artifact{
+						Format:         "tekton",
+						StorageBackend: sets.NewString("mock"),
+						Signer:         "x509",
+					},
+				},
+			},
+			SecretPath: "./signing/x509/testdata/",
+		},
+		{
+			name:    "none",
+			signers: nil,
+			config: config.Config{
+				Artifacts: config.ArtifactConfigs{
+					TaskRuns: config.Artifact{
+						Format:         "tekton",
+						StorageBackend: sets.NewString("mock"),
+					},
+					OCI: config.Artifact{
+						Format:         "tekton",
+						StorageBackend: sets.NewString("mock"),
+					},
+				},
+				Transparency: config.TransparencyConfig{
+					Enabled: false,
+				},
+			},
+			SecretPath: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			signers := allSigners(ctx, tt.SecretPath, tt.config, logger)
+			var signerTypes []string
+			for _, signer := range signers {
+				signerTypes = append(signerTypes, signer.Type())
+			}
+			if !reflect.DeepEqual(tt.signers, signerTypes) {
+				t.Errorf("Expected %q signers but got %q signers", tt.signers, signerTypes)
+			}
+		})
 	}
 }
 
