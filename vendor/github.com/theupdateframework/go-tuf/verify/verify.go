@@ -13,10 +13,10 @@ import (
 type signedMeta struct {
 	Type    string    `json:"_type"`
 	Expires time.Time `json:"expires"`
-	Version int       `json:"version"`
+	Version int64     `json:"version"`
 }
 
-func (db *DB) VerifyIgnoreExpiredCheck(s *data.Signed, role string, minVersion int) error {
+func (db *DB) VerifyIgnoreExpiredCheck(s *data.Signed, role string, minVersion int64) error {
 	if err := db.VerifySignatures(s, role); err != nil {
 		return err
 	}
@@ -46,8 +46,8 @@ func (db *DB) VerifyIgnoreExpiredCheck(s *data.Signed, role string, minVersion i
 	return nil
 }
 
-func (db *DB) Verify(s *data.Signed, role string, minVersion int) error {
-
+func (db *DB) Verify(s *data.Signed, role string, minVersion int64) error {
+	// Verify signatures and versions
 	err := db.VerifyIgnoreExpiredCheck(s, role, minVersion)
 
 	if err != nil {
@@ -58,7 +58,7 @@ func (db *DB) Verify(s *data.Signed, role string, minVersion int) error {
 	if err := json.Unmarshal(s.Signed, sm); err != nil {
 		return err
 	}
-
+	// Verify expiration
 	if IsExpired(sm.Expires) {
 		return ErrExpired{sm.Expires}
 	}
@@ -124,7 +124,7 @@ func (db *DB) VerifySignatures(s *data.Signed, role string) error {
 	return nil
 }
 
-func (db *DB) Unmarshal(b []byte, v interface{}, role string, minVersion int) error {
+func (db *DB) Unmarshal(b []byte, v interface{}, role string, minVersion int64) error {
 	s := &data.Signed{}
 	if err := json.Unmarshal(b, s); err != nil {
 		return err
@@ -136,7 +136,7 @@ func (db *DB) Unmarshal(b []byte, v interface{}, role string, minVersion int) er
 }
 
 // UnmarshalExpired is exactly like Unmarshal except ignores expired timestamp error.
-func (db *DB) UnmarshalIgnoreExpired(b []byte, v interface{}, role string, minVersion int) error {
+func (db *DB) UnmarshalIgnoreExpired(b []byte, v interface{}, role string, minVersion int64) error {
 	s := &data.Signed{}
 	if err := json.Unmarshal(b, s); err != nil {
 		return err
