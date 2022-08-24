@@ -27,7 +27,6 @@ import (
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/formats"
 	"github.com/tektoncd/chains/pkg/config"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"go.uber.org/zap"
 
@@ -169,34 +168,6 @@ func GetSubjectDigests(tr *v1beta1.TaskRun, logger *zap.SugaredLogger) []intoto.
 		return subjects
 	}
 
-	// go through resourcesResult
-	for _, output := range tr.Spec.Resources.Outputs {
-		name := output.Name
-		if output.PipelineResourceBinding.ResourceSpec == nil {
-			continue
-		}
-		// similarly, we could do this for other pipeline resources or whatever thing replaces them
-		if output.PipelineResourceBinding.ResourceSpec.Type == v1alpha1.PipelineResourceTypeImage {
-			// get the url and digest, and save as a subject
-			var url, digest string
-			for _, s := range tr.Status.ResourcesResult {
-				if s.ResourceName == name {
-					if s.Key == "url" {
-						url = s.Value
-					}
-					if s.Key == "digest" {
-						digest = s.Value
-					}
-				}
-			}
-			subjects = append(subjects, intoto.Subject{
-				Name: url,
-				Digest: slsa.DigestSet{
-					"sha256": strings.TrimPrefix(digest, "sha256:"),
-				},
-			})
-		}
-	}
 	sort.Slice(subjects, func(i, j int) bool {
 		return subjects[i].Name <= subjects[j].Name
 	})
@@ -217,44 +188,6 @@ func materials(tr *v1beta1.TaskRun) []slsa.ProvenanceMaterial {
 		return mats
 	}
 
-	if tr.Spec.Resources == nil {
-		return mats
-	}
-
-	// check for a Git PipelineResource
-	for _, input := range tr.Spec.Resources.Inputs {
-		if input.ResourceSpec == nil || input.ResourceSpec.Type != v1alpha1.PipelineResourceTypeGit {
-			continue
-		}
-
-		m := slsa.ProvenanceMaterial{
-			Digest: slsa.DigestSet{},
-		}
-
-		for _, rr := range tr.Status.ResourcesResult {
-			if rr.ResourceName != input.Name {
-				continue
-			}
-			if rr.Key == "url" {
-				m.URI = spdxGit(rr.Value, "")
-			} else if rr.Key == "commit" {
-				m.Digest["sha1"] = rr.Value
-			}
-		}
-
-		var url string
-		var revision string
-		for _, param := range input.ResourceSpec.Params {
-			if param.Name == "url" {
-				url = param.Value
-			}
-			if param.Name == "revision" {
-				revision = param.Value
-			}
-		}
-		m.URI = spdxGit(url, revision)
-		mats = append(mats, m)
-	}
 	return mats
 }
 
