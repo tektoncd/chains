@@ -27,7 +27,7 @@ jobs:
       GOFLAGS: -ldflags=-s -ldflags=-w
       KO_DOCKER_REPO: registry.local:5000/knative
       KOCACHE: ~/ko
-      SIGSTORE_SCAFFOLDING_RELEASE_VERSION: "v0.4.3"
+      SIGSTORE_SCAFFOLDING_RELEASE_VERSION: "v0.4.6"
       TEKTON_PIPELINES_RELEASE: "https://storage.googleapis.com/tekton-releases-nightly/pipeline/latest/release.yaml"
 
     steps:
@@ -56,8 +56,8 @@ jobs:
 
     - name: Install tkn cli
       run: |
-        curl -Lo ./tkn_0.22.0_Linux_x86_64.tar.gz https://github.com/tektoncd/cli/releases/download/v0.22.0/tkn_0.22.0_Linux_x86_64.tar.gz
-        tar xvzf ./tkn_0.22.0_Linux_x86_64.tar.gz tkn
+        curl -Lo ./tkn_0.25.0_Linux_x86_64.tar.gz https://github.com/tektoncd/cli/releases/download/v0.25.0/tkn_0.25.0_Linux_x86_64.tar.gz
+        tar xvzf ./tkn_0.25.0_Linux_x86_64.tar.gz tkn
         chmod u+x ./tkn
 
     - name: Check out our repo
