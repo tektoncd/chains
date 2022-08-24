@@ -62,12 +62,12 @@ func TestCreatePayload1(t *testing.T) {
 				BuildFinishedOn: &e1BuildFinished,
 			},
 			Materials: []slsa.ProvenanceMaterial{
-				{URI: "git+https://git.test.com.git", Digest: slsa.DigestSet{"sha1": "abcd"}},
+				{URI: "git+https://git.test.com.git", Digest: slsa.DigestSet{"sha1": "sha:taskrun"}},
 			},
 			Invocation: slsa.ProvenanceInvocation{
 				Parameters: map[string]v1beta1.ArrayOrString{
 					"IMAGE":             {Type: "string", StringVal: "test.io/test/image"},
-					"CHAINS-GIT_COMMIT": {Type: "string", StringVal: "abcd"},
+					"CHAINS-GIT_COMMIT": {Type: "string", StringVal: "sha:taskrun"},
 					"CHAINS-GIT_URL":    {Type: "string", StringVal: "https://git.test.com"},
 					"filename":          {Type: "string", StringVal: "/bin/ls"},
 				},
@@ -133,8 +133,14 @@ func TestCreatePayload2(t *testing.T) {
 			Builder: slsa.ProvenanceBuilder{
 				ID: "test_builder-2",
 			},
+			Materials: []slsa.ProvenanceMaterial{
+				{URI: "git+https://git.test.com.git", Digest: slsa.DigestSet{"sha1": "sha:taskdefault"}},
+			},
 			Invocation: slsa.ProvenanceInvocation{
-				Parameters: map[string]v1beta1.ArrayOrString{},
+				Parameters: map[string]v1beta1.ArrayOrString{
+					"CHAINS-GIT_COMMIT": {Type: "string", StringVal: "sha:taskdefault"},
+					"CHAINS-GIT_URL":    {Type: "string", StringVal: "https://git.test.com"},
+				},
 			},
 			BuildType: "tekton.dev/v1beta1/TaskRun",
 			BuildConfig: BuildConfig{

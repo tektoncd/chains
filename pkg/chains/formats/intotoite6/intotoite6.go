@@ -266,16 +266,6 @@ func (i *InTotoIte6) Type() formats.PayloadType {
 // with specified names.
 func gitInfo(tr *v1beta1.TaskRun) (commit string, url string) {
 	// Scan for git params to use for materials
-	for _, p := range tr.Spec.Params {
-		if p.Name == commitParam {
-			commit = p.Value.StringVal
-			continue
-		}
-		if p.Name == urlParam {
-			url = p.Value.StringVal
-		}
-	}
-
 	if tr.Status.TaskSpec != nil {
 		for _, p := range tr.Status.TaskSpec.Params {
 			if p.Default == nil {
@@ -288,6 +278,16 @@ func gitInfo(tr *v1beta1.TaskRun) (commit string, url string) {
 			if p.Name == urlParam {
 				url = p.Default.StringVal
 			}
+		}
+	}
+
+	for _, p := range tr.Spec.Params {
+		if p.Name == commitParam {
+			commit = p.Value.StringVal
+			continue
+		}
+		if p.Name == urlParam {
+			url = p.Value.StringVal
 		}
 	}
 

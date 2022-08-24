@@ -7,7 +7,7 @@
             },
             {
                 "name": "CHAINS-GIT_COMMIT",
-                "value": "abcd"
+                "value": "sha:taskrun"
             },
             {
                 "name": "CHAINS-GIT_URL",
@@ -89,6 +89,14 @@
                 {
                     "name": "BUILDER_IMAGE",
                     "type": "string"
+                }, {
+                    "name": "CHAINS-GIT_COMMIT",
+                    "type": "string",
+                    "default": "sha:task"
+                }, {
+                    "name": "CHAINS-GIT_URL",
+                    "type": "string",
+                    "default": "https://defaultgit.test.com"
                 }
             ],
             "results": [

@@ -36,7 +36,18 @@
             }
         ],
         "taskSpec": {
-            "params": [],
+            "params": [
+                {
+                    "name": "CHAINS-GIT_COMMIT",
+                    "type": "string",
+                    "default": "sha:taskdefault"
+                },
+                {
+                    "name": "CHAINS-GIT_URL",
+                    "type": "string",
+                    "default": "https://git.test.com"
+                }
+            ],
             "results": [
                 {
                     "name": "some-uri_DIGEST",
