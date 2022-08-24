@@ -28,7 +28,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	"github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logtesting "knative.dev/pkg/logging/testing"
 )
@@ -271,13 +270,6 @@ func TestGetSubjectDigests(t *testing.T) {
 						PipelineResourceBinding: v1beta1.PipelineResourceBinding{
 							Name: "nil-check",
 						},
-					}, {
-						PipelineResourceBinding: v1beta1.PipelineResourceBinding{
-							Name: "built-image",
-							ResourceSpec: &v1alpha1.PipelineResourceSpec{
-								Type: v1alpha1.PipelineResourceTypeImage,
-							},
-						},
 					},
 				},
 			},
@@ -320,17 +312,6 @@ func TestGetSubjectDigests(t *testing.T) {
 					{
 						Name:  "invalid_ARTIFACT_DIGEST",
 						Value: *v1beta1.NewArrayOrString(digest5),
-					},
-				},
-				ResourcesResult: []v1beta1.PipelineResourceResult{
-					{
-						ResourceName: "built-image",
-						Key:          "url",
-						Value:        "registry/resource-image",
-					}, {
-						ResourceName: "built-image",
-						Key:          "digest",
-						Value:        digest2,
 					},
 				},
 			},

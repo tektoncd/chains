@@ -170,34 +170,6 @@ func GetSubjectDigests(tr *v1beta1.TaskRun, logger *zap.SugaredLogger) []intoto.
 		return subjects
 	}
 
-	// go through resourcesResult
-	for _, output := range tr.Spec.Resources.Outputs {
-		name := output.Name
-		if output.PipelineResourceBinding.ResourceSpec == nil {
-			continue
-		}
-		// similarly, we could do this for other pipeline resources or whatever thing replaces them
-		if output.PipelineResourceBinding.ResourceSpec.Type == v1alpha1.PipelineResourceTypeImage {
-			// get the url and digest, and save as a subject
-			var url, digest string
-			for _, s := range tr.Status.ResourcesResult {
-				if s.ResourceName == name {
-					if s.Key == "url" {
-						url = s.Value
-					}
-					if s.Key == "digest" {
-						digest = s.Value
-					}
-				}
-			}
-			subjects = append(subjects, intoto.Subject{
-				Name: url,
-				Digest: slsa.DigestSet{
-					"sha256": strings.TrimPrefix(digest, "sha256:"),
-				},
-			})
-		}
-	}
 	sort.Slice(subjects, func(i, j int) bool {
 		return subjects[i].Name <= subjects[j].Name
 	})
