@@ -248,7 +248,7 @@ func (b *Backend) createOccurrence(ctx context.Context, tr *v1beta1.TaskRun, pay
 	}
 
 	// create Occurrence_Build for TaskRun
-	allURIs := b.retrieveAllOCIURIs(tr)
+	allURIs := b.retrieveAllArtifactIdentifiers(tr)
 	for _, uri := range allURIs {
 		occ, err := b.createBuildOccurrence(ctx, tr, payload, signature, uri)
 		if err != nil {
@@ -358,7 +358,7 @@ func (b *Backend) getBuildNotePath() string {
 // getAllOccurrences retrieves back all occurrences created for a taskrun
 func (b *Backend) getAllOccurrences(ctx context.Context, tr *v1beta1.TaskRun, opts config.StorageOpts) ([]*pb.Occurrence, error) {
 	// step 1: get all resource URIs created under the taskrun
-	uriFilters := b.retrieveAllOCIURIs(tr)
+	uriFilters := b.retrieveAllArtifactIdentifiers(tr)
 
 	// step 2: find all occurrences by using ListOccurrences filters
 	occs, err := b.findOccurrencesForCriteria(ctx, b.getProjectPath(), uriFilters)
@@ -390,7 +390,7 @@ func (b *Backend) findOccurrencesForCriteria(ctx context.Context, projectPath st
 
 // get resource uri for a single oci image in the format of `IMAGE_URL@IMAGE_DIGEST`
 func (b *Backend) retrieveSingleOCIURI(tr *v1beta1.TaskRun, opts config.StorageOpts) string {
-	imgs := b.retrieveAllOCIURIs(tr)
+	imgs := b.retrieveAllArtifactIdentifiers(tr)
 	for _, img := range imgs {
 		// get digest part of the image representation
 		digest := strings.Split(img, "sha256:")[1]
@@ -406,10 +406,10 @@ func (b *Backend) retrieveSingleOCIURI(tr *v1beta1.TaskRun, opts config.StorageO
 }
 
 // retrieve the uri of all images generated from a specific taskrun in the format of `IMAGE_URL@IMAGE_DIGEST`
-func (b *Backend) retrieveAllOCIURIs(tr *v1beta1.TaskRun) []string {
+func (b *Backend) retrieveAllArtifactIdentifiers(tr *v1beta1.TaskRun) []string {
 	result := []string{}
+	// for image artifacts
 	images := artifacts.ExtractOCIImagesFromResults(tr, b.logger)
-
 	for _, image := range images {
 		ref, ok := image.(name.Digest)
 		if !ok {
@@ -418,5 +418,10 @@ func (b *Backend) retrieveAllOCIURIs(tr *v1beta1.TaskRun) []string {
 		result = append(result, ref.Name())
 	}
 
+	// for other signable artifacts
+	artifacts := artifacts.ExtractSignableTargetFromResults(tr, b.logger)
+	for _, a := range artifacts {
+		result = append(result, a.FullRef())
+	}
 	return result
 }
