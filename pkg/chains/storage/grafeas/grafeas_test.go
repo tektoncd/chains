@@ -383,7 +383,12 @@ func setupConnection() (*grpc.ClientConn, pb.GrafeasClient, error) {
 		return nil, nil, err
 	}
 
-	go serv.Serve(lis)
+	go func() {
+		err := serv.Serve(lis)
+		if err != nil {
+			panic(fmt.Sprintf("failed to setup grafeas connection: %s", err))
+		}
+	}()
 
 	conn, err := grpc.Dial(lis.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
