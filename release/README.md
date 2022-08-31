@@ -24,7 +24,7 @@ To follow these steps you'll need a checkout of the chains repo, a terminal wind
 1. Create environment variables for bash scripts in later steps.
 
     ```bash
-    VERSION_TAG=# UPDATE THIS. Example: v0.6.2
+    CHAINS_VERSION_TAG=# UPDATE THIS. Example: v0.6.2
     CHAINS_RELEASE_GIT_SHA=# SHA of the release to be released
     ```
 
@@ -53,7 +53,7 @@ EOF
     ```bash
     tkn --context dogfooding pipeline start chains-release \
       --param=gitRevision="${CHAINS_RELEASE_GIT_SHA}" \
-      --param=versionTag="${VERSION_TAG}" \
+      --param=versionTag="${CHAINS_VERSION_TAG}" \
       --param=serviceAccountPath=release.json \
       --param=releaseBucket=gs://tekton-releases/chains \
       --workspace name=release-secret,secret=release-secret \
@@ -86,7 +86,7 @@ EOF
 
     1. Find the Rekor UUID for the release
     ```bash
-    RELEASE_FILE=https://storage.googleapis.com/tekton-releases/chains/previous/${VERSION_TAG}/release.yaml
+    RELEASE_FILE=https://storage.googleapis.com/tekton-releases/chains/previous/${CHAINS_VERSION_TAG}/release.yaml
     CONTROLLER_IMAGE_SHA=$(curl $RELEASE_FILE | egrep 'gcr.io.*controller' | cut -d'@' -f2)
     REKOR_UUID=$(rekor-cli search --sha $CONTROLLER_IMAGE_SHA | grep -v Found | head -1)
     echo -e "CONTROLLER_IMAGE_SHA: ${CONTROLLER_IMAGE_SHA}\nREKOR_UUID: ${REKOR_UUID}"
@@ -96,7 +96,7 @@ EOF
 
     ```bash
     CHAINS_OLD_VERSION=# Example: v0.11.1
-    CHAINS_RELEASE_NAME=$VERSION_TAG
+    CHAINS_RELEASE_NAME=$CHAINS_VERSION_TAG
     CHAINS_PACKAGE=tektoncd/chains
     ```
 
@@ -107,7 +107,7 @@ EOF
     apiVersion: tekton.dev/v1alpha1
     kind: PipelineResource
     metadata:
-      name: tekton-chains-$(echo $VERSION_TAG | tr '.' '-')
+      name: tekton-chains-$(echo $CHAINS_VERSION_TAG | tr '.' '-')
       namespace: default
     spec:
       type: git
@@ -127,7 +127,7 @@ EOF
       --workspace name=credentials,secret=release-secret \
       -p package="${CHAINS_PACKAGE}" \
       -p git-revision="$CHAINS_RELEASE_GIT_SHA" \
-      -p release-tag="${CHAINS_VERSION}" \
+      -p release-tag="${CHAINS_VERSION_TAG}" \
       -p previous-release-tag="${CHAINS_OLD_VERSION}" \
       -p release-name="${CHAINS_RELEASE_NAME}" \
       -p bucket="gs://tekton-releases/chains" \
@@ -158,7 +158,7 @@ EOF
 
     ```bash
     # Test backport
-    kubectl --context my-dev-cluster apply --filename https://storage.googleapis.com/tekton-releases/chains/previous/$VERSION_TAG/release.yaml
+    kubectl --context my-dev-cluster apply --filename https://storage.googleapis.com/tekton-releases/chains/previous/$CHAINS_VERSION_TAG/release.yaml
     ```
 
 1. Announce the release in Slack channels #general, #chains and #announcements.
