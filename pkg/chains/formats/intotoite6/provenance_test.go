@@ -275,7 +275,7 @@ func TestGetSubjectDigests(t *testing.T) {
 						PipelineResourceBinding: v1beta1.PipelineResourceBinding{
 							Name: "built-image",
 							ResourceSpec: &v1alpha1.PipelineResourceSpec{
-								Type: v1alpha1.PipelineResourceTypeImage,
+								Type: v1beta1.PipelineResourceTypeImage,
 							},
 						},
 					},

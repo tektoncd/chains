@@ -28,7 +28,6 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/formats"
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	"github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
 	"go.uber.org/zap"
 )
 
@@ -174,7 +173,7 @@ func GetSubjectDigests(tr *v1beta1.TaskRun, logger *zap.SugaredLogger) []intoto.
 			continue
 		}
 		// similarly, we could do this for other pipeline resources or whatever thing replaces them
-		if output.PipelineResourceBinding.ResourceSpec.Type == v1alpha1.PipelineResourceTypeImage {
+		if output.PipelineResourceBinding.ResourceSpec.Type == v1beta1.PipelineResourceTypeImage {
 			// get the url and digest, and save as a subject
 			var url, digest string
 			for _, s := range tr.Status.ResourcesResult {
@@ -221,7 +220,7 @@ func materials(tr *v1beta1.TaskRun) []slsa.ProvenanceMaterial {
 
 	// check for a Git PipelineResource
 	for _, input := range tr.Spec.Resources.Inputs {
-		if input.ResourceSpec == nil || input.ResourceSpec.Type != v1alpha1.PipelineResourceTypeGit {
+		if input.ResourceSpec == nil || input.ResourceSpec.Type != v1beta1.PipelineResourceTypeGit {
 			continue
 		}
 
