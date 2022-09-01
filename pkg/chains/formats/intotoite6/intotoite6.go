@@ -21,17 +21,15 @@ import (
 	"sort"
 	"strings"
 
-	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
-
+	"github.com/google/go-containerregistry/pkg/name"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
+	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/formats"
 	"github.com/tektoncd/chains/pkg/config"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	"github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
 	"go.uber.org/zap"
-
-	"github.com/google/go-containerregistry/pkg/name"
 )
 
 const (
