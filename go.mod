@@ -49,7 +49,7 @@ require (
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399
 	go.uber.org/atomic v1.9.0
 	go.uber.org/zap v1.21.0
-	gocloud.dev v0.25.0
+	gocloud.dev v0.26.0
 	gocloud.dev/docstore/mongodocstore v0.25.0
 	gocloud.dev/pubsub/kafkapubsub v0.25.0
 	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e

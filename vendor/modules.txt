@@ -2029,7 +2029,7 @@ go.uber.org/zap/internal/ztest
 go.uber.org/zap/zapcore
 go.uber.org/zap/zapgrpc
 go.uber.org/zap/zaptest
-# gocloud.dev v0.25.0
+# gocloud.dev v0.26.0
 ## explicit; go 1.12
 gocloud.dev/aws
 gocloud.dev/docstore
