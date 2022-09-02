@@ -47,7 +47,7 @@ require (
 	github.com/tektoncd/pipeline v0.37.2
 	github.com/tektoncd/plumbing v0.0.0-20220329085922-d765a5cba75f
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399
-	go.uber.org/atomic v1.9.0
+	go.uber.org/atomic v1.10.0
 	go.uber.org/zap v1.21.0
 	gocloud.dev v0.26.0
 	gocloud.dev/docstore/mongodocstore v0.25.0
