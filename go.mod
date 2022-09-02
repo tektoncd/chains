@@ -3,7 +3,7 @@ module github.com/tektoncd/chains
 go 1.18
 
 require (
-	cloud.google.com/go/compute v1.7.0
+	cloud.google.com/go/compute v1.9.0
 	cloud.google.com/go/storage v1.24.0
 	github.com/armon/go-metrics v0.4.0
 	github.com/armon/go-radix v1.0.0
@@ -20,7 +20,7 @@ require (
 	github.com/hashicorp/go-hclog v1.3.0
 	github.com/hashicorp/go-immutable-radix v1.3.1
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/hashicorp/go-plugin v1.4.4
+	github.com/hashicorp/go-plugin v1.4.5
 	github.com/hashicorp/go-secure-stdlib/mlock v0.1.2
 	github.com/hashicorp/go-secure-stdlib/strutil v0.1.2
 	github.com/hashicorp/go-sockaddr v1.0.2
@@ -42,8 +42,8 @@ require (
 	github.com/sigstore/rekor v0.11.0
 	github.com/sigstore/sigstore v1.2.1-0.20220614141825-9c0e2e247545
 	github.com/spiffe/go-spiffe/v2 v2.1.1
-	github.com/tektoncd/pipeline v0.37.2
-	github.com/tektoncd/plumbing v0.0.0-20220329085922-d765a5cba75f
+	github.com/tektoncd/pipeline v0.39.0
+	github.com/tektoncd/plumbing v0.0.0-20220817140952-3da8ce01aeeb
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399
 	go.uber.org/atomic v1.10.0
 	go.uber.org/zap v1.22.0
@@ -137,7 +137,7 @@ require (
 	github.com/charithe/durationcheck v0.0.9 // indirect
 	github.com/chavacava/garif v0.0.0-20220316182200-5cad0b5181d4 // indirect
 	github.com/chrismellard/docker-credential-acr-env v0.0.0-20220119192733-fe33c00cee21 // indirect
-	github.com/cloudevents/sdk-go/v2 v2.5.0 // indirect
+	github.com/cloudevents/sdk-go/v2 v2.11.0 // indirect
 	github.com/cncf/udpa/go v0.0.0-20210930031921-04548b0d99d4 // indirect
 	github.com/cncf/xds/go v0.0.0-20211130200136-a8f946100490 // indirect
 	github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be // indirect
@@ -423,7 +423,7 @@ require (
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
 	google.golang.org/api v0.91.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20220630174209-ad1d48641aa7 // indirect
+	google.golang.org/genproto v0.0.0-20220804142021-4e6b2dfa6612 // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.28 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect

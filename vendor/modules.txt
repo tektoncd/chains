@@ -11,8 +11,8 @@ cloud.google.com/go/internal
 cloud.google.com/go/internal/optional
 cloud.google.com/go/internal/trace
 cloud.google.com/go/internal/version
-# cloud.google.com/go/compute v1.7.0
-## explicit; go 1.15
+# cloud.google.com/go/compute v1.9.0
+## explicit; go 1.17
 cloud.google.com/go/compute/metadata
 # cloud.google.com/go/firestore v1.6.1
 ## explicit; go 1.11
@@ -347,8 +347,8 @@ github.com/chavacava/garif
 github.com/chrismellard/docker-credential-acr-env/pkg/credhelper
 github.com/chrismellard/docker-credential-acr-env/pkg/registry
 github.com/chrismellard/docker-credential-acr-env/pkg/token
-# github.com/cloudevents/sdk-go/v2 v2.5.0
-## explicit; go 1.14
+# github.com/cloudevents/sdk-go/v2 v2.11.0
+## explicit; go 1.17
 github.com/cloudevents/sdk-go/v2
 github.com/cloudevents/sdk-go/v2/binding
 github.com/cloudevents/sdk-go/v2/binding/format
@@ -925,7 +925,7 @@ github.com/hashicorp/go-immutable-radix
 # github.com/hashicorp/go-multierror v1.1.1
 ## explicit; go 1.13
 github.com/hashicorp/go-multierror
-# github.com/hashicorp/go-plugin v1.4.4
+# github.com/hashicorp/go-plugin v1.4.5
 ## explicit; go 1.17
 github.com/hashicorp/go-plugin
 github.com/hashicorp/go-plugin/internal/plugin
@@ -1588,20 +1588,24 @@ github.com/syndtr/goleveldb/leveldb/util
 # github.com/tdakkota/asciicheck v0.1.1
 ## explicit; go 1.13
 github.com/tdakkota/asciicheck
-# github.com/tektoncd/pipeline v0.37.2
+# github.com/tektoncd/pipeline v0.39.0
 ## explicit; go 1.17
 github.com/tektoncd/pipeline/pkg/apis/config
 github.com/tektoncd/pipeline/pkg/apis/pipeline
 github.com/tektoncd/pipeline/pkg/apis/pipeline/pod
+github.com/tektoncd/pipeline/pkg/apis/pipeline/v1
 github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1
 github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1
 github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1
 github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1/cloudevent
 github.com/tektoncd/pipeline/pkg/apis/run/v1alpha1
 github.com/tektoncd/pipeline/pkg/apis/validate
+github.com/tektoncd/pipeline/pkg/apis/version
 github.com/tektoncd/pipeline/pkg/client/clientset/versioned
 github.com/tektoncd/pipeline/pkg/client/clientset/versioned/fake
 github.com/tektoncd/pipeline/pkg/client/clientset/versioned/scheme
+github.com/tektoncd/pipeline/pkg/client/clientset/versioned/typed/pipeline/v1
+github.com/tektoncd/pipeline/pkg/client/clientset/versioned/typed/pipeline/v1/fake
 github.com/tektoncd/pipeline/pkg/client/clientset/versioned/typed/pipeline/v1alpha1
 github.com/tektoncd/pipeline/pkg/client/clientset/versioned/typed/pipeline/v1alpha1/fake
 github.com/tektoncd/pipeline/pkg/client/clientset/versioned/typed/pipeline/v1beta1
@@ -1609,6 +1613,7 @@ github.com/tektoncd/pipeline/pkg/client/clientset/versioned/typed/pipeline/v1bet
 github.com/tektoncd/pipeline/pkg/client/informers/externalversions
 github.com/tektoncd/pipeline/pkg/client/informers/externalversions/internalinterfaces
 github.com/tektoncd/pipeline/pkg/client/informers/externalversions/pipeline
+github.com/tektoncd/pipeline/pkg/client/informers/externalversions/pipeline/v1
 github.com/tektoncd/pipeline/pkg/client/informers/externalversions/pipeline/v1alpha1
 github.com/tektoncd/pipeline/pkg/client/informers/externalversions/pipeline/v1beta1
 github.com/tektoncd/pipeline/pkg/client/injection/client
@@ -1628,6 +1633,7 @@ github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/tas
 github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/taskrun
 github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/taskrun/fake
 github.com/tektoncd/pipeline/pkg/client/injection/reconciler/pipeline/v1beta1/taskrun
+github.com/tektoncd/pipeline/pkg/client/listers/pipeline/v1
 github.com/tektoncd/pipeline/pkg/client/listers/pipeline/v1alpha1
 github.com/tektoncd/pipeline/pkg/client/listers/pipeline/v1beta1
 github.com/tektoncd/pipeline/pkg/client/resource/clientset/versioned
@@ -1655,7 +1661,7 @@ github.com/tektoncd/pipeline/pkg/remote
 github.com/tektoncd/pipeline/pkg/remote/oci
 github.com/tektoncd/pipeline/pkg/substitution
 github.com/tektoncd/pipeline/test
-# github.com/tektoncd/plumbing v0.0.0-20220329085922-d765a5cba75f
+# github.com/tektoncd/plumbing v0.0.0-20220817140952-3da8ce01aeeb
 ## explicit; go 1.13
 github.com/tektoncd/plumbing
 github.com/tektoncd/plumbing/scripts
@@ -2274,8 +2280,8 @@ google.golang.org/appengine/internal/socket
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/socket
 google.golang.org/appengine/urlfetch
-# google.golang.org/genproto v0.0.0-20220630174209-ad1d48641aa7
-## explicit; go 1.15
+# google.golang.org/genproto v0.0.0-20220804142021-4e6b2dfa6612
+## explicit; go 1.18
 google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/api/expr/v1alpha1
 google.golang.org/genproto/googleapis/api/httpbody
