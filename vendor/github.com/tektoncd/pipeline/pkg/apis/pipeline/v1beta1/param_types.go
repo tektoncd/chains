@@ -52,7 +52,7 @@ type ParamSpec struct {
 	// default is set, a Task may be executed without a supplied value for the
 	// parameter.
 	// +optional
-	Default *ArrayOrString `json:"default,omitempty"`
+	Default *ParamValue `json:"default,omitempty"`
 }
 
 // PropertySpec defines the struct for object keys
@@ -61,7 +61,7 @@ type PropertySpec struct {
 }
 
 // SetDefaults set the default type
-func (pp *ParamSpec) SetDefaults(ctx context.Context) {
+func (pp *ParamSpec) SetDefaults(context.Context) {
 	if pp == nil {
 		return
 	}
@@ -72,11 +72,11 @@ func (pp *ParamSpec) SetDefaults(ctx context.Context) {
 	switch {
 	case pp.Type != "":
 		// If param type is provided by the author, do nothing but just set default type for PropertySpec in case `properties` section is provided.
-		pp.setDefaultsForProperties(ctx)
+		pp.setDefaultsForProperties()
 	case pp.Properties != nil:
 		pp.Type = ParamTypeObject
 		// Also set default type for PropertySpec
-		pp.setDefaultsForProperties(ctx)
+		pp.setDefaultsForProperties()
 	case pp.Default == nil:
 		// ParamTypeString is the default value (when no type can be inferred from the default value)
 		pp.Type = ParamTypeString
@@ -92,7 +92,7 @@ func (pp *ParamSpec) SetDefaults(ctx context.Context) {
 }
 
 // setDefaultsForProperties sets default type for PropertySpec (string) if it's not specified
-func (pp *ParamSpec) setDefaultsForProperties(ctx context.Context) {
+func (pp *ParamSpec) setDefaultsForProperties() {
 	for key, propertySpec := range pp.Properties {
 		if propertySpec.Type == "" {
 			pp.Properties[key] = PropertySpec{Type: ParamTypeString}
@@ -104,10 +104,10 @@ func (pp *ParamSpec) setDefaultsForProperties(ctx context.Context) {
 // the specific context of PipelineResources.
 type ResourceParam = resource.ResourceParam
 
-// Param declares an ArrayOrString to use for the parameter called name.
+// Param declares an ParamValues to use for the parameter called name.
 type Param struct {
-	Name  string        `json:"name"`
-	Value ArrayOrString `json:"value"`
+	Name  string     `json:"name"`
+	Value ParamValue `json:"value"`
 }
 
 // ParamType indicates the type of an input parameter;
@@ -124,27 +124,28 @@ const (
 // AllParamTypes can be used for ParamType validation.
 var AllParamTypes = []ParamType{ParamTypeString, ParamTypeArray, ParamTypeObject}
 
-// ArrayOrString is modeled after IntOrString in kubernetes/apimachinery:
+// ParamValues is modeled after IntOrString in kubernetes/apimachinery:
 
-// ArrayOrString is a type that can hold a single string or string array.
+// ParamValue is a type that can hold a single string or string array.
 // Used in JSON unmarshalling so that a single JSON field can accept
 // either an individual string or an array of strings.
-// TODO (@chuangw6): This struct will be renamed or be embedded in a new struct to take into
-// consideration the object case after the community reaches an agreement on it.
-type ArrayOrString struct {
-	Type      ParamType `json:"type"` // Represents the stored type of ArrayOrString.
+type ParamValue struct {
+	Type      ParamType `json:"type"` // Represents the stored type of ParamValues.
 	StringVal string    `json:"stringVal"`
 	// +listType=atomic
 	ArrayVal  []string          `json:"arrayVal"`
 	ObjectVal map[string]string `json:"objectVal"`
 }
 
+// ArrayOrString is deprecated, this is to keep backward compatibility
+type ArrayOrString = ParamValue
+
 // UnmarshalJSON implements the json.Unmarshaller interface.
-func (arrayOrString *ArrayOrString) UnmarshalJSON(value []byte) error {
-	// ArrayOrString is used for Results Value as well, the results can be any kind of
+func (paramValues *ParamValue) UnmarshalJSON(value []byte) error {
+	// ParamValues is used for Results Value as well, the results can be any kind of
 	// data so we need to check if it is empty.
 	if len(value) == 0 {
-		arrayOrString.Type = ParamTypeString
+		paramValues.Type = ParamTypeString
 		return nil
 	}
 	if value[0] == '[' {
@@ -155,8 +156,8 @@ func (arrayOrString *ArrayOrString) UnmarshalJSON(value []byte) error {
 		// if failed to unmarshal to array, we will convert the value to string and marshal it to string
 		var a []string
 		if err := json.Unmarshal(value, &a); err == nil {
-			arrayOrString.Type = ParamTypeArray
-			arrayOrString.ArrayVal = a
+			paramValues.Type = ParamTypeArray
+			paramValues.ArrayVal = a
 			return nil
 		}
 	}
@@ -164,67 +165,113 @@ func (arrayOrString *ArrayOrString) UnmarshalJSON(value []byte) error {
 		// if failed to unmarshal to map, we will convert the value to string and marshal it to string
 		var m map[string]string
 		if err := json.Unmarshal(value, &m); err == nil {
-			arrayOrString.Type = ParamTypeObject
-			arrayOrString.ObjectVal = m
+			paramValues.Type = ParamTypeObject
+			paramValues.ObjectVal = m
 			return nil
 		}
 	}
 
 	// By default we unmarshal to string
-	arrayOrString.Type = ParamTypeString
-	if err := json.Unmarshal(value, &arrayOrString.StringVal); err == nil {
+	paramValues.Type = ParamTypeString
+	if err := json.Unmarshal(value, &paramValues.StringVal); err == nil {
 		return nil
 	}
-	arrayOrString.StringVal = string(value)
+	paramValues.StringVal = string(value)
 
 	return nil
 }
 
 // MarshalJSON implements the json.Marshaller interface.
-func (arrayOrString ArrayOrString) MarshalJSON() ([]byte, error) {
-	switch arrayOrString.Type {
+func (paramValues ParamValue) MarshalJSON() ([]byte, error) {
+	switch paramValues.Type {
 	case ParamTypeString:
-		return json.Marshal(arrayOrString.StringVal)
+		return json.Marshal(paramValues.StringVal)
 	case ParamTypeArray:
-		return json.Marshal(arrayOrString.ArrayVal)
+		return json.Marshal(paramValues.ArrayVal)
 	case ParamTypeObject:
-		return json.Marshal(arrayOrString.ObjectVal)
+		return json.Marshal(paramValues.ObjectVal)
 	default:
-		return []byte{}, fmt.Errorf("impossible ArrayOrString.Type: %q", arrayOrString.Type)
+		return []byte{}, fmt.Errorf("impossible ParamValues.Type: %q", paramValues.Type)
 	}
 }
 
-// ApplyReplacements applyes replacements for ArrayOrString type
-func (arrayOrString *ArrayOrString) ApplyReplacements(stringReplacements map[string]string, arrayReplacements map[string][]string) {
-	if arrayOrString.Type == ParamTypeString {
-		arrayOrString.StringVal = substitution.ApplyReplacements(arrayOrString.StringVal, stringReplacements)
-	} else {
-		var newArrayVal []string
-		for _, v := range arrayOrString.ArrayVal {
+// ApplyReplacements applyes replacements for ParamValues type
+func (paramValues *ParamValue) ApplyReplacements(stringReplacements map[string]string, arrayReplacements map[string][]string, objectReplacements map[string]map[string]string) {
+	switch paramValues.Type {
+	case ParamTypeArray:
+		newArrayVal := []string{}
+		for _, v := range paramValues.ArrayVal {
 			newArrayVal = append(newArrayVal, substitution.ApplyArrayReplacements(v, stringReplacements, arrayReplacements)...)
 		}
-		arrayOrString.ArrayVal = newArrayVal
+		paramValues.ArrayVal = newArrayVal
+	case ParamTypeObject:
+		newObjectVal := map[string]string{}
+		for k, v := range paramValues.ObjectVal {
+			newObjectVal[k] = substitution.ApplyReplacements(v, stringReplacements)
+		}
+		paramValues.ObjectVal = newObjectVal
+	default:
+		paramValues.applyOrCorrect(stringReplacements, arrayReplacements, objectReplacements)
 	}
 }
 
-// NewArrayOrString creates an ArrayOrString of type ParamTypeString or ParamTypeArray, based on
+// applyOrCorrect deals with string param whose value can be string literal or a reference to a string/array/object param/result.
+// If the value of paramValues is a reference to array or object, the type will be corrected from string to array/object.
+func (paramValues *ParamValue) applyOrCorrect(stringReplacements map[string]string, arrayReplacements map[string][]string, objectReplacements map[string]map[string]string) {
+	stringVal := paramValues.StringVal
+
+	// if the stringVal is a string literal or a string that mixed with var references
+	// just do the normal string replacement
+	if !exactVariableSubstitutionRegex.MatchString(stringVal) {
+		paramValues.StringVal = substitution.ApplyReplacements(paramValues.StringVal, stringReplacements)
+		return
+	}
+
+	// trim the head "$(" and the tail ")" or "[*])"
+	// i.e. get "params.name" from "$(params.name)" or "$(params.name[*])"
+	trimedStringVal := substitution.StripStarVarSubExpression(stringVal)
+
+	// if the stringVal is a reference to a string param
+	if _, ok := stringReplacements[trimedStringVal]; ok {
+		paramValues.StringVal = substitution.ApplyReplacements(paramValues.StringVal, stringReplacements)
+	}
+
+	// if the stringVal is a reference to an array param, we need to change the type other than apply replacement
+	if _, ok := arrayReplacements[trimedStringVal]; ok {
+		paramValues.StringVal = ""
+		paramValues.ArrayVal = substitution.ApplyArrayReplacements(stringVal, stringReplacements, arrayReplacements)
+		paramValues.Type = ParamTypeArray
+	}
+
+	// if the stringVal is a reference an object param, we need to change the type other than apply replacement
+	if _, ok := objectReplacements[trimedStringVal]; ok {
+		paramValues.StringVal = ""
+		paramValues.ObjectVal = objectReplacements[trimedStringVal]
+		paramValues.Type = ParamTypeObject
+	}
+}
+
+// NewStructuredValues creates an ParamValues of type ParamTypeString or ParamTypeArray, based on
 // how many inputs are given (>1 input will create an array, not string).
-func NewArrayOrString(value string, values ...string) *ArrayOrString {
+func NewStructuredValues(value string, values ...string) *ParamValue {
 	if len(values) > 0 {
-		return &ArrayOrString{
+		return &ParamValue{
 			Type:     ParamTypeArray,
 			ArrayVal: append([]string{value}, values...),
 		}
 	}
-	return &ArrayOrString{
+	return &ParamValue{
 		Type:      ParamTypeString,
 		StringVal: value,
 	}
 }
 
-// NewObject creates an ArrayOrString of type ParamTypeObject using the provided key-value pairs
-func NewObject(pairs map[string]string) *ArrayOrString {
-	return &ArrayOrString{
+// NewArrayOrString is the deprecated, this is to keep backward compatibility
+var NewArrayOrString = NewStructuredValues
+
+// NewObject creates an ParamValues of type ParamTypeObject using the provided key-value pairs
+func NewObject(pairs map[string]string) *ParamValue {
+	return &ParamValue{
 		Type:      ParamTypeObject,
 		ObjectVal: pairs,
 	}
@@ -236,23 +283,32 @@ func ArrayReference(a string) string {
 	return strings.TrimSuffix(strings.TrimPrefix(a, "$("+ParamsPrefix+"."), "[*])")
 }
 
-func validatePipelineParametersVariablesInTaskParameters(params []Param, prefix string, paramNames sets.String, arrayParamNames sets.String) (errs *apis.FieldError) {
+// validatePipelineParametersVariablesInTaskParameters validates param value that
+// may contain the reference(s) to other params to make sure those references are used appropriately.
+func validatePipelineParametersVariablesInTaskParameters(params []Param, prefix string, paramNames sets.String, arrayParamNames sets.String, objectParamNameKeys map[string][]string) (errs *apis.FieldError) {
 	for _, param := range params {
-		if param.Value.Type == ParamTypeString {
-			errs = errs.Also(validateStringVariable(param.Value.StringVal, prefix, paramNames, arrayParamNames).ViaFieldKey("params", param.Name))
-		} else {
+		switch param.Value.Type {
+		case ParamTypeArray:
 			for idx, arrayElement := range param.Value.ArrayVal {
-				errs = errs.Also(validateArrayVariable(arrayElement, prefix, paramNames, arrayParamNames).ViaFieldIndex("value", idx).ViaFieldKey("params", param.Name))
+				errs = errs.Also(validateArrayVariable(arrayElement, prefix, paramNames, arrayParamNames, objectParamNameKeys).ViaFieldIndex("value", idx).ViaFieldKey("params", param.Name))
 			}
+		case ParamTypeObject:
+			for key, val := range param.Value.ObjectVal {
+				errs = errs.Also(validateStringVariable(val, prefix, paramNames, arrayParamNames, objectParamNameKeys).ViaFieldKey("properties", key).ViaFieldKey("params", param.Name))
+			}
+		default:
+			errs = errs.Also(validateParamStringValue(param, prefix, paramNames, arrayParamNames, objectParamNameKeys))
 		}
 	}
 	return errs
 }
 
-func validatePipelineParametersVariablesInMatrixParameters(matrix []Param, prefix string, paramNames sets.String, arrayParamNames sets.String) (errs *apis.FieldError) {
+// validatePipelineParametersVariablesInMatrixParameters validates matrix param value
+// that may contain the reference(s) to other params to make sure those references are used appropriately.
+func validatePipelineParametersVariablesInMatrixParameters(matrix []Param, prefix string, paramNames sets.String, arrayParamNames sets.String, objectParamNameKeys map[string][]string) (errs *apis.FieldError) {
 	for _, param := range matrix {
 		for idx, arrayElement := range param.Value.ArrayVal {
-			errs = errs.Also(validateArrayVariable(arrayElement, prefix, paramNames, arrayParamNames).ViaFieldIndex("value", idx).ViaFieldKey("matrix", param.Name))
+			errs = errs.Also(validateArrayVariable(arrayElement, prefix, paramNames, arrayParamNames, objectParamNameKeys).ViaFieldIndex("value", idx).ViaFieldKey("matrix", param.Name))
 		}
 	}
 	return errs
@@ -262,10 +318,6 @@ func validateParametersInTaskMatrix(matrix []Param) (errs *apis.FieldError) {
 	for _, param := range matrix {
 		if param.Value.Type != ParamTypeArray {
 			errs = errs.Also(apis.ErrInvalidValue("parameters of type array only are allowed in matrix", "").ViaFieldKey("matrix", param.Name))
-		}
-		// results are not yet allowed in parameters in a matrix - dynamic fanning out will be supported in future milestone
-		if expressions, ok := GetVarSubstitutionExpressionsForParam(param); ok && LooksLikeContainsResultRefs(expressions) {
-			return errs.Also(apis.ErrInvalidValue("result references are not allowed in parameters in a matrix", "value").ViaFieldKey("matrix", param.Name))
 		}
 	}
 	return errs
@@ -284,12 +336,42 @@ func validateParameterInOneOfMatrixOrParams(matrix []Param, params []Param) (err
 	return errs
 }
 
-func validateStringVariable(value, prefix string, stringVars sets.String, arrayVars sets.String) *apis.FieldError {
+// validateParamStringValue validates the param value field of string type
+// that may contain references to other isolated array/object params other than string param.
+func validateParamStringValue(param Param, prefix string, paramNames sets.String, arrayVars sets.String, objectParamNameKeys map[string][]string) (errs *apis.FieldError) {
+	stringValue := param.Value.StringVal
+
+	// if the provided param value is an isolated reference to the whole array/object, we just check if the param name exists.
+	isIsolated, errs := substitution.ValidateWholeArrayOrObjectRefInStringVariable(param.Name, stringValue, prefix, paramNames)
+	if isIsolated {
+		return errs
+	}
+
+	// if the provided param value is string literal and/or contains multiple variables
+	// valid example: "$(params.myString) and another $(params.myObject.key1)"
+	// invalid example: "$(params.myString) and another $(params.myObject[*])"
+	return validateStringVariable(stringValue, prefix, paramNames, arrayVars, objectParamNameKeys).ViaFieldKey("params", param.Name)
+}
+
+// validateStringVariable validates the normal string fields that can only accept references to string param or individual keys of object param
+func validateStringVariable(value, prefix string, stringVars sets.String, arrayVars sets.String, objectParamNameKeys map[string][]string) *apis.FieldError {
 	errs := substitution.ValidateVariableP(value, prefix, stringVars)
+	errs = errs.Also(validateObjectVariable(value, prefix, objectParamNameKeys))
 	return errs.Also(substitution.ValidateVariableProhibitedP(value, prefix, arrayVars))
 }
 
-func validateArrayVariable(value, prefix string, stringVars sets.String, arrayVars sets.String) *apis.FieldError {
+func validateArrayVariable(value, prefix string, stringVars sets.String, arrayVars sets.String, objectParamNameKeys map[string][]string) *apis.FieldError {
 	errs := substitution.ValidateVariableP(value, prefix, stringVars)
+	errs = errs.Also(validateObjectVariable(value, prefix, objectParamNameKeys))
 	return errs.Also(substitution.ValidateVariableIsolatedP(value, prefix, arrayVars))
+}
+
+func validateObjectVariable(value, prefix string, objectParamNameKeys map[string][]string) (errs *apis.FieldError) {
+	objectNames := sets.NewString()
+	for objectParamName, keys := range objectParamNameKeys {
+		objectNames.Insert(objectParamName)
+		errs = errs.Also(substitution.ValidateVariableP(value, fmt.Sprintf("%s\\.%s", prefix, objectParamName), sets.NewString(keys...)))
+	}
+
+	return errs.Also(substitution.ValidateEntireVariableProhibitedP(value, prefix, objectNames))
 }
