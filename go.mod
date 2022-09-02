@@ -49,7 +49,7 @@ require (
 	go.uber.org/zap v1.22.0
 	gocloud.dev v0.26.0
 	gocloud.dev/docstore/mongodocstore v0.25.0
-	gocloud.dev/pubsub/kafkapubsub v0.25.0
+	gocloud.dev/pubsub/kafkapubsub v0.26.0
 	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d
 	google.golang.org/grpc v1.48.0
 	google.golang.org/protobuf v1.28.1
