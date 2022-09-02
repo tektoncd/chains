@@ -18,10 +18,9 @@ import (
 	"context"
 	"crypto"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"strings"
-
-	"github.com/pkg/errors"
 
 	"github.com/sigstore/cosign/pkg/blob"
 	"github.com/sigstore/cosign/pkg/cosign"
@@ -33,25 +32,6 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature"
 
 	"github.com/sigstore/sigstore/pkg/signature/kms"
-)
-
-var (
-	// Fulcio cert-extensions, documented here: https://github.com/sigstore/fulcio/blob/main/docs/oid-info.md
-	CertExtensionOIDCIssuer               = "1.3.6.1.4.1.57264.1.1"
-	CertExtensionGithubWorkflowTrigger    = "1.3.6.1.4.1.57264.1.2"
-	CertExtensionGithubWorkflowSha        = "1.3.6.1.4.1.57264.1.3"
-	CertExtensionGithubWorkflowName       = "1.3.6.1.4.1.57264.1.4"
-	CertExtensionGithubWorkflowRepository = "1.3.6.1.4.1.57264.1.5"
-	CertExtensionGithubWorkflowRef        = "1.3.6.1.4.1.57264.1.6"
-
-	CertExtensionMap = map[string]string{
-		CertExtensionOIDCIssuer:               "oidcIssuer",
-		CertExtensionGithubWorkflowTrigger:    "githubWorkflowTrigger",
-		CertExtensionGithubWorkflowSha:        "githubWorkflowSha",
-		CertExtensionGithubWorkflowName:       "githubWorkflowName",
-		CertExtensionGithubWorkflowRepository: "githubWorkflowRepository",
-		CertExtensionGithubWorkflowRef:        "githubWorkflowRef",
-	}
 )
 
 // LoadPublicKey is a wrapper for VerifierForKeyRef, hardcoding SHA256 as the hash algorithm
@@ -77,7 +57,7 @@ func VerifierForKeyRef(ctx context.Context, keyRef string, hashAlgorithm crypto.
 	// PEM encoded file.
 	pubKey, err := cryptoutils.UnmarshalPEMToPublicKey(raw)
 	if err != nil {
-		return nil, errors.Wrap(err, "pem to public key")
+		return nil, fmt.Errorf("pem to public key: %w", err)
 	}
 
 	return signature.LoadVerifier(pubKey, hashAlgorithm)
@@ -103,7 +83,7 @@ func LoadPublicKeyRaw(raw []byte, hashAlgorithm crypto.Hash) (signature.Verifier
 	// PEM encoded file.
 	ed, err := cosign.PemToECDSAKey(raw)
 	if err != nil {
-		return nil, errors.Wrap(err, "pem to ecdsa")
+		return nil, fmt.Errorf("pem to ecdsa: %w", err)
 	}
 	return signature.LoadECDSAVerifier(ed, hashAlgorithm)
 }
@@ -118,19 +98,19 @@ func SignerVerifierFromKeyRef(ctx context.Context, keyRef string, pf cosign.Pass
 		pkcs11UriConfig := pkcs11key.NewPkcs11UriConfig()
 		err := pkcs11UriConfig.Parse(keyRef)
 		if err != nil {
-			return nil, errors.Wrap(err, "parsing pkcs11 uri")
+			return nil, fmt.Errorf("parsing pkcs11 uri: %w", err)
 		}
 
 		// Since we'll be signing, we need to set askForPinIsNeeded to true
 		// because we need access to the private key.
 		sk, err := pkcs11key.GetKeyWithURIConfig(pkcs11UriConfig, true)
 		if err != nil {
-			return nil, errors.Wrap(err, "opening pkcs11 token key")
+			return nil, fmt.Errorf("opening pkcs11 token key: %w", err)
 		}
 
 		sv, err := sk.SignerVerifier()
 		if err != nil {
-			return nil, errors.Wrap(err, "initializing pkcs11 token signer verifier")
+			return nil, fmt.Errorf("initializing pkcs11 token signer verifier: %w", err)
 		}
 
 		return sv, nil
@@ -200,19 +180,19 @@ func PublicKeyFromKeyRefWithHashAlgo(ctx context.Context, keyRef string, hashAlg
 		pkcs11UriConfig := pkcs11key.NewPkcs11UriConfig()
 		err := pkcs11UriConfig.Parse(keyRef)
 		if err != nil {
-			return nil, errors.Wrap(err, "parsing pkcs11 uri")
+			return nil, fmt.Errorf("parsing pkcs11 uri): %w", err)
 		}
 
 		// Since we'll be verifying a signature, we do not need to set askForPinIsNeeded to true
 		// because we only need access to the public key.
 		sk, err := pkcs11key.GetKeyWithURIConfig(pkcs11UriConfig, false)
 		if err != nil {
-			return nil, errors.Wrap(err, "opening pkcs11 token key")
+			return nil, fmt.Errorf("opening pkcs11 token key: %w", err)
 		}
 
 		v, err := sk.Verifier()
 		if err != nil {
-			return nil, errors.Wrap(err, "initializing pkcs11 token verifier")
+			return nil, fmt.Errorf("initializing pkcs11 token verifier: %w", err)
 		}
 
 		return v, nil
@@ -254,26 +234,4 @@ func CertSubject(c *x509.Certificate) string {
 		return c.URIs[0].String()
 	}
 	return ""
-}
-
-func CertIssuerExtension(cert *x509.Certificate) string {
-	for _, ext := range cert.Extensions {
-		if ext.Id.String() == CertExtensionOIDCIssuer {
-			return string(ext.Value)
-		}
-	}
-	return ""
-}
-
-func CertExtensions(cert *x509.Certificate) map[string]string {
-	extensions := map[string]string{}
-	for _, ext := range cert.Extensions {
-		readableName, ok := CertExtensionMap[ext.Id.String()]
-		if ok {
-			extensions[readableName] = string(ext.Value)
-		} else {
-			extensions[ext.Id.String()] = string(ext.Value)
-		}
-	}
-	return extensions
 }

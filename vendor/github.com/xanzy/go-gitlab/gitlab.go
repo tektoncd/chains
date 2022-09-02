@@ -88,7 +88,7 @@ type Client struct {
 	// Token type used to make authenticated API calls.
 	authType AuthType
 
-	// Username and password used for basix authentication.
+	// Username and password used for basic authentication.
 	username, password string
 
 	// Token used to make authenticated API calls.
@@ -101,106 +101,109 @@ type Client struct {
 	UserAgent string
 
 	// Services used for talking to different parts of the GitLab API.
-	AccessRequests         *AccessRequestsService
-	Applications           *ApplicationsService
-	AuditEvents            *AuditEventsService
-	Avatar                 *AvatarRequestsService
-	AwardEmoji             *AwardEmojiService
-	Boards                 *IssueBoardsService
-	Branches               *BranchesService
-	BroadcastMessage       *BroadcastMessagesService
-	CIYMLTemplate          *CIYMLTemplatesService
-	Commits                *CommitsService
-	ContainerRegistry      *ContainerRegistryService
-	CustomAttribute        *CustomAttributesService
-	DeployKeys             *DeployKeysService
-	DeployTokens           *DeployTokensService
-	Deployments            *DeploymentsService
-	Discussions            *DiscussionsService
-	Environments           *EnvironmentsService
-	EpicIssues             *EpicIssuesService
-	Epics                  *EpicsService
-	Events                 *EventsService
-	ExternalStatusChecks   *ExternalStatusChecksService
-	Features               *FeaturesService
-	FreezePeriods          *FreezePeriodsService
-	GenericPackages        *GenericPackagesService
-	GeoNodes               *GeoNodesService
-	GitIgnoreTemplates     *GitIgnoreTemplatesService
-	GroupAccessTokens      *GroupAccessTokensService
-	GroupBadges            *GroupBadgesService
-	GroupCluster           *GroupClustersService
-	GroupImportExport      *GroupImportExportService
-	GroupIssueBoards       *GroupIssueBoardsService
-	GroupIterations        *GroupIterationsService
-	GroupLabels            *GroupLabelsService
-	GroupMembers           *GroupMembersService
-	GroupMilestones        *GroupMilestonesService
-	GroupVariables         *GroupVariablesService
-	GroupWikis             *GroupWikisService
-	Groups                 *GroupsService
-	InstanceCluster        *InstanceClustersService
-	InstanceVariables      *InstanceVariablesService
-	Invites                *InvitesService
-	IssueLinks             *IssueLinksService
-	Issues                 *IssuesService
-	IssuesStatistics       *IssuesStatisticsService
-	Jobs                   *JobsService
-	Keys                   *KeysService
-	Labels                 *LabelsService
-	License                *LicenseService
-	LicenseTemplates       *LicenseTemplatesService
-	ManagedLicenses        *ManagedLicensesService
-	Markdown               *MarkdownService
-	MergeRequestApprovals  *MergeRequestApprovalsService
-	MergeRequests          *MergeRequestsService
-	Milestones             *MilestonesService
-	Namespaces             *NamespacesService
-	Notes                  *NotesService
-	NotificationSettings   *NotificationSettingsService
-	Packages               *PackagesService
-	Pages                  *PagesService
-	PagesDomains           *PagesDomainsService
-	PersonalAccessTokens   *PersonalAccessTokensService
-	PipelineSchedules      *PipelineSchedulesService
-	PipelineTriggers       *PipelineTriggersService
-	Pipelines              *PipelinesService
-	PlanLimits             *PlanLimitsService
-	ProjectBadges          *ProjectBadgesService
-	ProjectAccessTokens    *ProjectAccessTokensService
-	ProjectCluster         *ProjectClustersService
-	ProjectImportExport    *ProjectImportExportService
-	ProjectIterations      *ProjectIterationsService
-	ProjectMembers         *ProjectMembersService
-	ProjectMirrors         *ProjectMirrorService
-	ProjectSnippets        *ProjectSnippetsService
-	ProjectVariables       *ProjectVariablesService
-	ProjectVulnerabilities *ProjectVulnerabilitiesService
-	Projects               *ProjectsService
-	ProtectedBranches      *ProtectedBranchesService
-	ProtectedEnvironments  *ProtectedEnvironmentsService
-	ProtectedTags          *ProtectedTagsService
-	ReleaseLinks           *ReleaseLinksService
-	Releases               *ReleasesService
-	Repositories           *RepositoriesService
-	RepositoryFiles        *RepositoryFilesService
-	RepositorySubmodules   *RepositorySubmodulesService
-	ResourceLabelEvents    *ResourceLabelEventsService
-	ResourceStateEvents    *ResourceStateEventsService
-	Runners                *RunnersService
-	Search                 *SearchService
-	Services               *ServicesService
-	Settings               *SettingsService
-	Sidekiq                *SidekiqService
-	Snippets               *SnippetsService
-	SystemHooks            *SystemHooksService
-	Tags                   *TagsService
-	Todos                  *TodosService
-	Topics                 *TopicsService
-	Users                  *UsersService
-	Validate               *ValidateService
-	Version                *VersionService
-	Wikis                  *WikisService
+	AccessRequests          *AccessRequestsService
+	Applications            *ApplicationsService
+	AuditEvents             *AuditEventsService
+	Avatar                  *AvatarRequestsService
+	AwardEmoji              *AwardEmojiService
+	Boards                  *IssueBoardsService
+	Branches                *BranchesService
+	BroadcastMessage        *BroadcastMessagesService
+	CIYMLTemplate           *CIYMLTemplatesService
+	ClusterAgents           *ClusterAgentsService
+	Commits                 *CommitsService
+	ContainerRegistry       *ContainerRegistryService
+	CustomAttribute         *CustomAttributesService
+	DeployKeys              *DeployKeysService
+	DeployTokens            *DeployTokensService
+	Deployments             *DeploymentsService
+	Discussions             *DiscussionsService
+	Environments            *EnvironmentsService
+	EpicIssues              *EpicIssuesService
+	Epics                   *EpicsService
+	ErrorTracking           *ErrorTrackingService
+	Events                  *EventsService
+	ExternalStatusChecks    *ExternalStatusChecksService
+	Features                *FeaturesService
+	FreezePeriods           *FreezePeriodsService
+	GenericPackages         *GenericPackagesService
+	GeoNodes                *GeoNodesService
+	GitIgnoreTemplates      *GitIgnoreTemplatesService
+	GroupAccessTokens       *GroupAccessTokensService
+	GroupBadges             *GroupBadgesService
+	GroupCluster            *GroupClustersService
+	GroupImportExport       *GroupImportExportService
+	GroupIssueBoards        *GroupIssueBoardsService
+	GroupIterations         *GroupIterationsService
+	GroupLabels             *GroupLabelsService
+	GroupMembers            *GroupMembersService
+	GroupMilestones         *GroupMilestonesService
+	GroupVariables          *GroupVariablesService
+	GroupWikis              *GroupWikisService
+	Groups                  *GroupsService
+	InstanceCluster         *InstanceClustersService
+	InstanceVariables       *InstanceVariablesService
+	Invites                 *InvitesService
+	IssueLinks              *IssueLinksService
+	Issues                  *IssuesService
+	IssuesStatistics        *IssuesStatisticsService
+	Jobs                    *JobsService
+	Keys                    *KeysService
+	Labels                  *LabelsService
+	License                 *LicenseService
+	LicenseTemplates        *LicenseTemplatesService
+	ManagedLicenses         *ManagedLicensesService
+	Markdown                *MarkdownService
+	MergeRequestApprovals   *MergeRequestApprovalsService
+	MergeRequests           *MergeRequestsService
+	Milestones              *MilestonesService
+	Namespaces              *NamespacesService
+	Notes                   *NotesService
+	NotificationSettings    *NotificationSettingsService
+	Packages                *PackagesService
+	Pages                   *PagesService
+	PagesDomains            *PagesDomainsService
+	PersonalAccessTokens    *PersonalAccessTokensService
+	PipelineSchedules       *PipelineSchedulesService
+	PipelineTriggers        *PipelineTriggersService
+	Pipelines               *PipelinesService
+	PlanLimits              *PlanLimitsService
+	ProjectAccessTokens     *ProjectAccessTokensService
+	ProjectBadges           *ProjectBadgesService
+	ProjectCluster          *ProjectClustersService
+	ProjectImportExport     *ProjectImportExportService
+	ProjectIterations       *ProjectIterationsService
+	ProjectMembers          *ProjectMembersService
+	ProjectMirrors          *ProjectMirrorService
+	ProjectSnippets         *ProjectSnippetsService
+	ProjectVariables        *ProjectVariablesService
+	ProjectVulnerabilities  *ProjectVulnerabilitiesService
+	Projects                *ProjectsService
+	ProtectedBranches       *ProtectedBranchesService
+	ProtectedEnvironments   *ProtectedEnvironmentsService
+	ProtectedTags           *ProtectedTagsService
+	ReleaseLinks            *ReleaseLinksService
+	Releases                *ReleasesService
+	Repositories            *RepositoriesService
+	RepositoryFiles         *RepositoryFilesService
+	RepositorySubmodules    *RepositorySubmodulesService
+	ResourceLabelEvents     *ResourceLabelEventsService
+	ResourceMilestoneEvents *ResourceMilestoneEventsService
+	ResourceStateEvents     *ResourceStateEventsService
+	Runners                 *RunnersService
+	Search                  *SearchService
+	Services                *ServicesService
+	Settings                *SettingsService
+	Sidekiq                 *SidekiqService
+	Snippets                *SnippetsService
+	SystemHooks             *SystemHooksService
+	Tags                    *TagsService
+	Todos                   *TodosService
+	Topics                  *TopicsService
+	Users                   *UsersService
+	Validate                *ValidateService
+	Version                 *VersionService
+	Wikis                   *WikisService
 }
 
 // ListOptions specifies the optional parameters to various List methods that
@@ -308,6 +311,7 @@ func newClient(options ...ClientOptionFunc) (*Client, error) {
 	c.Boards = &IssueBoardsService{client: c}
 	c.Branches = &BranchesService{client: c}
 	c.BroadcastMessage = &BroadcastMessagesService{client: c}
+	c.ClusterAgents = &ClusterAgentsService{client: c}
 	c.CIYMLTemplate = &CIYMLTemplatesService{client: c}
 	c.Commits = &CommitsService{client: c}
 	c.ContainerRegistry = &ContainerRegistryService{client: c}
@@ -319,6 +323,7 @@ func newClient(options ...ClientOptionFunc) (*Client, error) {
 	c.Environments = &EnvironmentsService{client: c}
 	c.EpicIssues = &EpicIssuesService{client: c}
 	c.Epics = &EpicsService{client: c}
+	c.ErrorTracking = &ErrorTrackingService{client: c}
 	c.Events = &EventsService{client: c}
 	c.ExternalStatusChecks = &ExternalStatusChecksService{client: c}
 	c.Features = &FeaturesService{client: c}
@@ -385,6 +390,7 @@ func newClient(options ...ClientOptionFunc) (*Client, error) {
 	c.RepositoryFiles = &RepositoryFilesService{client: c}
 	c.RepositorySubmodules = &RepositorySubmodulesService{client: c}
 	c.ResourceLabelEvents = &ResourceLabelEventsService{client: c}
+	c.ResourceMilestoneEvents = &ResourceMilestoneEventsService{client: c}
 	c.ResourceStateEvents = &ResourceStateEventsService{client: c}
 	c.Runners = &RunnersService{client: c}
 	c.Search = &SearchService{client: c}
