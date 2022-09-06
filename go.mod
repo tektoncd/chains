@@ -46,7 +46,7 @@ require (
 	github.com/tektoncd/plumbing v0.0.0-20220817140952-3da8ce01aeeb
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399
 	go.uber.org/atomic v1.10.0
-	go.uber.org/zap v1.22.0
+	go.uber.org/zap v1.23.0
 	gocloud.dev v0.26.0
 	gocloud.dev/docstore/mongodocstore v0.25.0
 	gocloud.dev/pubsub/kafkapubsub v0.26.0
