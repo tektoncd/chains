@@ -33,7 +33,7 @@ import (
 	kmspb "google.golang.org/genproto/googleapis/cloud/kms/v1"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	"github.com/ReneKroon/ttlcache/v2"
+	"github.com/jellydator/ttlcache/v2"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature"
 	sigkms "github.com/sigstore/sigstore/pkg/signature/kms"
@@ -279,7 +279,12 @@ func (g *gcpClient) getCKV() (*cryptoKeyVersion, error) {
 		return nil, err
 	}
 
-	return kmsVersionInt.(*cryptoKeyVersion), nil
+	kv, ok := kmsVersionInt.(*cryptoKeyVersion)
+	if !ok {
+		return nil, fmt.Errorf("could not parse kms version cache value as CryptoKeyVersion")
+	}
+
+	return kv, nil
 }
 
 func (g *gcpClient) sign(ctx context.Context, digest []byte, alg crypto.Hash, crc uint32) ([]byte, error) {
