@@ -51,7 +51,7 @@ require (
 	gocloud.dev/docstore/mongodocstore v0.26.0
 	gocloud.dev/pubsub/kafkapubsub v0.26.0
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa
-	google.golang.org/grpc v1.48.0
+	google.golang.org/grpc v1.49.0
 	google.golang.org/protobuf v1.28.1
 	gopkg.in/square/go-jose.v2 v2.6.0
 	gopkg.in/yaml.v2 v2.4.0
