@@ -1,3 +1,31 @@
+# v1.18.4 (2022-08-11)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.18.3 (2022-08-09)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.18.2 (2022-08-08)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.18.1 (2022-08-01)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.18.0 (2022-07-18)
+
+* **Feature**: Added support for the SM2 KeySpec in China Partition Regions
+
+# v1.17.5 (2022-07-05)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.17.4 (2022-06-29)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
 # v1.17.3 (2022-06-07)
 
 * **Dependency Update**: Updated to the latest SDK module versions
