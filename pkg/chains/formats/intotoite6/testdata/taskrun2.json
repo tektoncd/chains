@@ -91,6 +91,15 @@
                     "description": "some calculated uri"
                 }
             ]
+        },
+        "provenance": {
+          "configSource": {
+            "uri": "github.com/catalog",
+            "digest": {
+              "sha1": "x123"
+            },
+            "entryPoint": "git-clone.yaml"
+          }
         }
     }
 }

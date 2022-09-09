@@ -55,8 +55,10 @@ func Step(step *v1beta1.Step, stepState *v1beta1.StepState) StepAttestation {
 	return attestation
 }
 
-func Invocation(params []v1beta1.Param, paramSpecs []v1beta1.ParamSpec) slsa.ProvenanceInvocation {
-	i := slsa.ProvenanceInvocation{}
+func Invocation(source *v1beta1.ConfigSource, params []v1beta1.Param, paramSpecs []v1beta1.ParamSpec) slsa.ProvenanceInvocation {
+	i := slsa.ProvenanceInvocation{
+		ConfigSource: convertConfigSource(source),
+	}
 	iParams := make(map[string]v1beta1.ArrayOrString)
 
 	// get implicit parameters from defaults
@@ -73,6 +75,17 @@ func Invocation(params []v1beta1.Param, paramSpecs []v1beta1.ParamSpec) slsa.Pro
 
 	i.Parameters = iParams
 	return i
+}
+
+func convertConfigSource(source *v1beta1.ConfigSource) slsa.ConfigSource {
+	if source == nil {
+		return slsa.ConfigSource{}
+	}
+	return slsa.ConfigSource{
+		URI:        source.URI,
+		Digest:     source.Digest,
+		EntryPoint: source.EntryPoint,
+	}
 }
 
 // supports the SPDX format which is recommended by in-toto

@@ -56,7 +56,11 @@ func invocation(tro *objects.TaskRunObject) slsa.ProvenanceInvocation {
 	if ts := tro.Status.TaskSpec; ts != nil {
 		paramSpecs = ts.Params
 	}
-	return attest.Invocation(tro.Spec.Params, paramSpecs)
+	var source *v1beta1.ConfigSource
+	if p := tro.Status.Provenance; p != nil {
+		source = p.ConfigSource
+	}
+	return attest.Invocation(source, tro.Spec.Params, paramSpecs)
 }
 
 func metadata(tro *objects.TaskRunObject) *slsa.ProvenanceMetadata {

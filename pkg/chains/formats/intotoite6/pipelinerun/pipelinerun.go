@@ -72,7 +72,11 @@ func invocation(pro *objects.PipelineRunObject) slsa.ProvenanceInvocation {
 	if ps := pro.Status.PipelineSpec; ps != nil {
 		paramSpecs = ps.Params
 	}
-	return attest.Invocation(pro.Spec.Params, paramSpecs)
+	var source *v1beta1.ConfigSource
+	if p := pro.Status.Provenance; p != nil {
+		source = p.ConfigSource
+	}
+	return attest.Invocation(source, pro.Spec.Params, paramSpecs)
 }
 
 func buildConfig(pro *objects.PipelineRunObject, logger *zap.SugaredLogger) BuildConfig {
@@ -129,6 +133,13 @@ func buildConfig(pro *objects.PipelineRunObject, logger *zap.SugaredLogger) Buil
 		} else {
 			paramSpecs = []v1beta1.ParamSpec{}
 		}
+
+		// source information in taskrun status
+		var source *v1beta1.ConfigSource
+		if p := tr.Status.Provenance; p != nil {
+			source = p.ConfigSource
+		}
+
 		task := TaskAttestation{
 			Name:       t.Name,
 			After:      after,
@@ -136,7 +147,7 @@ func buildConfig(pro *objects.PipelineRunObject, logger *zap.SugaredLogger) Buil
 			FinishedOn: tr.Status.CompletionTime.Time,
 			Status:     getStatus(tr.Status.Conditions),
 			Steps:      steps,
-			Invocation: attest.Invocation(params, paramSpecs),
+			Invocation: attest.Invocation(source, params, paramSpecs),
 			Results:    tr.Status.TaskRunResults,
 		}
 
