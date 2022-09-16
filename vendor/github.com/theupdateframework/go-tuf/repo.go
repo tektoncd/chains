@@ -309,19 +309,33 @@ func (r *Repo) GenKey(role string) ([]string, error) {
 }
 
 func (r *Repo) GenKeyWithExpires(keyRole string, expires time.Time) (keyids []string, err error) {
+	return r.GenKeyWithSchemeAndExpires(keyRole, expires, data.KeySchemeEd25519)
+}
+
+func (r *Repo) GenKeyWithSchemeAndExpires(role string, expires time.Time, keyScheme data.KeyScheme) ([]string, error) {
+	var signer keys.Signer
+	var err error
+	switch keyScheme {
+	case data.KeySchemeEd25519:
+		signer, err = keys.GenerateEd25519Key()
+	case data.KeySchemeECDSA_SHA2_P256:
+		signer, err = keys.GenerateEcdsaKey()
+	case data.KeySchemeRSASSA_PSS_SHA256:
+		signer, err = keys.GenerateRsaKey()
+	default:
+		return nil, errors.New("unknown key type")
+	}
+	if err != nil {
+		return nil, err
+	}
+
 	// Not compatible with delegated targets roles, since delegated targets keys
 	// are associated with a delegation (edge), not a role (node).
 
-	signer, err := keys.GenerateEd25519Key()
-	if err != nil {
-		return []string{}, err
+	if err = r.AddPrivateKeyWithExpires(role, signer, expires); err != nil {
+		return nil, err
 	}
-
-	if err = r.AddPrivateKeyWithExpires(keyRole, signer, expires); err != nil {
-		return []string{}, err
-	}
-	keyids = signer.PublicData().IDs()
-	return
+	return signer.PublicData().IDs(), nil
 }
 
 func (r *Repo) AddPrivateKey(role string, signer keys.Signer) error {
@@ -1027,7 +1041,7 @@ func (r *Repo) AddTargetsWithDigest(digest string, digestAlg string, length int6
 	// This is the targets role that needs to sign the target file.
 	targetsRoleName := delegation.Delegatee.Name
 
-	meta := data.FileMeta{Length: length, Hashes: make(data.Hashes, 1)}
+	meta := data.TargetFileMeta{FileMeta: data.FileMeta{Length: length, Hashes: make(data.Hashes, 1)}}
 	meta.Hashes[digestAlg], err = hex.DecodeString(digest)
 	if err != nil {
 		return err
@@ -1044,7 +1058,7 @@ func (r *Repo) AddTargetsWithDigest(digest string, digestAlg string, length int6
 	// What does G2 mean? Copying and pasting this comment from elsewhere in this file.
 	// G2 -> we no longer desire any readers to ever observe non-prefix targets.
 	delete(targetsMeta.Targets, "/"+path)
-	targetsMeta.Targets[path] = data.TargetFileMeta{FileMeta: meta}
+	targetsMeta.Targets[path] = meta
 
 	targetsMeta.Expires = expires.Round(time.Second)
 
@@ -1554,4 +1568,45 @@ func (r *Repo) Payload(roleFilename string) ([]byte, error) {
 	}
 
 	return p, nil
+}
+
+func (r *Repo) CheckRoleUnexpired(role string, validAt time.Time) error {
+	var expires time.Time
+	switch role {
+	case "root":
+		root, err := r.root()
+		if err != nil {
+			return err
+		}
+		expires = root.Expires
+	case "snapshot":
+		snapshot, err := r.snapshot()
+		if err != nil {
+			return err
+		}
+		expires = snapshot.Expires
+	case "timestamp":
+		timestamp, err := r.timestamp()
+		if err != nil {
+			return err
+		}
+		expires = timestamp.Expires
+	case "targets":
+		targets, err := r.topLevelTargets()
+		if err != nil {
+			return err
+		}
+		expires = targets.Expires
+	default:
+		return fmt.Errorf("invalid role: %s", role)
+	}
+	if expires.Before(validAt) || expires.Equal(validAt) {
+		return fmt.Errorf("role expired on: %s", expires)
+	}
+	return nil
+}
+
+// GetMeta returns the underlying meta file map from the store.
+func (r *Repo) GetMeta() (map[string]json.RawMessage, error) {
+	return r.local.GetMeta()
 }
