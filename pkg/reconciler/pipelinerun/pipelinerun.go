@@ -76,7 +76,7 @@ func (r *Reconciler) FinalizeKind(ctx context.Context, pr *v1beta1.PipelineRun) 
 			// has exceeded. Wait to process the PipelineRun on the next update, see
 			// https://github.com/tektoncd/pipeline/issues/4916
 			if ptrs.Status == nil || ptrs.Status.CompletionTime == nil {
-				logging.FromContext(ctx).Infof("taskrun %s within pipelinerun is not yet finalized", trName)
+				logging.FromContext(ctx).Infof("taskrun %s within pipelinerun is not yet finalized: embedded status is not complete", trName)
 				return nil
 			}
 			trs = append(trs, trName)
@@ -101,13 +101,13 @@ func (r *Reconciler) FinalizeKind(ctx context.Context, pr *v1beta1.PipelineRun) 
 			return nil
 		}
 		if tr.Status.CompletionTime == nil {
-			logging.FromContext(ctx).Infof("taskrun %s within pipelinerunis not yet finalized", name)
+			logging.FromContext(ctx).Infof("taskrun %s within pipelinerun is not yet finalized: status is not complete", name)
 			return controller.NewRequeueAfter(time.Second * 15)
 		}
 		reconciled := signing.Reconciled(objects.NewTaskRunObject(tr))
 		if !reconciled {
 			logging.FromContext(ctx).Infof("taskrun %s within pipelinerun is not yet reconciled", name)
-			return controller.NewRequeueAfter(time.Second * 15)
+			return nil
 		}
 		pro.AppendTaskRun(tr)
 	}

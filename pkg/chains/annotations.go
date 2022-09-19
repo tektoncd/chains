@@ -17,6 +17,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/tektoncd/chains/pkg/chains/objects"
@@ -27,6 +28,7 @@ import (
 const (
 	// ChainsAnnotation is the standard annotation to indicate a TR has been signed.
 	ChainsAnnotation             = "chains.tekton.dev/signed"
+	ChainsParentAnnotation       = "chains.tekton.dev/child-signed"
 	RetryAnnotation              = "chains.tekton.dev/retries"
 	ChainsTransparencyAnnotation = "chains.tekton.dev/transparency"
 	MaxRetries                   = 3
@@ -52,6 +54,11 @@ func MarkSigned(ctx context.Context, obj objects.TektonObject, ps versioned.Inte
 
 func MarkFailed(ctx context.Context, obj objects.TektonObject, ps versioned.Interface, annotations map[string]string) error {
 	return AddAnnotation(ctx, obj, ps, ChainsAnnotation, "failed", annotations)
+}
+
+func MarkParentSigned(ctx context.Context, obj objects.TektonObject, ps versioned.Interface) error {
+	now := time.Now().UTC().String()
+	return AddAnnotation(ctx, obj, ps, ChainsParentAnnotation, now, obj.GetAnnotations())
 }
 
 func RetryAvailable(obj objects.TektonObject) bool {

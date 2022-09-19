@@ -238,6 +238,7 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 					extraAnnotations[ChainsTransparencyAnnotation] = fmt.Sprintf("%s/api/v1/log/entries?logIndex=%d", cfg.Transparency.URL, *entry.LogIndex)
 				}
 			}
+
 		}
 		if merr.ErrorOrNil() != nil {
 			if err := HandleRetry(ctx, tektonObj, o.Pipelineclientset, extraAnnotations); err != nil {
@@ -247,8 +248,22 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 		}
 	}
 
-	// Now mark the TaskRun as signed
-	return MarkSigned(ctx, tektonObj, o.Pipelineclientset, extraAnnotations)
+	// Now mark the TektonObject as signed
+	if err := MarkSigned(ctx, tektonObj, o.Pipelineclientset, extraAnnotations); err != nil {
+		return err
+	}
+
+	// Notify parent object that child object has been signed. This allows PipelineRun resources
+	// to be reconciled when the status of its TaskRuns use ChildReferences.
+	if parent, err := tektonObj.GetParent(ctx, o.Pipelineclientset); err != nil {
+		return err
+	} else if parent != nil {
+		if err := MarkParentSigned(ctx, parent, o.Pipelineclientset); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func HandleRetry(ctx context.Context, obj objects.TektonObject, ps versioned.Interface, annotations map[string]string) error {
