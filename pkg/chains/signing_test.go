@@ -21,9 +21,11 @@ import (
 	"testing"
 
 	"github.com/sigstore/rekor/pkg/generated/models"
+	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/chains/signing"
 	"github.com/tektoncd/chains/pkg/chains/storage"
 	"github.com/tektoncd/chains/pkg/config"
+	"github.com/tektoncd/chains/pkg/internal/tekton"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	fakepipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client/fake"
 	"go.uber.org/zap"
@@ -33,129 +35,103 @@ import (
 	rtesting "knative.dev/pkg/reconciler/testing"
 )
 
-func TestMarkSigned(t *testing.T) {
-	ctx, _ := rtesting.SetupFakeContext(t)
-	// Create a TR for testing
-	c := fakepipelineclient.Get(ctx)
-	tr := &v1beta1.TaskRun{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "my-taskrun",
-		},
-		Spec: v1beta1.TaskRunSpec{
-			TaskRef: &v1beta1.TaskRef{
-				Name: "foo",
-			},
-		},
-	}
-	if _, err := c.TektonV1beta1().TaskRuns(tr.Namespace).Create(ctx, tr, metav1.CreateOptions{}); err != nil {
-		t.Fatal(err)
-	}
-
-	// Now mark it as signed.
-	if err := MarkSigned(ctx, tr, c, nil); err != nil {
-		t.Errorf("MarkSigned() error = %v", err)
-	}
-
-	// Now check the signature.
-	signed, err := c.TektonV1beta1().TaskRuns(tr.Namespace).Get(ctx, tr.Name, metav1.GetOptions{})
-	if err != nil {
-		t.Errorf("Get() error = %v", err)
-	}
-	if _, ok := signed.Annotations[ChainsAnnotation]; !ok {
-		t.Error("Taskrun not signed.")
-	}
-
-	// Try some extra annotations
-
-	// Now mark it as signed.
-	extra := map[string]string{
-		"foo": "bar",
-	}
-	if err := MarkSigned(ctx, tr, c, extra); err != nil {
-		t.Errorf("MarkSigned() error = %v", err)
-	}
-
-	// Now check the signature.
-	signed, err = c.TektonV1beta1().TaskRuns(tr.Namespace).Get(ctx, tr.Name, metav1.GetOptions{})
-	if err != nil {
-		t.Errorf("Get() error = %v", err)
-	}
-	if _, ok := signed.Annotations[ChainsAnnotation]; !ok {
-		t.Error("Taskrun not signed.")
-	}
-	if signed.Annotations["foo"] != "bar" {
-		t.Error("Extra annotations not applied")
-	}
-}
-
-func TestMarkFailed(t *testing.T) {
-	ctx, _ := rtesting.SetupFakeContext(t)
-	// Create a TR for testing
-	c := fakepipelineclient.Get(ctx)
-	tr := &v1beta1.TaskRun{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        "my-taskrun",
-			Annotations: map[string]string{RetryAnnotation: "3"},
-		},
-		Spec: v1beta1.TaskRunSpec{
-			TaskRef: &v1beta1.TaskRef{
-				Name: "foo",
-			},
-		},
-	}
-	if _, err := c.TektonV1beta1().TaskRuns(tr.Namespace).Create(ctx, tr, metav1.CreateOptions{}); err != nil {
-		t.Fatal(err)
-	}
-
-	// Test HandleRetry, should mark it as failed
-	if err := HandleRetry(ctx, tr, c, nil); err != nil {
-		t.Errorf("HandleRetry() error = %v", err)
-	}
-
-	failed, err := c.TektonV1beta1().TaskRuns(tr.Namespace).Get(ctx, tr.Name, metav1.GetOptions{})
-	if err != nil {
-		t.Errorf("Get() error = %v", err)
-	}
-
-	if failed.Annotations[ChainsAnnotation] != "failed" {
-		t.Errorf("Taskrun not marked as 'failed', was: '%s'", failed.Annotations[ChainsAnnotation])
-	}
-}
-
-func TestTaskRunSigner_SignTaskRun(t *testing.T) {
-	// SignTaskRun does three main things:
+func TestSigner_Sign(t *testing.T) {
+	// Sign does three main things:
 	// - generates payloads
 	// - stores them in the configured systems
-	// - marks the taskrun as signed
+	// - marks the object as signed
+	tro := objects.NewTaskRunObject(&v1beta1.TaskRun{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "foo",
+		},
+	})
+
+	pro := objects.NewPipelineRunObject(&v1beta1.PipelineRun{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "foo",
+		},
+	})
+
+	tcfg := &config.Config{
+		Artifacts: config.ArtifactConfigs{
+			TaskRuns: config.Artifact{
+				Format:         "tekton",
+				StorageBackend: sets.NewString("mock"),
+				Signer:         "x509",
+			},
+		},
+	}
+
+	pcfg := &config.Config{
+		Artifacts: config.ArtifactConfigs{
+			PipelineRuns: config.Artifact{
+				Format:         "tekton",
+				StorageBackend: sets.NewString("mock"),
+				Signer:         "x509",
+			},
+		},
+	}
+
 	tests := []struct {
-		name              string
-		backends          []*mockBackend
-		wantErr           bool
-		configuredBackend string
+		name     string
+		backends []*mockBackend
+		wantErr  bool
+		object   objects.TektonObject
+		config   *config.Config
 	}{
 		{
-			name: "single system",
+			name: "taskrun single system",
 			backends: []*mockBackend{
 				{backendType: "mock"},
 			},
-			configuredBackend: "mock",
+			object: tro,
+			config: tcfg,
 		},
 		{
-			name: "multiple systems",
+			name: "taskrun multiple systems",
 			backends: []*mockBackend{
 				{backendType: "mock"},
 				{backendType: "foo"},
 			},
-			configuredBackend: "mock",
+			object: tro,
+			config: tcfg,
 		},
 		{
-			name: "multiple systems, error",
+			name: "taskrun multiple systems, error",
 			backends: []*mockBackend{
 				{backendType: "mock", shouldErr: true},
 				{backendType: "foo"},
 			},
-			configuredBackend: "mock",
-			wantErr:           true,
+			wantErr: true,
+			object:  tro,
+			config:  tcfg,
+		},
+		{
+			name: "pipelinerun single system",
+			backends: []*mockBackend{
+				{backendType: "mock"},
+			},
+			object: pro,
+			config: pcfg,
+		},
+		{
+			name: "pipelinerun multiple systems",
+			backends: []*mockBackend{
+				{backendType: "mock"},
+				{backendType: "foo"},
+			},
+			object: pro,
+			config: pcfg,
+		},
+		{
+			name: "pipelinerun multiple systems, error",
+			backends: []*mockBackend{
+				{backendType: "mock", shouldErr: true},
+				{backendType: "foo"},
+			},
+			wantErr: true,
+			object:  pro,
+			config:  pcfg,
 		},
 	}
 	for _, tt := range tests {
@@ -166,53 +142,40 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 			ctx, _ := rtesting.SetupFakeContext(t)
 			ps := fakepipelineclient.Get(ctx)
 
-			cfg := &config.Config{
-				Artifacts: config.ArtifactConfigs{
-					TaskRuns: config.Artifact{
-						Format:         "tekton",
-						StorageBackend: sets.NewString(tt.configuredBackend),
-						Signer:         "x509",
-					},
-				},
-			}
-			ctx = config.ToContext(ctx, cfg.DeepCopy())
+			ctx = config.ToContext(ctx, tt.config.DeepCopy())
 
 			logger := logging.FromContext(ctx)
-			ts := &TaskRunSigner{
-				Formatters:        AllFormatters(*cfg, logger),
+			ts := &ObjectSigner{
+				Formatters:        AllFormatters(*tt.config, logger),
 				Backends:          fakeAllBackends(tt.backends),
 				SecretPath:        "./signing/x509/testdata/",
 				Pipelineclientset: ps,
 			}
 
-			tr := &v1beta1.TaskRun{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "foo",
-				},
+			if err := tekton.CreateObject(t, ctx, ps, tt.object); err != nil {
+				t.Errorf("error creating fake object: %v", err)
 			}
-			if _, err := ps.TektonV1beta1().TaskRuns(tr.Namespace).Create(ctx, tr, metav1.CreateOptions{}); err != nil {
-				t.Errorf("error creating fake taskrun: %v", err)
-			}
-			if err := ts.SignTaskRun(ctx, tr); (err != nil) != tt.wantErr {
-				t.Errorf("TaskRunSigner.SignTaskRun() error = %v", err)
+			if err := ts.Sign(ctx, tt.object); (err != nil) != tt.wantErr {
+				t.Errorf("Signer.Sign() error = %v", err)
 			}
 
-			// Fetch a new TR!
-			tr, err := ps.TektonV1beta1().TaskRuns(tr.Namespace).Get(ctx, tr.Name, metav1.GetOptions{})
+			// Fetch the updated object
+			updatedObject, err := tekton.GetObject(t, ctx, ps, tt.object)
 			if err != nil {
-				t.Errorf("error fetching fake taskrun: %v", err)
+				t.Errorf("error fetching fake object: %v", err)
 			}
+
 			// Check it is marked as signed
 			shouldBeSigned := !tt.wantErr
-			if Reconciled(tr) != shouldBeSigned {
-				t.Errorf("IsSigned()=%t, wanted %t", Reconciled(tr), shouldBeSigned)
+			if Reconciled(updatedObject) != shouldBeSigned {
+				t.Errorf("IsSigned()=%t, wanted %t", Reconciled(updatedObject), shouldBeSigned)
 			}
 			// Check the payloads were stored in all the backends.
 			for _, b := range tt.backends {
 				if b.shouldErr {
 					continue
 				}
-				if b.backendType != tt.configuredBackend {
+				if b.backendType != "mock" {
 					continue
 				}
 				// We don't actually need to check the signature and serialized formats here, just that
@@ -226,103 +189,182 @@ func TestTaskRunSigner_SignTaskRun(t *testing.T) {
 	}
 }
 
-func TestTaskRunSigner_Transparency(t *testing.T) {
-	for _, format := range []string{"in-toto", "tekton"} {
-		rekor := &mockRekor{}
-		backends := []*mockBackend{{backendType: "mock"}}
-		cleanup := setupMocks(rekor)
-		defer cleanup()
+func TestSigner_Transparency(t *testing.T) {
+	newTaskRun := func(name string) objects.TektonObject {
+		return objects.NewTaskRunObject(&v1beta1.TaskRun{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: name,
+			},
+		})
+	}
+	newPipelineRun := func(name string) objects.TektonObject {
+		return objects.NewPipelineRunObject(&v1beta1.PipelineRun{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: name,
+			},
+		})
+	}
+	setAnnotation := func(obj objects.TektonObject, key, value string) {
+		// TODO: opportunity to add code reuse
+		switch o := obj.GetObject().(type) {
+		case *v1beta1.PipelineRun:
+			if o.Annotations == nil {
+				o.Annotations = make(map[string]string)
+			}
+			o.Annotations[key] = value
+		case *v1beta1.TaskRun:
+			if o.Annotations == nil {
+				o.Annotations = make(map[string]string)
+			}
+			o.Annotations[key] = value
+		}
+	}
 
-		ctx, _ := rtesting.SetupFakeContext(t)
-		ps := fakepipelineclient.Get(ctx)
-
-		cfg := &config.Config{
-			Artifacts: config.ArtifactConfigs{
-				TaskRuns: config.Artifact{
-					Format:         format,
-					StorageBackend: sets.NewString("mock"),
-					Signer:         "x509",
+	tests := []struct {
+		name         string
+		cfg          *config.Config
+		getNewObject func(string) objects.TektonObject
+	}{
+		{
+			name: "taskrun in-toto",
+			cfg: &config.Config{
+				Artifacts: config.ArtifactConfigs{
+					TaskRuns: config.Artifact{
+						Format:         "in-toto",
+						StorageBackend: sets.NewString("mock"),
+						Signer:         "x509",
+					},
+				},
+				Transparency: config.TransparencyConfig{
+					Enabled: false,
 				},
 			},
-			Transparency: config.TransparencyConfig{
-				Enabled: false,
+			getNewObject: newTaskRun,
+		},
+		{
+			name: "taskrun tekton",
+			cfg: &config.Config{
+				Artifacts: config.ArtifactConfigs{
+					TaskRuns: config.Artifact{
+						Format:         "tekton",
+						StorageBackend: sets.NewString("mock"),
+						Signer:         "x509",
+					},
+				},
+				Transparency: config.TransparencyConfig{
+					Enabled: false,
+				},
 			},
-		}
-		ctx = config.ToContext(ctx, cfg.DeepCopy())
-
-		logger := logging.FromContext(ctx)
-		ts := &TaskRunSigner{
-			Formatters:        AllFormatters(*cfg, logger),
-			Backends:          fakeAllBackends(backends),
-			SecretPath:        "./signing/x509/testdata/",
-			Pipelineclientset: ps,
-		}
-
-		tr := &v1beta1.TaskRun{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "foo",
+			getNewObject: newTaskRun,
+		},
+		{
+			name: "pipelinerun in-toto",
+			cfg: &config.Config{
+				Artifacts: config.ArtifactConfigs{
+					PipelineRuns: config.Artifact{
+						Format:         "in-toto",
+						StorageBackend: sets.NewString("mock"),
+						Signer:         "x509",
+					},
+				},
+				Transparency: config.TransparencyConfig{
+					Enabled: false,
+				},
 			},
-		}
-		if _, err := ps.TektonV1beta1().TaskRuns(tr.Namespace).Create(ctx, tr, metav1.CreateOptions{}); err != nil {
-			t.Errorf("error creating fake taskrun: %v", err)
-		}
-		if err := ts.SignTaskRun(ctx, tr); err != nil {
-			t.Errorf("TaskRunSigner.SignTaskRun() error = %v", err)
-		}
-
-		if len(rekor.entries) != 0 {
-			t.Error("expected no transparency log entries!")
-		}
-
-		// Now enable and try again!
-		cfg.Transparency.Enabled = true
-		ctx = config.ToContext(ctx, cfg.DeepCopy())
-
-		tr2 := &v1beta1.TaskRun{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "foobar",
+			getNewObject: newPipelineRun,
+		},
+		{
+			name: "pipelinerun tekton",
+			cfg: &config.Config{
+				Artifacts: config.ArtifactConfigs{
+					PipelineRuns: config.Artifact{
+						Format:         "tekton",
+						StorageBackend: sets.NewString("mock"),
+						Signer:         "x509",
+					},
+				},
+				Transparency: config.TransparencyConfig{
+					Enabled: false,
+				},
 			},
-		}
-		if _, err := ps.TektonV1beta1().TaskRuns(tr.Namespace).Create(ctx, tr2, metav1.CreateOptions{}); err != nil {
-			t.Errorf("error creating fake taskrun: %v", err)
-		}
-		if err := ts.SignTaskRun(ctx, tr2); err != nil {
-			t.Errorf("TaskRunSigner.SignTaskRun() error = %v", err)
-		}
+			getNewObject: newPipelineRun,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
 
-		if len(rekor.entries) != 1 {
-			t.Error("expected transparency log entry!")
-		}
+			rekor := &mockRekor{}
+			backends := []*mockBackend{{backendType: "mock"}}
+			cleanup := setupMocks(rekor)
+			defer cleanup()
 
-		// Now enable verifying the annotation
-		cfg.Transparency.VerifyAnnotation = true
-		ctx = config.ToContext(ctx, cfg.DeepCopy())
+			ctx, _ := rtesting.SetupFakeContext(t)
+			ps := fakepipelineclient.Get(ctx)
 
-		tr3 := &v1beta1.TaskRun{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "mytaskrun",
-			},
-		}
+			ctx = config.ToContext(ctx, tt.cfg.DeepCopy())
 
-		if _, err := ps.TektonV1beta1().TaskRuns(tr.Namespace).Create(ctx, tr3, metav1.CreateOptions{}); err != nil {
-			t.Errorf("error creating fake taskrun: %v", err)
-		}
-		if err := ts.SignTaskRun(ctx, tr3); err != nil {
-			t.Errorf("TaskRunSigner.SignTaskRun() error = %v", err)
-		}
+			logger := logging.FromContext(ctx)
+			os := &ObjectSigner{
+				Formatters:        AllFormatters(*tt.cfg, logger),
+				Backends:          fakeAllBackends(backends),
+				SecretPath:        "./signing/x509/testdata/",
+				Pipelineclientset: ps,
+			}
 
-		if len(rekor.entries) != 1 {
-			t.Error("expected new transparency log entries!")
-		}
-		// add in the annotation
-		tr3.Annotations = map[string]string{RekorAnnotation: "true"}
-		if err := ts.SignTaskRun(ctx, tr3); err != nil {
-			t.Errorf("TaskRunSigner.SignTaskRun() error = %v", err)
-		}
+			obj := tt.getNewObject("foo")
+			if err := tekton.CreateObject(t, ctx, ps, obj); err != nil {
+				t.Errorf("error creating fake object: %v", err)
+			}
+			if err := os.Sign(ctx, obj); err != nil {
+				t.Errorf("Signer.Sign() error = %v", err)
+			}
 
-		if len(rekor.entries) != 2 {
-			t.Error("expected two transparency log entries!")
-		}
+			if len(rekor.entries) != 0 {
+				t.Error("expected no transparency log entries!")
+			}
+
+			// Now enable and try again!
+			tt.cfg.Transparency.Enabled = true
+			ctx = config.ToContext(ctx, tt.cfg.DeepCopy())
+
+			obj = tt.getNewObject("foobar")
+			if err := tekton.CreateObject(t, ctx, ps, obj); err != nil {
+				t.Errorf("error creating fake object: %v", err)
+			}
+			if err := os.Sign(ctx, obj); err != nil {
+				t.Errorf("Signer.Sign() error = %v", err)
+			}
+
+			if len(rekor.entries) != 1 {
+				t.Error("expected transparency log entry!")
+			}
+
+			// Now enable verifying the annotation
+			tt.cfg.Transparency.VerifyAnnotation = true
+			ctx = config.ToContext(ctx, tt.cfg.DeepCopy())
+
+			obj = tt.getNewObject("mytektonobject")
+			if err := tekton.CreateObject(t, ctx, ps, obj); err != nil {
+				t.Errorf("error creating fake object: %v", err)
+			}
+			if err := os.Sign(ctx, obj); err != nil {
+				t.Errorf("Signer.Sign() error = %v", err)
+			}
+
+			if len(rekor.entries) != 1 {
+				t.Error("expected new transparency log entries!")
+			}
+
+			// add in the annotation
+			setAnnotation(obj, RekorAnnotation, "true")
+			if err := os.Sign(ctx, obj); err != nil {
+				t.Errorf("Signer.Sign() error = %v", err)
+			}
+
+			if len(rekor.entries) != 2 {
+				t.Error("expected two transparency log entries!")
+			}
+		})
 	}
 }
 
@@ -440,7 +482,7 @@ type mockBackend struct {
 }
 
 // StorePayload implements the Payloader interface.
-func (b *mockBackend) StorePayload(ctx context.Context, tr *v1beta1.TaskRun, rawPayload []byte, signature string, opts config.StorageOpts) error {
+func (b *mockBackend) StorePayload(ctx context.Context, _ objects.TektonObject, rawPayload []byte, signature string, opts config.StorageOpts) error {
 	if b.shouldErr {
 		return errors.New("mock error storing")
 	}
@@ -452,10 +494,10 @@ func (b *mockBackend) Type() string {
 	return b.backendType
 }
 
-func (b *mockBackend) RetrievePayloads(ctx context.Context, tr *v1beta1.TaskRun, opts config.StorageOpts) (map[string]string, error) {
+func (b *mockBackend) RetrievePayloads(ctx context.Context, _ objects.TektonObject, opts config.StorageOpts) (map[string]string, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
-func (b *mockBackend) RetrieveSignatures(ctx context.Context, tr *v1beta1.TaskRun, opts config.StorageOpts) (map[string][]string, error) {
+func (b *mockBackend) RetrieveSignatures(ctx context.Context, _ objects.TektonObject, opts config.StorageOpts) (map[string][]string, error) {
 	return nil, fmt.Errorf("not implemented")
 }

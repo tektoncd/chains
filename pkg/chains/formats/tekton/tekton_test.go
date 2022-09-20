@@ -17,6 +17,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 )
 
@@ -35,7 +36,7 @@ func TestTekton_CreatePayload(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			i := &Tekton{}
-			got, err := i.CreatePayload(tt.tr)
+			got, err := i.CreatePayload(objects.NewTaskRunObject(tt.tr))
 			if err != nil {
 				t.Errorf("Tekton.CreatePayload() error = %v", err)
 				return

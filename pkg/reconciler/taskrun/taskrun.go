@@ -17,6 +17,7 @@ import (
 	"context"
 
 	signing "github.com/tektoncd/chains/pkg/chains"
+	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	taskrunreconciler "github.com/tektoncd/pipeline/pkg/client/injection/reconciler/pipeline/v1beta1/taskrun"
 	"knative.dev/pkg/logging"
@@ -52,13 +53,16 @@ func (r *Reconciler) FinalizeKind(ctx context.Context, tr *v1beta1.TaskRun) pkgr
 		logging.FromContext(ctx).Infof("taskrun %s/%s is still running", tr.Namespace, tr.Name)
 		return nil
 	}
+
+	obj := objects.NewTaskRunObject(tr)
+
 	// Check to see if it has already been signed.
-	if signing.Reconciled(tr) {
+	if signing.Reconciled(obj) {
 		logging.FromContext(ctx).Infof("taskrun %s/%s has been reconciled", tr.Namespace, tr.Name)
 		return nil
 	}
 
-	if err := r.TaskRunSigner.SignTaskRun(ctx, tr); err != nil {
+	if err := r.TaskRunSigner.Sign(ctx, obj); err != nil {
 		return err
 	}
 	return nil

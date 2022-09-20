@@ -14,18 +14,19 @@ limitations under the License.
 package pubsub
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"testing"
 
 	"github.com/in-toto/in-toto-golang/in_toto"
+	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"gocloud.dev/pubsub"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logtesting "knative.dev/pkg/logging/testing"
+	rtesting "knative.dev/pkg/reconciler/testing"
 )
 
 func TestBackend_StorePayload(t *testing.T) {
@@ -84,7 +85,7 @@ func TestBackend_StorePayload(t *testing.T) {
 				cfg:    tt.fields.cfg,
 			}
 			addr := fmt.Sprintf("mem://%s", tt.fields.cfg.Storage.PubSub.Topic)
-			ctx := context.Background()
+			ctx, _ := rtesting.SetupFakeContext(t)
 
 			// Create the test topic.
 			topic, err := pubsub.OpenTopic(ctx, addr)
@@ -108,8 +109,9 @@ func TestBackend_StorePayload(t *testing.T) {
 				}
 			}()
 
+			trObj := objects.NewTaskRunObject(tt.fields.tr)
 			// Store the payload.
-			if err := b.StorePayload(ctx, tt.fields.tr, tt.args.rawPayload, tt.args.signature, tt.args.storageOpts); (err != nil) != tt.wantErr {
+			if err := b.StorePayload(ctx, trObj, tt.args.rawPayload, tt.args.signature, tt.args.storageOpts); (err != nil) != tt.wantErr {
 				t.Errorf("Backend.StorePayload() error = %v, wantErr %v", err, tt.wantErr)
 			}
 

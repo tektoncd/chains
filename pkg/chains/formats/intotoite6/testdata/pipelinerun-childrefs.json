@@ -1,0 +1,129 @@
+{
+    "spec": {
+        "params": [
+            {
+                "name": "IMAGE",
+                "value": "test.io/test/image"
+            }
+        ],
+        "pipelineRef": {
+            "name": "test-pipeline"
+        },
+        "serviceAccountName": "pipeline"
+    },
+    "status": {
+        "startTime": "2021-03-29T09:50:00Z",
+        "completionTime": "2021-03-29T09:50:15Z",
+        "conditions": [
+            {
+                "lastTransitionTime": "2021-03-29T09:50:15Z",
+                "message": "Tasks Completed: 2 (Failed: 0, Cancelled 0), Skipped: 0",
+                "reason": "Succeeded",
+                "status": "True",
+                "type": "Succeeded"
+            }
+        ],
+        "pipelineResults": [
+            {
+                "name": "CHAINS-GIT_COMMIT",
+                "value": "abcd"
+            },
+            {
+                "name": "CHAINS-GIT_URL",
+                "value": "https://git.test.com"
+            },
+            {
+                "name": "IMAGE_URL",
+                "value": "test.io/test/image"
+            },
+            {
+                "name": "IMAGE_DIGEST",
+                "value": "sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"
+            }
+        ],
+        "pipelineSpec": {
+            "params": [
+                {
+                    "description": "Image path on registry",
+                    "name": "IMAGE",
+                    "type": "string"
+                }
+            ],
+            "results": [
+                {
+                    "description": "",
+                    "name": "CHAINS-GIT_COMMIT",
+                    "value": "$(tasks.git-clone.results.commit)"
+                },
+                {
+                    "description": "",
+                    "name": "CHAINS-GIT_URL",
+                    "value": "$(tasks.git-clone.results.url)"
+                },
+                {
+                    "description": "",
+                    "name": "IMAGE_URL",
+                    "value": "$(tasks.build.results.IMAGE_URL)"
+                },
+                {
+                    "description": "",
+                    "name": "IMAGE_DIGEST",
+                    "value": "$(tasks.build.results.IMAGE_DIGEST)"
+                }
+            ],
+            "tasks": [
+                {
+                    "name": "git-clone",
+                    "params": [
+                        {
+                            "name": "url",
+                            "value": "https://git.test.com"
+                        },
+                        {
+                            "name": "revision",
+                            "value": ""
+                        }
+                    ],
+                    "taskRef": {
+                        "kind": "ClusterTask",
+                        "name": "git-clone"
+                    }
+                },
+                {
+                    "name": "build",
+                    "params": [
+                        {
+                            "name": "CHAINS-GIT_COMMIT",
+                            "value": "$(tasks.git-clone.results.commit)"
+                        },
+                        {
+                            "name": "CHAINS-GIT_URL",
+                            "value": "$(tasks.git-clone.results.url)"
+                        }
+                    ],
+                    "runAfter": [
+                        "git-clone"
+                    ],
+                    "taskRef": {
+                        "kind": "ClusterTask",
+                        "name": "build"
+                    }
+                }
+            ]
+        },
+        "childReferences": [
+            {
+                "apiVersion": "tekton.dev/v1beta1",
+                "kind": "TaskRun",
+                "name": "git-clone",
+                "pipelineTaskName": "git-clone"
+            },
+            {
+                "apiVersion": "tekton.dev/v1beta1",
+                "kind": "TaskRun",
+                "name": "taskrun-build",
+                "pipelineTaskName": "build"
+            }
+        ]
+    }
+}

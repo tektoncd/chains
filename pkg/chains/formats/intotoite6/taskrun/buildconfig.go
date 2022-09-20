@@ -14,18 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package intotoite6
+package taskrun
 
 import (
-	"strings"
-
+	"github.com/tektoncd/chains/pkg/chains/formats/intotoite6/attest"
+	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 )
 
 // BuildConfig is the custom Chains format to fill out the
 // "buildConfig" section of the slsa-provenance predicate
 type BuildConfig struct {
-	Steps []Step `json:"steps"`
+	Steps []attest.StepAttestation `json:"steps"`
 }
 
 // Step corresponds to one step in the TaskRun
@@ -36,39 +36,22 @@ type Step struct {
 	Annotations map[string]string `json:"annotations"`
 }
 
-func buildConfig(tr *v1beta1.TaskRun) BuildConfig {
-	steps := []Step{}
-	for _, step := range tr.Status.Steps {
-		s := Step{}
-		c := container(step, tr)
-		// get the entrypoint
-		entrypoint := strings.Join(c.Command, " ")
-		if c.Script != "" {
-			entrypoint = c.Script
-		}
-		s.EntryPoint = entrypoint
-		s.Arguments = c.Args
-
-		// env comprises of:
-		env := map[string]interface{}{}
-		env["image"] = step.ImageID
-		env["container"] = step.Name
-		s.Environment = env
-
-		// append to all of the steps
-		steps = append(steps, s)
+func buildConfig(tro *objects.TaskRunObject) BuildConfig {
+	attestations := []attest.StepAttestation{}
+	for _, stepState := range tro.Status.Steps {
+		step := stepFromTaskRun(stepState.Name, tro)
+		attestations = append(attestations, attest.Step(step, &stepState))
 	}
-	return BuildConfig{Steps: steps}
+	return BuildConfig{Steps: attestations}
 }
 
-func container(stepState v1beta1.StepState, tr *v1beta1.TaskRun) v1beta1.Step {
-	name := stepState.Name
-	if tr.Status.TaskSpec != nil {
-		for _, s := range tr.Status.TaskSpec.Steps {
+func stepFromTaskRun(name string, tro *objects.TaskRunObject) *v1beta1.Step {
+	if tro.Status.TaskSpec != nil {
+		for _, s := range tro.Status.TaskSpec.Steps {
 			if s.Name == name {
-				return s
+				return &s
 			}
 		}
 	}
-	return v1beta1.Step{}
+	return &v1beta1.Step{}
 }

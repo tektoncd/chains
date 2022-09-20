@@ -1,13 +1,30 @@
 {
+    "metadata": {
+        "name": "git-clone",
+        "labels": {
+            "tekton.dev/pipelineTask": "git-clone"
+        }
+    },
     "spec": {
-        "params": [],
+        "params": [
+            {
+                "name": "url",
+                "value": "https://git.test.com"
+            },
+            {
+                "name": "revision",
+                "value": ""
+            }
+        ],
         "taskRef": {
-            "name": "test-task",
+            "name": "git-clone",
             "kind": "Task"
         },
         "serviceAccountName": "default"
     },
     "status": {
+        "startTime": "2021-03-29T09:50:00Z",
+        "completionTime": "2021-03-29T09:50:15Z",
         "conditions": [
             {
                 "type": "Succeeded",
@@ -36,6 +53,22 @@
             }
         ],
         "taskSpec": {
+            "steps": [
+                {
+                    "env": [
+                    {
+                      "name": "HOME",
+                      "value": "$(params.userHome)"
+                    },
+                    {
+                      "name": "PARAM_URL",
+                      "value": "$(params.url)"
+                    }
+                  ],
+                    "name": "step1",
+                    "script": "git clone"
+                }
+            ],
             "params": [
                 {
                     "name": "CHAINS-GIT_COMMIT",

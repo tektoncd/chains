@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package intotoite6
+package taskrun
 
 import (
 	"reflect"
@@ -22,6 +22,8 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/google/go-cmp/cmp"
+	"github.com/tektoncd/chains/pkg/chains/formats/intotoite6/attest"
+	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 )
 
@@ -62,7 +64,7 @@ status:
 	}
 
 	expected := BuildConfig{
-		Steps: []Step{
+		Steps: []attest.StepAttestation{
 			{
 				EntryPoint: "",
 				Environment: map[string]interface{}{
@@ -81,7 +83,7 @@ status:
 		},
 	}
 
-	got := buildConfig(taskRun)
+	got := buildConfig(objects.NewTaskRunObject(taskRun))
 	if !reflect.DeepEqual(expected, got) {
 		if d := cmp.Diff(expected, got); d != "" {
 			t.Log(d)

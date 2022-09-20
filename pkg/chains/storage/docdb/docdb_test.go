@@ -14,10 +14,10 @@ limitations under the License.
 package docdb
 
 import (
-	"context"
 	"encoding/json"
 	"testing"
 
+	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"gocloud.dev/docstore"
@@ -25,11 +25,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	logtesting "knative.dev/pkg/logging/testing"
+	rtesting "knative.dev/pkg/reconciler/testing"
 )
 
 func TestBackend_StorePayload(t *testing.T) {
-	ctx := context.Background()
-
+	ctx, _ := rtesting.SetupFakeContext(t)
 	type args struct {
 		tr         *v1beta1.TaskRun
 		rawPayload interface{}
@@ -79,7 +79,8 @@ func TestBackend_StorePayload(t *testing.T) {
 
 			// Store the document.
 			opts := config.StorageOpts{Key: tt.args.key}
-			if err := b.StorePayload(ctx, tt.args.tr, sb, tt.args.signature, opts); (err != nil) != tt.wantErr {
+			trObj := objects.NewTaskRunObject(tt.args.tr)
+			if err := b.StorePayload(ctx, trObj, sb, tt.args.signature, opts); (err != nil) != tt.wantErr {
 				t.Fatalf("Backend.StorePayload() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			obj := SignedDocument{
@@ -90,7 +91,7 @@ func TestBackend_StorePayload(t *testing.T) {
 			}
 
 			// Check the signature.
-			signatures, err := b.RetrieveSignatures(ctx, tt.args.tr, opts)
+			signatures, err := b.RetrieveSignatures(ctx, trObj, opts)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -103,7 +104,7 @@ func TestBackend_StorePayload(t *testing.T) {
 			}
 
 			// Check the payload.
-			payloads, err := b.RetrievePayloads(ctx, tt.args.tr, opts)
+			payloads, err := b.RetrievePayloads(ctx, trObj, opts)
 			if err != nil {
 				t.Fatal(err)
 			}
