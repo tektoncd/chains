@@ -1,4 +1,10 @@
 {
+    "metadata": {
+        "name": "taskrun-build",
+        "labels": {
+            "tekton.dev/pipelineTask": "build"
+        }
+    },
     "spec": {
         "params": [
             {
@@ -12,14 +18,10 @@
             {
                 "name": "CHAINS-GIT_URL",
                 "value": "https://git.test.com"
-            },
-            {
-                "name": "filename",
-                "value": "/bin/ls"
             }
         ],
         "taskRef": {
-            "name": "test-task",
+            "name": "build",
             "kind": "Task"
         },
         "serviceAccountName": "default"
@@ -97,6 +99,17 @@
                     "name": "CHAINS-GIT_URL",
                     "type": "string",
                     "default": "https://defaultgit.test.com"
+                }
+            ],
+            "steps": [
+                {
+                    "name": "step1"
+                },
+                {
+                    "name": "step2"
+                },
+                {
+                    "name": "step3"
                 }
             ],
             "results": [

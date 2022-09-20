@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package intotoite6
+package taskrun
 
 import (
 	"reflect"
@@ -27,6 +27,8 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/google/go-cmp/cmp"
 	"github.com/in-toto/in-toto-golang/in_toto"
+	"github.com/tektoncd/chains/pkg/chains/formats/intotoite6/extract"
+	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -63,7 +65,7 @@ func TestMetadata(t *testing.T) {
 		BuildStartedOn:  &start,
 		BuildFinishedOn: &end,
 	}
-	got := metadata(tr)
+	got := metadata(objects.NewTaskRunObject(tr))
 	if !reflect.DeepEqual(expected, got) {
 		t.Fatalf("expected %v got %v", expected, got)
 	}
@@ -100,7 +102,7 @@ status:
 		},
 	}
 
-	got := materials(taskRun)
+	got := materials(objects.NewTaskRunObject(taskRun))
 	if !reflect.DeepEqual(expected, got) {
 		t.Fatalf("expected %v got %v", expected, got)
 	}
@@ -152,7 +154,7 @@ status:
 		},
 	}
 
-	got := materials(taskRun)
+	got := materials(objects.NewTaskRunObject(taskRun))
 	if !reflect.DeepEqual(expected, got) {
 		t.Fatalf("expected %v got %v", expected, got)
 	}
@@ -180,7 +182,7 @@ spec:
 		},
 	}
 
-	got = materials(taskRun)
+	got = materials(objects.NewTaskRunObject(taskRun))
 	if !reflect.DeepEqual(expected, got) {
 		t.Fatalf("expected %v got %v", expected, got)
 	}
@@ -253,7 +255,7 @@ status:
 		},
 	}
 
-	got := invocation(taskRun)
+	got := invocation(objects.NewTaskRunObject(taskRun))
 	if !reflect.DeepEqual(expected, got) {
 		if d := cmp.Diff(expected, got); d != "" {
 			t.Log(d)
@@ -365,7 +367,8 @@ func TestGetSubjectDigests(t *testing.T) {
 			},
 		},
 	}
-	got := GetSubjectDigests(tr, logtesting.TestLogger(t))
+	tro := objects.NewTaskRunObject(tr)
+	got := extract.SubjectDigests(tro, logtesting.TestLogger(t))
 	if !reflect.DeepEqual(expected, got) {
 		if d := cmp.Diff(expected, got); d != "" {
 			t.Log(d)

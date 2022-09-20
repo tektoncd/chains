@@ -16,6 +16,7 @@ package chains
 import (
 	"testing"
 
+	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -82,7 +83,8 @@ func TestShouldUploadTlog(t *testing.T) {
 				},
 			}
 			cfg := config.Config{Transparency: test.cfg}
-			got := shouldUploadTlog(cfg, tr)
+			trObj := objects.NewTaskRunObject(tr)
+			got := shouldUploadTlog(cfg, trObj)
 			if got != test.expected {
 				t.Fatalf("got (%v) doesn't match expected (%v)", got, test.expected)
 			}

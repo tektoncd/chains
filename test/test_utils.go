@@ -31,6 +31,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
+	"github.com/tektoncd/chains/pkg/chains/objects"
 	chainsstrorage "github.com/tektoncd/chains/pkg/chains/storage"
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -249,12 +250,14 @@ func verifySignature(ctx context.Context, t *testing.T, c *clients, tr *v1beta1.
 			Key: fmt.Sprintf("taskrun-%s", tr.UID),
 		}
 
+		trObj := objects.NewTaskRunObject(tr)
+
 		// Let's fetch the signature and body.
-		signatures, err := backend.RetrieveSignatures(ctx, tr, opts)
+		signatures, err := backend.RetrieveSignatures(ctx, trObj, opts)
 		if err != nil {
 			t.Errorf("error retrieving the signature: %s", err)
 		}
-		payloads, err := backend.RetrievePayloads(ctx, tr, opts)
+		payloads, err := backend.RetrievePayloads(ctx, trObj, opts)
 		if err != nil {
 			t.Errorf("error retrieving the payload: %s", err)
 		}

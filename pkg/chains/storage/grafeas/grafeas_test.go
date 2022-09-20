@@ -23,6 +23,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/tektoncd/chains/pkg/chains/formats"
+	"github.com/tektoncd/chains/pkg/chains/objects"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -35,6 +36,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	logtesting "knative.dev/pkg/logging/testing"
+	rtesting "knative.dev/pkg/reconciler/testing"
 )
 
 type args struct {
@@ -54,7 +56,8 @@ type testConfig struct {
 // As the filter logic is implemented, we want to make sure it can be trusted before testing store & retrieve.
 func TestBackend_ListOccurrences(t *testing.T) {
 	// get grafeas client
-	ctx := context.Background()
+	ctx, _ := rtesting.SetupFakeContext(t)
+
 	conn, client, err := setupConnection()
 	if err != nil {
 		t.Fatal("Failed to create grafeas client.")
@@ -173,7 +176,7 @@ func TestGrafeasBackend_StoreAndRetrieve(t *testing.T) {
 				signature: "oci signature",
 				// The Key field must be the same as the first 12 chars of the image digest.
 				// Reason:
-				// Inside chains.SignTaskRun function, we set the key field for both artifacts.
+				// Inside chains.Sign function, we set the key field for both artifacts.
 				// For OCI artifact, it is implemented as the first 12 chars of the image digest.
 				// https://github.com/tektoncd/chains/blob/v0.8.0/pkg/artifacts/signable.go#L200
 				opts: config.StorageOpts{Key: "cfe4f0bf41c8", PayloadFormat: formats.PayloadTypeSimpleSigning},
@@ -196,8 +199,7 @@ func TestGrafeasBackend_StoreAndRetrieve(t *testing.T) {
 		},
 	}
 
-	ctx := context.Background()
-
+	ctx, _ := rtesting.SetupFakeContext(t)
 	conn, client, err := setupConnection()
 	if err != nil {
 		t.Fatal("Failed to create grafeas client.")
@@ -240,7 +242,8 @@ func TestGrafeasBackend_StoreAndRetrieve(t *testing.T) {
 
 // test attestation storage and retrieval
 func testStoreAndRetrieve(ctx context.Context, t *testing.T, test testConfig, backend Backend) {
-	if err := backend.StorePayload(ctx, test.args.tr, test.args.payload, test.args.signature, test.args.opts); (err != nil) != test.wantErr {
+	trObj := objects.NewTaskRunObject(test.args.tr)
+	if err := backend.StorePayload(ctx, trObj, test.args.payload, test.args.signature, test.args.opts); (err != nil) != test.wantErr {
 		t.Fatalf("Backend.StorePayload() failed. error:%v, wantErr:%v", err, test.wantErr)
 	}
 
@@ -258,7 +261,7 @@ func testStoreAndRetrieve(ctx context.Context, t *testing.T, test testConfig, ba
 		}
 	}
 
-	gotSignature, err := backend.RetrieveSignatures(ctx, test.args.tr, test.args.opts)
+	gotSignature, err := backend.RetrieveSignatures(ctx, trObj, test.args.opts)
 	if err != nil {
 		t.Fatal("Backend.RetrieveSignatures() failed: ", err)
 	}
@@ -281,7 +284,7 @@ func testStoreAndRetrieve(ctx context.Context, t *testing.T, test testConfig, ba
 		}
 	}
 
-	gotPayload, err := backend.RetrievePayloads(ctx, test.args.tr, test.args.opts)
+	gotPayload, err := backend.RetrievePayloads(ctx, trObj, test.args.opts)
 	if err != nil {
 		t.Fatal("RetrievePayloads.RetrievePayloads() failed: ", err)
 	}
