@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	cloud.google.com/go/compute v1.9.0
-	cloud.google.com/go/storage v1.24.0
+	cloud.google.com/go/storage v1.26.0
 	github.com/armon/go-metrics v0.4.0
 	github.com/armon/go-radix v1.0.0
 	github.com/ghodss/yaml v1.0.0
@@ -435,7 +435,7 @@ require (
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
 	google.golang.org/api v0.95.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20220805133916-01dd62135a58 // indirect
+	google.golang.org/genproto v0.0.0-20220810155839-1856144b1d9c // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.28 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
