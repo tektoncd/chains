@@ -42,7 +42,7 @@ require (
 	github.com/sigstore/rekor v0.11.0
 	github.com/sigstore/sigstore v1.4.1-0.20220908204944-ec922cf4f1c2
 	github.com/spiffe/go-spiffe/v2 v2.1.1
-	github.com/tektoncd/pipeline v0.39.0
+	github.com/tektoncd/pipeline v0.40.0
 	github.com/tektoncd/plumbing v0.0.0-20220817140952-3da8ce01aeeb
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399
 	go.uber.org/atomic v1.10.0
@@ -59,7 +59,7 @@ require (
 	k8s.io/apimachinery v0.23.9
 	k8s.io/client-go v0.23.9
 	k8s.io/code-generator v0.23.9
-	knative.dev/pkg v0.0.0-20220805012121-7b8b06028e4f
+	knative.dev/pkg v0.0.0-20220818004048-4a03844c0b15
 
 )
 
@@ -152,7 +152,6 @@ require (
 	github.com/cncf/udpa/go v0.0.0-20210930031921-04548b0d99d4 // indirect
 	github.com/cncf/xds/go v0.0.0-20211130200136-a8f946100490 // indirect
 	github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be // indirect
-	github.com/containerd/containerd v1.6.6 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.12.0 // indirect
 	github.com/coreos/go-oidc/v3 v3.3.0 // indirect
 	github.com/coreos/go-semver v0.3.0 // indirect
@@ -171,7 +170,7 @@ require (
 	github.com/eapache/go-resiliency v1.2.0 // indirect
 	github.com/eapache/go-xerial-snappy v0.0.0-20180814174437-776d5712da21 // indirect
 	github.com/eapache/queue v1.1.0 // indirect
-	github.com/emicklei/go-restful v2.15.0+incompatible // indirect
+	github.com/emicklei/go-restful v2.16.0+incompatible // indirect
 	github.com/emirpasic/gods v1.12.0 // indirect
 	github.com/envoyproxy/go-control-plane v0.10.2-0.20220325020618-49ff273808a1 // indirect
 	github.com/envoyproxy/protoc-gen-validate v0.6.2 // indirect
@@ -372,7 +371,6 @@ require (
 	github.com/sylvia7788/contextcheck v1.0.4 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20220721030215-126854af5e6d // indirect
 	github.com/tdakkota/asciicheck v0.1.1 // indirect
-	github.com/tektoncd/resolution v0.0.0-20220331203013-e4203c70c5eb // indirect
 	github.com/tent/canonical-json-go v0.0.0-20130607151641-96e4ba3a7613 // indirect
 	github.com/tetafro/godot v1.4.11 // indirect
 	github.com/thales-e-security/pool v0.0.2 // indirect
