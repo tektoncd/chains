@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"io"
-	"io/ioutil"
 
 	"github.com/theupdateframework/go-tuf/data"
 	"github.com/theupdateframework/go-tuf/util"
@@ -106,56 +105,13 @@ func NewClient(local LocalStore, remote RemoteStore) *Client {
 	}
 }
 
-// Init initializes a local repository.
-//
-// The latest root.json is fetched from remote storage, verified using rootKeys
-// and threshold, and then saved in local storage. It is expected that rootKeys
-// were securely distributed with the software being updated.
-//
-// Deprecated: Use c.InitLocal and c.Update to initialize a local repository.
-func (c *Client) Init(rootKeys []*data.PublicKey, threshold int) error {
-	if len(rootKeys) < threshold {
-		return ErrInsufficientKeys
-	}
-	rootJSON, err := c.downloadMetaUnsafe("root.json", defaultRootDownloadLimit)
-	if err != nil {
-		return err
-	}
-
-	// create a new key database, and add all the public `rootKeys` to it.
-	c.db = verify.NewDB()
-	rootKeyIDs := make([]string, 0, len(rootKeys))
-	for _, key := range rootKeys {
-		for _, id := range key.IDs() {
-			rootKeyIDs = append(rootKeyIDs, id)
-			if err := c.db.AddKey(id, key); err != nil {
-				return err
-			}
-		}
-	}
-
-	// add a mock "root" role that trusts the passed in key ids. These keys
-	// will be used to verify the `root.json` we just fetched.
-	role := &data.Role{Threshold: threshold, KeyIDs: rootKeyIDs}
-	if err := c.db.AddRole("root", role); err != nil {
-		return err
-	}
-
-	// verify that the new root is valid.
-	if err := c.decodeRoot(rootJSON); err != nil {
-		return err
-	}
-
-	return c.local.SetMeta("root.json", rootJSON)
-}
-
-// InitLocal initializes a local repository from root metadata.
+// Init initializes a local repository from root metadata.
 //
 // The root's keys are extracted from the root and saved in local storage.
 // Root expiration is not checked.
 // It is expected that rootJSON was securely distributed with the software
 // being updated.
-func (c *Client) InitLocal(rootJSON []byte) error {
+func (c *Client) Init(rootJSON []byte) error {
 	err := c.loadAndVerifyRootMeta(rootJSON, true /*ignoreExpiredCheck*/)
 	if err != nil {
 		return err
@@ -594,7 +550,7 @@ func (c *Client) downloadMetaUnsafe(name string, maxMetaSize int64) ([]byte, err
 	// although the size has been checked above, use a LimitReader in case
 	// the reported size is inaccurate, or size is -1 which indicates an
 	// unknown length
-	return ioutil.ReadAll(io.LimitReader(r, maxMetaSize))
+	return io.ReadAll(io.LimitReader(r, maxMetaSize))
 }
 
 // remoteGetFunc is the type of function the download method uses to download
@@ -665,11 +621,11 @@ func (c *Client) downloadMeta(name string, version int64, m data.FileMeta) ([]by
 		stream = r
 	}
 
-	return ioutil.ReadAll(stream)
+	return io.ReadAll(stream)
 }
 
 func (c *Client) downloadMetaFromSnapshot(name string, m data.SnapshotFileMeta) ([]byte, error) {
-	b, err := c.downloadMeta(name, m.Version, m.FileMeta)
+	b, err := c.downloadMeta(name, m.Version, data.FileMeta{Length: m.Length, Hashes: m.Hashes})
 	if err != nil {
 		return nil, err
 	}
@@ -679,7 +635,7 @@ func (c *Client) downloadMetaFromSnapshot(name string, m data.SnapshotFileMeta) 
 		return nil, ErrDownloadFailed{name, err}
 	}
 
-	meta, err := util.GenerateSnapshotFileMeta(bytes.NewReader(b), m.HashAlgorithms()...)
+	meta, err := util.GenerateSnapshotFileMeta(bytes.NewReader(b), m.Hashes.HashAlgorithms()...)
 	if err != nil {
 		return nil, err
 	}
@@ -693,7 +649,7 @@ func (c *Client) downloadMetaFromSnapshot(name string, m data.SnapshotFileMeta) 
 }
 
 func (c *Client) downloadMetaFromTimestamp(name string, m data.TimestampFileMeta) ([]byte, error) {
-	b, err := c.downloadMeta(name, m.Version, m.FileMeta)
+	b, err := c.downloadMeta(name, m.Version, data.FileMeta{Length: m.Length, Hashes: m.Hashes})
 	if err != nil {
 		return nil, err
 	}
@@ -703,7 +659,7 @@ func (c *Client) downloadMetaFromTimestamp(name string, m data.TimestampFileMeta
 		return nil, ErrDownloadFailed{name, err}
 	}
 
-	meta, err := util.GenerateTimestampFileMeta(bytes.NewReader(b), m.HashAlgorithms()...)
+	meta, err := util.GenerateTimestampFileMeta(bytes.NewReader(b), m.Hashes.HashAlgorithms()...)
 	if err != nil {
 		return nil, err
 	}
@@ -714,17 +670,6 @@ func (c *Client) downloadMetaFromTimestamp(name string, m data.TimestampFileMeta
 	}
 
 	return b, nil
-}
-
-// decodeRoot decodes and verifies root metadata.
-func (c *Client) decodeRoot(b json.RawMessage) error {
-	root := &data.Root{}
-	if err := c.db.Unmarshal(b, root, "root", c.rootVer); err != nil {
-		return ErrDecodeFailed{"root.json", err}
-	}
-	c.rootVer = root.Version
-	c.consistentSnapshot = root.ConsistentSnapshot
-	return nil
 }
 
 // decodeSnapshot decodes and verifies snapshot metadata, and returns the new
@@ -825,42 +770,12 @@ func (c *Client) localMetaFromSnapshot(name string, m data.SnapshotFileMeta) (js
 	if !ok {
 		return nil, false
 	}
-	meta, err := util.GenerateSnapshotFileMeta(bytes.NewReader(b), m.HashAlgorithms()...)
+	meta, err := util.GenerateSnapshotFileMeta(bytes.NewReader(b), m.Hashes.HashAlgorithms()...)
 	if err != nil {
 		return nil, false
 	}
 	err = util.SnapshotFileMetaEqual(meta, m)
 	return b, err == nil
-}
-
-// hasTargetsMeta checks whether local metadata has the given snapshot meta
-//lint:ignore U1000 unused
-func (c *Client) hasTargetsMeta(m data.SnapshotFileMeta) bool {
-	b, ok := c.localMeta["targets.json"]
-	if !ok {
-		return false
-	}
-	meta, err := util.GenerateSnapshotFileMeta(bytes.NewReader(b), m.HashAlgorithms()...)
-	if err != nil {
-		return false
-	}
-	err = util.SnapshotFileMetaEqual(meta, m)
-	return err == nil
-}
-
-// hasSnapshotMeta checks whether local metadata has the given meta
-//lint:ignore U1000 unused
-func (c *Client) hasMetaFromTimestamp(name string, m data.TimestampFileMeta) bool {
-	b, ok := c.localMeta[name]
-	if !ok {
-		return false
-	}
-	meta, err := util.GenerateTimestampFileMeta(bytes.NewReader(b), m.HashAlgorithms()...)
-	if err != nil {
-		return false
-	}
-	err = util.TimestampFileMetaEqual(meta, m)
-	return err == nil
 }
 
 type Destination interface {
@@ -872,11 +787,11 @@ type Destination interface {
 //
 // dest will be deleted and an error returned in the following situations:
 //
-//   * The target does not exist in the local targets.json
-//   * Failed to fetch the chain of delegations accessible from local snapshot.json
-//   * The target does not exist in any targets
-//   * Metadata cannot be generated for the downloaded data
-//   * Generated metadata does not match local metadata for the given file
+//   - The target does not exist in the local targets.json
+//   - Failed to fetch the chain of delegations accessible from local snapshot.json
+//   - The target does not exist in any targets
+//   - Metadata cannot be generated for the downloaded data
+//   - Generated metadata does not match local metadata for the given file
 func (c *Client) Download(name string, dest Destination) (err error) {
 	// delete dest if there is an error
 	defer func() {

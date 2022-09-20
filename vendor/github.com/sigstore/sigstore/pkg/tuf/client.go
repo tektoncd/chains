@@ -38,6 +38,7 @@ import (
 	"github.com/theupdateframework/go-tuf/client"
 	tuf_leveldbstore "github.com/theupdateframework/go-tuf/client/leveldbstore"
 	"github.com/theupdateframework/go-tuf/data"
+	_ "github.com/theupdateframework/go-tuf/pkg/deprecated/set_ecdsa"
 	"github.com/theupdateframework/go-tuf/util"
 )
 
@@ -275,7 +276,7 @@ func initializeTUF(mirror string, root []byte, embedded fs.FS, forceUpdate bool)
 			}
 		}
 
-		if err := t.client.InitLocal(root); err != nil {
+		if err := t.client.Init(root); err != nil {
 			singletonTUFErr = fmt.Errorf("unable to initialize client, local cache may be corrupt: %w", err)
 			return
 		}
