@@ -11,7 +11,7 @@ cloud.google.com/go/internal
 cloud.google.com/go/internal/optional
 cloud.google.com/go/internal/trace
 cloud.google.com/go/internal/version
-# cloud.google.com/go/compute v1.9.0
+# cloud.google.com/go/compute v1.10.0
 ## explicit; go 1.17
 cloud.google.com/go/compute/metadata
 # cloud.google.com/go/firestore v1.6.1
