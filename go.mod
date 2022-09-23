@@ -5,7 +5,7 @@ go 1.18
 require (
 	cloud.google.com/go/compute v1.9.0
 	cloud.google.com/go/storage v1.27.0
-	github.com/armon/go-metrics v0.4.0
+	github.com/armon/go-metrics v0.4.1
 	github.com/armon/go-radix v1.0.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/golang/snappy v0.0.4
