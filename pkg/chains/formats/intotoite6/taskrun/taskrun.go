@@ -26,10 +26,6 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	TektonID = "https://tekton.dev/attestations/chains@v2"
-)
-
 func GenerateAttestation(builderID string, tro *objects.TaskRunObject, logger *zap.SugaredLogger) (interface{}, error) {
 	subjects := extract.SubjectDigests(tro, logger)
 
