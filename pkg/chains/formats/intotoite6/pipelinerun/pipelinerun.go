@@ -14,6 +14,7 @@ limitations under the License.
 package pipelinerun
 
 import (
+	"fmt"
 	"time"
 
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
@@ -25,10 +26,6 @@ import (
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"knative.dev/pkg/apis"
-)
-
-const (
-	TektonPipelineRunID = "https://tekton.dev/attestations/chains/pipelinerun@v2"
 )
 
 type BuildConfig struct {
@@ -60,7 +57,7 @@ func GenerateAttestation(builderID string, pro *objects.PipelineRunObject, logge
 			Builder: slsa.ProvenanceBuilder{
 				ID: builderID,
 			},
-			BuildType:   TektonPipelineRunID,
+			BuildType:   fmt.Sprintf("%s/%s", pro.GetGroupVersionKind().GroupVersion().String(), pro.GetGroupVersionKind().Kind),
 			Invocation:  invocation(pro),
 			BuildConfig: buildConfig(pro, logger),
 			Metadata:    metadata(pro),
