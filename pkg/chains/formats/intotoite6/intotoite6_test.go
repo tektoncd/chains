@@ -167,7 +167,7 @@ func TestPipelineRunCreatePayload(t *testing.T) {
 			Builder: slsa.ProvenanceBuilder{
 				ID: "test_builder-1",
 			},
-			BuildType: "https://tekton.dev/attestations/chains/pipelinerun@v2",
+			BuildType: "tekton.dev/v1beta1/PipelineRun",
 			BuildConfig: pipelinerun.BuildConfig{
 				Tasks: []pipelinerun.TaskAttestation{
 					{
@@ -355,7 +355,7 @@ func TestPipelineRunCreatePayloadChildRefs(t *testing.T) {
 			Builder: slsa.ProvenanceBuilder{
 				ID: "test_builder-1",
 			},
-			BuildType: "https://tekton.dev/attestations/chains/pipelinerun@v2",
+			BuildType: "tekton.dev/v1beta1/PipelineRun",
 			BuildConfig: pipelinerun.BuildConfig{
 				Tasks: []pipelinerun.TaskAttestation{
 					{
