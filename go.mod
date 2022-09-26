@@ -38,9 +38,9 @@ require (
 	github.com/pierrec/lz4 v2.6.1+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/secure-systems-lab/go-securesystemslib v0.4.0
-	github.com/sigstore/cosign v1.12.0
-	github.com/sigstore/rekor v0.11.0
-	github.com/sigstore/sigstore v1.4.1-0.20220908204944-ec922cf4f1c2
+	github.com/sigstore/cosign v1.12.1
+	github.com/sigstore/rekor v0.12.1-0.20220915152154-4bb6f441c1b2
+	github.com/sigstore/sigstore v1.4.1
 	github.com/spiffe/go-spiffe/v2 v2.1.1
 	github.com/tektoncd/pipeline v0.40.0
 	github.com/tektoncd/plumbing v0.0.0-20220817140952-3da8ce01aeeb
@@ -110,7 +110,7 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/ashanbrown/forbidigo v1.3.0 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
-	github.com/aws/aws-sdk-go v1.44.93 // indirect
+	github.com/aws/aws-sdk-go v1.44.96 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.16.14 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.17.5 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.12.18 // indirect
@@ -153,7 +153,7 @@ require (
 	github.com/cncf/xds/go v0.0.0-20211130200136-a8f946100490 // indirect
 	github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.12.0 // indirect
-	github.com/coreos/go-oidc/v3 v3.3.0 // indirect
+	github.com/coreos/go-oidc/v3 v3.4.0 // indirect
 	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.3.2 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
@@ -183,7 +183,7 @@ require (
 	github.com/fatih/structtag v1.2.0 // indirect
 	github.com/firefart/nonamedreturns v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
-	github.com/fullstorydev/grpcurl v1.8.6 // indirect
+	github.com/fullstorydev/grpcurl v1.8.7 // indirect
 	github.com/fzipp/gocyclo v0.6.0 // indirect
 	github.com/go-chi/chi v4.1.2+incompatible // indirect
 	github.com/go-critic/go-critic v0.6.4 // indirect
@@ -230,14 +230,14 @@ require (
 	github.com/golangci/misspell v0.3.5 // indirect
 	github.com/golangci/revgrep v0.0.0-20220804021717-745bb2f7c2e6 // indirect
 	github.com/golangci/unconvert v0.0.0-20180507085042-28b1c447d1f4 // indirect
-	github.com/google/btree v1.0.1 // indirect
+	github.com/google/btree v1.1.2 // indirect
 	github.com/google/certificate-transparency-go v1.1.3 // indirect
 	github.com/google/go-containerregistry/pkg/authn/kubernetes v0.0.0-20220301182634-bfe2ffc6b6bd // indirect
 	github.com/google/go-github/v45 v45.2.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/licenseclassifier v0.0.0-20210722185704-3043a050f148 // indirect
-	github.com/google/trillian v1.4.1 // indirect
+	github.com/google/trillian v1.5.0 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/google/wire v0.5.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.1.0 // indirect
@@ -424,7 +424,7 @@ require (
 	go.opentelemetry.io/proto/otlp v0.16.0 // indirect
 	go.uber.org/automaxprocs v1.5.1 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
-	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e // indirect
+	golang.org/x/exp v0.0.0-20220823124025-807a23277127 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20220613132600-b0d781184e0d // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
 	golang.org/x/net v0.0.0-20220909164309-bea034e7d591 // indirect
