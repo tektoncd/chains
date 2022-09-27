@@ -40,7 +40,7 @@ require (
 	github.com/secure-systems-lab/go-securesystemslib v0.4.0
 	github.com/sigstore/cosign v1.12.1
 	github.com/sigstore/rekor v0.12.1-0.20220915152154-4bb6f441c1b2
-	github.com/sigstore/sigstore v1.4.1
+	github.com/sigstore/sigstore v1.4.2
 	github.com/spiffe/go-spiffe/v2 v2.1.1
 	github.com/tektoncd/pipeline v0.40.0
 	github.com/tektoncd/plumbing v0.0.0-20220817140952-3da8ce01aeeb
@@ -50,7 +50,7 @@ require (
 	gocloud.dev v0.26.0
 	gocloud.dev/docstore/mongodocstore v0.26.0
 	gocloud.dev/pubsub/kafkapubsub v0.26.0
-	golang.org/x/crypto v0.0.0-20220829220503-c86fa9a7ed90
+	golang.org/x/crypto v0.0.0-20220919173607-35f4265a4bc0
 	google.golang.org/grpc v1.49.0
 	google.golang.org/protobuf v1.28.1
 	gopkg.in/square/go-jose.v2 v2.6.0
@@ -110,22 +110,22 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/ashanbrown/forbidigo v1.3.0 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
-	github.com/aws/aws-sdk-go v1.44.96 // indirect
-	github.com/aws/aws-sdk-go-v2 v1.16.14 // indirect
-	github.com/aws/aws-sdk-go-v2/config v1.17.5 // indirect
-	github.com/aws/aws-sdk-go-v2/credentials v1.12.18 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.12.15 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.21 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.4.15 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/ini v1.3.22 // indirect
+	github.com/aws/aws-sdk-go v1.44.102 // indirect
+	github.com/aws/aws-sdk-go-v2 v1.16.16 // indirect
+	github.com/aws/aws-sdk-go-v2/config v1.17.7 // indirect
+	github.com/aws/aws-sdk-go-v2/credentials v1.12.20 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.12.17 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.23 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.4.17 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/ini v1.3.24 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ecr v1.15.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ecrpublic v1.12.0 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.9.15 // indirect
-	github.com/aws/aws-sdk-go-v2/service/kms v1.18.9 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sso v1.11.21 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.13.3 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.16.17 // indirect
-	github.com/aws/smithy-go v1.13.2 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.9.17 // indirect
+	github.com/aws/aws-sdk-go-v2/service/kms v1.18.10 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.11.23 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.13.5 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.16.19 // indirect
+	github.com/aws/smithy-go v1.13.3 // indirect
 	github.com/awslabs/amazon-ecr-credential-helper/ecr-login v0.0.0-20220228164355-396b2034c795 // indirect
 	github.com/benbjohnson/clock v1.1.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -257,7 +257,7 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.7.1 // indirect
 	github.com/hashicorp/go-rootcerts v1.0.2 // indirect
 	github.com/hashicorp/go-secure-stdlib/parseutil v0.1.7 // indirect
-	github.com/hashicorp/vault/api v1.7.2 // indirect
+	github.com/hashicorp/vault/api v1.8.0 // indirect
 	github.com/hashicorp/yamux v0.1.0 // indirect
 	github.com/hexops/gotextdiff v1.0.3 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
@@ -376,7 +376,7 @@ require (
 	github.com/tent/canonical-json-go v0.0.0-20130607151641-96e4ba3a7613 // indirect
 	github.com/tetafro/godot v1.4.11 // indirect
 	github.com/thales-e-security/pool v0.0.2 // indirect
-	github.com/theupdateframework/go-tuf v0.5.0 // indirect
+	github.com/theupdateframework/go-tuf v0.5.1-0.20220920170306-f237d7ca5b42 // indirect
 	github.com/timakin/bodyclose v0.0.0-20210704033933-f49887972144 // indirect
 	github.com/timonwong/logrlint v0.1.0 // indirect
 	github.com/tjfoc/gmsm v1.3.2 // indirect
@@ -430,7 +430,7 @@ require (
 	golang.org/x/net v0.0.0-20220909164309-bea034e7d591 // indirect
 	golang.org/x/oauth2 v0.0.0-20220909003341-f21342109be1 // indirect
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4 // indirect
-	golang.org/x/sys v0.0.0-20220907062415-87db552b00fd // indirect
+	golang.org/x/sys v0.0.0-20220919091848-fb04ddd9f9c8 // indirect
 	golang.org/x/term v0.0.0-20220526004731-065cf7ba2467 // indirect
 	golang.org/x/text v0.3.8-0.20211004125949-5bd84dd9b33b // indirect
 	golang.org/x/time v0.0.0-20220722155302-e5dcc9cfc0b9 // indirect
