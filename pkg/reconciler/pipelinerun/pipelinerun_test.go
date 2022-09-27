@@ -19,14 +19,13 @@ import (
 	"time"
 
 	signing "github.com/tektoncd/chains/pkg/chains"
-	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/chains/pkg/internal/mocksigner"
-	"github.com/tektoncd/chains/pkg/internal/tekton"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	informers "github.com/tektoncd/pipeline/pkg/client/informers/externalversions/pipeline/v1beta1"
 	fakepipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client/fake"
 	fakepipelineruninformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/pipelinerun/fake"
+	faketaskruninformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/taskrun/fake"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -118,6 +117,8 @@ func TestReconciler_handlePipelineRun(t *testing.T) {
 			name: "complete, already signed",
 			pr: &v1beta1.PipelineRun{
 				ObjectMeta: metav1.ObjectMeta{
+					Name:        "pipelinerun",
+					Namespace:   "default",
 					Annotations: map[string]string{signing.ChainsAnnotation: "true"},
 				},
 				Status: v1beta1.PipelineRunStatus{
@@ -131,6 +132,8 @@ func TestReconciler_handlePipelineRun(t *testing.T) {
 			name: "complete, not already signed",
 			pr: &v1beta1.PipelineRun{
 				ObjectMeta: metav1.ObjectMeta{
+					Name:        "pipelinerun",
+					Namespace:   "default",
 					Annotations: map[string]string{},
 				},
 				Status: v1beta1.PipelineRunStatus{
@@ -144,6 +147,8 @@ func TestReconciler_handlePipelineRun(t *testing.T) {
 			name: "not complete, not already signed",
 			pr: &v1beta1.PipelineRun{
 				ObjectMeta: metav1.ObjectMeta{
+					Name:        "pipelinerun",
+					Namespace:   "default",
 					Annotations: map[string]string{},
 				},
 				Status: v1beta1.PipelineRunStatus{
@@ -157,6 +162,8 @@ func TestReconciler_handlePipelineRun(t *testing.T) {
 			name: "taskruns completed",
 			pr: &v1beta1.PipelineRun{
 				ObjectMeta: metav1.ObjectMeta{
+					Name:        "pipelinerun",
+					Namespace:   "default",
 					Annotations: map[string]string{},
 				},
 				Status: v1beta1.PipelineRunStatus{
@@ -180,7 +187,8 @@ func TestReconciler_handlePipelineRun(t *testing.T) {
 			taskruns: []*v1beta1.TaskRun{
 				{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "taskrun1",
+						Name:      "taskrun1",
+						Namespace: "default",
 						Annotations: map[string]string{
 							"chains.tekton.dev/signed": "true",
 						},
@@ -199,6 +207,8 @@ func TestReconciler_handlePipelineRun(t *testing.T) {
 			name: "taskruns not yet completed",
 			pr: &v1beta1.PipelineRun{
 				ObjectMeta: metav1.ObjectMeta{
+					Name:        "pipelinerun",
+					Namespace:   "default",
 					Annotations: map[string]string{},
 				},
 				Status: v1beta1.PipelineRunStatus{
@@ -222,7 +232,8 @@ func TestReconciler_handlePipelineRun(t *testing.T) {
 			taskruns: []*v1beta1.TaskRun{
 				{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "taskrun1",
+						Name:      "taskrun1",
+						Namespace: "default",
 					},
 				},
 			},
@@ -235,17 +246,22 @@ func TestReconciler_handlePipelineRun(t *testing.T) {
 			signer := &mocksigner.Signer{}
 			ctx, _ := rtesting.SetupFakeContext(t)
 			c := fakepipelineclient.Get(ctx)
+			tri := faketaskruninformer.Get(ctx)
 
 			r := &Reconciler{
 				PipelineRunSigner: signer,
 				Pipelineclientset: c,
+				TaskRunLister:     tri.Lister(),
 			}
 
 			// Create mock taskruns
 			for _, tr := range tt.taskruns {
-				err := tekton.CreateObject(t, ctx, r.Pipelineclientset, objects.NewTaskRunObject(tr))
-				if err != nil {
-					t.Errorf("Unable to create mock taskrun: %s", tr.Name)
+				if err := tri.Informer().GetIndexer().Add(tr); err != nil {
+					t.Fatalf("Adding TaskRun to informer: %v", err)
+				}
+				// Ensure the TaskRun was indeed added successfully
+				if _, err := tri.Lister().TaskRuns(tt.pr.Namespace).Get(tr.Name); err != nil {
+					t.Fatalf("TaskRun not added to informer: %v, namespace: %v", err, tt.pr.Namespace)
 				}
 			}
 

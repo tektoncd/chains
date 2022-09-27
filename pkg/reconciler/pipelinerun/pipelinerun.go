@@ -23,7 +23,7 @@ import (
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	pipelinerunreconciler "github.com/tektoncd/pipeline/pkg/client/injection/reconciler/pipeline/v1beta1/pipelinerun"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	listers "github.com/tektoncd/pipeline/pkg/client/listers/pipeline/v1beta1"
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/logging"
 	pkgreconciler "knative.dev/pkg/reconciler"
@@ -37,6 +37,7 @@ const (
 type Reconciler struct {
 	PipelineRunSigner signing.Signer
 	Pipelineclientset versioned.Interface
+	TaskRunLister     listers.TaskRunLister
 }
 
 // Check that our Reconciler implements pipelinerunreconciler.Interface and pipelinerunreconciler.Finalizer
@@ -91,7 +92,7 @@ func (r *Reconciler) FinalizeKind(ctx context.Context, pr *v1beta1.PipelineRun) 
 	// during the push to the registry. This checks the taskruns to ensure they've been reconciled
 	// before attempting to sign the pippelinerun.
 	for _, name := range trs {
-		tr, err := r.Pipelineclientset.TektonV1beta1().TaskRuns(pr.Namespace).Get(ctx, name, v1.GetOptions{})
+		tr, err := r.TaskRunLister.TaskRuns(pr.Namespace).Get(name)
 		if err != nil {
 			logging.FromContext(ctx).Errorf("Unable to get reconciled status of taskrun %s within pipelinerun", name)
 			return err
