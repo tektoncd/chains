@@ -7,9 +7,9 @@ weight: 20
 
 # Chains Configuration
 
-`Chains` works by observing `TaskRun` executions, capturing relevant information, and storing it in a cryptographically-signed format.
+`Chains` works by observing `TaskRun` and `PipelineRun` executions, capturing relevant information, and storing it in a cryptographically-signed format.
 
-`TaskRuns` can indicate inputs and outputs which are then captured and surfaced in the `Chains` payload formats, where relevant.
+`TaskRuns` and `PipelineRuns` can indicate inputs and outputs which are then captured and surfaced in the `Chains` payload formats, where relevant.
 `Chains` uses the standard mechanisms (`Results` and `PipelineResources`) where possible, and provides a few other mechanisms to *hint* at the correct inputs and outputs. These are outlined below:
 
 ## Chains Type Hinting
@@ -33,7 +33,9 @@ The list of images can be separated by commas or by newlines.
   value: img1@sha256:digest1, img2@sha256:digest2
 ```
 
-Chains will parse through the list and sign each image.
+When processing a `TaskRun`, Chains will parse through the list, then sign and attest each image.
+When processing a `PipelineRun`, Chains will only attest each image. Thus, if both `TaskRun` and
+`PipelineRun` produce type hint results, each image will have one signature and two attestations.
 
 For in-toto attestations, see [intoto.md](intoto.md) for description
 of in-toto specific type hinting.
@@ -51,7 +53,15 @@ Supported keys include:
 | :--- | :--- | :--- | :--- |
 | `artifacts.taskrun.format` | The format to store `TaskRun` payloads in. | `tekton`, `in-toto`| `tekton` |
 | `artifacts.taskrun.storage` | The storage backend to store `TaskRun` signatures in. Multiple backends can be specified with comma-separated list ("tekton,oci"). To disable the `TaskRun` artifact input an empty string ("").  | `tekton`, `oci`, `gcs`, `docdb`, `grafeas` | `tekton` |
-| `artifacts.taskrun.signer` | The signature backend to sign `Taskrun` payloads with. | `x509`, `kms` | `x509` |
+| `artifacts.taskrun.signer` | The signature backend to sign `TaskRun` payloads with. | `x509`, `kms` | `x509` |
+
+### PipelineRun Configuration
+
+| Key | Description | Supported Values | Default |
+| :--- | :--- | :--- | :--- |
+| `artifacts.pipelinerun.format` | The format to store `PipelineRun` payloads in. | `tekton`, `in-toto`| `tekton` |
+| `artifacts.pipelinerun.storage` | The storage backend to store `PipelineRun` signatures in. Multiple backends can be specified with comma-separated list ("tekton,oci"). To disable the `PipelineRun` artifact input an empty string ("").  | `tekton`, `oci`, `gcs`, `docdb`, `grafeas` | `tekton` |
+| `artifacts.pipelinerun.signer` | The signature backend to sign `PipelineRun` payloads with. | `x509`, `kms` | `x509` |
 
 > NOTE: For grafeas storage backend, currently we only support Container Analysis. We will make grafeas server address configurabe within a short time.
 
@@ -107,7 +117,7 @@ You can read more about Grafeas notes and occurrences [here](https://github.com/
 | `transparency.enabled` | EXPERIMENTAL. Whether to enable automatic binary transparency uploads. | `true`, `false`, `manual` | `false` |
 | `transparency.url` | EXPERIMENTAL. The URL to upload binary transparency attestations to, if enabled. | |`https://rekor.sigstore.dev`|
 
-**Note**: If `transparency.enabled` is set to `manual`, then only TaskRuns with the following annotation will be uploaded to the transparency log:
+**Note**: If `transparency.enabled` is set to `manual`, then only `TaskRuns` and `PipelineRuns` with the following annotation will be uploaded to the transparency log:
 
 ```yaml
 chains.tekton.dev/transparency-upload: "true"

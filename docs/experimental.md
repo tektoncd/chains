@@ -18,8 +18,8 @@ Currently, experimental features include:
 
 Chains supports automatic binary uploads to a transparency log and defaults to
 using Rekor. If enabled, all signatures and attestations will be logged. The
-entry ID will be appended as an annotation on a TaskRun once Chains has uploaded
-it:
+entry ID will be appended as an annotation on a `TaskRun` or a `PipelineRun`
+once Chains has uploaded it:
 
 ```yaml
 chains.tekton.dev/transparency: https://rekor.sigstore.dev/7599
@@ -48,15 +48,16 @@ authority.
 
 In this mode, instead of setting up a signing key, Chains would request an
 identity token from the cluster it is running in. This identity token will be
-used to authorize a Fulcio certificate for a Tekton artifact (OCI image or
-TaskRun). Currently, this experimental feature only works on a GKE cluster with
+used to authorize a Fulcio certificate for a Tekton artifact (OCI image,
+`TaskRun`, or `PipelineRun`). Currently, this experimental feature only works
+on a GKE cluster with
 [Workload Identity](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity)
 configured (Workload Identity is required for Chains to be able to request an
 identity token).
 
 Once Chains has successfully requested a certificate, it will store the cert as
-a base64 encoded annotation on the TaskRun, along with the payload and
-signature.
+a base64 encoded annotation on the `TaskRun` or `PipelineRun` , along with the
+payload and signature.
 
 This can look like:
 
