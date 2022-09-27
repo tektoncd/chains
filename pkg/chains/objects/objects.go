@@ -54,7 +54,6 @@ type TektonObject interface {
 	Patch(ctx context.Context, clientSet versioned.Interface, patchBytes []byte) error
 	GetResults() []Result
 	GetServiceAccountName() string
-	GetParent(ctx context.Context, clientSet versioned.Interface) (TektonObject, error)
 }
 
 // TaskRunObject extends v1beta1.TaskRun with additional functions.
@@ -106,22 +105,6 @@ func (tro *TaskRunObject) GetResults() []Result {
 // Get the ServiceAccount declared in the TaskRun
 func (tro *TaskRunObject) GetServiceAccountName() string {
 	return tro.Spec.ServiceAccountName
-}
-
-// GetParent returns the PipelineRun object for the TaskRun, if one exists.
-func (tro *TaskRunObject) GetParent(ctx context.Context, clientSet versioned.Interface) (TektonObject, error) {
-	for _, owner := range tro.GetOwnerReferences() {
-		if owner.Kind == "PipelineRun" && owner.APIVersion == "tekton.dev/v1beta1" {
-			prName := owner.Name
-			pr, err := clientSet.TektonV1beta1().PipelineRuns(tro.Namespace).Get(ctx, prName, v1.GetOptions{})
-			if err != nil {
-				return nil, err
-			}
-			return NewPipelineRunObject(pr), nil
-		}
-	}
-	// TaskRun is not part of a PipelineRun, nothing to update
-	return nil, nil
 }
 
 // PipelineRunObject extends v1beta1.PipelineRun with additional functions.
@@ -179,11 +162,6 @@ func (pro *PipelineRunObject) GetResults() []Result {
 // Get the ServiceAccount declared in the PipelineRun
 func (pro *PipelineRunObject) GetServiceAccountName() string {
 	return pro.Spec.ServiceAccountName
-}
-
-// GetParent always returns nil so it conform with TektonObject interface.
-func (pro *PipelineRunObject) GetParent(_ context.Context, _ versioned.Interface) (TektonObject, error) {
-	return nil, nil
 }
 
 // Append TaskRuns to this PipelineRun

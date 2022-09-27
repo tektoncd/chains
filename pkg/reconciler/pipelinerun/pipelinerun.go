@@ -16,7 +16,6 @@ package pipelinerun
 import (
 	"context"
 	"fmt"
-	"time"
 
 	signing "github.com/tektoncd/chains/pkg/chains"
 	"github.com/tektoncd/chains/pkg/chains/objects"
@@ -24,9 +23,9 @@ import (
 	"github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	pipelinerunreconciler "github.com/tektoncd/pipeline/pkg/client/injection/reconciler/pipeline/v1beta1/pipelinerun"
 	listers "github.com/tektoncd/pipeline/pkg/client/listers/pipeline/v1beta1"
-	"knative.dev/pkg/controller"
 	"knative.dev/pkg/logging"
 	pkgreconciler "knative.dev/pkg/reconciler"
+	"knative.dev/pkg/tracker"
 )
 
 const (
@@ -38,6 +37,7 @@ type Reconciler struct {
 	PipelineRunSigner signing.Signer
 	Pipelineclientset versioned.Interface
 	TaskRunLister     listers.TaskRunLister
+	Tracker           tracker.Interface
 }
 
 // Check that our Reconciler implements pipelinerunreconciler.Interface and pipelinerunreconciler.Finalizer
@@ -103,12 +103,12 @@ func (r *Reconciler) FinalizeKind(ctx context.Context, pr *v1beta1.PipelineRun) 
 		}
 		if tr.Status.CompletionTime == nil {
 			logging.FromContext(ctx).Infof("taskrun %s within pipelinerun is not yet finalized: status is not complete", name)
-			return controller.NewRequeueAfter(time.Second * 15)
+			return r.trackTaskRun(tr, pr)
 		}
 		reconciled := signing.Reconciled(objects.NewTaskRunObject(tr))
 		if !reconciled {
 			logging.FromContext(ctx).Infof("taskrun %s within pipelinerun is not yet reconciled", name)
-			return nil
+			return r.trackTaskRun(tr, pr)
 		}
 		pro.AppendTaskRun(tr)
 	}
@@ -117,4 +117,14 @@ func (r *Reconciler) FinalizeKind(ctx context.Context, pr *v1beta1.PipelineRun) 
 		return err
 	}
 	return nil
+}
+
+func (r *Reconciler) trackTaskRun(tr *v1beta1.TaskRun, pr *v1beta1.PipelineRun) error {
+	ref := tracker.Reference{
+		APIVersion: "tekton.dev/v1beta1",
+		Kind:       "TaskRun",
+		Namespace:  tr.Namespace,
+		Name:       tr.Name,
+	}
+	return r.Tracker.TrackReference(ref, pr)
 }

@@ -76,6 +76,8 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		}
 	})
 
+	c.Tracker = impl.Tracker
+
 	pipelineRunInformer.Informer().AddEventHandler(controller.HandleAll(impl.Enqueue))
 
 	taskRunInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{

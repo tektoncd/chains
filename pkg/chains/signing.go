@@ -253,16 +253,6 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 		return err
 	}
 
-	// Notify parent object that child object has been signed. This allows PipelineRun resources
-	// to be reconciled when the status of its TaskRuns use ChildReferences.
-	if parent, err := tektonObj.GetParent(ctx, o.Pipelineclientset); err != nil {
-		return err
-	} else if parent != nil {
-		if err := MarkParentSigned(ctx, parent, o.Pipelineclientset); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
