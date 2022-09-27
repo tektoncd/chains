@@ -1,4 +1,5 @@
 <!--
+
 ---
 title: "Supply Chain Security"
 linkTitle: "Supply Chain Security"
@@ -7,9 +8,12 @@ description: Artifact signatures and attestations for Tekton
 cascade:
   github_project_repo: https://github.com/tektoncd/chains
 ---
+
 -->
 
 # Tekton Chains
+
+[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/6408/badge)](https://bestpractices.coreinfrastructure.org/projects/6408)
 
 Supply Chain Security in Tekton Pipelines
 
@@ -59,6 +63,7 @@ To verify that installation was successful, wait until all Pods have Status
 ```shell
 kubectl get po -n tekton-chains --watch
 ```
+
 ```
 NAME                                       READY   STATUS      RESTARTS   AGE
 tekton-chains-controller-c4f7c57c4-nrjb2   1/1     Running     0          160m
@@ -127,8 +132,9 @@ To start signing OCI images and generating signed provenance for them, try our
 
 The Chains community has been hard at work creating tutorials as well:
 
-- [Dual storage backend setup](https://github.com/thesecuresoftwarefactory/ssf/blob/main/examples/buildpacks/dual-storage-backend.md) showcases how to use multiple storage backends and
-verify the attestations with [cosign].
+- [Dual storage backend setup](https://github.com/thesecuresoftwarefactory/ssf/blob/main/examples/buildpacks/dual-storage-backend.md)
+  showcases how to use multiple storage backends and verify the attestations
+  with [cosign].
 
 ## Experimental Features
 
