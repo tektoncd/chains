@@ -11,6 +11,8 @@ cascade:
 
 # Tekton Chains
 
+[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/6408/badge)](https://bestpractices.coreinfrastructure.org/projects/6408)
+
 Supply Chain Security in Tekton Pipelines
 
 <p align="center">
