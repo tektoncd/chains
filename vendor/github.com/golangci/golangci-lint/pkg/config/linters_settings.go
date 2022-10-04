@@ -25,10 +25,13 @@ var defaultLintersSettings = LintersSettings{
 		Comparison: true,
 	},
 	Exhaustive: ExhaustiveSettings{
+		Check:                      []string{"switch"},
 		CheckGenerated:             false,
 		DefaultSignifiesExhaustive: false,
 		IgnoreEnumMembers:          "",
 		PackageScopeOnly:           false,
+		ExplicitExhaustiveMap:      false,
+		ExplicitExhaustiveSwitch:   false,
 	},
 	Forbidigo: ForbidigoSettings{
 		ExcludeGodocExamples: true,
@@ -62,9 +65,21 @@ var defaultLintersSettings = LintersSettings{
 		MaxDeclLines: 1,
 		MaxDeclChars: 30,
 	},
+	InterfaceBloat: InterfaceBloatSettings{
+		Max: 10,
+	},
 	Lll: LllSettings{
 		LineLength: 120,
 		TabWidth:   1,
+	},
+	LoggerCheck: LoggerCheckSettings{
+		Kitlog:           true,
+		Klog:             true,
+		Logr:             true,
+		Zap:              true,
+		RequireStringKey: false,
+		NoPrintfLike:     false,
+		Rules:            nil,
 	},
 	MaintIdx: MaintIdxSettings{
 		Under: 20,
@@ -105,12 +120,15 @@ var defaultLintersSettings = LintersSettings{
 		AllowAssignAndCallCuddle:         true,
 		AllowAssignAndAnythingCuddle:     false,
 		AllowMultiLineAssignCuddle:       true,
-		AllowCuddleDeclaration:           false,
+		ForceCaseTrailingWhitespaceLimit: 0,
 		AllowTrailingComment:             false,
 		AllowSeparatedLeadingComment:     false,
+		AllowCuddleDeclaration:           false,
+		AllowCuddleWithCalls:             []string{"Lock", "RLock"},
+		AllowCuddleWithRHS:               []string{"Unlock", "RUnlock"},
 		ForceCuddleErrCheckAndAssign:     false,
+		ErrorVariableNames:               []string{"err"},
 		ForceExclusiveShortDeclarations:  false,
-		ForceCaseTrailingWhitespaceLimit: 0,
 	},
 }
 
@@ -122,6 +140,7 @@ type LintersSettings struct {
 	Depguard         DepGuardSettings
 	Dogsled          DogsledSettings
 	Dupl             DuplSettings
+	DupWord          DupWordSettings
 	Errcheck         ErrcheckSettings
 	ErrChkJSON       ErrChkJSONSettings
 	ErrorLint        ErrorLintSettings
@@ -154,6 +173,7 @@ type LintersSettings struct {
 	InterfaceBloat   InterfaceBloatSettings
 	Ireturn          IreturnSettings
 	Lll              LllSettings
+	LoggerCheck      LoggerCheckSettings
 	MaintIdx         MaintIdxSettings
 	Makezero         MakezeroSettings
 	Maligned         MalignedSettings
@@ -238,6 +258,10 @@ type DuplSettings struct {
 	Threshold int
 }
 
+type DupWordSettings struct {
+	Keywords []string `mapstructure:"keywords"`
+}
+
 type ErrcheckSettings struct {
 	DisableDefaultExclusions bool     `mapstructure:"disable-default-exclusions"`
 	CheckTypeAssertions      bool     `mapstructure:"check-type-assertions"`
@@ -261,10 +285,13 @@ type ErrorLintSettings struct {
 }
 
 type ExhaustiveSettings struct {
-	CheckGenerated             bool   `mapstructure:"check-generated"`
-	DefaultSignifiesExhaustive bool   `mapstructure:"default-signifies-exhaustive"`
-	IgnoreEnumMembers          string `mapstructure:"ignore-enum-members"`
-	PackageScopeOnly           bool   `mapstructure:"package-scope-only"`
+	Check                      []string `mapstructure:"check"`
+	CheckGenerated             bool     `mapstructure:"check-generated"`
+	DefaultSignifiesExhaustive bool     `mapstructure:"default-signifies-exhaustive"`
+	IgnoreEnumMembers          string   `mapstructure:"ignore-enum-members"`
+	PackageScopeOnly           bool     `mapstructure:"package-scope-only"`
+	ExplicitExhaustiveMap      bool     `mapstructure:"explicit-exhaustive-map"`
+	ExplicitExhaustiveSwitch   bool     `mapstructure:"explicit-exhaustive-switch"`
 }
 
 type ExhaustiveStructSettings struct {
@@ -337,7 +364,13 @@ type GodoxSettings struct {
 }
 
 type GoFmtSettings struct {
-	Simplify bool
+	Simplify     bool
+	RewriteRules []GoFmtRewriteRule `mapstructure:"rewrite-rules"`
+}
+
+type GoFmtRewriteRule struct {
+	Pattern     string
+	Replacement string
 }
 
 type GofumptSettings struct {
@@ -468,6 +501,16 @@ type IreturnSettings struct {
 type LllSettings struct {
 	LineLength int `mapstructure:"line-length"`
 	TabWidth   int `mapstructure:"tab-width"`
+}
+
+type LoggerCheckSettings struct {
+	Kitlog           bool     `mapstructure:"kitlog"`
+	Klog             bool     `mapstructure:"klog"`
+	Logr             bool     `mapstructure:"logr"`
+	Zap              bool     `mapstructure:"zap"`
+	RequireStringKey bool     `mapstructure:"require-string-key"`
+	NoPrintfLike     bool     `mapstructure:"no-printf-like"`
+	Rules            []string `mapstructure:"rules"`
 }
 
 type MaintIdxSettings struct {
@@ -609,13 +652,17 @@ type TenvSettings struct {
 }
 
 type UseStdlibVarsSettings struct {
-	HTTPMethod         bool `mapstructure:"http-method"`
-	HTTPStatusCode     bool `mapstructure:"http-status-code"`
-	TimeWeekday        bool `mapstructure:"time-weekday"`
-	TimeMonth          bool `mapstructure:"time-month"`
-	TimeLayout         bool `mapstructure:"time-layout"`
-	CryptoHash         bool `mapstructure:"crypto-hash"`
-	DefaultRPCPathFlag bool `mapstructure:"default-rpc-path"`
+	HTTPMethod             bool `mapstructure:"http-method"`
+	HTTPStatusCode         bool `mapstructure:"http-status-code"`
+	TimeWeekday            bool `mapstructure:"time-weekday"`
+	TimeMonth              bool `mapstructure:"time-month"`
+	TimeLayout             bool `mapstructure:"time-layout"`
+	CryptoHash             bool `mapstructure:"crypto-hash"`
+	DefaultRPCPathFlag     bool `mapstructure:"default-rpc-path"`
+	OSDevNullFlag          bool `mapstructure:"os-dev-null-flag"`
+	SQLIsolationLevelFlag  bool `mapstructure:"sql-isolation-level-flag"`
+	TLSSignatureSchemeFlag bool `mapstructure:"tls-signature-scheme-flag"`
+	ConstantKind           bool `mapstructure:"constant-kind"`
 }
 
 type UnparamSettings struct {
@@ -654,16 +701,19 @@ type WrapcheckSettings struct {
 }
 
 type WSLSettings struct {
-	StrictAppend                     bool `mapstructure:"strict-append"`
-	AllowAssignAndCallCuddle         bool `mapstructure:"allow-assign-and-call"`
-	AllowAssignAndAnythingCuddle     bool `mapstructure:"allow-assign-and-anything"`
-	AllowMultiLineAssignCuddle       bool `mapstructure:"allow-multiline-assign"`
-	AllowCuddleDeclaration           bool `mapstructure:"allow-cuddle-declarations"`
-	AllowTrailingComment             bool `mapstructure:"allow-trailing-comment"`
-	AllowSeparatedLeadingComment     bool `mapstructure:"allow-separated-leading-comment"`
-	ForceCuddleErrCheckAndAssign     bool `mapstructure:"force-err-cuddling"`
-	ForceExclusiveShortDeclarations  bool `mapstructure:"force-short-decl-cuddling"`
-	ForceCaseTrailingWhitespaceLimit int  `mapstructure:"force-case-trailing-whitespace"`
+	StrictAppend                     bool     `mapstructure:"strict-append"`
+	AllowAssignAndCallCuddle         bool     `mapstructure:"allow-assign-and-call"`
+	AllowAssignAndAnythingCuddle     bool     `mapstructure:"allow-assign-and-anything"`
+	AllowMultiLineAssignCuddle       bool     `mapstructure:"allow-multiline-assign"`
+	ForceCaseTrailingWhitespaceLimit int      `mapstructure:"force-case-trailing-whitespace"`
+	AllowTrailingComment             bool     `mapstructure:"allow-trailing-comment"`
+	AllowSeparatedLeadingComment     bool     `mapstructure:"allow-separated-leading-comment"`
+	AllowCuddleDeclaration           bool     `mapstructure:"allow-cuddle-declarations"`
+	AllowCuddleWithCalls             []string `mapstructure:"allow-cuddle-with-calls"`
+	AllowCuddleWithRHS               []string `mapstructure:"allow-cuddle-with-rhs"`
+	ForceCuddleErrCheckAndAssign     bool     `mapstructure:"enforce-err-cuddling"`
+	ErrorVariableNames               []string `mapstructure:"error-variable-names"`
+	ForceExclusiveShortDeclarations  bool     `mapstructure:"force-short-decl-cuddling"`
 }
 
 // CustomLinterSettings encapsulates the meta-data of a private linter.

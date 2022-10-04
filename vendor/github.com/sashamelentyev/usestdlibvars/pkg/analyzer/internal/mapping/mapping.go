@@ -2,8 +2,12 @@ package mapping
 
 import (
 	"crypto"
+	"crypto/tls"
+	"database/sql"
+	"go/constant"
 	"net/http"
 	"net/rpc"
+	"os"
 	"strconv"
 	"time"
 )
@@ -111,7 +115,7 @@ var HTTPStatusCode = map[string]string{
 	strconv.Itoa(http.StatusNetworkAuthenticationRequired): "http.StatusNetworkAuthenticationRequired",
 }
 
-var DefaultRPCPath = map[string]string{
+var RPCDefaultPath = map[string]string{
 	rpc.DefaultRPCPath:   "rpc.DefaultRPCPath",
 	rpc.DefaultDebugPath: "rpc.DefaultDebugPath",
 }
@@ -158,4 +162,43 @@ var TimeLayout = map[string]string{
 	time.StampMilli:  "time.StampMilli",
 	time.StampMicro:  "time.StampMicro",
 	time.StampNano:   "time.StampNano",
+}
+
+var OSDevNull = map[string]string{
+	os.DevNull: "os.DevNull",
+}
+
+var SQLIsolationLevel = map[string]string{
+	// sql.LevelDefault.String():         "sql.LevelDefault.String()",
+	sql.LevelReadUncommitted.String(): "sql.LevelReadUncommitted.String()",
+	sql.LevelReadCommitted.String():   "sql.LevelReadCommitted.String()",
+	sql.LevelWriteCommitted.String():  "sql.LevelWriteCommitted.String()",
+	sql.LevelRepeatableRead.String():  "sql.LevelRepeatableRead.String()",
+	// sql.LevelSnapshot.String():        "sql.LevelSnapshot.String()",
+	// sql.LevelSerializable.String():    "sql.LevelSerializable.String()",
+	// sql.LevelLinearizable.String():    "sql.LevelLinearizable.String()",
+}
+
+var TLSSignatureScheme = map[string]string{
+	tls.PSSWithSHA256.String():          "tls.PSSWithSHA256.String()",
+	tls.ECDSAWithP256AndSHA256.String(): "tls.ECDSAWithP256AndSHA256.String()",
+	tls.Ed25519.String():                "tls.Ed25519.String()",
+	tls.PSSWithSHA384.String():          "tls.PSSWithSHA384.String()",
+	tls.PSSWithSHA512.String():          "tls.PSSWithSHA512.String()",
+	tls.PKCS1WithSHA256.String():        "tls.PKCS1WithSHA256.String()",
+	tls.PKCS1WithSHA384.String():        "tls.PKCS1WithSHA384.String()",
+	tls.PKCS1WithSHA512.String():        "tls.PKCS1WithSHA512.String()",
+	tls.ECDSAWithP384AndSHA384.String(): "tls.ECDSAWithP384AndSHA384.String()",
+	tls.ECDSAWithP521AndSHA512.String(): "tls.ECDSAWithP521AndSHA512.String()",
+	tls.PKCS1WithSHA1.String():          "tls.PKCS1WithSHA1.String()",
+	tls.ECDSAWithSHA1.String():          "tls.ECDSAWithSHA1.String()",
+}
+
+var ConstantKind = map[string]string{
+	// constant.Unknown.String(): "constant.Unknown.String()",
+	constant.Bool.String():    "constant.Bool.String()",
+	constant.String.String():  "constant.String.String()",
+	constant.Int.String():     "constant.Int.String()",
+	constant.Float.String():   "constant.Float.String()",
+	constant.Complex.String(): "constant.Complex.String()",
 }
