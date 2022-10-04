@@ -245,8 +245,7 @@ func (b *Backend) createOccurrence(ctx context.Context, tr *v1beta1.TaskRun, pay
 
 	// create Occurrence_Attestation for OCI
 	if opts.PayloadFormat == formats.PayloadTypeSimpleSigning {
-		uri := b.retrieveSingleOCIURI(tr, opts)
-		occ, err := b.createAttestationOccurrence(ctx, tr, payload, signature, uri)
+		occ, err := b.createAttestationOccurrence(ctx, tr, payload, signature, opts.FullKey)
 		if err != nil {
 			return nil, err
 		}
@@ -393,23 +392,6 @@ func (b *Backend) findOccurrencesForCriteria(ctx context.Context, projectPath st
 		return nil, err
 	}
 	return occurences.GetOccurrences(), nil
-}
-
-// get resource uri for a single oci image in the format of `IMAGE_URL@IMAGE_DIGEST`
-func (b *Backend) retrieveSingleOCIURI(tr *v1beta1.TaskRun, opts config.StorageOpts) string {
-	imgs := b.retrieveAllArtifactIdentifiers(tr)
-	for _, img := range imgs {
-		// get digest part of the image representation
-		digest := strings.Split(img, "sha256:")[1]
-
-		// for oci image, the key in StorageOpts will be the first 12 chars of digest
-		// so we want to compare
-		digestKey := digest[:12]
-		if digestKey == opts.Key {
-			return img
-		}
-	}
-	return ""
 }
 
 // retrieve the uri of all images generated from a specific taskrun in the format of `IMAGE_URL@IMAGE_DIGEST`

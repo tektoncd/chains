@@ -78,7 +78,7 @@ func TestBackend_StorePayload(t *testing.T) {
 			}
 
 			// Store the document.
-			opts := config.StorageOpts{Key: tt.args.key}
+			opts := config.StorageOpts{ShortKey: tt.args.key}
 			trObj := objects.NewTaskRunObject(tt.args.tr)
 			if err := b.StorePayload(ctx, trObj, sb, tt.args.signature, opts); (err != nil) != tt.wantErr {
 				t.Fatalf("Backend.StorePayload() error = %v, wantErr %v", err, tt.wantErr)
