@@ -114,7 +114,7 @@ To verify the image and the attestation, we'll use `cosign` again:
 
 ```shell
 cosign verify --key cosign.pub $REGISTRY/kaniko-chains
-cosign verify-attestation --key cosign.pub $REGISTRY/kaniko-chains
+cosign verify-attestation --key cosign.pub --type slsaprovenance $REGISTRY/kaniko-chains
 ```
 
 You should see verification output for both!
