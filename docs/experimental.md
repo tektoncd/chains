@@ -90,7 +90,7 @@ provider implementation is Kafka, and more may follow in the future.
 To enable the Kafka backend run:
 
 ```shell
-kubectl patch configmap chains-config -n tekton-chains -p='{"data": {storage.pubsub.provider": "kafka","storage.pubusub.topic": "chains", "storage.pubsub.kafka.bootstrap.servers":"kafka-0.kafka-headless.default.svc.cluster.local:9092"}}'
+kubectl patch configmap chains-config -n tekton-chains -p='{"data": {storage.pubsub.provider": "kafka","storage.pubsub.topic": "chains", "storage.pubsub.kafka.bootstrap.servers":"kafka-0.kafka-headless.default.svc.cluster.local:9092"}}'
 ```
 
 Note that the `storage.pubsub.kafka.bootstrap.servers` value needs to be
