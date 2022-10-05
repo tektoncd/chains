@@ -196,11 +196,8 @@ func (pro *PipelineRunObject) GetPullSecrets() []string {
 func getPodPullSecrets(podTemplate *pod.Template) []string {
 	imgPullSecrets := []string{}
 	if podTemplate != nil {
-		pullSecrets := podTemplate.ImagePullSecrets
-		if pullSecrets != nil {
-			for _, secret := range pullSecrets {
-				imgPullSecrets = append(imgPullSecrets, secret.Name)
-			}
+		for _, secret := range podTemplate.ImagePullSecrets {
+			imgPullSecrets = append(imgPullSecrets, secret.Name)
 		}
 	}
 	return imgPullSecrets
