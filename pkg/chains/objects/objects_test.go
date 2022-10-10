@@ -23,68 +23,70 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const (
-	namespace  = "objects-test"
-	pullSecret = "pull-secret"
-)
-
-var (
-	tr = &v1beta1.TaskRun{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
-			Namespace: namespace,
-		},
-		Spec: v1beta1.TaskRunSpec{},
-	}
-	pr = &v1beta1.PipelineRun{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
-			Namespace: namespace,
-		},
-		Spec: v1beta1.PipelineRunSpec{},
-	}
-	templatePullSecret = &pod.PodTemplate{
+func getPullSecretTemplate(pullSecret string) *pod.PodTemplate {
+	return &pod.PodTemplate{
 		ImagePullSecrets: []corev1.LocalObjectReference{
 			{
 				Name: pullSecret,
 			},
 		},
 	}
-	emptyTemplate = &pod.PodTemplate{}
-)
+}
+
+func getEmptyTemplate() *pod.PodTemplate {
+	return &pod.PodTemplate{}
+}
+
+func getTaskRun() *v1beta1.TaskRun {
+	return &v1beta1.TaskRun{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: "objects-test",
+		},
+		Spec: v1beta1.TaskRunSpec{},
+	}
+}
+
+func getPipelineRun() *v1beta1.PipelineRun {
+	return &v1beta1.PipelineRun{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: "objects-test",
+		},
+		Spec: v1beta1.PipelineRunSpec{},
+	}
+}
 
 func TestTaskRun_ImagePullSecrets(t *testing.T) {
+	pullSecret := "pull-secret"
 
 	tests := []struct {
 		name     string
-		taskRun  *TaskRunObject
 		template *pod.PodTemplate
 		want     []string
 	}{
 		{
 			name:     "Test pull secret found",
-			taskRun:  NewTaskRunObject(tr),
-			template: templatePullSecret,
+			template: getPullSecretTemplate(pullSecret),
 			want:     []string{pullSecret},
 		},
 		{
 			name:     "Test pull secret missing",
-			taskRun:  NewTaskRunObject(tr),
 			template: nil,
 			want:     []string{},
 		},
 		{
 			name:     "Test podTemplate missing",
-			taskRun:  NewTaskRunObject(tr),
-			template: emptyTemplate,
+			template: getEmptyTemplate(),
 			want:     []string{},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.taskRun.Spec.PodTemplate = tt.template
-			secret := tt.taskRun.GetPullSecrets()
+			tr := NewTaskRunObject(getTaskRun())
+			tr.Spec.PodTemplate = tt.template
+			secret := tr.GetPullSecrets()
 			assert.ElementsMatch(t, secret, tt.want)
 		})
 	}
@@ -92,38 +94,36 @@ func TestTaskRun_ImagePullSecrets(t *testing.T) {
 }
 
 func TestPipelineRun_ImagePullSecrets(t *testing.T) {
+	pullSecret := "pull-secret"
+
 	tests := []struct {
-		name        string
-		pipelineRun *PipelineRunObject
-		template    *pod.PodTemplate
-		want        []string
+		name     string
+		template *pod.PodTemplate
+		want     []string
 	}{
 		{
-			name:        "Test pull secret found",
-			pipelineRun: NewPipelineRunObject(pr),
-			template:    templatePullSecret,
-			want:        []string{pullSecret},
+			name:     "Test pull secret found",
+			template: getPullSecretTemplate(pullSecret),
+			want:     []string{pullSecret},
 		},
 		{
-			name:        "Test pull secret missing",
-			pipelineRun: NewPipelineRunObject(pr),
-			template:    nil,
-			want:        []string{},
+			name:     "Test pull secret missing",
+			template: nil,
+			want:     []string{},
 		},
 		{
-			name:        "Test podTemplate missing",
-			pipelineRun: NewPipelineRunObject(pr),
-			template:    emptyTemplate,
-			want:        []string{},
+			name:     "Test podTemplate missing",
+			template: getEmptyTemplate(),
+			want:     []string{},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.pipelineRun.Spec.PodTemplate = tt.template
-			secret := tt.pipelineRun.GetPullSecrets()
+			pr := NewPipelineRunObject(getPipelineRun())
+			pr.Spec.PodTemplate = tt.template
+			secret := pr.GetPullSecrets()
 			assert.ElementsMatch(t, secret, tt.want)
 		})
 	}
-
 }
