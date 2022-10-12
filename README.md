@@ -145,6 +145,7 @@ We are so excited to have you!
 - See [DEVELOPMENT.md](DEVELOPMENT.md) for how to get started
 - See [ROADMAP.md](ROADMAP.md) for the current roadmap Check out our good first
   issues and our help wanted issues to get started!
+- See [releases.md](releases.md) for our release cadence and processes
 
 To learn more about Chains:
 
