@@ -16,7 +16,9 @@ This doc will cover how to set this up!
 
 ## Authenticating to an OCI Registry
 
-The Chains controller will use the same service account your Task runs under as credentials for pushing signatures to an OCI registry. This section will cover how to set up a service account that has the necessary credentials.
+To push to an OCI registry, the Chains controller will look for credentials in two places. The first place is in the pod executing your Task and the second place is in the service account configured to run your Task. 
+
+### First we'll cover creating the credentials.
 
 Set the namespace and name of the Kubernetes service account:
 
@@ -72,7 +74,28 @@ kubectl create secret docker-registry registry-credentials \
 
 More details around creating this secret can be found [here](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/#create-a-secret-by-providing-credentials-on-the-command-line).
 
-### Grant access to the service account
+### Setup credentials using the pod
+Tekton supports specifying a Pod template to customize the Pod running your Task. You must supply the Pod template when starting your Task with the cli or embeddng it into your TaskRun.
+
+An example TaskRun configured with the `registry-credentials` secret.
+```yaml
+---
+apiVersion: tekton.dev/v1beta1
+kind: TaskRun
+metadata:
+  name: mytaskrun
+  namespace: default
+spec:
+  taskRef:
+    name: mytask
+  podTemplate:
+    imagePullSecrets:
+    - name: registry-credentials
+```
+
+More details on how to modify the podTemplate for a taskRun can be found [here](https://github.com/tektoncd/pipeline/blob/main/docs/taskruns.md#specifying-a-pod-template).
+
+### Setup credentials using the service account
 
 Finally, give the service account access to the secret above:
 
