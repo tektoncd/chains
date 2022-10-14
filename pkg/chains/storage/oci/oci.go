@@ -60,7 +60,11 @@ func NewStorageBackend(ctx context.Context, logger *zap.SugaredLogger, client ku
 		client: client,
 		getAuthenticator: func(ctx context.Context, obj objects.TektonObject, client kubernetes.Interface) (remote.Option, error) {
 			kc, err := k8schain.New(ctx, client,
-				k8schain.Options{Namespace: obj.GetNamespace(), ServiceAccountName: obj.GetServiceAccountName()})
+				k8schain.Options{
+					Namespace:          obj.GetNamespace(),
+					ServiceAccountName: obj.GetServiceAccountName(),
+					ImagePullSecrets:   obj.GetPullSecrets(),
+				})
 			if err != nil {
 				return nil, err
 			}

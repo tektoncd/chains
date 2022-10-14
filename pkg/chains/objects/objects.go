@@ -16,6 +16,7 @@ package objects
 import (
 	"context"
 
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/pod"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -54,6 +55,7 @@ type TektonObject interface {
 	Patch(ctx context.Context, clientSet versioned.Interface, patchBytes []byte) error
 	GetResults() []Result
 	GetServiceAccountName() string
+	GetPullSecrets() []string
 }
 
 // TaskRunObject extends v1beta1.TaskRun with additional functions.
@@ -105,6 +107,11 @@ func (tro *TaskRunObject) GetResults() []Result {
 // Get the ServiceAccount declared in the TaskRun
 func (tro *TaskRunObject) GetServiceAccountName() string {
 	return tro.Spec.ServiceAccountName
+}
+
+// Get the imgPullSecrets from the pod template
+func (tro *TaskRunObject) GetPullSecrets() []string {
+	return getPodPullSecrets(tro.Spec.PodTemplate)
 }
 
 // PipelineRunObject extends v1beta1.PipelineRun with additional functions.
@@ -178,4 +185,20 @@ func (pro *PipelineRunObject) GetTaskRunFromTask(taskName string) *v1beta1.TaskR
 		}
 	}
 	return nil
+}
+
+// Get the imgPullSecrets from the pod template
+func (pro *PipelineRunObject) GetPullSecrets() []string {
+	return getPodPullSecrets(pro.Spec.PodTemplate)
+}
+
+// Get the imgPullSecrets from a pod template, if they exist
+func getPodPullSecrets(podTemplate *pod.Template) []string {
+	imgPullSecrets := []string{}
+	if podTemplate != nil {
+		for _, secret := range podTemplate.ImagePullSecrets {
+			imgPullSecrets = append(imgPullSecrets, secret.Name)
+		}
+	}
+	return imgPullSecrets
 }
