@@ -16,6 +16,7 @@ package objects
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/pod"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -51,7 +52,7 @@ type Result struct {
 // to Tekton objects.
 type TektonObject interface {
 	Object
-	GetKind() string
+	GetGVK() string
 	GetObject() interface{}
 	GetLatestAnnotations(ctx context.Context, clientSet versioned.Interface) (map[string]string, error)
 	Patch(ctx context.Context, clientSet versioned.Interface, patchBytes []byte) error
@@ -78,17 +79,17 @@ type TaskRunObject struct {
 	*v1beta1.TaskRun
 }
 
+var _ TektonObject = &TaskRunObject{}
+
 func NewTaskRunObject(tr *v1beta1.TaskRun) *TaskRunObject {
 	return &TaskRunObject{
 		tr,
 	}
 }
 
-// Get the TaskRun kind
-func (tro *TaskRunObject) GetKind() string {
-	// TODO: Want to use tro.GetObjectKind().GroupVersionKind().Kind but
-	// never seems to be populated
-	return "taskrun"
+// Get the TaskRun GroupVersionKind
+func (tro *TaskRunObject) GetGVK() string {
+	return fmt.Sprintf("%s/%s", tro.GetGroupVersionKind().GroupVersion().String(), tro.GetGroupVersionKind().Kind)
 }
 
 // Get the latest annotations on the TaskRun
@@ -135,9 +136,11 @@ func (tro *TaskRunObject) GetPullSecrets() []string {
 type PipelineRunObject struct {
 	// The base PipelineRun
 	*v1beta1.PipelineRun
-	// TaskRuns that were apart of this PipelineRun
+	// taskRuns that were apart of this PipelineRun
 	taskRuns []*v1beta1.TaskRun
 }
+
+var _ TektonObject = &PipelineRunObject{}
 
 func NewPipelineRunObject(pr *v1beta1.PipelineRun) *PipelineRunObject {
 	return &PipelineRunObject{
@@ -145,11 +148,9 @@ func NewPipelineRunObject(pr *v1beta1.PipelineRun) *PipelineRunObject {
 	}
 }
 
-// Get the PipelineRun kind
-func (pro *PipelineRunObject) GetKind() string {
-	// TODO: Want to use tro.GetObjectKind().GroupVersionKind().Kind but
-	// never seems to be populated
-	return "pipelinerun"
+// Get the PipelineRun GroupVersionKind
+func (pro *PipelineRunObject) GetGVK() string {
+	return fmt.Sprintf("%s/%s", pro.GetGroupVersionKind().GroupVersion().String(), pro.GetGroupVersionKind().Kind)
 }
 
 // Request the current annotations on the PipelineRun object
