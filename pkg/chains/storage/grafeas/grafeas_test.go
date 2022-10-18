@@ -147,7 +147,7 @@ func TestGrafeasBackend_StoreAndRetrieve(t *testing.T) {
 				},
 				payload:   []byte("{}"),
 				signature: "taskrun signature",
-				opts:      config.StorageOpts{Key: "taskrun.uuid", PayloadFormat: formats.PayloadTypeInTotoIte6},
+				opts:      config.StorageOpts{FullKey: "tekton.dev-v1beta1-taskrun-uuid", PayloadFormat: formats.PayloadTypeInTotoIte6},
 			},
 			wantErr: false,
 		},
@@ -174,12 +174,7 @@ func TestGrafeasBackend_StoreAndRetrieve(t *testing.T) {
 				},
 				payload:   []byte("oci payload"),
 				signature: "oci signature",
-				// The Key field must be the same as the first 12 chars of the image digest.
-				// Reason:
-				// Inside chains.Sign function, we set the key field for both artifacts.
-				// For OCI artifact, it is implemented as the first 12 chars of the image digest.
-				// https://github.com/tektoncd/chains/blob/v0.8.0/pkg/artifacts/signable.go#L200
-				opts: config.StorageOpts{Key: "cfe4f0bf41c8", PayloadFormat: formats.PayloadTypeSimpleSigning},
+				opts:      config.StorageOpts{FullKey: "gcr.io/test/kaniko-chains1@sha256:cfe4f0bf41c80609214f9b8ec0408b1afb28b3ced343b944aaa05d47caba3e00", PayloadFormat: formats.PayloadTypeSimpleSigning},
 			},
 			wantErr: false,
 		},
@@ -193,7 +188,7 @@ func TestGrafeasBackend_StoreAndRetrieve(t *testing.T) {
 						UID:       types.UID("uid3"),
 					},
 				},
-				opts: config.StorageOpts{Key: "taskrun2.uuid", PayloadFormat: formats.PayloadTypeTekton},
+				opts: config.StorageOpts{FullKey: "tekton.dev-v1beta1-taskrun2-uuid", PayloadFormat: formats.PayloadTypeTekton},
 			},
 			wantErr: true,
 		},
@@ -251,8 +246,7 @@ func testStoreAndRetrieve(ctx context.Context, t *testing.T, test testConfig, ba
 	// ----------------
 	expectSignature := map[string][]string{}
 	if test.args.opts.PayloadFormat == formats.PayloadTypeSimpleSigning {
-		uri := backend.retrieveSingleOCIURI(test.args.tr, test.args.opts)
-		expectSignature[uri] = []string{test.args.signature}
+		expectSignature[test.args.opts.FullKey] = []string{test.args.signature}
 	}
 	if test.args.opts.PayloadFormat == formats.PayloadTypeInTotoIte6 {
 		allURIs := backend.retrieveAllArtifactIdentifiers(test.args.tr)
@@ -274,8 +268,7 @@ func testStoreAndRetrieve(ctx context.Context, t *testing.T, test testConfig, ba
 	// --------------
 	expectPayload := map[string]string{}
 	if test.args.opts.PayloadFormat == formats.PayloadTypeSimpleSigning {
-		uri := backend.retrieveSingleOCIURI(test.args.tr, test.args.opts)
-		expectPayload[uri] = string(test.args.payload)
+		expectPayload[test.args.opts.FullKey] = string(test.args.payload)
 	}
 	if test.args.opts.PayloadFormat == formats.PayloadTypeInTotoIte6 {
 		allURIs := backend.retrieveAllArtifactIdentifiers(test.args.tr)

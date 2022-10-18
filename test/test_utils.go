@@ -247,7 +247,7 @@ func verifySignature(ctx context.Context, t *testing.T, c *clients, tr *v1beta1.
 
 		// Initialize the storage options.
 		opts := config.StorageOpts{
-			Key: fmt.Sprintf("taskrun-%s", tr.UID),
+			ShortKey: fmt.Sprintf("taskrun-%s", tr.UID),
 		}
 
 		trObj := objects.NewTaskRunObject(tr)

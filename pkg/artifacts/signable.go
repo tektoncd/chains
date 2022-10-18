@@ -33,7 +33,14 @@ type Signable interface {
 	StorageBackend(cfg config.Config) sets.String
 	Signer(cfg config.Config) string
 	PayloadFormat(cfg config.Config) formats.PayloadType
-	Key(interface{}) string
+	// FullKey returns the full identifier for a signable artifact.
+	// - For OCI artifact, it is the full representation in the format of `<NAME>@sha256:<DIGEST>`.
+	// - For TaskRun/PipelineRun artifact, it is `<GROUP>-<VERSION>-<KIND>-<UID>`
+	FullKey(interface{}) string
+	// ShortKey returns the short version  of an artifact identifier.
+	// - For OCI artifact, it is first 12 chars of the image digest.
+	// - For TaskRun/PipelineRun artifact, it is `<KIND>-<UID>`.
+	ShortKey(interface{}) string
 	Type() string
 	Enabled(cfg config.Config) bool
 }
@@ -42,9 +49,17 @@ type TaskRunArtifact struct {
 	Logger *zap.SugaredLogger
 }
 
-func (ta *TaskRunArtifact) Key(obj interface{}) string {
+var _ Signable = &TaskRunArtifact{}
+
+func (ta *TaskRunArtifact) ShortKey(obj interface{}) string {
 	tro := obj.(*objects.TaskRunObject)
 	return "taskrun-" + string(tro.UID)
+}
+
+func (ta *TaskRunArtifact) FullKey(obj interface{}) string {
+	tro := obj.(*objects.TaskRunObject)
+	gvk := tro.GetGroupVersionKind()
+	return fmt.Sprintf("%s-%s-%s-%s", gvk.Group, gvk.Version, gvk.Kind, tro.UID)
 }
 
 func (ta *TaskRunArtifact) ExtractObjects(obj objects.TektonObject) []interface{} {
@@ -75,9 +90,17 @@ type PipelineRunArtifact struct {
 	Logger *zap.SugaredLogger
 }
 
-func (pa *PipelineRunArtifact) Key(obj interface{}) string {
+var _ Signable = &PipelineRunArtifact{}
+
+func (pa *PipelineRunArtifact) ShortKey(obj interface{}) string {
 	pro := obj.(*objects.PipelineRunObject)
 	return "pipelinerun-" + string(pro.UID)
+}
+
+func (pa *PipelineRunArtifact) FullKey(obj interface{}) string {
+	pro := obj.(*objects.PipelineRunObject)
+	gvk := pro.GetGroupVersionKind()
+	return fmt.Sprintf("%s-%s-%s-%s", gvk.Group, gvk.Version, gvk.Kind, pro.UID)
 }
 
 func (pa *PipelineRunArtifact) ExtractObjects(obj objects.TektonObject) []interface{} {
@@ -108,6 +131,8 @@ func (pa *PipelineRunArtifact) Enabled(cfg config.Config) bool {
 type OCIArtifact struct {
 	Logger *zap.SugaredLogger
 }
+
+var _ Signable = &OCIArtifact{}
 
 type image struct {
 	url    string
@@ -291,9 +316,14 @@ func (oa *OCIArtifact) Signer(cfg config.Config) string {
 	return cfg.Artifacts.OCI.Signer
 }
 
-func (oa *OCIArtifact) Key(obj interface{}) string {
+func (oa *OCIArtifact) ShortKey(obj interface{}) string {
 	v := obj.(name.Digest)
 	return strings.TrimPrefix(v.DigestStr(), "sha256:")[:12]
+}
+
+func (oa *OCIArtifact) FullKey(obj interface{}) string {
+	v := obj.(name.Digest)
+	return v.Name()
 }
 
 func (oa *OCIArtifact) Enabled(cfg config.Config) bool {

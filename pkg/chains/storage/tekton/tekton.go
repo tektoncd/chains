@@ -56,10 +56,10 @@ func (b *Backend) StorePayload(ctx context.Context, obj objects.TektonObject, ra
 	// Use patch instead of update to prevent race conditions.
 	patchBytes, err := patch.GetAnnotationsPatch(map[string]string{
 		// Base64 encode both the signature and the payload
-		fmt.Sprintf(PayloadAnnotationFormat, opts.Key):   base64.StdEncoding.EncodeToString(rawPayload),
-		fmt.Sprintf(SignatureAnnotationFormat, opts.Key): base64.StdEncoding.EncodeToString([]byte(signature)),
-		fmt.Sprintf(CertAnnotationsFormat, opts.Key):     base64.StdEncoding.EncodeToString([]byte(opts.Cert)),
-		fmt.Sprintf(ChainAnnotationFormat, opts.Key):     base64.StdEncoding.EncodeToString([]byte(opts.Chain)),
+		fmt.Sprintf(PayloadAnnotationFormat, opts.ShortKey):   base64.StdEncoding.EncodeToString(rawPayload),
+		fmt.Sprintf(SignatureAnnotationFormat, opts.ShortKey): base64.StdEncoding.EncodeToString([]byte(signature)),
+		fmt.Sprintf(CertAnnotationsFormat, opts.ShortKey):     base64.StdEncoding.EncodeToString([]byte(opts.Cert)),
+		fmt.Sprintf(ChainAnnotationFormat, opts.ShortKey):     base64.StdEncoding.EncodeToString([]byte(opts.Chain)),
 	})
 	if err != nil {
 		return err
@@ -131,9 +131,9 @@ func (b *Backend) RetrievePayloads(ctx context.Context, obj objects.TektonObject
 }
 
 func sigName(opts config.StorageOpts) string {
-	return fmt.Sprintf(SignatureAnnotationFormat, opts.Key)
+	return fmt.Sprintf(SignatureAnnotationFormat, opts.ShortKey)
 }
 
 func payloadName(opts config.StorageOpts) string {
-	return fmt.Sprintf(PayloadAnnotationFormat, opts.Key)
+	return fmt.Sprintf(PayloadAnnotationFormat, opts.ShortKey)
 }

@@ -95,7 +95,7 @@ func TestBackend_StorePayload(t *testing.T) {
 			if err != nil {
 				t.Errorf("error marshaling json: %v", err)
 			}
-			opts := config.StorageOpts{Key: "mockpayload"}
+			opts := config.StorageOpts{ShortKey: "mockpayload"}
 			mockSignature := "mocksignature"
 			if err := b.StorePayload(ctx, tt.object, payload, mockSignature, opts); (err != nil) != tt.wantErr {
 				t.Errorf("Backend.StorePayload() error = %v, wantErr %v", err, tt.wantErr)

@@ -217,7 +217,8 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 			for _, backend := range signableType.StorageBackend(cfg).List() {
 				b := o.Backends[backend]
 				storageOpts := config.StorageOpts{
-					Key:           signableType.Key(obj),
+					ShortKey:      signableType.ShortKey(obj),
+					FullKey:       signableType.FullKey(obj),
 					Cert:          signer.Cert(),
 					Chain:         signer.Chain(),
 					PayloadFormat: payloadFormat,
