@@ -3,3 +3,7 @@
 
 bin/
 vendor/
+
+dist/
+
+cover.out

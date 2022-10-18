@@ -38,7 +38,7 @@ func NewManager(cfg *config.Config, log logutils.Log) *Manager {
 // WithCustomLinters loads private linters that are specified in the golangci config file.
 func (m *Manager) WithCustomLinters() *Manager {
 	if m.log == nil {
-		m.log = report.NewLogWrapper(logutils.NewStderrLog(""), &report.Data{})
+		m.log = report.NewLogWrapper(logutils.NewStderrLog(logutils.DebugKeyEmpty), &report.Data{})
 	}
 	if m.cfg != nil {
 		for name, settings := range m.cfg.LintersSettings.Custom {
@@ -108,6 +108,7 @@ func (m Manager) GetAllSupportedLinterConfigs() []*linter.Config {
 		depGuardCfg         *config.DepGuardSettings
 		dogsledCfg          *config.DogsledSettings
 		duplCfg             *config.DuplSettings
+		dupwordCfg          *config.DupWordSettings
 		errcheckCfg         *config.ErrcheckSettings
 		errchkjsonCfg       *config.ErrChkJSONSettings
 		errorlintCfg        *config.ErrorLintSettings
@@ -140,6 +141,7 @@ func (m Manager) GetAllSupportedLinterConfigs() []*linter.Config {
 		interfaceBloatCfg   *config.InterfaceBloatSettings
 		ireturnCfg          *config.IreturnSettings
 		lllCfg              *config.LllSettings
+		loggerCheckCfg      *config.LoggerCheckSettings
 		maintIdxCfg         *config.MaintIdxSettings
 		makezeroCfg         *config.MakezeroSettings
 		malignedCfg         *config.MalignedSettings
@@ -182,6 +184,7 @@ func (m Manager) GetAllSupportedLinterConfigs() []*linter.Config {
 		depGuardCfg = &m.cfg.LintersSettings.Depguard
 		dogsledCfg = &m.cfg.LintersSettings.Dogsled
 		duplCfg = &m.cfg.LintersSettings.Dupl
+		dupwordCfg = &m.cfg.LintersSettings.DupWord
 		errcheckCfg = &m.cfg.LintersSettings.Errcheck
 		errchkjsonCfg = &m.cfg.LintersSettings.ErrChkJSON
 		errorlintCfg = &m.cfg.LintersSettings.ErrorLint
@@ -214,6 +217,7 @@ func (m Manager) GetAllSupportedLinterConfigs() []*linter.Config {
 		interfaceBloatCfg = &m.cfg.LintersSettings.InterfaceBloat
 		ireturnCfg = &m.cfg.LintersSettings.Ireturn
 		lllCfg = &m.cfg.LintersSettings.Lll
+		loggerCheckCfg = &m.cfg.LintersSettings.LoggerCheck
 		maintIdxCfg = &m.cfg.LintersSettings.MaintIdx
 		makezeroCfg = &m.cfg.LintersSettings.Makezero
 		malignedCfg = &m.cfg.LintersSettings.Maligned
@@ -304,7 +308,7 @@ func (m Manager) GetAllSupportedLinterConfigs() []*linter.Config {
 			WithSince("v1.43.0").
 			WithPresets(linter.PresetBugs).
 			WithLoadForGoAnalysis().
-			WithURL("https://github.com/sylvia7788/contextcheck"),
+			WithURL("https://github.com/kkHAIKE/contextcheck"),
 
 		linter.NewConfig(golinters.NewCyclop(cyclopCfg)).
 			WithSince("v1.37.0").
@@ -338,6 +342,12 @@ func (m Manager) GetAllSupportedLinterConfigs() []*linter.Config {
 			WithSince("v1.0.0").
 			WithPresets(linter.PresetStyle).
 			WithURL("https://github.com/mibk/dupl"),
+
+		linter.NewConfig(golinters.NewDupWord(dupwordCfg)).
+			WithSince("1.50.0").
+			WithPresets(linter.PresetComment).
+			WithAutoFix().
+			WithURL("https://github.com/Abirdcfly/dupword"),
 
 		linter.NewConfig(golinters.NewDurationCheck()).
 			WithSince("v1.37.0").
@@ -583,11 +593,12 @@ func (m Manager) GetAllSupportedLinterConfigs() []*linter.Config {
 			WithSince("v1.8.0").
 			WithPresets(linter.PresetStyle),
 
-		linter.NewConfig(golinters.NewLogrLint()).
+		linter.NewConfig(golinters.NewLoggerCheck(loggerCheckCfg)).
 			WithSince("v1.49.0").
 			WithLoadForGoAnalysis().
-			WithPresets(linter.PresetBugs).
-			WithURL("https://github.com/timonwong/logrlint"),
+			WithPresets(linter.PresetStyle, linter.PresetBugs).
+			WithAlternativeNames("logrlint").
+			WithURL("https://github.com/timonwong/loggercheck"),
 
 		linter.NewConfig(golinters.NewMaintIdx(maintIdxCfg)).
 			WithSince("v1.44.0").
@@ -687,6 +698,7 @@ func (m Manager) GetAllSupportedLinterConfigs() []*linter.Config {
 		linter.NewConfig(golinters.NewReassign(reassignCfg)).
 			WithSince("1.49.0").
 			WithPresets(linter.PresetBugs).
+			WithLoadForGoAnalysis().
 			WithURL("https://github.com/curioswitch/go-reassign"),
 
 		linter.NewConfig(golinters.NewRevive(reviveCfg)).
@@ -746,6 +758,11 @@ func (m Manager) GetAllSupportedLinterConfigs() []*linter.Config {
 			WithPresets(linter.PresetStyle).
 			WithLoadForGoAnalysis().
 			WithURL("https://github.com/sivchari/tenv"),
+
+		linter.NewConfig(golinters.NewTestableexamples()).
+			WithSince("v1.50.0").
+			WithPresets(linter.PresetTest).
+			WithURL("https://github.com/maratori/testableexamples"),
 
 		linter.NewConfig(golinters.NewTestpackage(testpackageCfg)).
 			WithSince("v1.25.0").
