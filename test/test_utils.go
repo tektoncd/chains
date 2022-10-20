@@ -32,8 +32,9 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/tektoncd/chains/pkg/chains/objects"
-	chainsstrorage "github.com/tektoncd/chains/pkg/chains/storage"
+	chainsstorage "github.com/tektoncd/chains/pkg/chains/storage"
 	"github.com/tektoncd/chains/pkg/config"
+	"github.com/tektoncd/chains/pkg/test/tekton"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	pipelineclientset "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -49,23 +50,23 @@ func getTr(ctx context.Context, t *testing.T, c pipelineclientset.Interface, nam
 	return tr
 }
 
-type conditionFn func(*v1beta1.TaskRun) bool
+type conditionFn func(obj objects.TektonObject) bool
 
-func waitForCondition(ctx context.Context, t *testing.T, c pipelineclientset.Interface, name, ns string, cond conditionFn, timeout time.Duration) *v1beta1.TaskRun {
+func waitForCondition(ctx context.Context, t *testing.T, c pipelineclientset.Interface, obj objects.TektonObject, cond conditionFn, timeout time.Duration) objects.TektonObject {
 	t.Helper()
 
 	// Do a first quick check before setting the watch
-	tr := getTr(ctx, t, c, name, ns)
-	if cond(tr) {
-		return tr
+	o, err := tekton.GetObject(t, ctx, c, obj)
+	if err != nil {
+		t.Errorf("error watching object: %s", err)
+	}
+	if cond(o) {
+		return o
 	}
 
-	w, err := c.TektonV1beta1().TaskRuns(ns).Watch(ctx, metav1.SingleObject(metav1.ObjectMeta{
-		Name:      name,
-		Namespace: ns,
-	}))
+	w, err := tekton.WatchObject(t, ctx, c, obj)
 	if err != nil {
-		t.Errorf("error watching taskrun: %s", err)
+		t.Errorf("error watching object: %s", err)
 	}
 
 	// Setup a timeout channel
@@ -79,33 +80,36 @@ func waitForCondition(ctx context.Context, t *testing.T, c pipelineclientset.Int
 	for {
 		select {
 		case ev := <-w.ResultChan():
-			tr := ev.Object.(*v1beta1.TaskRun)
-			if cond(tr) {
-				return tr
+			obj, err := objects.NewTektonObject(ev.Object)
+			if err != nil {
+				t.Errorf("watch result of unrecognized type: %s", err)
+			}
+			if cond(obj) {
+				return obj
 			}
 		case <-timeoutChan:
-			// print logs from the TaskRun on timeout
-			printDebugging(t, ns, name)
+			// print logs from the Tekton object on timeout
+			printDebugging(t, obj)
 			t.Fatal("time out")
 		}
 	}
 }
 
-func successful(tr *v1beta1.TaskRun) bool {
-	return tr.IsSuccessful()
+func successful(obj objects.TektonObject) bool {
+	return obj.IsSuccessful()
 }
 
-func failed(tr *v1beta1.TaskRun) bool {
-	failed, ok := tr.Annotations["chains.tekton.dev/signed"]
-	return ok && failed == "failed" && tr.Annotations["chains.tekton.dev/retries"] == "3"
+func failed(obj objects.TektonObject) bool {
+	failed, ok := obj.GetAnnotations()["chains.tekton.dev/signed"]
+	return ok && failed == "failed" && obj.GetAnnotations()["chains.tekton.dev/retries"] == "3"
 }
 
-func done(tr *v1beta1.TaskRun) bool {
-	return tr.IsDone()
+func done(obj objects.TektonObject) bool {
+	return obj.IsDone()
 }
 
-func signed(tr *v1beta1.TaskRun) bool {
-	_, ok := tr.Annotations["chains.tekton.dev/signed"]
+func signed(obj objects.TektonObject) bool {
+	_, ok := obj.GetAnnotations()["chains.tekton.dev/signed"]
 	return ok
 }
 
@@ -208,21 +212,21 @@ func setConfigMap(ctx context.Context, t *testing.T, c *clients, data map[string
 	}
 }
 
-func printDebugging(t *testing.T, ns, taskRunName string) {
-	t.Log("============================== TaskRun Logs ==============================")
-	output, _ := exec.Command("tkn", "tr", "logs", "-n", ns, taskRunName).CombinedOutput()
+func printDebugging(t *testing.T, obj objects.TektonObject) {
+	t.Logf("============================== %s logs ==============================", obj.GetKind())
+	output, _ := exec.Command("tkn", obj.GetKind(), "logs", "-n", obj.GetNamespace(), obj.GetName()).CombinedOutput()
 	t.Log(string(output))
 
-	t.Log("============================== TaskRun Describe ==============================")
-	output, _ = exec.Command("tkn", "tr", "describe", "-n", ns, taskRunName).CombinedOutput()
+	t.Logf("============================== %s describe ==============================", obj.GetKind())
+	output, _ = exec.Command("tkn", obj.GetKind(), "describe", "-n", obj.GetNamespace(), obj.GetName()).CombinedOutput()
 	t.Log(string(output))
 
-	t.Log("============================== Chains Controller Logs ==============================")
+	t.Log("============================== chains controller logs ==============================")
 	output, _ = exec.Command("kubectl", "logs", "deploy/tekton-chains-controller", "-n", "tekton-chains").CombinedOutput()
 	t.Log(string(output))
 }
 
-func verifySignature(ctx context.Context, t *testing.T, c *clients, tr *v1beta1.TaskRun) {
+func verifySignature(ctx context.Context, t *testing.T, c *clients, obj objects.TektonObject) {
 	// Retrieve the configuration.
 	chainsConfig, err := c.KubeClient.CoreV1().ConfigMaps("tekton-chains").Get(ctx, "chains-config", metav1.GetOptions{})
 	if err != nil {
@@ -237,27 +241,37 @@ func verifySignature(ctx context.Context, t *testing.T, c *clients, tr *v1beta1.
 	logger := logging.FromContext(ctx)
 
 	// Initialize the backend.
-	backends, err := chainsstrorage.InitializeBackends(ctx, c.PipelineClient, c.KubeClient, logger, *cfg)
+	backends, err := chainsstorage.InitializeBackends(ctx, c.PipelineClient, c.KubeClient, logger, *cfg)
 	if err != nil {
 		t.Errorf("error initializing backends: %s", err)
 	}
-	for _, b := range cfg.Artifacts.TaskRuns.StorageBackend.List() {
+
+	var configuredBackends []string
+	var key string
+	switch obj.GetObject().(type) {
+	case *objects.TaskRunObject:
+		configuredBackends = cfg.Artifacts.TaskRuns.StorageBackend.List()
+		key = fmt.Sprintf("taskrun-%s", obj.GetUID())
+	case *objects.PipelineRunObject:
+		configuredBackends = cfg.Artifacts.PipelineRuns.StorageBackend.List()
+		key = fmt.Sprintf("pipelinerun-%s", obj.GetUID())
+	}
+
+	for _, b := range configuredBackends {
 		t.Logf("Backend name: %q\n", b)
 		backend := backends[b]
 
 		// Initialize the storage options.
 		opts := config.StorageOpts{
-			ShortKey: fmt.Sprintf("taskrun-%s", tr.UID),
+			ShortKey: key,
 		}
 
-		trObj := objects.NewTaskRunObject(tr)
-
 		// Let's fetch the signature and body.
-		signatures, err := backend.RetrieveSignatures(ctx, trObj, opts)
+		signatures, err := backend.RetrieveSignatures(ctx, obj, opts)
 		if err != nil {
 			t.Errorf("error retrieving the signature: %s", err)
 		}
-		payloads, err := backend.RetrievePayloads(ctx, trObj, opts)
+		payloads, err := backend.RetrievePayloads(ctx, obj, opts)
 		if err != nil {
 			t.Errorf("error retrieving the payload: %s", err)
 		}
