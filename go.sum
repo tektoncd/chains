@@ -2157,8 +2157,8 @@ github.com/tchap/go-patricia v2.2.6+incompatible/go.mod h1:bmLyhP68RS6kStMGxByiQ
 github.com/tdakkota/asciicheck v0.0.0-20200416200610-e657995f937b/go.mod h1:yHp0ai0Z9gUljN3o0xMhYJnH/IcvkdTBOX2fmJ93JEM=
 github.com/tdakkota/asciicheck v0.1.1 h1:PKzG7JUTUmVspQTDqtkX9eSiLGossXTybutHwTXuO0A=
 github.com/tdakkota/asciicheck v0.1.1/go.mod h1:yHp0ai0Z9gUljN3o0xMhYJnH/IcvkdTBOX2fmJ93JEM=
-github.com/tektoncd/pipeline v0.40.1 h1:O8Y3pZLa5JLe4WpPZSQcLG+KTd1fTplNPVQDu7+5tOI=
-github.com/tektoncd/pipeline v0.40.1/go.mod h1:DqabXb6NBN/CMMZn20UXiGkdHEgMfRDvh2r6g/YEQ50=
+github.com/tektoncd/pipeline v0.40.2 h1:g6coLeFihS6LNhUzgk9P/1ED4oJZGU/Q2749xsHjKJs=
+github.com/tektoncd/pipeline v0.40.2/go.mod h1:DqabXb6NBN/CMMZn20UXiGkdHEgMfRDvh2r6g/YEQ50=
 github.com/tektoncd/plumbing v0.0.0-20220817140952-3da8ce01aeeb h1:LUUCR8pLF+MzdQ7kOQQrMzDahIPZLdPCzfnNow1Um3Y=
 github.com/tektoncd/plumbing v0.0.0-20220817140952-3da8ce01aeeb/go.mod h1:uJBaI0AL/kjPThiMYZcWRujEz7D401v643d6s/21GAg=
 github.com/tenntenn/modver v1.0.1 h1:2klLppGhDgzJrScMpkj9Ujy3rXPUspSjAcev9tSEBgA=
