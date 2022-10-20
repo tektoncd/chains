@@ -18,8 +18,12 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/google/go-containerregistry/pkg/name"
+	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/tektoncd/chains/pkg/chains/formats/intotoite6/attest"
+	"github.com/tektoncd/chains/pkg/chains/formats/intotoite6/extract"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/internal/objectloader"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -160,7 +164,6 @@ func TestBuildConfig(t *testing.T) {
 				Invocation: slsa.ProvenanceInvocation{
 					ConfigSource: slsa.ConfigSource{},
 					Parameters: map[string]v1beta1.ArrayOrString{
-						// "CHAINS-GIT_COMMIT": {Type: "string", StringVal: "abcd"},
 						"CHAINS-GIT_COMMIT": {Type: "string", StringVal: "sha:taskrun"},
 						"CHAINS-GIT_URL":    {Type: "string", StringVal: "https://git.test.com"},
 						"IMAGE":             {Type: "string", StringVal: "test.io/test/image"},
@@ -403,10 +406,28 @@ func TestMetadata(t *testing.T) {
 
 func TestMaterials(t *testing.T) {
 	expected := []slsa.ProvenanceMaterial{
+		{URI: "abc", Digest: slsa.DigestSet{"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"}},
 		{URI: "git+https://git.test.com.git", Digest: slsa.DigestSet{"sha1": "abcd"}},
 	}
-	got := materials(pro)
+	got := materials(pro, logtesting.TestLogger(t))
 	if diff := cmp.Diff(expected, got); diff != "" {
 		t.Errorf("materials(): -want +got: %s", diff)
+	}
+}
+
+var ignore = []cmp.Option{cmpopts.IgnoreUnexported(name.Registry{}, name.Repository{}, name.Digest{})}
+
+func TestSubjectDigests(t *testing.T) {
+	wantSubjects := []intoto.Subject{
+		{
+			Name:   "test.io/test/image",
+			Digest: slsa.DigestSet{"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"},
+		},
+	}
+
+	gotSubjects := extract.SubjectDigests(pro, logtesting.TestLogger(t))
+	opts := append(ignore, cmpopts.SortSlices(func(x, y intoto.Subject) bool { return x.Name < y.Name }))
+	if diff := cmp.Diff(gotSubjects, wantSubjects, opts...); diff != "" {
+		t.Errorf("Differences in subjects: -want +got: %s", diff)
 	}
 }

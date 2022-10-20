@@ -156,6 +156,7 @@ func TestPipelineRunCreatePayload(t *testing.T) {
 				Reproducible: false,
 			},
 			Materials: []slsa.ProvenanceMaterial{
+				{URI: "abc", Digest: slsa.DigestSet{"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"}},
 				{URI: "git+https://git.test.com.git", Digest: slsa.DigestSet{"sha1": "abcd"}},
 			},
 			Invocation: slsa.ProvenanceInvocation{

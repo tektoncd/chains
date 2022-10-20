@@ -39,6 +39,24 @@
             {
                 "name": "IMAGE_DIGEST",
                 "value": "sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"
+            },
+            {
+                "name": "img-ARTIFACT_INPUTS",
+                "value": {
+                    "uri": "abc","digest": "sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"
+                }
+            },
+            {
+                "name": "img2-ARTIFACT_OUTPUTS",
+                "value": {
+                    "uri": "def","digest": "sha256:"
+                }
+            },
+            {
+                "name": "img_no_uri-ARTIFACT_OUTPUTS",
+                "value": {
+                    "digest": "sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"
+                }
             }
         ],
         "pipelineSpec": {

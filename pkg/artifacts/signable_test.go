@@ -21,6 +21,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/go-containerregistry/pkg/name"
+	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -378,6 +379,208 @@ func TestExtractSignableTargetFromResults(t *testing.T) {
 	})
 	if !cmp.Equal(got, want, ignore...) {
 		t.Fatalf("not the same %s", cmp.Diff(want, got, ignore...))
+	}
+}
+
+func TestExtractStructuredTargetFromResults(t *testing.T) {
+	tr := &v1beta1.TaskRun{
+		Status: v1beta1.TaskRunStatus{
+			TaskRunStatusFields: v1beta1.TaskRunStatusFields{
+				TaskRunResults: []v1beta1.TaskRunResult{
+					{
+						Name: "mvn1_pkg" + "_" + ArtifactsOutputsResultName,
+						Value: *v1beta1.NewObject(map[string]string{
+							"uri":           "projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/com.google.guava:guava:31.0-jre",
+							"digest":        digest1,
+							"signable_type": "",
+						}),
+					},
+					{
+						Name: "mvn1_pom_sha512" + "_" + ArtifactsOutputsResultName,
+						Value: *v1beta1.NewObject(map[string]string{
+							"uri":           "com.google.guava:guava:31.0-jre.pom",
+							"digest":        digest2,
+							"signable_type": "",
+						}),
+					},
+					{
+						Name: "img1_input" + "_" + ArtifactsInputsResultName,
+						Value: *v1beta1.NewObject(map[string]string{
+							"uri":    "gcr.io/foo/bar",
+							"digest": digest3,
+						}),
+					},
+					{
+						Name: "img2_input_no_digest" + "_" + ArtifactsInputsResultName,
+						Value: *v1beta1.NewObject(map[string]string{
+							"uri":    "gcr.io/foo/foo",
+							"digest": "",
+						}),
+					},
+				},
+			},
+		},
+	}
+
+	wantInputs := []*StructuredSignable{
+		{URI: "gcr.io/foo/bar", Digest: digest3},
+	}
+	gotInputs := ExtractStructuredTargetFromResults(objects.NewTaskRunObject(tr), ArtifactsInputsResultName, logtesting.TestLogger(t))
+	if diff := cmp.Diff(gotInputs, wantInputs, cmpopts.SortSlices(func(x, y *StructuredSignable) bool { return x.Digest < y.Digest })); diff != "" {
+		t.Errorf("Inputs are not as expected: %v", diff)
+	}
+
+	wantOutputs := []*StructuredSignable{
+		{URI: "projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/com.google.guava:guava:31.0-jre", Digest: digest1},
+		{URI: "com.google.guava:guava:31.0-jre.pom", Digest: digest2},
+	}
+	gotOutputs := ExtractStructuredTargetFromResults(objects.NewTaskRunObject(tr), ArtifactsOutputsResultName, logtesting.TestLogger(t))
+	opts := append(ignore, cmpopts.SortSlices(func(x, y *StructuredSignable) bool { return x.Digest < y.Digest }))
+	if diff := cmp.Diff(gotOutputs, wantOutputs, opts...); diff != "" {
+		t.Error(diff)
+	}
+}
+
+func TestRetrieveMaterialsFromStructuredResults(t *testing.T) {
+	tr := &v1beta1.TaskRun{
+		Status: v1beta1.TaskRunStatus{
+			TaskRunStatusFields: v1beta1.TaskRunStatusFields{
+				TaskRunResults: []v1beta1.TaskRunResult{
+					{
+						Name: "img1_input" + "_" + ArtifactsInputsResultName,
+						Value: *v1beta1.NewObject(map[string]string{
+							"uri":    "gcr.io/foo/bar",
+							"digest": "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b7",
+						}),
+					},
+					{
+						Name: "img2_input_no_digest" + "_" + ArtifactsInputsResultName,
+						Value: *v1beta1.NewObject(map[string]string{
+							"uri":    "gcr.io/foo/foo",
+							"digest": "",
+						}),
+					},
+					{
+						Name: "img2_input_invalid_digest" + "_" + ArtifactsInputsResultName,
+						Value: *v1beta1.NewObject(map[string]string{
+							"uri":    "gcr.io/foo/foo",
+							"digest": "sha:123",
+						}),
+					},
+				},
+			},
+		},
+	}
+	wantMaterials := []slsa.ProvenanceMaterial{
+		{
+			URI:    "gcr.io/foo/bar",
+			Digest: map[string]string{"sha256": "05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b7"},
+		},
+	}
+
+	gotMaterials := RetrieveMaterialsFromStructuredResults(objects.NewTaskRunObject(tr), ArtifactsInputsResultName, logtesting.TestLogger(t))
+
+	if diff := cmp.Diff(gotMaterials, wantMaterials, ignore...); diff != "" {
+		t.Fatalf("Materials not the same %s", diff)
+	}
+}
+
+func TestValidateResults(t *testing.T) {
+	tests := []struct {
+		name           string
+		obj            objects.Result
+		categoryMarker string
+		wantResult     bool
+		wantErr        error
+	}{
+		{
+			name:           "valid result",
+			categoryMarker: ArtifactsOutputsResultName,
+			obj: objects.Result{
+				Name: "valid_result-ARTIFACT_OUTPUTS",
+				Value: v1beta1.ParamValue{
+					ObjectVal: map[string]string{
+						"uri":    "gcr.io/foo/bar",
+						"digest": digest3,
+					},
+				},
+			},
+			wantResult: true,
+			wantErr:    nil,
+		},
+		{
+			name:           "invalid result without digest field",
+			categoryMarker: ArtifactsOutputsResultName,
+			obj: objects.Result{
+				Name: "missing_digest-ARTIFACT_OUTPUTS",
+				Value: v1beta1.ParamValue{
+					ObjectVal: map[string]string{
+						"uri": "gcr.io/foo/bar",
+					},
+				},
+			},
+			wantResult: false,
+			wantErr:    fmt.Errorf("missing_digest-ARTIFACT_OUTPUTS should have digest field: map[uri:gcr.io/foo/bar]"),
+		},
+		{
+			name:           "invalid result without uri field",
+			categoryMarker: ArtifactsOutputsResultName,
+			obj: objects.Result{
+				Name: "missing_digest-ARTIFACT_OUTPUTS",
+				Value: v1beta1.ParamValue{
+					ObjectVal: map[string]string{
+						"digest": digest3,
+					},
+				},
+			},
+			wantResult: false,
+			wantErr:    fmt.Errorf("missing_digest-ARTIFACT_OUTPUTS should have uri field: map[digest:sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b7]"),
+		},
+		{
+			name:           "invalid result wrong digest format",
+			categoryMarker: ArtifactsOutputsResultName,
+			obj: objects.Result{
+				Name: "missing_digest-ARTIFACT_OUTPUTS",
+				Value: v1beta1.ParamValue{
+					ObjectVal: map[string]string{
+						"uri":    "gcr.io/foo/bar",
+						"digest": "",
+					},
+				},
+			},
+			wantResult: false,
+			wantErr:    fmt.Errorf("missing_digest-ARTIFACT_OUTPUTS should have digest field: map[digest: uri:gcr.io/foo/bar]"),
+		},
+		{
+			name:           "invalid result wrong type hinting",
+			categoryMarker: ArtifactsOutputsResultName,
+			obj: objects.Result{
+				Name: "missing_digest-ARTIFACTs_OUTPUTS",
+				Value: v1beta1.ParamValue{
+					ObjectVal: map[string]string{
+						"uri":    "gcr.io/foo/bar",
+						"digest": digest3,
+					},
+				},
+			},
+			wantResult: false,
+			wantErr:    nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := isStructuredResult(tt.obj, tt.categoryMarker)
+			if got != tt.wantResult {
+				t.Errorf("Validation result is not as the expected: got %v and wanted %v", got, tt.wantResult)
+			}
+			if !tt.wantResult && tt.wantErr != nil {
+				if diff := cmp.Diff(err.Error(), tt.wantErr.Error()); diff != "" {
+					t.Errorf("Validation error is not as the expected: %s", diff)
+				}
+			}
+
+		})
 	}
 }
 

@@ -30,7 +30,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// GetSubjectDigests extracts OCI images from the TaskRun based on standard hinting set up
+// SubjectDigests extracts OCI images and other structured results from the TaskRun and PipelineRun based on standard hinting set up
 // It also goes through looking for any PipelineResources of Image type
 func SubjectDigests(obj objects.TektonObject, logger *zap.SugaredLogger) []intoto.Subject {
 	var subjects []intoto.Subject
@@ -58,6 +58,19 @@ func SubjectDigests(obj objects.TektonObject, logger *zap.SugaredLogger) []intot
 			Name: obj.URI,
 			Digest: slsa.DigestSet{
 				splits[0]: splits[1],
+			},
+		})
+	}
+
+	ssts := artifacts.ExtractStructuredTargetFromResults(obj, artifacts.ArtifactsOutputsResultName, logger)
+	for _, s := range ssts {
+		splits := strings.Split(s.Digest, ":")
+		alg := splits[0]
+		digest := splits[1]
+		subjects = append(subjects, intoto.Subject{
+			Name: s.URI,
+			Digest: slsa.DigestSet{
+				alg: digest,
 			},
 		})
 	}

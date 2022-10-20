@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	"github.com/google/go-containerregistry/pkg/name"
+	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/opencontainers/go-digest"
 	"github.com/tektoncd/chains/pkg/chains/formats"
 	"github.com/tektoncd/chains/pkg/chains/objects"
@@ -26,6 +27,11 @@ import (
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/util/sets"
+)
+
+const (
+	ArtifactsInputsResultName  = "ARTIFACT_INPUTS"
+	ArtifactsOutputsResultName = "ARTIFACT_OUTPUTS"
 )
 
 type Signable interface {
@@ -280,6 +286,88 @@ func extractTargetFromResults(obj objects.TektonObject, identifierSuffix string,
 
 	}
 	return ss
+}
+
+// RetrieveMaterialsFromStructuredResults retrieves structured results from Tekton Object, and convert them into materials.
+func RetrieveMaterialsFromStructuredResults(obj objects.TektonObject, categoryMarker string, logger *zap.SugaredLogger) []slsa.ProvenanceMaterial {
+	// Retrieve structured provenance for inputs.
+	mats := []slsa.ProvenanceMaterial{}
+	ssts := ExtractStructuredTargetFromResults(obj, ArtifactsInputsResultName, logger)
+	for _, s := range ssts {
+		if err := checkDigest(s.Digest); err != nil {
+			logger.Debugf("Digest for %s not in the right format: %s, %v", s.URI, s.Digest, err)
+			continue
+		}
+		splits := strings.Split(s.Digest, ":")
+		alg := splits[0]
+		digest := splits[1]
+		mats = append(mats, slsa.ProvenanceMaterial{
+			URI:    s.URI,
+			Digest: map[string]string{alg: digest},
+		})
+	}
+	return mats
+}
+
+// ExtractStructuredTargetFromResults extracts structured signable targets aim to generate intoto provenance as materials within TaskRun results and store them as StructuredSignable.
+// categoryMarker categorizes signable targets into inputs and outputs.
+func ExtractStructuredTargetFromResults(obj objects.TektonObject, categoryMarker string, logger *zap.SugaredLogger) []*StructuredSignable {
+	objs := []*StructuredSignable{}
+	if categoryMarker != ArtifactsInputsResultName && categoryMarker != ArtifactsOutputsResultName {
+		return objs
+	}
+
+	// TODO(#592): support structured results using Run
+	results := []objects.Result{}
+	tr, isTaskRun := obj.GetObject().(*v1beta1.TaskRun)
+	if isTaskRun {
+		for _, res := range tr.Status.TaskRunResults {
+			results = append(results, objects.Result{
+				Name:  res.Name,
+				Value: res.Value,
+			})
+		}
+
+	} else {
+		pr := obj.GetObject().(*v1beta1.PipelineRun)
+		for _, res := range pr.Status.PipelineResults {
+			results = append(results, objects.Result{
+				Name:  res.Name,
+				Value: res.Value,
+			})
+		}
+	}
+	for _, res := range results {
+		if strings.HasSuffix(res.Name, categoryMarker) {
+			valid, err := isStructuredResult(res, categoryMarker)
+			if err != nil {
+				logger.Debugf("ExtractStructuredTargetFromResults: %v", err)
+			}
+			if valid {
+				objs = append(objs, &StructuredSignable{URI: res.Value.ObjectVal["uri"], Digest: res.Value.ObjectVal["digest"]})
+			}
+		}
+	}
+	return objs
+}
+
+func isStructuredResult(res objects.Result, categoryMarker string) (bool, error) {
+	if !strings.HasSuffix(res.Name, categoryMarker) {
+		return false, nil
+	}
+	if res.Value.ObjectVal == nil {
+		return false, fmt.Errorf("%s should be an object: %v", res.Name, res.Value.ObjectVal)
+	}
+	if res.Value.ObjectVal["uri"] == "" {
+		return false, fmt.Errorf("%s should have uri field: %v", res.Name, res.Value.ObjectVal)
+	}
+	if res.Value.ObjectVal["digest"] == "" {
+		return false, fmt.Errorf("%s should have digest field: %v", res.Name, res.Value.ObjectVal)
+	}
+	if err := checkDigest(res.Value.ObjectVal["digest"]); err != nil {
+		return false, fmt.Errorf("error getting digest %s: %v", res.Value.ObjectVal["digest"], err)
+	}
+	return true, nil
 }
 
 func checkDigest(dig string) error {
