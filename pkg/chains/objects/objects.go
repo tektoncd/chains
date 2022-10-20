@@ -176,11 +176,8 @@ func (pro *PipelineRunObject) GetResults() []Result {
 	res := []Result{}
 	for _, key := range pro.Status.PipelineResults {
 		res = append(res, Result{
-			Name: key.Name,
-			Value: v1beta1.ArrayOrString{
-				Type:      v1beta1.ParamTypeString,
-				StringVal: key.Value.StringVal,
-			},
+			Name:  key.Name,
+			Value: key.Value,
 		})
 	}
 	return res
