@@ -15,6 +15,7 @@ package objects
 
 import (
 	"context"
+	"errors"
 
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/pod"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -23,6 +24,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"knative.dev/pkg/apis"
 )
 
 // Label added to TaskRuns identifying the associated pipeline Task
@@ -56,6 +58,19 @@ type TektonObject interface {
 	GetResults() []Result
 	GetServiceAccountName() string
 	GetPullSecrets() []string
+	IsDone() bool
+	IsSuccessful() bool
+}
+
+func NewTektonObject(i interface{}) (TektonObject, error) {
+	switch o := i.(type) {
+	case *v1beta1.PipelineRun:
+		return NewPipelineRunObject(o), nil
+	case *v1beta1.TaskRun:
+		return NewTaskRunObject(o), nil
+	default:
+		return nil, errors.New("unrecognized type when attempting to create tekton object")
+	}
 }
 
 // TaskRunObject extends v1beta1.TaskRun with additional functions.
@@ -71,7 +86,9 @@ func NewTaskRunObject(tr *v1beta1.TaskRun) *TaskRunObject {
 
 // Get the TaskRun kind
 func (tro *TaskRunObject) GetKind() string {
-	return tro.GetObjectKind().GroupVersionKind().Kind
+	// TODO: Want to use tro.GetObjectKind().GroupVersionKind().Kind but
+	// never seems to be populated
+	return "taskrun"
 }
 
 // Get the latest annotations on the TaskRun
@@ -130,7 +147,9 @@ func NewPipelineRunObject(pr *v1beta1.PipelineRun) *PipelineRunObject {
 
 // Get the PipelineRun kind
 func (pro *PipelineRunObject) GetKind() string {
-	return pro.GetObjectKind().GroupVersionKind().Kind
+	// TODO: Want to use tro.GetObjectKind().GroupVersionKind().Kind but
+	// never seems to be populated
+	return "pipelinerun"
 }
 
 // Request the current annotations on the PipelineRun object
@@ -169,6 +188,11 @@ func (pro *PipelineRunObject) GetResults() []Result {
 // Get the ServiceAccount declared in the PipelineRun
 func (pro *PipelineRunObject) GetServiceAccountName() string {
 	return pro.Spec.ServiceAccountName
+}
+
+// Get the ServiceAccount declared in the PipelineRun
+func (pro *PipelineRunObject) IsSuccessful() bool {
+	return pro.Status.GetCondition(apis.ConditionSucceeded).IsTrue()
 }
 
 // Append TaskRuns to this PipelineRun

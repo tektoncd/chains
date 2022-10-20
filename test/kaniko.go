@@ -21,6 +21,8 @@ import (
 	"testing"
 
 	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/tektoncd/chains/pkg/chains"
+	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,8 +32,42 @@ const (
 	taskName = "kaniko-task"
 )
 
-func kanikoTaskRun(namespace string) *v1beta1.TaskRun {
-	return &v1beta1.TaskRun{
+func kanikoPipelineRun(ns string) objects.TektonObject {
+	imagePipelineRun := v1beta1.PipelineRun{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "image-pipelinerun",
+			Namespace:    ns,
+			Annotations:  map[string]string{chains.RekorAnnotation: "true"},
+		},
+		Spec: v1beta1.PipelineRunSpec{
+			PipelineSpec: &v1beta1.PipelineSpec{
+				Tasks: []v1beta1.PipelineTask{
+					{
+						Name: "kaniko",
+						TaskRef: &v1beta1.TaskRef{
+							Name: "kaniko-task",
+							Kind: v1beta1.NamespacedTaskKind,
+						},
+					},
+				},
+				Results: []v1beta1.PipelineResult{
+					{
+						Name:  "IMAGE_URL",
+						Value: *v1beta1.NewArrayOrString("$(tasks.kaniko.results.IMAGE_URL)"),
+					},
+					{
+						Name:  "IMAGE_DIGEST",
+						Value: *v1beta1.NewArrayOrString("$(tasks.kaniko.results.IMAGE_DIGEST)"),
+					},
+				},
+			},
+		},
+	}
+	return objects.NewPipelineRunObject(&imagePipelineRun)
+}
+
+func kanikoTaskRun(namespace string) objects.TektonObject {
+	tr := &v1beta1.TaskRun{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "kaniko-taskrun",
 			Namespace:    namespace,
@@ -42,6 +78,7 @@ func kanikoTaskRun(namespace string) *v1beta1.TaskRun {
 			},
 		},
 	}
+	return objects.NewTaskRunObject(tr)
 }
 
 func kanikoTask(t *testing.T, namespace, destinationImage string) *v1beta1.Task {
@@ -112,7 +149,7 @@ func kanikoTask(t *testing.T, namespace, destinationImage string) *v1beta1.Task 
 	}
 }
 
-func verifyKanikoTaskRun(namespace, destinationImage, publicKey string) *v1beta1.TaskRun {
+func verifyKanikoTaskRun(namespace, destinationImage, publicKey string) objects.TektonObject {
 	script := `#!/busybox/sh
 	
 # save the public key
@@ -125,7 +162,7 @@ cosign verify --allow-insecure-registry --key cosign.pub %s
 cosign verify-attestation --allow-insecure-registry --key cosign.pub %s`
 	script = fmt.Sprintf(script, publicKey, destinationImage, destinationImage)
 
-	return &v1beta1.TaskRun{
+	return objects.NewTaskRunObject(&v1beta1.TaskRun{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "verify-kaniko-taskrun",
 			Namespace:    namespace,
@@ -141,5 +178,5 @@ cosign verify-attestation --allow-insecure-registry --key cosign.pub %s`
 				},
 			},
 		},
-	}
+	})
 }

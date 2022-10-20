@@ -42,55 +42,84 @@ import (
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
 
 	"github.com/ghodss/yaml"
+	"github.com/tektoncd/chains/pkg/chains/objects"
+	"github.com/tektoncd/chains/pkg/test/tekton"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
-	examplesPath = "../examples/taskruns"
+	taskRunExamplesPath     = "../examples/taskruns"
+	pipelineRunExamplesPath = "../examples/pipelineruns"
 )
+
+type TestExample struct {
+	name              string
+	cm                map[string]string
+	getExampleObjects func(t *testing.T, ns string) map[string]objects.TektonObject
+	payloadKey        string
+	signatureKey      string
+}
 
 // TestExamples copies the format in the tektoncd/pipelines repo
 // https://github.com/tektoncd/pipeline/blob/main/test/examples_test.go
 func TestExamples(t *testing.T) {
-	ctx := context.Background()
-	c, ns, cleanup := setup(ctx, t, setupOpts{})
-	defer cleanup()
+	tests := []TestExample{
+		{
+			name: "taskrun-examples",
+			cm: map[string]string{
+				"artifacts.taskrun.format": "in-toto",
+				"artifacts.oci.storage":    "tekton",
+			},
+			getExampleObjects: getTaskRunExamples,
+			payloadKey:        "chains.tekton.dev/payload-taskrun-%s",
+			signatureKey:      "chains.tekton.dev/signature-taskrun-%s",
+		},
+		{
+			name: "pipelinerun-examples",
+			cm: map[string]string{
+				"artifacts.pipelinerun.format":  "in-toto",
+				"artifacts.pipelinerun.storage": "tekton",
+			},
+			getExampleObjects: getPipelineRunExamples,
+			payloadKey:        "chains.tekton.dev/payload-pipelinerun-%s",
+			signatureKey:      "chains.tekton.dev/signature-pipelinerun-%s",
+		},
+	}
 
-	cleanUpInTotoFormatter := setupInTotoFormatter(ctx, t, c)
-	runInTotoFormatterTests(ctx, t, ns, c)
-	cleanUpInTotoFormatter()
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.Background()
+			c, ns, cleanup := setup(ctx, t, setupOpts{})
+			defer cleanup()
+
+			cleanUpInTotoFormatter := setConfigMap(ctx, t, c, test.cm)
+			runInTotoFormatterTests(ctx, t, ns, c, test)
+			cleanUpInTotoFormatter()
+		})
+	}
 }
 
-func setupInTotoFormatter(ctx context.Context, t *testing.T, c *clients) func() {
-	// Setup the right config.
-	return setConfigMap(ctx, t, c, map[string]string{
-		"artifacts.taskrun.format": "in-toto",
-		"artifacts.oci.storage":    "tekton",
-	})
-}
+func runInTotoFormatterTests(ctx context.Context, t *testing.T, ns string, c *clients, test TestExample) {
 
-func runInTotoFormatterTests(ctx context.Context, t *testing.T, ns string, c *clients) {
-	t.Parallel()
-	examples := getExamplePaths(t, examplesPath)
-	for _, example := range examples {
-		example := example
-		t.Run(example, func(t *testing.T) {
-			t.Logf("creating taskrun %v", example)
-			tr := taskRunFromExample(t, example)
+	// TODO: Commenting this out for now. Causes race condition where tests write and revert the chains-config
+	// and signing-secrets out of order
+	// t.Parallel()
+
+	for path, obj := range test.getExampleObjects(t, ns) {
+		obj := obj
+		t.Run(path, func(t *testing.T) {
+			t.Logf("creating object %v", path)
 
 			// create the task run
-			taskRun, err := c.PipelineClient.TektonV1beta1().TaskRuns(ns).Create(ctx, tr, metav1.CreateOptions{})
-			if err != nil {
-				t.Fatal(err)
-			}
+			createdObj := tekton.CreateObject(t, ctx, c.PipelineClient, obj)
+
 			// give it a minute to complete.
-			waitForCondition(ctx, t, c.PipelineClient, taskRun.Name, ns, done, 60*time.Second)
+			waitForCondition(ctx, t, c.PipelineClient, createdObj, done, 60*time.Second)
 
 			// now validate the in-toto attestation
-			completed := waitForCondition(ctx, t, c.PipelineClient, taskRun.Name, ns, signed, 120*time.Second)
-			payload, _ := base64.StdEncoding.DecodeString(completed.Annotations[fmt.Sprintf("chains.tekton.dev/payload-taskrun-%s", completed.UID)])
-			signature, _ := base64.StdEncoding.DecodeString(completed.Annotations[fmt.Sprintf("chains.tekton.dev/signature-taskrun-%s", completed.UID)])
+			completed := waitForCondition(ctx, t, c.PipelineClient, createdObj, signed, 120*time.Second)
+			payload, _ := base64.StdEncoding.DecodeString(completed.GetAnnotations()[fmt.Sprintf(test.payloadKey, completed.GetUID())])
+			signature, _ := base64.StdEncoding.DecodeString(completed.GetAnnotations()[fmt.Sprintf(test.signatureKey, completed.GetUID())])
 			t.Logf("Got attestation: %s", string(payload))
 
 			// make sure provenance is correct
@@ -98,7 +127,7 @@ func runInTotoFormatterTests(ctx context.Context, t *testing.T, ns string, c *cl
 			if err := json.Unmarshal(payload, &gotProvenance); err != nil {
 				t.Fatal(err)
 			}
-			expected := expectedProvenance(t, example, completed)
+			expected := expectedProvenance(t, path, completed)
 
 			if d := cmp.Diff(gotProvenance, expected); d != "" {
 				t.Fatalf("expected and got do not match:\n%v", d)
@@ -148,17 +177,30 @@ func (v *verifier) Public() crypto.PublicKey {
 	return v.pub
 }
 
-func expectedProvenance(t *testing.T, example string, tr *v1beta1.TaskRun) intoto.ProvenanceStatement {
-	path := filepath.Join("testdata/intoto", strings.Replace(filepath.Base(example), ".yaml", ".json", 1))
-	t.Logf("Reading expected provenance from %s", path)
-
-	type Format struct {
-		Entrypoint      string
-		BuildStartedOn  string
-		BuildFinishedOn string
-		ContainerNames  []string
-		StepImages      []string
+func expectedProvenance(t *testing.T, example string, obj objects.TektonObject) intoto.ProvenanceStatement {
+	switch obj.(type) {
+	case *objects.TaskRunObject:
+		return expectedTaskRunProvenance(t, example, obj)
+	case *objects.PipelineRunObject:
+		return expectedPipelineRunProvenance(t, example, obj)
+	default:
+		t.Error("Unexpected type trying to get provenance")
 	}
+	return intoto.ProvenanceStatement{}
+}
+
+type Format struct {
+	Entrypoint         string
+	PipelineStartedOn  string
+	PipelineFinishedOn string
+	BuildStartTimes    []string
+	BuildFinishedTimes []string
+	ContainerNames     []string
+	StepImages         []string
+}
+
+func expectedTaskRunProvenance(t *testing.T, example string, obj objects.TektonObject) intoto.ProvenanceStatement {
+	tr := obj.GetObject().(*v1beta1.TaskRun)
 
 	name := tr.Name
 	if tr.Spec.TaskRef != nil {
@@ -173,12 +215,39 @@ func expectedProvenance(t *testing.T, example string, tr *v1beta1.TaskRun) intot
 	}
 
 	f := Format{
-		Entrypoint:      name,
-		BuildStartedOn:  tr.Status.StartTime.Time.UTC().Format(time.RFC3339),
-		BuildFinishedOn: tr.Status.CompletionTime.Time.UTC().Format(time.RFC3339),
-		ContainerNames:  stepNames,
-		StepImages:      images,
+		Entrypoint:         name,
+		BuildStartTimes:    []string{tr.Status.StartTime.Time.UTC().Format(time.RFC3339)},
+		BuildFinishedTimes: []string{tr.Status.CompletionTime.Time.UTC().Format(time.RFC3339)},
+		ContainerNames:     stepNames,
+		StepImages:         images,
 	}
+
+	return readExpectedAttestation(t, example, f)
+}
+
+func expectedPipelineRunProvenance(t *testing.T, example string, obj objects.TektonObject) intoto.ProvenanceStatement {
+	pr := obj.GetObject().(*v1beta1.PipelineRun)
+
+	buildStartTimes := []string{}
+	buildFinishedTimes := []string{}
+	for _, trStatus := range pr.Status.TaskRuns {
+		buildStartTimes = append(buildStartTimes, trStatus.Status.StartTime.Time.UTC().Format(time.RFC3339))
+		buildFinishedTimes = append(buildFinishedTimes, trStatus.Status.CompletionTime.Time.UTC().Format(time.RFC3339))
+	}
+
+	f := Format{
+		PipelineStartedOn:  pr.Status.StartTime.Time.UTC().Format(time.RFC3339),
+		PipelineFinishedOn: pr.Status.CompletionTime.Time.UTC().Format(time.RFC3339),
+		BuildStartTimes:    buildStartTimes,
+		BuildFinishedTimes: buildFinishedTimes,
+	}
+
+	return readExpectedAttestation(t, example, f)
+}
+
+func readExpectedAttestation(t *testing.T, example string, f Format) intoto.ProvenanceStatement {
+	path := filepath.Join("testdata/intoto", strings.Replace(filepath.Base(example), ".yaml", ".json", 1))
+	t.Logf("Reading expected provenance from %s", path)
 
 	contents, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -201,16 +270,20 @@ func expectedProvenance(t *testing.T, example string, tr *v1beta1.TaskRun) intot
 	return expected
 }
 
-func taskRunFromExample(t *testing.T, example string) *v1beta1.TaskRun {
-	contents, err := ioutil.ReadFile(example)
-	if err != nil {
-		t.Fatal(err)
+func getTaskRunExamples(t *testing.T, ns string) map[string]objects.TektonObject {
+	examples := make(map[string]objects.TektonObject)
+	for _, example := range getExamplePaths(t, taskRunExamplesPath) {
+		examples[example] = taskRunFromExample(t, ns, example)
 	}
-	var tr *v1beta1.TaskRun
-	if err := yaml.Unmarshal(contents, &tr); err != nil {
-		t.Fatal(err)
+	return examples
+}
+
+func getPipelineRunExamples(t *testing.T, ns string) map[string]objects.TektonObject {
+	examples := make(map[string]objects.TektonObject)
+	for _, example := range getExamplePaths(t, pipelineRunExamplesPath) {
+		examples[example] = pipelineRunFromExample(t, ns, example)
 	}
-	return tr
+	return examples
 }
 
 func getExamplePaths(t *testing.T, dir string) []string {
@@ -233,4 +306,30 @@ func getExamplePaths(t *testing.T, dir string) []string {
 		t.Fatalf("couldn't walk example directory %s: %v", dir, err)
 	}
 	return examplePaths
+}
+
+func taskRunFromExample(t *testing.T, ns, example string) objects.TektonObject {
+	contents, err := ioutil.ReadFile(example)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var tr *v1beta1.TaskRun
+	if err := yaml.Unmarshal(contents, &tr); err != nil {
+		t.Fatal(err)
+	}
+	tr.Namespace = ns
+	return objects.NewTaskRunObject(tr)
+}
+
+func pipelineRunFromExample(t *testing.T, ns, example string) objects.TektonObject {
+	contents, err := ioutil.ReadFile(example)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var pr *v1beta1.PipelineRun
+	if err := yaml.Unmarshal(contents, &pr); err != nil {
+		t.Fatal(err)
+	}
+	pr.Namespace = ns
+	return objects.NewPipelineRunObject(pr)
 }

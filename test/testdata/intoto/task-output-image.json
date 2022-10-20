@@ -68,8 +68,8 @@
             ]
         },
         "metadata": {
-            "buildStartedOn": "{{.BuildStartedOn}}",
-            "buildFinishedOn": "{{.BuildFinishedOn}}",
+            "buildStartedOn": "{{index .BuildStartTimes 0}}",
+            "buildFinishedOn": "{{index .BuildFinishedTimes 0}}",
             "completeness": {
                 "parameters": false,
                 "environment": false,

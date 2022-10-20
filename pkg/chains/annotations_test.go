@@ -17,7 +17,7 @@ import (
 	"testing"
 
 	"github.com/tektoncd/chains/pkg/chains/objects"
-	"github.com/tektoncd/chains/pkg/internal/tekton"
+	"github.com/tektoncd/chains/pkg/test/tekton"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	fakepipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -119,9 +119,7 @@ func TestMarkSigned(t *testing.T) {
 			ctx, _ := rtesting.SetupFakeContext(t)
 			c := fakepipelineclient.Get(ctx)
 
-			if err := tekton.CreateObject(t, ctx, c, tt.object); err != nil {
-				t.Fatal(err)
-			}
+			tekton.CreateObject(t, ctx, c, tt.object)
 
 			// Now mark it as signed.
 			if err := MarkSigned(ctx, tt.object, c, nil); err != nil {
@@ -202,9 +200,7 @@ func TestMarkFailed(t *testing.T) {
 			ctx, _ := rtesting.SetupFakeContext(t)
 			// Create a TR for testing
 			c := fakepipelineclient.Get(ctx)
-			if err := tekton.CreateObject(t, ctx, c, tt.object); err != nil {
-				t.Fatal(err)
-			}
+			tekton.CreateObject(t, ctx, c, tt.object)
 
 			// Test HandleRetry, should mark it as failed
 			if err := HandleRetry(ctx, tt.object, c, nil); err != nil {
@@ -302,9 +298,7 @@ func TestAddRetry(t *testing.T) {
 			ctx, _ := rtesting.SetupFakeContext(t)
 			c := fakepipelineclient.Get(ctx)
 
-			if err := tekton.CreateObject(t, ctx, c, tt.object); err != nil {
-				t.Fatal(err)
-			}
+			tekton.CreateObject(t, ctx, c, tt.object)
 
 			// run it through AddRetry, make sure annotation is added
 			if err := AddRetry(ctx, tt.object, c, nil); err != nil {

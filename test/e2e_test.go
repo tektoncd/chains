@@ -39,7 +39,9 @@ import (
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/tektoncd/chains/pkg/chains"
+	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/chains/provenance"
+	"github.com/tektoncd/chains/pkg/test/tekton"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -60,70 +62,121 @@ func TestInstall(t *testing.T) {
 }
 
 func TestTektonStorage(t *testing.T) {
-	ctx := logtesting.TestContextWithLogger(t)
-	c, ns, cleanup := setup(ctx, t, setupOpts{})
-	defer cleanup()
-
-	// Setup the right config.
-	resetConfig := setConfigMap(ctx, t, c, map[string]string{
-		"artifacts.taskrun.format":  "tekton",
-		"artifacts.taskrun.signer":  "x509",
-		"artifacts.taskrun.storage": "tekton",
-		"artifacts.oci.format":      "simplesigning",
-		"artifacts.oci.signer":      "x509",
-		"artifacts.oci.storage":     "tekton",
-	})
-	defer resetConfig()
-
-	tr, err := c.PipelineClient.TektonV1beta1().TaskRuns(ns).Create(ctx, &imageTaskRun, metav1.CreateOptions{})
-	if err != nil {
-		t.Errorf("error creating taskrun: %s", err)
+	tests := []struct {
+		name      string
+		cm        map[string]string
+		getObject func(ns string) objects.TektonObject
+	}{
+		{
+			name: "taskrun",
+			cm: map[string]string{
+				"artifacts.taskrun.format":  "tekton",
+				"artifacts.taskrun.signer":  "x509",
+				"artifacts.taskrun.storage": "tekton",
+				"artifacts.oci.format":      "simplesigning",
+				"artifacts.oci.signer":      "x509",
+				"artifacts.oci.storage":     "tekton",
+			},
+			getObject: getTaskRunObject,
+		},
+		{
+			name: "pipelinerun",
+			cm: map[string]string{
+				"artifacts.pipelinerun.format":  "tekton",
+				"artifacts.pipelinerun.signer":  "x509",
+				"artifacts.pipelinerun.storage": "tekton",
+				"artifacts.oci.format":          "simplesigning",
+				"artifacts.oci.signer":          "x509",
+				"artifacts.oci.storage":         "tekton",
+			},
+			getObject: getPipelineRunObject,
+		},
 	}
 
-	// Give it a minute to complete.
-	waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, done, 60*time.Second)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := logtesting.TestContextWithLogger(t)
+			c, ns, cleanup := setup(ctx, t, setupOpts{})
+			defer cleanup()
 
-	// It can take up to a minute for the secret data to be updated!
-	tr = waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, signed, 120*time.Second)
+			// Setup the right config.
+			resetConfig := setConfigMap(ctx, t, c, test.cm)
+			defer resetConfig()
 
-	// Verify the payload signature.
-	verifySignature(ctx, t, c, tr)
+			createdObj := tekton.CreateObject(t, ctx, c.PipelineClient, test.getObject(ns))
+
+			// Give it a minute to complete.
+			waitForCondition(ctx, t, c.PipelineClient, createdObj, done, 60*time.Second)
+
+			// It can take up to a minute for the secret data to be updated!
+			updatedObj := waitForCondition(ctx, t, c.PipelineClient, createdObj, signed, 120*time.Second)
+
+			// Verify the payload signature.
+			verifySignature(ctx, t, c, updatedObj)
+		})
+	}
 }
 
 func TestRekor(t *testing.T) {
-	ctx := logtesting.TestContextWithLogger(t)
-	c, ns, cleanup := setup(ctx, t, setupOpts{})
-	defer cleanup()
-
-	// Setup the right config.
-	resetConfig := setConfigMap(ctx, t, c, map[string]string{
-		"artifacts.taskrun.format":  "tekton",
-		"artifacts.taskrun.signer":  "x509",
-		"artifacts.taskrun.storage": "tekton",
-		"artifacts.oci.format":      "simplesigning",
-		"artifacts.oci.signer":      "x509",
-		"artifacts.oci.storage":     "tekton",
-		"transparency.enabled":      "manual",
-	})
-	defer resetConfig()
-
-	tr, err := c.PipelineClient.TektonV1beta1().TaskRuns(ns).Create(ctx, &imageTaskRun, metav1.CreateOptions{})
-	if err != nil {
-		t.Errorf("error creating taskrun: %s", err)
+	tests := []struct {
+		name      string
+		cm        map[string]string
+		getObject func(ns string) objects.TektonObject
+	}{
+		{
+			name: "taskrun",
+			cm: map[string]string{
+				"artifacts.taskrun.format":  "tekton",
+				"artifacts.taskrun.signer":  "x509",
+				"artifacts.taskrun.storage": "tekton",
+				"artifacts.oci.format":      "simplesigning",
+				"artifacts.oci.signer":      "x509",
+				"artifacts.oci.storage":     "tekton",
+				"transparency.enabled":      "manual",
+			},
+			getObject: getTaskRunObject,
+		},
+		{
+			name: "pipelinerun",
+			cm: map[string]string{
+				"artifacts.pipelinerun.format":  "tekton",
+				"artifacts.pipelinerun.signer":  "x509",
+				"artifacts.pipelinerun.storage": "tekton",
+				"artifacts.oci.format":          "simplesigning",
+				"artifacts.oci.signer":          "x509",
+				"artifacts.oci.storage":         "tekton",
+				"transparency.enabled":          "manual",
+			},
+			getObject: getPipelineRunObject,
+		},
 	}
 
-	// Give it a minute to complete.
-	waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, done, 60*time.Second)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := logtesting.TestContextWithLogger(t)
+			c, ns, cleanup := setup(ctx, t, setupOpts{})
+			defer cleanup()
 
-	// It can take up to a minute for the secret data to be updated!
-	tr = waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, signed, 120*time.Second)
+			// Setup the right config.
+			resetConfig := setConfigMap(ctx, t, c, test.cm)
+			defer resetConfig()
 
-	if v, ok := tr.Annotations[chains.ChainsTransparencyAnnotation]; !ok || v == "" {
-		t.Fatal("failed to upload to tlog")
+			createdObj := tekton.CreateObject(t, ctx, c.PipelineClient, test.getObject(ns))
+
+			// Give it a minute to complete.
+			waitForCondition(ctx, t, c.PipelineClient, createdObj, done, 60*time.Second)
+
+			// It can take up to a minute for the secret data to be updated!
+			obj := waitForCondition(ctx, t, c.PipelineClient, createdObj, signed, 120*time.Second)
+
+			if v, ok := obj.GetAnnotations()[chains.ChainsTransparencyAnnotation]; !ok || v == "" {
+				t.Fatal("failed to upload to tlog")
+			}
+
+			// Verify the payload signature.
+			verifySignature(ctx, t, c, obj)
+		})
 	}
-
-	// Verify the payload signature.
-	verifySignature(ctx, t, c, tr)
 }
 
 func TestOCISigning(t *testing.T) {
@@ -134,7 +187,8 @@ func TestOCISigning(t *testing.T) {
 		{
 			name: "x509",
 			opts: setupOpts{},
-		}, {
+		},
+		{
 			name: "cosign",
 			opts: setupOpts{useCosignSigner: true},
 		},
@@ -151,22 +205,20 @@ func TestOCISigning(t *testing.T) {
 
 			defer resetConfig()
 
-			tr, err := c.PipelineClient.TektonV1beta1().TaskRuns(ns).Create(ctx, &imageTaskRun, metav1.CreateOptions{})
-			if err != nil {
-				t.Errorf("error creating taskrun: %s", err)
-			}
-			t.Logf("Created TaskRun: %s", tr.Name)
+			tro := getTaskRunObject(ns)
+
+			createdTro := tekton.CreateObject(t, ctx, c.PipelineClient, tro)
 
 			// Give it a minute to complete.
-			waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, done, 60*time.Second)
+			waitForCondition(ctx, t, c.PipelineClient, createdTro, done, 60*time.Second)
 
 			// It can take up to a minute for the secret data to be updated!
-			tr = waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, signed, 120*time.Second)
+			obj := waitForCondition(ctx, t, c.PipelineClient, createdTro, signed, 120*time.Second)
 
 			// Let's fetch the signature and body:
-			t.Log(tr.Annotations)
+			t.Log(obj.GetAnnotations())
 
-			sig, body := tr.Annotations["chains.tekton.dev/signature-05f95b26ed10"], tr.Annotations["chains.tekton.dev/payload-05f95b26ed10"]
+			sig, body := obj.GetAnnotations()["chains.tekton.dev/signature-05f95b26ed10"], obj.GetAnnotations()["chains.tekton.dev/payload-05f95b26ed10"]
 			// base64 decode them
 			sigBytes, err := base64.StdEncoding.DecodeString(sig)
 			if err != nil {
@@ -215,19 +267,18 @@ func TestGCSStorage(t *testing.T) {
 	defer resetConfig()
 	time.Sleep(3 * time.Second)
 
-	tr, err := c.PipelineClient.TektonV1beta1().TaskRuns(ns).Create(ctx, &simpleTaskRun, metav1.CreateOptions{})
-	if err != nil {
-		t.Errorf("error creating taskrun: %s", err)
-	}
+	tro := getTaskRunObject(ns)
+
+	createdTro := tekton.CreateObject(t, ctx, c.PipelineClient, tro)
 
 	// Give it a minute to complete.
-	waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, done, 60*time.Second)
+	waitForCondition(ctx, t, c.PipelineClient, createdTro, done, 60*time.Second)
 
 	// It can take up to a minute for the secret data to be updated!
-	tr = waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, signed, 120*time.Second)
+	obj := waitForCondition(ctx, t, c.PipelineClient, createdTro, signed, 120*time.Second)
 
 	// Verify the payload signature.
-	verifySignature(ctx, t, c, tr)
+	verifySignature(ctx, t, c, obj)
 }
 
 func TestFulcio(t *testing.T) {
@@ -249,24 +300,25 @@ func TestFulcio(t *testing.T) {
 	defer resetConfig()
 	time.Sleep(3 * time.Second)
 
-	tr, err := c.PipelineClient.TektonV1beta1().TaskRuns(ns).Create(ctx, &simpleTaskRun, metav1.CreateOptions{})
-	if err != nil {
-		t.Errorf("error creating taskrun: %s", err)
-	}
+	tro := getTaskRunObject(ns)
+
+	createdTro := tekton.CreateObject(t, ctx, c.PipelineClient, tro)
 
 	// Give it a minute to complete.
-	waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, done, 60*time.Second)
-	tr = waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, signed, 120*time.Second)
+	waitForCondition(ctx, t, c.PipelineClient, createdTro, done, 60*time.Second)
+
+	// It can take up to a minute for the secret data to be updated!
+	obj := waitForCondition(ctx, t, c.PipelineClient, createdTro, signed, 120*time.Second)
 
 	// verify the cert against the signature and payload
 
-	sigKey := fmt.Sprintf("chains.tekton.dev/signature-taskrun-%s", tr.UID)
-	payloadKey := fmt.Sprintf("chains.tekton.dev/payload-taskrun-%s", tr.UID)
-	certKey := fmt.Sprintf("chains.tekton.dev/cert-taskrun-%s", tr.UID)
+	sigKey := fmt.Sprintf("chains.tekton.dev/signature-taskrun-%s", obj.GetUID())
+	payloadKey := fmt.Sprintf("chains.tekton.dev/payload-taskrun-%s", obj.GetUID())
+	certKey := fmt.Sprintf("chains.tekton.dev/cert-taskrun-%s", obj.GetUID())
 
-	envelopeBytes := base64Decode(t, tr.Annotations[sigKey])
-	payload := base64Decode(t, tr.Annotations[payloadKey])
-	certPEM := base64Decode(t, tr.Annotations[certKey])
+	envelopeBytes := base64Decode(t, obj.GetAnnotations()[sigKey])
+	payload := base64Decode(t, obj.GetAnnotations()[payloadKey])
+	certPEM := base64Decode(t, obj.GetAnnotations()[certKey])
 
 	certs, err := cryptoutils.LoadCertificatesFromPEM(bytes.NewReader(certPEM))
 	if err != nil {
@@ -339,117 +391,150 @@ func TestOCIStorage(t *testing.T) {
 	imageName := "chains-test-oci-storage"
 	image := fmt.Sprintf("%s/%s", c.internalRegistry, imageName)
 	task := kanikoTask(t, ns, image)
-
 	if _, err := c.PipelineClient.TektonV1beta1().Tasks(ns).Create(ctx, task, metav1.CreateOptions{}); err != nil {
 		t.Fatalf("error creating task: %s", err)
 	}
 
-	taskRun := kanikoTaskRun(ns)
-	tr, err := c.PipelineClient.TektonV1beta1().TaskRuns(ns).Create(ctx, taskRun, metav1.CreateOptions{})
-	if err != nil {
-		t.Errorf("error creating taskrun: %s", err)
-	}
+	tro := kanikoTaskRun(ns)
+
+	createdTro := tekton.CreateObject(t, ctx, c.PipelineClient, tro)
 
 	// Give it a minute to complete.
-	waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, signed, 60*time.Second)
+	waitForCondition(ctx, t, c.PipelineClient, createdTro, done, 60*time.Second)
+
+	// It can take up to a minute for the secret data to be updated!
+	waitForCondition(ctx, t, c.PipelineClient, createdTro, signed, 120*time.Second)
 
 	publicKey, err := cryptoutils.MarshalPublicKeyToPEM(c.secret.x509priv.Public())
 	if err != nil {
 		t.Error(err)
 	}
-	verifyTaskRun := verifyKanikoTaskRun(ns, image, string(publicKey))
-	tr, err = c.PipelineClient.TektonV1beta1().TaskRuns(ns).Create(ctx, verifyTaskRun, metav1.CreateOptions{})
-	if err != nil {
-		t.Fatalf("error creating task: %s", err)
-	}
-	waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, successful, 120*time.Second)
-	verifySignature(ctx, t, c, tr)
+	verifyTrObj := verifyKanikoTaskRun(ns, image, string(publicKey))
+	createdObj := tekton.CreateObject(t, ctx, c.PipelineClient, verifyTrObj)
+	obj := waitForCondition(ctx, t, c.PipelineClient, createdObj, successful, 120*time.Second)
+	verifySignature(ctx, t, c, obj)
 }
 
 func TestMultiBackendStorage(t *testing.T) {
-	ctx := logtesting.TestContextWithLogger(t)
-	c, ns, cleanup := setup(ctx, t, setupOpts{registry: true})
-	defer cleanup()
-
-	resetConfig := setConfigMap(ctx, t, c, map[string]string{
-		"artifacts.oci.format":            "simplesigning",
-		"artifacts.oci.storage":           "tekton,oci",
-		"artifacts.oci.signer":            "x509",
-		"artifacts.taskrun.format":        "tekton",
-		"artifacts.taskrun.signer":        "x509",
-		"artifacts.taskrun.storage":       "tekton,oci",
-		"storage.oci.repository.insecure": "true",
-	})
-	defer resetConfig()
-	time.Sleep(3 * time.Second)
-
-	// create necessary resources
-	imageName := "chains-test-oci-storage"
-	image := fmt.Sprintf("%s/%s", c.internalRegistry, imageName)
-	task := kanikoTask(t, ns, image)
-
-	if _, err := c.PipelineClient.TektonV1beta1().Tasks(ns).Create(ctx, task, metav1.CreateOptions{}); err != nil {
-		t.Fatalf("error creating task: %s", err)
+	tests := []struct {
+		name      string
+		cm        map[string]string
+		getObject func(ns string) objects.TektonObject
+	}{
+		{
+			name: "taskrun",
+			cm: map[string]string{
+				"artifacts.oci.format":            "simplesigning",
+				"artifacts.oci.storage":           "tekton,oci",
+				"artifacts.oci.signer":            "x509",
+				"artifacts.taskrun.format":        "in-toto",
+				"artifacts.taskrun.signer":        "x509",
+				"artifacts.taskrun.storage":       "tekton,oci",
+				"storage.oci.repository.insecure": "true",
+			},
+			getObject: kanikoTaskRun,
+		},
+		{
+			name: "pipelinerun",
+			cm: map[string]string{
+				"artifacts.pipelinerun.format":    "in-toto",
+				"artifacts.pipelinerun.signer":    "x509",
+				"artifacts.pipelinerun.storage":   "tekton,oci",
+				"storage.oci.repository.insecure": "true",
+			},
+			getObject: kanikoPipelineRun,
+		},
 	}
 
-	taskRun := kanikoTaskRun(ns)
-	tr, err := c.PipelineClient.TektonV1beta1().TaskRuns(ns).Create(ctx, taskRun, metav1.CreateOptions{})
-	if err != nil {
-		t.Errorf("error creating taskrun: %s", err)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			image := "chains-test-multibackendstorage"
+			ctx := logtesting.TestContextWithLogger(t)
+			c, ns, cleanup := setup(ctx, t, setupOpts{
+				registry:        true,
+				kanikoTaskImage: image,
+			})
+			defer cleanup()
+
+			resetConfig := setConfigMap(ctx, t, c, test.cm)
+			defer resetConfig()
+			time.Sleep(3 * time.Second)
+
+			createdObj := tekton.CreateObject(t, ctx, c.PipelineClient, test.getObject(ns))
+
+			publicKey, err := cryptoutils.MarshalPublicKeyToPEM(c.secret.x509priv.Public())
+			if err != nil {
+				t.Error(err)
+			}
+
+			// Verify object has been signed
+			obj := waitForCondition(ctx, t, c.PipelineClient, createdObj, signed, 120*time.Second)
+
+			// Verify the payload signature.
+			verifySignature(ctx, t, c, obj)
+
+			verifyTro := verifyKanikoTaskRun(ns, fmt.Sprintf("%s/%s", c.internalRegistry, image), string(publicKey))
+			createdVerifyTro := tekton.CreateObject(t, ctx, c.PipelineClient, verifyTro)
+			waitForCondition(ctx, t, c.PipelineClient, createdVerifyTro, successful, 60*time.Second)
+		})
 	}
-
-	publicKey, err := cryptoutils.MarshalPublicKeyToPEM(c.secret.x509priv.Public())
-	if err != nil {
-		t.Error(err)
-	}
-	verifyTaskRun := verifyKanikoTaskRun(ns, image, string(publicKey))
-	tr, err = c.PipelineClient.TektonV1beta1().TaskRuns(ns).Create(ctx, verifyTaskRun, metav1.CreateOptions{})
-	if err != nil {
-		t.Fatalf("error creating task: %s", err)
-	}
-
-	// Give it a minute to complete.
-	waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, signed, 60*time.Second)
-
-	// It can take up to a minute for the secret data to be updated!
-	tr = waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, signed, 120*time.Second)
-
-	// Verify the payload signature.
-	verifySignature(ctx, t, c, tr)
-
 }
 
 func TestRetryFailed(t *testing.T) {
-	ctx := logtesting.TestContextWithLogger(t)
-	c, ns, cleanup := setup(ctx, t, setupOpts{registry: true})
-	defer cleanup()
-
-	resetConfig := setConfigMap(ctx, t, c, map[string]string{
-		// don't set insecure repository, forcing signature upload to fail
-		"artifacts.oci.storage":     "oci",
-		"artifacts.taskrun.storage": "tekton",
-		"storage.oci.repository":    "gcr.io/not-real",
-	})
-	defer resetConfig()
-	time.Sleep(3 * time.Second)
-
-	// create necessary resources
-	imageName := "chains-test-retry"
-	image := fmt.Sprintf("%s/%s", c.internalRegistry, imageName)
-	task := kanikoTask(t, ns, image)
-
-	if _, err := c.PipelineClient.TektonV1beta1().Tasks(ns).Create(ctx, task, metav1.CreateOptions{}); err != nil {
-		t.Fatalf("error creating task: %s", err)
+	tests := []struct {
+		name      string
+		cm        map[string]string
+		opts      setupOpts
+		getObject func(ns string) objects.TektonObject
+	}{
+		{
+			name: "taskrun",
+			cm: map[string]string{
+				// don't set insecure repository, forcing signature upload to fail
+				"artifacts.oci.storage":     "oci",
+				"artifacts.taskrun.storage": "tekton",
+				"storage.oci.repository":    "gcr.io/not-real",
+			},
+			opts: setupOpts{
+				registry:        true,
+				kanikoTaskImage: "chains-test-tr-retryfailed",
+			},
+			getObject: getTaskRunObject,
+		},
+		{
+			name: "pipelinerun",
+			cm: map[string]string{
+				// force failure by trying to push transperency log to url that
+				// does not exist
+				"transparency.url":              "doesnotexist",
+				"transparency.enabled":          "true",
+				"artifacts.pipelinerun.storage": "tekton",
+				"artifacts.pipelinerun.format":  "in-toto",
+			},
+			opts: setupOpts{
+				registry:        true,
+				kanikoTaskImage: "chains-test-pr-retryfailed",
+			},
+			getObject: getPipelineRunObject,
+		},
 	}
 
-	taskRun := kanikoTaskRun(ns)
-	tr, err := c.PipelineClient.TektonV1beta1().TaskRuns(ns).Create(ctx, taskRun, metav1.CreateOptions{})
-	if err != nil {
-		t.Errorf("error creating taskrun: %s", err)
-	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := logtesting.TestContextWithLogger(t)
+			c, ns, cleanup := setup(ctx, t, test.opts)
+			defer cleanup()
 
-	// Give it a minute to complete.
-	waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, failed, 60*time.Second)
+			resetConfig := setConfigMap(ctx, t, c, test.cm)
+			defer resetConfig()
+			time.Sleep(3 * time.Second)
+
+			obj := tekton.CreateObject(t, ctx, c.PipelineClient, test.getObject(ns))
+
+			// Give it a minute to complete.
+			waitForCondition(ctx, t, c.PipelineClient, obj, failed, 60*time.Second)
+		})
+	}
 }
 
 var imageTaskSpec = v1beta1.TaskSpec{
@@ -511,71 +596,148 @@ var imageTaskRun = v1beta1.TaskRun{
 	},
 }
 
-func TestProvenanceMaterials(t *testing.T) {
-	ctx := logtesting.TestContextWithLogger(t)
-	c, ns, cleanup := setup(ctx, t, setupOpts{})
-	defer cleanup()
+func getTaskRunObject(ns string) objects.TektonObject {
+	o := objects.NewTaskRunObject(&imageTaskRun)
+	o.Namespace = ns
+	return o
+}
 
-	// Setup the right config.
-	resetConfig := setConfigMap(ctx, t, c, map[string]string{
-		"artifacts.taskrun.format":  "in-toto",
-		"artifacts.taskrun.signer":  "x509",
-		"artifacts.taskrun.storage": "tekton",
-	})
-	defer resetConfig()
+func getTaskRunObjectWithParams(ns string, params []v1beta1.Param) objects.TektonObject {
+	o := objects.NewTaskRunObject(&imageTaskRun)
+	o.Namespace = ns
+	o.Spec.Params = params
+	return o
+}
 
-	// modify image task run to add in the params we want to check for
-	commit := "my-git-commit"
-	url := "https://my-git-url"
-	imageTaskRun.Spec.Params = []v1beta1.Param{
-		{
-			Name: "CHAINS-GIT_COMMIT", Value: *v1beta1.NewArrayOrString(commit),
-		}, {
-			Name: "CHAINS-GIT_URL", Value: *v1beta1.NewArrayOrString(url),
-		},
-	}
-
-	tr, err := c.PipelineClient.TektonV1beta1().TaskRuns(ns).Create(ctx, &imageTaskRun, metav1.CreateOptions{})
-	if err != nil {
-		t.Errorf("error creating taskrun: %s", err)
-	}
-
-	// Give it a minute to complete.
-	waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, done, 60*time.Second)
-
-	// It can take up to a minute for the secret data to be updated!
-	tr = waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, signed, 120*time.Second)
-
-	// get provenance, and make sure it has a materials section
-	payloadKey := fmt.Sprintf("chains.tekton.dev/payload-taskrun-%s", tr.UID)
-	body := tr.Annotations[payloadKey]
-	bodyBytes, err := base64.StdEncoding.DecodeString(body)
-	if err != nil {
-		t.Error(err)
-	}
-	var actualProvenance in_toto.Statement
-	if err := json.Unmarshal(bodyBytes, &actualProvenance); err != nil {
-		t.Error(err)
-	}
-	predicateBytes, err := json.Marshal(actualProvenance.Predicate)
-	if err := json.Unmarshal(bodyBytes, &actualProvenance); err != nil {
-		t.Error(err)
-	}
-	var predicate provenance.ProvenancePredicate
-	if err := json.Unmarshal(predicateBytes, &predicate); err != nil {
-		t.Fatal(err)
-	}
-	want := []provenance.ProvenanceMaterial{
-		{
-			URI: "git+" + url + ".git",
-			Digest: provenance.DigestSet{
-				"sha1": commit,
+var imagePipelineRun = v1beta1.PipelineRun{
+	ObjectMeta: metav1.ObjectMeta{
+		GenerateName: "image-pipelinerun",
+		Annotations:  map[string]string{chains.RekorAnnotation: "true"},
+	},
+	Spec: v1beta1.PipelineRunSpec{
+		PipelineSpec: &v1beta1.PipelineSpec{
+			Tasks: []v1beta1.PipelineTask{
+				{
+					Name: "echo",
+					TaskSpec: &v1beta1.EmbeddedTask{
+						TaskSpec: v1beta1.TaskSpec{
+							Steps: []v1beta1.Step{
+								{
+									Image:  "busybox",
+									Script: "echo success",
+								},
+							},
+						},
+					},
+				},
 			},
 		},
+	},
+}
+
+func getPipelineRunObject(ns string) objects.TektonObject {
+	o := objects.NewPipelineRunObject(&imagePipelineRun)
+	o.Namespace = ns
+	return o
+}
+
+func getPipelineRunObjectWithParams(ns string, params []v1beta1.Param) objects.TektonObject {
+	o := objects.NewPipelineRunObject(&imagePipelineRun)
+	o.Namespace = ns
+	o.Spec.Params = params
+	return o
+}
+
+func TestProvenanceMaterials(t *testing.T) {
+	tests := []struct {
+		name                string
+		cm                  map[string]string
+		getObjectWithParams func(ns string, params []v1beta1.Param) objects.TektonObject
+		payloadKey          string
+	}{
+		{
+			name: "taskrun",
+			cm: map[string]string{
+				"artifacts.taskrun.format":  "in-toto",
+				"artifacts.taskrun.signer":  "x509",
+				"artifacts.taskrun.storage": "tekton",
+			},
+			payloadKey:          "chains.tekton.dev/payload-taskrun-%s",
+			getObjectWithParams: getTaskRunObjectWithParams,
+		},
+		{
+			name: "pipelinerun",
+			cm: map[string]string{
+				"artifacts.pipelinerun.format":  "in-toto",
+				"artifacts.pipelinerun.signer":  "x509",
+				"artifacts.pipelinerun.storage": "tekton",
+			},
+			payloadKey:          "chains.tekton.dev/payload-pipelinerun-%s",
+			getObjectWithParams: getPipelineRunObjectWithParams,
+		},
 	}
-	got := predicate.Materials
-	if d := cmp.Diff(want, got); d != "" {
-		t.Fatal(string(d))
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := logtesting.TestContextWithLogger(t)
+			c, ns, cleanup := setup(ctx, t, setupOpts{})
+			defer cleanup()
+
+			// Setup the right config.
+			resetConfig := setConfigMap(ctx, t, c, test.cm)
+			defer resetConfig()
+
+			commit := "my-git-commit"
+			url := "https://my-git-url"
+			params := []v1beta1.Param{
+				{
+					Name: "CHAINS-GIT_COMMIT", Value: *v1beta1.NewArrayOrString(commit),
+				}, {
+					Name: "CHAINS-GIT_URL", Value: *v1beta1.NewArrayOrString(url),
+				},
+			}
+			obj := test.getObjectWithParams(ns, params)
+
+			createdObj := tekton.CreateObject(t, ctx, c.PipelineClient, obj)
+
+			// Give it a minute to complete.
+			waitForCondition(ctx, t, c.PipelineClient, createdObj, done, 60*time.Second)
+
+			// It can take up to a minute for the secret data to be updated!
+			signedObj := waitForCondition(ctx, t, c.PipelineClient, createdObj, signed, 120*time.Second)
+
+			// get provenance, and make sure it has a materials section
+			payloadKey := fmt.Sprintf(test.payloadKey, signedObj.GetUID())
+			body := signedObj.GetAnnotations()[payloadKey]
+			bodyBytes, err := base64.StdEncoding.DecodeString(body)
+			if err != nil {
+				t.Error(err)
+			}
+			var actualProvenance in_toto.Statement
+			if err := json.Unmarshal(bodyBytes, &actualProvenance); err != nil {
+				t.Error(err)
+			}
+			predicateBytes, err := json.Marshal(actualProvenance.Predicate)
+			if err := json.Unmarshal(bodyBytes, &actualProvenance); err != nil {
+				t.Error(err)
+			}
+			var predicate provenance.ProvenancePredicate
+			if err := json.Unmarshal(predicateBytes, &predicate); err != nil {
+				t.Fatal(err)
+			}
+			want := []provenance.ProvenanceMaterial{
+				{
+					URI: "git+" + url + ".git",
+					Digest: provenance.DigestSet{
+						"sha1": commit,
+					},
+				},
+			}
+			got := predicate.Materials
+			if d := cmp.Diff(want, got); d != "" {
+				t.Fatal(string(d))
+			}
+		})
 	}
 }
 
@@ -598,25 +760,24 @@ func TestVaultKMSSpire(t *testing.T) {
 	defer resetConfig()
 	time.Sleep(3 * time.Second)
 
-	tr, err := c.PipelineClient.TektonV1beta1().TaskRuns(ns).Create(ctx, &imageTaskRun, metav1.CreateOptions{})
-	if err != nil {
-		t.Errorf("error creating taskrun: %s", err)
-	}
+	tro := getTaskRunObject(ns)
+	createdTro := tekton.CreateObject(t, ctx, c.PipelineClient, tro)
 
 	// Give it a minute to complete.
-	waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, done, 60*time.Second)
-	tr = waitForCondition(ctx, t, c.PipelineClient, tr.Name, ns, signed, 120*time.Second)
-	t.Log(tr.Annotations)
+	waitForCondition(ctx, t, c.PipelineClient, createdTro, done, 60*time.Second)
+
+	// It can take up to a minute for the secret data to be updated!
+	obj := waitForCondition(ctx, t, c.PipelineClient, createdTro, signed, 120*time.Second)
+	t.Log(obj.GetAnnotations())
 
 	// Verify the payload signature.
-	verifySignature(ctx, t, c, tr) // TODO: consider removing
+	verifySignature(ctx, t, c, obj) // TODO: consider removing
 
 	// verify the cert against the signature and payload
-
-	sigKey := fmt.Sprintf("chains.tekton.dev/signature-taskrun-%s", tr.UID)
-	payloadKey := fmt.Sprintf("chains.tekton.dev/payload-taskrun-%s", tr.UID)
-	sigBytes := base64Decode(t, tr.Annotations[sigKey])
-	payloadBytes := base64Decode(t, tr.Annotations[payloadKey])
+	sigKey := fmt.Sprintf("chains.tekton.dev/signature-taskrun-%s", obj.GetUID())
+	payloadKey := fmt.Sprintf("chains.tekton.dev/payload-taskrun-%s", obj.GetUID())
+	sigBytes := base64Decode(t, obj.GetAnnotations()[sigKey])
+	payloadBytes := base64Decode(t, obj.GetAnnotations()[payloadKey])
 
 	certPEM, err := os.ReadFile("testdata/vault.pub")
 	if err != nil {

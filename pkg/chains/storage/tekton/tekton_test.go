@@ -20,7 +20,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
-	"github.com/tektoncd/chains/pkg/internal/tekton"
+	"github.com/tektoncd/chains/pkg/test/tekton"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	fakepipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -83,9 +83,7 @@ func TestBackend_StorePayload(t *testing.T) {
 			ctx, _ := rtesting.SetupFakeContext(t)
 			c := fakepipelineclient.Get(ctx)
 
-			if err := tekton.CreateObject(t, ctx, c, tt.object); err != nil {
-				t.Errorf("error setting up fake taskrun: %v", err)
-			}
+			tekton.CreateObject(t, ctx, c, tt.object)
 
 			b := &Backend{
 				pipelineclientset: c,

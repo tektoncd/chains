@@ -25,7 +25,7 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/signing"
 	"github.com/tektoncd/chains/pkg/chains/storage"
 	"github.com/tektoncd/chains/pkg/config"
-	"github.com/tektoncd/chains/pkg/internal/tekton"
+	"github.com/tektoncd/chains/pkg/test/tekton"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	fakepipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client/fake"
 	"go.uber.org/zap"
@@ -152,9 +152,8 @@ func TestSigner_Sign(t *testing.T) {
 				Pipelineclientset: ps,
 			}
 
-			if err := tekton.CreateObject(t, ctx, ps, tt.object); err != nil {
-				t.Errorf("error creating fake object: %v", err)
-			}
+			tekton.CreateObject(t, ctx, ps, tt.object)
+
 			if err := ts.Sign(ctx, tt.object); (err != nil) != tt.wantErr {
 				t.Errorf("Signer.Sign() error = %v", err)
 			}
@@ -312,9 +311,9 @@ func TestSigner_Transparency(t *testing.T) {
 			}
 
 			obj := tt.getNewObject("foo")
-			if err := tekton.CreateObject(t, ctx, ps, obj); err != nil {
-				t.Errorf("error creating fake object: %v", err)
-			}
+
+			tekton.CreateObject(t, ctx, ps, obj)
+
 			if err := os.Sign(ctx, obj); err != nil {
 				t.Errorf("Signer.Sign() error = %v", err)
 			}
@@ -328,9 +327,9 @@ func TestSigner_Transparency(t *testing.T) {
 			ctx = config.ToContext(ctx, tt.cfg.DeepCopy())
 
 			obj = tt.getNewObject("foobar")
-			if err := tekton.CreateObject(t, ctx, ps, obj); err != nil {
-				t.Errorf("error creating fake object: %v", err)
-			}
+
+			tekton.CreateObject(t, ctx, ps, obj)
+
 			if err := os.Sign(ctx, obj); err != nil {
 				t.Errorf("Signer.Sign() error = %v", err)
 			}
@@ -344,9 +343,9 @@ func TestSigner_Transparency(t *testing.T) {
 			ctx = config.ToContext(ctx, tt.cfg.DeepCopy())
 
 			obj = tt.getNewObject("mytektonobject")
-			if err := tekton.CreateObject(t, ctx, ps, obj); err != nil {
-				t.Errorf("error creating fake object: %v", err)
-			}
+
+			tekton.CreateObject(t, ctx, ps, obj)
+
 			if err := os.Sign(ctx, obj); err != nil {
 				t.Errorf("Signer.Sign() error = %v", err)
 			}
