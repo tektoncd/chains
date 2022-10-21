@@ -80,7 +80,7 @@ func (b *Backend) StorePayload(ctx context.Context, obj objects.TektonObject, ra
 		return err
 	}
 
-	b.logger.Infof("Storing payload on %s/%s/%s", obj.GetGVK(), obj.GetNamespace(), obj.GetName())
+	b.logger.Infof("Storing payload on %s/%s/%s", obj.GetKind(), obj.GetNamespace(), obj.GetName())
 
 	if storageOpts.PayloadFormat == formats.PayloadTypeSimpleSigning {
 		format := simple.SimpleContainerImage{}
@@ -101,7 +101,7 @@ func (b *Backend) StorePayload(ctx context.Context, obj objects.TektonObject, ra
 		// that is not intended to produce an image, e.g. git-clone.
 		if len(attestation.Subject) == 0 {
 			b.logger.Infof(
-				"No image subject to attest for %s/%s/%s. Skipping upload to registry", obj.GetGVK(), obj.GetNamespace(), obj.GetName())
+				"No image subject to attest for %s/%s/%s. Skipping upload to registry", obj.GetKind(), obj.GetNamespace(), obj.GetName())
 			return nil
 		}
 
