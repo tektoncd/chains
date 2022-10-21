@@ -14,6 +14,8 @@ limitations under the License.
 package taskrun
 
 import (
+	"fmt"
+
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/tektoncd/chains/pkg/artifacts"
@@ -28,6 +30,8 @@ import (
 func GenerateAttestation(builderID string, tro *objects.TaskRunObject, logger *zap.SugaredLogger) (interface{}, error) {
 	subjects := extract.SubjectDigests(tro, logger)
 
+	tr := tro.GetObject().(*v1beta1.TaskRun)
+
 	att := intoto.ProvenanceStatement{
 		StatementHeader: intoto.StatementHeader{
 			Type:          intoto.StatementInTotoV01,
@@ -38,7 +42,7 @@ func GenerateAttestation(builderID string, tro *objects.TaskRunObject, logger *z
 			Builder: slsa.ProvenanceBuilder{
 				ID: builderID,
 			},
-			BuildType:   tro.GetGVK(),
+			BuildType:   fmt.Sprintf("%s/%s", tr.GetGroupVersionKind().GroupVersion().String(), tr.GetGroupVersionKind().Kind),
 			Invocation:  invocation(tro),
 			BuildConfig: buildConfig(tro),
 			Metadata:    metadata(tro),
