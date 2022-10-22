@@ -14,7 +14,6 @@ limitations under the License.
 package pipelinerun
 
 import (
-	"fmt"
 	"time"
 
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
@@ -58,7 +57,7 @@ func GenerateAttestation(builderID string, pro *objects.PipelineRunObject, logge
 			Builder: slsa.ProvenanceBuilder{
 				ID: builderID,
 			},
-			BuildType:   fmt.Sprintf("%s/%s", pro.GetGroupVersionKind().GroupVersion().String(), pro.GetGroupVersionKind().Kind),
+			BuildType:   pro.GetGVK(),
 			Invocation:  invocation(pro),
 			BuildConfig: buildConfig(pro, logger),
 			Metadata:    metadata(pro),

@@ -165,7 +165,7 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 		payloader, ok := o.Formatters[payloadFormat]
 
 		if !ok {
-			logger.Warnf("Format %s configured for %s: %v was not found", payloadFormat, tektonObj.GetKind(), signableType.Type())
+			logger.Warnf("Format %s configured for %s: %v was not found", payloadFormat, tektonObj.GetGVK(), signableType.Type())
 			continue
 		}
 
@@ -181,7 +181,7 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 				logger.Error(err)
 				continue
 			}
-			logger.Infof("Created payload of type %s for %s %s/%s", string(payloadFormat), tektonObj.GetKind(), tektonObj.GetNamespace(), tektonObj.GetName())
+			logger.Infof("Created payload of type %s for %s %s/%s", string(payloadFormat), tektonObj.GetGVK(), tektonObj.GetNamespace(), tektonObj.GetName())
 
 			// Sign it!
 			signerType := signableType.Signer(cfg)
