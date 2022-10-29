@@ -17,6 +17,7 @@ limitations under the License.
 package intotoite6
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/tektoncd/chains/pkg/chains/formats"
@@ -24,18 +25,24 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/formats/intotoite6/taskrun"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
-	"go.uber.org/zap"
+	"knative.dev/pkg/logging"
 )
+
+const (
+	PayloadTypeInTotoIte6 = formats.PayloadTypeInTotoIte6
+)
+
+func init() {
+	formats.RegisterPayloader(PayloadTypeInTotoIte6, NewFormatter)
+}
 
 type InTotoIte6 struct {
 	builderID string
-	logger    *zap.SugaredLogger
 }
 
-func NewFormatter(cfg config.Config, logger *zap.SugaredLogger) (formats.Payloader, error) {
+func NewFormatter(cfg config.Config) (formats.Payloader, error) {
 	return &InTotoIte6{
 		builderID: cfg.Builder.ID,
-		logger:    logger,
 	}, nil
 }
 
@@ -43,17 +50,18 @@ func (i *InTotoIte6) Wrap() bool {
 	return true
 }
 
-func (i *InTotoIte6) CreatePayload(obj interface{}) (interface{}, error) {
+func (i *InTotoIte6) CreatePayload(ctx context.Context, obj interface{}) (interface{}, error) {
+	logger := logging.FromContext(ctx)
 	switch v := obj.(type) {
 	case *objects.TaskRunObject:
-		return taskrun.GenerateAttestation(i.builderID, v, i.logger)
+		return taskrun.GenerateAttestation(i.builderID, v, logger)
 	case *objects.PipelineRunObject:
-		return pipelinerun.GenerateAttestation(i.builderID, v, i.logger)
+		return pipelinerun.GenerateAttestation(i.builderID, v, logger)
 	default:
 		return nil, fmt.Errorf("intoto does not support type: %s", v)
 	}
 }
 
-func (i *InTotoIte6) Type() formats.PayloadType {
+func (i *InTotoIte6) Type() config.PayloadType {
 	return formats.PayloadTypeInTotoIte6
 }

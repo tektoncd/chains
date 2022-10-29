@@ -14,6 +14,7 @@ limitations under the License.
 package simple
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
@@ -61,7 +62,7 @@ func TestSimpleSigning_CreatePayload(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			i := &SimpleSigning{}
-			got, err := i.CreatePayload(tt.obj)
+			got, err := i.CreatePayload(context.Background(), tt.obj)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SimpleSigning.CreatePayload() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -81,7 +82,7 @@ func TestImageName(t *testing.T) {
 	obj := makeDigest(t, img)
 
 	i := &SimpleSigning{}
-	format, err := i.CreatePayload(obj)
+	format, err := i.CreatePayload(context.Background(), obj)
 	if err != nil {
 		t.Fatal(err)
 	}

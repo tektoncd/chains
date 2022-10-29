@@ -54,9 +54,6 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 			// get updated config
 			cfg := *value.(*config.Config)
 
-			// get all formatters for formatting payload
-			psSigner.Formatters = chains.AllFormatters(cfg, logger)
-
 			// get all backends for storing provenance
 			backends, err := storage.InitializeBackends(ctx, pipelineClient, kubeClient, logger, cfg)
 			if err != nil {

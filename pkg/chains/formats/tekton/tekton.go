@@ -14,22 +14,32 @@ limitations under the License.
 package tekton
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/tektoncd/chains/pkg/chains/formats"
 	"github.com/tektoncd/chains/pkg/chains/objects"
+	"github.com/tektoncd/chains/pkg/config"
 )
+
+const (
+	PayloadTypeTekton = formats.PayloadTypeTekton
+)
+
+func init() {
+	formats.RegisterPayloader(PayloadTypeTekton, NewFormatter)
+}
 
 // Tekton is a formatter that just captures the TaskRun Status with no modifications.
 type Tekton struct {
 }
 
-func NewFormatter() (formats.Payloader, error) {
+func NewFormatter(config.Config) (formats.Payloader, error) {
 	return &Tekton{}, nil
 }
 
 // CreatePayload implements the Payloader interface.
-func (i *Tekton) CreatePayload(obj interface{}) (interface{}, error) {
+func (i *Tekton) CreatePayload(ctx context.Context, obj interface{}) (interface{}, error) {
 	switch v := obj.(type) {
 	case *objects.TaskRunObject:
 		return v.Status, nil
@@ -40,7 +50,7 @@ func (i *Tekton) CreatePayload(obj interface{}) (interface{}, error) {
 	}
 }
 
-func (i *Tekton) Type() formats.PayloadType {
+func (i *Tekton) Type() config.PayloadType {
 	return formats.PayloadTypeTekton
 }
 

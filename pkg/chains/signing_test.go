@@ -33,6 +33,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"knative.dev/pkg/logging"
 	rtesting "knative.dev/pkg/reconciler/testing"
+
+	_ "github.com/tektoncd/chains/pkg/chains/formats/all"
 )
 
 func TestSigner_Sign(t *testing.T) {
@@ -144,9 +146,7 @@ func TestSigner_Sign(t *testing.T) {
 
 			ctx = config.ToContext(ctx, tt.config.DeepCopy())
 
-			logger := logging.FromContext(ctx)
 			ts := &ObjectSigner{
-				Formatters:        AllFormatters(*tt.config, logger),
 				Backends:          fakeAllBackends(tt.backends),
 				SecretPath:        "./signing/x509/testdata/",
 				Pipelineclientset: ps,
@@ -302,9 +302,7 @@ func TestSigner_Transparency(t *testing.T) {
 
 			ctx = config.ToContext(ctx, tt.cfg.DeepCopy())
 
-			logger := logging.FromContext(ctx)
 			os := &ObjectSigner{
-				Formatters:        AllFormatters(*tt.cfg, logger),
 				Backends:          fakeAllBackends(backends),
 				SecretPath:        "./signing/x509/testdata/",
 				Pipelineclientset: ps,
