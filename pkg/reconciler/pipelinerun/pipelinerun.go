@@ -23,6 +23,7 @@ import (
 	"github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	pipelinerunreconciler "github.com/tektoncd/pipeline/pkg/client/injection/reconciler/pipeline/v1beta1/pipelinerun"
 	listers "github.com/tektoncd/pipeline/pkg/client/listers/pipeline/v1beta1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"knative.dev/pkg/logging"
 	pkgreconciler "knative.dev/pkg/reconciler"
 	"knative.dev/pkg/tracker"
@@ -95,6 +96,11 @@ func (r *Reconciler) FinalizeKind(ctx context.Context, pr *v1beta1.PipelineRun) 
 		tr, err := r.TaskRunLister.TaskRuns(pr.Namespace).Get(name)
 		if err != nil {
 			logging.FromContext(ctx).Errorf("Unable to get reconciled status of taskrun %s within pipelinerun", name)
+			if errors.IsNotFound(err) {
+				// Since this is an unrecoverable scenario, returning the error would prevent the
+				// finalizer from being removed, thus preventing the PipelineRun from being deleted.
+				return nil
+			}
 			return err
 		}
 		if tr == nil {
