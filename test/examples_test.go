@@ -230,6 +230,8 @@ func expectedPipelineRunProvenance(t *testing.T, example string, obj objects.Tek
 
 	buildStartTimes := []string{}
 	buildFinishedTimes := []string{}
+
+	// TODO: Load TaskRun data from ChildReferences.
 	for _, trStatus := range pr.Status.TaskRuns {
 		buildStartTimes = append(buildStartTimes, trStatus.Status.StartTime.Time.UTC().Format(time.RFC3339))
 		buildFinishedTimes = append(buildFinishedTimes, trStatus.Status.CompletionTime.Time.UTC().Format(time.RFC3339))
