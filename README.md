@@ -72,7 +72,7 @@ Prerequisite: you'll need
 [Tekton Pipelines](https://github.com/tektoncd/pipeline/blob/main/docs/install.md#installing-tekton-pipelines-on-openshift)
 installed on your OpenShift cluster before you install Chains.
 
-To install Tekton Chains on OpenShift, you must first apply the `anyuid`
+To install Tekton Chains on OpenShift, you must first apply the `nonroot`
 security context constraint to the `tekton-chains-controller` service account.
 This is required to run the controller pod. See
 [Security Context Constraints](https://docs.openshift.com/container-platform/4.3/authentication/managing-security-context-constraints.html)
