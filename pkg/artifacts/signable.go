@@ -266,6 +266,10 @@ func extractTargetFromResults(obj objects.TektonObject, identifierSuffix string,
 
 	for _, res := range obj.GetResults() {
 		if strings.HasSuffix(res.Name, identifierSuffix) {
+			if res.Value.StringVal == "" {
+				logger.Debugf("error getting string value for %s", res.Name)
+				continue
+			}
 			marker := strings.TrimSuffix(res.Name, identifierSuffix)
 			if v, ok := ss[marker]; ok {
 				v.URI = strings.TrimSpace(res.Value.StringVal)
@@ -276,6 +280,10 @@ func extractTargetFromResults(obj objects.TektonObject, identifierSuffix string,
 			// TODO: add logic for Intoto signable target as input.
 		}
 		if strings.HasSuffix(res.Name, digestSuffix) {
+			if res.Value.StringVal == "" {
+				logger.Debugf("error getting string value for %s", res.Name)
+				continue
+			}
 			marker := strings.TrimSuffix(res.Name, digestSuffix)
 			if v, ok := ss[marker]; ok {
 				v.Digest = strings.TrimSpace(res.Value.StringVal)
@@ -319,23 +327,11 @@ func ExtractStructuredTargetFromResults(obj objects.TektonObject, categoryMarker
 
 	// TODO(#592): support structured results using Run
 	results := []objects.Result{}
-	tr, isTaskRun := obj.GetObject().(*v1beta1.TaskRun)
-	if isTaskRun {
-		for _, res := range tr.Status.TaskRunResults {
-			results = append(results, objects.Result{
-				Name:  res.Name,
-				Value: res.Value,
-			})
-		}
-
-	} else {
-		pr := obj.GetObject().(*v1beta1.PipelineRun)
-		for _, res := range pr.Status.PipelineResults {
-			results = append(results, objects.Result{
-				Name:  res.Name,
-				Value: res.Value,
-			})
-		}
+	for _, res := range obj.GetResults() {
+		results = append(results, objects.Result{
+			Name:  res.Name,
+			Value: res.Value,
+		})
 	}
 	for _, res := range results {
 		if strings.HasSuffix(res.Name, categoryMarker) {

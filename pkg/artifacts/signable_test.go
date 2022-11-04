@@ -320,6 +320,8 @@ func TestExtractOCIImagesFromResults(t *testing.T) {
 					{Name: "IMAGE_DIGEST", Value: *v1beta1.NewArrayOrString(digest1)},
 					{Name: "img4_IMAGE_URL", Value: *v1beta1.NewArrayOrString("img4")},
 					{Name: "img5_IMAGE_DIGEST", Value: *v1beta1.NewArrayOrString("sha123:abc")},
+					{Name: "empty_str_IMAGE_DIGEST", Value: *v1beta1.NewArrayOrString("")},
+					{Name: "empty_str_IMAGE_URL", Value: *v1beta1.NewArrayOrString("")},
 				},
 			},
 		},
