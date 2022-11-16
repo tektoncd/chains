@@ -17,12 +17,9 @@ jobs:
       fail-fast: false # Keep running if one leg fails.
       matrix:
         k8s-version:
-        - v1.22.x
         - v1.23.x
         - v1.24.x
-        # Can not test with v.25.x yet due to PSP
-        # resource mapping not found for name: "tekton-pipelines" namespace: "" from "https://storage.googleapis.com/tekton-releases-nightly/pipeline/latest/release.yaml": no matches for kind "PodSecurityPolicy" in version "policy/v1beta1"
-        #- v1.25.x
+        - v1.25.x
 
     env:
       GOPATH: ${{ github.workspace }}
