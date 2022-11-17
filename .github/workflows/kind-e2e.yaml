@@ -17,12 +17,9 @@ jobs:
       fail-fast: false # Keep running if one leg fails.
       matrix:
         k8s-version:
-        - v1.22.x
         - v1.23.x
         - v1.24.x
-        # Can not test with v.25.x yet due to PSP
-        # resource mapping not found for name: "tekton-pipelines" namespace: "" from "https://storage.googleapis.com/tekton-releases-nightly/pipeline/latest/release.yaml": no matches for kind "PodSecurityPolicy" in version "policy/v1beta1"
-        #- v1.25.x
+        - v1.25.x
 
     env:
       GOPATH: ${{ github.workspace }}
@@ -30,8 +27,11 @@ jobs:
       GOFLAGS: -ldflags=-s -ldflags=-w
       KO_DOCKER_REPO: registry.local:5000/knative
       KOCACHE: ~/ko
-      SIGSTORE_SCAFFOLDING_RELEASE_VERSION: "v0.4.8"
-      TEKTON_PIPELINES_RELEASE: "https://storage.googleapis.com/tekton-releases/pipeline/previous/v0.40.0/release.yaml"
+      SIGSTORE_SCAFFOLDING_RELEASE_VERSION: "v0.4.13"
+      TEKTON_PIPELINES_RELEASE: "https://storage.googleapis.com/tekton-releases/pipeline/previous/v0.41.0/release.yaml"
+      # Note that we do not include the v prefix here so we can use it in all
+      # the places this is used.
+      TEKTON_CLI_RELEASE: "0.26.1"
 
     steps:
     # https://github.com/mvdan/github-actions-golang#how-do-i-set-up-caching-between-builds
@@ -59,8 +59,8 @@ jobs:
 
     - name: Install tkn cli
       run: |
-        curl -Lo ./tkn_0.25.0_Linux_x86_64.tar.gz https://github.com/tektoncd/cli/releases/download/v0.25.0/tkn_0.25.0_Linux_x86_64.tar.gz
-        tar xvzf ./tkn_0.25.0_Linux_x86_64.tar.gz tkn
+        curl -Lo ./tkn_${{ env.TEKTON_CLI_RELEASE }}_Linux_x86_64.tar.gz https://github.com/tektoncd/cli/releases/download/v${{ env.TEKTON_CLI_RELEASE }}/tkn_${{ env.TEKTON_CLI_RELEASE }}_Linux_x86_64.tar.gz
+        tar xvzf ./tkn_${{ env.TEKTON_CLI_RELEASE }}_Linux_x86_64.tar.gz tkn
         chmod u+x ./tkn
 
     - name: Check out our repo
