@@ -21,12 +21,12 @@ package resolutionrequest
 import (
 	context "context"
 
-	apisresolutionv1alpha1 "github.com/tektoncd/pipeline/pkg/apis/resolution/v1alpha1"
+	apisresolutionv1beta1 "github.com/tektoncd/pipeline/pkg/apis/resolution/v1beta1"
 	versioned "github.com/tektoncd/pipeline/pkg/client/resolution/clientset/versioned"
-	v1alpha1 "github.com/tektoncd/pipeline/pkg/client/resolution/informers/externalversions/resolution/v1alpha1"
+	v1beta1 "github.com/tektoncd/pipeline/pkg/client/resolution/informers/externalversions/resolution/v1beta1"
 	client "github.com/tektoncd/pipeline/pkg/client/resolution/injection/client"
 	factory "github.com/tektoncd/pipeline/pkg/client/resolution/injection/informers/factory"
-	resolutionv1alpha1 "github.com/tektoncd/pipeline/pkg/client/resolution/listers/resolution/v1alpha1"
+	resolutionv1beta1 "github.com/tektoncd/pipeline/pkg/client/resolution/listers/resolution/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	cache "k8s.io/client-go/tools/cache"
@@ -45,7 +45,7 @@ type Key struct{}
 
 func withInformer(ctx context.Context) (context.Context, controller.Informer) {
 	f := factory.Get(ctx)
-	inf := f.Resolution().V1alpha1().ResolutionRequests()
+	inf := f.Resolution().V1beta1().ResolutionRequests()
 	return context.WithValue(ctx, Key{}, inf), inf.Informer()
 }
 
@@ -55,13 +55,13 @@ func withDynamicInformer(ctx context.Context) context.Context {
 }
 
 // Get extracts the typed informer from the context.
-func Get(ctx context.Context) v1alpha1.ResolutionRequestInformer {
+func Get(ctx context.Context) v1beta1.ResolutionRequestInformer {
 	untyped := ctx.Value(Key{})
 	if untyped == nil {
 		logging.FromContext(ctx).Panic(
-			"Unable to fetch github.com/tektoncd/pipeline/pkg/client/resolution/informers/externalversions/resolution/v1alpha1.ResolutionRequestInformer from context.")
+			"Unable to fetch github.com/tektoncd/pipeline/pkg/client/resolution/informers/externalversions/resolution/v1beta1.ResolutionRequestInformer from context.")
 	}
-	return untyped.(v1alpha1.ResolutionRequestInformer)
+	return untyped.(v1beta1.ResolutionRequestInformer)
 }
 
 type wrapper struct {
@@ -72,18 +72,18 @@ type wrapper struct {
 	resourceVersion string
 }
 
-var _ v1alpha1.ResolutionRequestInformer = (*wrapper)(nil)
-var _ resolutionv1alpha1.ResolutionRequestLister = (*wrapper)(nil)
+var _ v1beta1.ResolutionRequestInformer = (*wrapper)(nil)
+var _ resolutionv1beta1.ResolutionRequestLister = (*wrapper)(nil)
 
 func (w *wrapper) Informer() cache.SharedIndexInformer {
-	return cache.NewSharedIndexInformer(nil, &apisresolutionv1alpha1.ResolutionRequest{}, 0, nil)
+	return cache.NewSharedIndexInformer(nil, &apisresolutionv1beta1.ResolutionRequest{}, 0, nil)
 }
 
-func (w *wrapper) Lister() resolutionv1alpha1.ResolutionRequestLister {
+func (w *wrapper) Lister() resolutionv1beta1.ResolutionRequestLister {
 	return w
 }
 
-func (w *wrapper) ResolutionRequests(namespace string) resolutionv1alpha1.ResolutionRequestNamespaceLister {
+func (w *wrapper) ResolutionRequests(namespace string) resolutionv1beta1.ResolutionRequestNamespaceLister {
 	return &wrapper{client: w.client, namespace: namespace, resourceVersion: w.resourceVersion}
 }
 
@@ -95,8 +95,8 @@ func (w *wrapper) SetResourceVersion(resourceVersion string) {
 	w.resourceVersion = resourceVersion
 }
 
-func (w *wrapper) List(selector labels.Selector) (ret []*apisresolutionv1alpha1.ResolutionRequest, err error) {
-	lo, err := w.client.ResolutionV1alpha1().ResolutionRequests(w.namespace).List(context.TODO(), v1.ListOptions{
+func (w *wrapper) List(selector labels.Selector) (ret []*apisresolutionv1beta1.ResolutionRequest, err error) {
+	lo, err := w.client.ResolutionV1beta1().ResolutionRequests(w.namespace).List(context.TODO(), v1.ListOptions{
 		LabelSelector:   selector.String(),
 		ResourceVersion: w.resourceVersion,
 	})
@@ -109,8 +109,8 @@ func (w *wrapper) List(selector labels.Selector) (ret []*apisresolutionv1alpha1.
 	return ret, nil
 }
 
-func (w *wrapper) Get(name string) (*apisresolutionv1alpha1.ResolutionRequest, error) {
-	return w.client.ResolutionV1alpha1().ResolutionRequests(w.namespace).Get(context.TODO(), name, v1.GetOptions{
+func (w *wrapper) Get(name string) (*apisresolutionv1beta1.ResolutionRequest, error) {
+	return w.client.ResolutionV1beta1().ResolutionRequests(w.namespace).Get(context.TODO(), name, v1.GetOptions{
 		ResourceVersion: w.resourceVersion,
 	})
 }
