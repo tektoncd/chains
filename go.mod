@@ -38,7 +38,7 @@ require (
 	github.com/pierrec/lz4 v2.6.1+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/secure-systems-lab/go-securesystemslib v0.4.0
-	github.com/sigstore/cosign v1.12.1
+	github.com/sigstore/cosign v1.13.1
 	github.com/sigstore/rekor v0.12.1-0.20220915152154-4bb6f441c1b2
 	github.com/sigstore/sigstore v1.4.5
 	github.com/spiffe/go-spiffe/v2 v2.1.1
@@ -198,7 +198,7 @@ require (
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/jsonreference v0.20.0 // indirect
 	github.com/go-openapi/loads v0.21.2 // indirect
-	github.com/go-openapi/runtime v0.24.1 // indirect
+	github.com/go-openapi/runtime v0.24.2 // indirect
 	github.com/go-openapi/spec v0.20.7 // indirect
 	github.com/go-openapi/strfmt v0.21.3 // indirect
 	github.com/go-openapi/swag v0.22.3 // indirect
@@ -254,7 +254,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0 // indirect
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.11.2 // indirect
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.11.3 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.1 // indirect
 	github.com/hashicorp/go-rootcerts v1.0.2 // indirect
@@ -355,7 +355,7 @@ require (
 	github.com/sergi/go-diff v1.2.0 // indirect
 	github.com/shazow/go-diff v0.0.0-20160112020656-b6b7b6733b8c // indirect
 	github.com/shibumi/go-pathspec v1.3.0 // indirect
-	github.com/sigstore/fulcio v0.5.3 // indirect
+	github.com/sigstore/fulcio v0.6.0 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/sivchari/containedctx v1.0.2 // indirect
 	github.com/sivchari/nosnakecase v1.7.0 // indirect
