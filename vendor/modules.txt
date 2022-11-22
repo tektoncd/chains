@@ -2162,7 +2162,7 @@ gocloud.dev/pubsub/mempubsub
 # gocloud.dev/docstore/mongodocstore v0.27.0
 ## explicit; go 1.12
 gocloud.dev/docstore/mongodocstore
-# gocloud.dev/pubsub/kafkapubsub v0.26.0
+# gocloud.dev/pubsub/kafkapubsub v0.27.0
 ## explicit; go 1.12
 gocloud.dev/pubsub/kafkapubsub
 # golang.org/x/crypto v0.1.0
