@@ -28,7 +28,7 @@ require (
 	github.com/hashicorp/go-version v1.6.0
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/hashicorp/hcl v1.0.0
-	github.com/hashicorp/vault/sdk v0.6.0
+	github.com/hashicorp/vault/sdk v0.6.1
 	github.com/in-toto/in-toto-golang v0.3.4-0.20220709202702-fa494aaa0add
 	github.com/letsencrypt/boulder v0.0.0-20220929215747-76583552c2be
 	github.com/mitchellh/copystructure v1.2.0
