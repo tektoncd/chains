@@ -2159,7 +2159,7 @@ gocloud.dev/pubsub
 gocloud.dev/pubsub/batcher
 gocloud.dev/pubsub/driver
 gocloud.dev/pubsub/mempubsub
-# gocloud.dev/docstore/mongodocstore v0.26.0
+# gocloud.dev/docstore/mongodocstore v0.27.0
 ## explicit; go 1.12
 gocloud.dev/docstore/mongodocstore
 # gocloud.dev/pubsub/kafkapubsub v0.26.0
