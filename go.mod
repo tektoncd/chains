@@ -52,7 +52,7 @@ require (
 	gocloud.dev/docstore/mongodocstore v0.27.0
 	gocloud.dev/pubsub/kafkapubsub v0.27.0
 	golang.org/x/crypto v0.1.0
-	google.golang.org/grpc v1.50.1
+	google.golang.org/grpc v1.51.0
 	google.golang.org/protobuf v1.28.1
 	gopkg.in/square/go-jose.v2 v2.6.0
 	gopkg.in/yaml.v2 v2.4.0
