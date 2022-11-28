@@ -161,3 +161,21 @@ to deployment `volumes` section:
         hostPath:
           path: /run/spire/sockets/agent.sock
 ```
+
+Last but not least, thanks to [spiffe-csi](https://github.com/spiffe/spiffe-csi), which is a CSI (Container Storage Interface) driver for Kubernetes that facilitates injection of the SPIFFE Workload API , there is alternative way of retrieving the Agent socket to your Pods without having to mount the `hostPath`. You can read more about it [here](https://www.kusari.dev/blog/spiffee-csi/). Once you have installed `spiffe-csi-driver` into your cluster by following the [installation steps](https://github.com/spiffe/spiffe-csi/tree/main/example#steps) in the GitHub repository, the only thing that you have to do is add the following code snippet to deployment `volumes` and `volumeMounts` sections:
+
+
+```
+     ...
+        volumeMounts:
+          - name: spiffe-workload-api
+            mountPath: /spiffe-workload-api
+            readOnly: true
+     
+     ...
+      volumes:
+        - name: spiffe-workload-api
+          csi:
+            driver: "csi.spiffe.io"
+            readOnly: true
+```
