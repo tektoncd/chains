@@ -172,12 +172,8 @@ func TestPipelineRunCreatePayload(t *testing.T) {
 			BuildConfig: pipelinerun.BuildConfig{
 				Tasks: []pipelinerun.TaskAttestation{
 					{
-						Name:  "git-clone",
-						After: nil,
-						Ref: v1beta1.TaskRef{
-							Name: "git-clone",
-							Kind: "ClusterTask",
-						},
+						Name:       "git-clone",
+						After:      nil,
 						StartedOn:  e1BuildStart,
 						FinishedOn: e1BuildFinished,
 						Status:     "Succeeded",
@@ -219,12 +215,8 @@ func TestPipelineRunCreatePayload(t *testing.T) {
 						},
 					},
 					{
-						Name:  "build",
-						After: []string{"git-clone"},
-						Ref: v1beta1.TaskRef{
-							Name: "build",
-							Kind: "ClusterTask",
-						},
+						Name:       "build",
+						After:      []string{"git-clone"},
 						StartedOn:  e1BuildStart,
 						FinishedOn: e1BuildFinished,
 						Status:     "Succeeded",
@@ -360,12 +352,8 @@ func TestPipelineRunCreatePayloadChildRefs(t *testing.T) {
 			BuildConfig: pipelinerun.BuildConfig{
 				Tasks: []pipelinerun.TaskAttestation{
 					{
-						Name:  "git-clone",
-						After: nil,
-						Ref: v1beta1.TaskRef{
-							Name: "git-clone",
-							Kind: "ClusterTask",
-						},
+						Name:       "git-clone",
+						After:      nil,
 						StartedOn:  e1BuildStart,
 						FinishedOn: e1BuildFinished,
 						Status:     "Succeeded",
@@ -407,12 +395,8 @@ func TestPipelineRunCreatePayloadChildRefs(t *testing.T) {
 						},
 					},
 					{
-						Name:  "build",
-						After: []string{"git-clone"},
-						Ref: v1beta1.TaskRef{
-							Name: "build",
-							Kind: "ClusterTask",
-						},
+						Name:       "build",
+						After:      []string{"git-clone"},
 						StartedOn:  e1BuildStart,
 						FinishedOn: e1BuildFinished,
 						Status:     "Succeeded",

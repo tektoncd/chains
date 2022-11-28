@@ -76,12 +76,8 @@ func TestBuildConfig(t *testing.T) {
 	expected := BuildConfig{
 		Tasks: []TaskAttestation{
 			{
-				Name:  "git-clone",
-				After: nil,
-				Ref: v1beta1.TaskRef{
-					Name: "git-clone",
-					Kind: "ClusterTask",
-				},
+				Name:       "git-clone",
+				After:      nil,
 				StartedOn:  e1BuildStart,
 				FinishedOn: e1BuildFinished,
 				Status:     "Succeeded",
@@ -123,12 +119,8 @@ func TestBuildConfig(t *testing.T) {
 				},
 			},
 			{
-				Name:  "build",
-				After: []string{"git-clone"},
-				Ref: v1beta1.TaskRef{
-					Name: "build",
-					Kind: "ClusterTask",
-				},
+				Name:       "build",
+				After:      []string{"git-clone"},
 				StartedOn:  e1BuildStart,
 				FinishedOn: e1BuildFinished,
 				Status:     "Succeeded",
@@ -252,12 +244,8 @@ func TestBuildConfigTaskOrder(t *testing.T) {
 			expected := BuildConfig{
 				Tasks: []TaskAttestation{
 					{
-						Name:  "git-clone",
-						After: nil,
-						Ref: v1beta1.TaskRef{
-							Name: "git-clone",
-							Kind: "ClusterTask",
-						},
+						Name:       "git-clone",
+						After:      nil,
 						StartedOn:  e1BuildStart,
 						FinishedOn: e1BuildFinished,
 						Status:     "Succeeded",
@@ -299,12 +287,8 @@ func TestBuildConfigTaskOrder(t *testing.T) {
 						},
 					},
 					{
-						Name:  "build",
-						After: []string{"git-clone"},
-						Ref: v1beta1.TaskRef{
-							Name: "build",
-							Kind: "ClusterTask",
-						},
+						Name:       "build",
+						After:      []string{"git-clone"},
 						StartedOn:  e1BuildStart,
 						FinishedOn: e1BuildFinished,
 						Status:     "Succeeded",

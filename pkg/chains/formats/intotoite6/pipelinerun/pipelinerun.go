@@ -140,10 +140,6 @@ func buildConfig(pro *objects.PipelineRunObject, logger *zap.SugaredLogger) Buil
 			Results:    tr.Status.TaskRunResults,
 		}
 
-		if t.TaskRef != nil {
-			task.Ref = *t.TaskRef
-		}
-
 		tasks = append(tasks, task)
 		if i < len(pSpec.Tasks) {
 			last = task.Name
