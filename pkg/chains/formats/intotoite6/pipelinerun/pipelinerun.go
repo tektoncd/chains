@@ -132,8 +132,8 @@ func buildConfig(pro *objects.PipelineRunObject, logger *zap.SugaredLogger) Buil
 		task := TaskAttestation{
 			Name:       t.Name,
 			After:      after,
-			StartedOn:  tr.Status.StartTime.Time,
-			FinishedOn: tr.Status.CompletionTime.Time,
+			StartedOn:  tr.Status.StartTime.Time.UTC(),
+			FinishedOn: tr.Status.CompletionTime.Time.UTC(),
 			Status:     getStatus(tr.Status.Conditions),
 			Steps:      steps,
 			Invocation: attest.Invocation(params, paramSpecs),
@@ -155,10 +155,12 @@ func buildConfig(pro *objects.PipelineRunObject, logger *zap.SugaredLogger) Buil
 func metadata(pro *objects.PipelineRunObject) *slsa.ProvenanceMetadata {
 	m := &slsa.ProvenanceMetadata{}
 	if pro.Status.StartTime != nil {
-		m.BuildStartedOn = &pro.Status.StartTime.Time
+		utc := pro.Status.StartTime.Time.UTC()
+		m.BuildStartedOn = &utc
 	}
 	if pro.Status.CompletionTime != nil {
-		m.BuildFinishedOn = &pro.Status.CompletionTime.Time
+		utc := pro.Status.CompletionTime.Time.UTC()
+		m.BuildFinishedOn = &utc
 	}
 	for label, value := range pro.Labels {
 		if label == attest.ChainsReproducibleAnnotation && value == "true" {

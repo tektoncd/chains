@@ -62,10 +62,12 @@ func invocation(tro *objects.TaskRunObject) slsa.ProvenanceInvocation {
 func metadata(tro *objects.TaskRunObject) *slsa.ProvenanceMetadata {
 	m := &slsa.ProvenanceMetadata{}
 	if tro.Status.StartTime != nil {
-		m.BuildStartedOn = &tro.Status.StartTime.Time
+		utc := tro.Status.StartTime.Time.UTC()
+		m.BuildStartedOn = &utc
 	}
 	if tro.Status.CompletionTime != nil {
-		m.BuildFinishedOn = &tro.Status.CompletionTime.Time
+		utc := tro.Status.CompletionTime.Time.UTC()
+		m.BuildFinishedOn = &utc
 	}
 	for label, value := range tro.Labels {
 		if label == attest.ChainsReproducibleAnnotation && value == "true" {
