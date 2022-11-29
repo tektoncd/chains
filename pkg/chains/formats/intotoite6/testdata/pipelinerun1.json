@@ -292,6 +292,15 @@
                     }
                 }
             }
+        },
+        "provenance": {
+          "configSource": {
+            "uri": "github.com/test",
+            "digest": {
+              "sha1": "28b123"
+            },
+            "entryPoint": "pipeline.yaml"
+          }
         }
     }
 }

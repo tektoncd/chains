@@ -71,6 +71,11 @@ func TestTaskRunCreatePayload1(t *testing.T) {
 				{URI: "git+https://git.test.com.git", Digest: slsa.DigestSet{"sha1": "sha:taskrun"}},
 			},
 			Invocation: slsa.ProvenanceInvocation{
+				ConfigSource: slsa.ConfigSource{
+					URI:        "github.com/test",
+					Digest:     map[string]string{"sha1": "ab123"},
+					EntryPoint: "build.yaml",
+				},
 				Parameters: map[string]v1beta1.ArrayOrString{
 					"IMAGE":             {Type: "string", StringVal: "test.io/test/image"},
 					"CHAINS-GIT_COMMIT": {Type: "string", StringVal: "sha:taskrun"},
@@ -160,7 +165,11 @@ func TestPipelineRunCreatePayload(t *testing.T) {
 				{URI: "git+https://git.test.com.git", Digest: slsa.DigestSet{"sha1": "abcd"}},
 			},
 			Invocation: slsa.ProvenanceInvocation{
-				ConfigSource: slsa.ConfigSource{},
+				ConfigSource: slsa.ConfigSource{
+					URI:        "github.com/test",
+					Digest:     map[string]string{"sha1": "28b123"},
+					EntryPoint: "pipeline.yaml",
+				},
 				Parameters: map[string]v1beta1.ArrayOrString{
 					"IMAGE": {Type: "string", StringVal: "test.io/test/image"},
 				},
@@ -193,7 +202,11 @@ func TestPipelineRunCreatePayload(t *testing.T) {
 							},
 						},
 						Invocation: slsa.ProvenanceInvocation{
-							ConfigSource: slsa.ConfigSource{},
+							ConfigSource: slsa.ConfigSource{
+								URI:        "github.com/catalog",
+								Digest:     slsa.DigestSet{"sha1": "x123"},
+								EntryPoint: "git-clone.yaml",
+							},
 							Parameters: map[string]v1beta1.ArrayOrString{
 								"CHAINS-GIT_COMMIT": {Type: "string", StringVal: "sha:taskdefault"},
 								"CHAINS-GIT_URL":    {Type: "string", StringVal: "https://git.test.com"},
@@ -258,7 +271,11 @@ func TestPipelineRunCreatePayload(t *testing.T) {
 							},
 						},
 						Invocation: slsa.ProvenanceInvocation{
-							ConfigSource: slsa.ConfigSource{},
+							ConfigSource: slsa.ConfigSource{
+								URI:        "github.com/test",
+								Digest:     map[string]string{"sha1": "ab123"},
+								EntryPoint: "build.yaml",
+							},
 							Parameters: map[string]v1beta1.ArrayOrString{
 								"CHAINS-GIT_COMMIT": {Type: "string", StringVal: "sha:taskrun"},
 								"CHAINS-GIT_URL":    {Type: "string", StringVal: "https://git.test.com"},
@@ -381,7 +398,11 @@ func TestPipelineRunCreatePayloadChildRefs(t *testing.T) {
 							},
 						},
 						Invocation: slsa.ProvenanceInvocation{
-							ConfigSource: slsa.ConfigSource{},
+							ConfigSource: slsa.ConfigSource{
+								URI:        "github.com/catalog",
+								Digest:     slsa.DigestSet{"sha1": "x123"},
+								EntryPoint: "git-clone.yaml",
+							},
 							Parameters: map[string]v1beta1.ArrayOrString{
 								"CHAINS-GIT_COMMIT": {Type: "string", StringVal: "sha:taskdefault"},
 								"CHAINS-GIT_URL":    {Type: "string", StringVal: "https://git.test.com"},
@@ -446,7 +467,11 @@ func TestPipelineRunCreatePayloadChildRefs(t *testing.T) {
 							},
 						},
 						Invocation: slsa.ProvenanceInvocation{
-							ConfigSource: slsa.ConfigSource{},
+							ConfigSource: slsa.ConfigSource{
+								URI:        "github.com/test",
+								Digest:     map[string]string{"sha1": "ab123"},
+								EntryPoint: "build.yaml",
+							},
 							Parameters: map[string]v1beta1.ArrayOrString{
 								"CHAINS-GIT_COMMIT": {Type: "string", StringVal: "sha:taskrun"},
 								"CHAINS-GIT_URL":    {Type: "string", StringVal: "https://git.test.com"},
@@ -526,6 +551,11 @@ func TestTaskRunCreatePayload2(t *testing.T) {
 				{URI: "git+https://git.test.com.git", Digest: slsa.DigestSet{"sha1": "sha:taskdefault"}},
 			},
 			Invocation: slsa.ProvenanceInvocation{
+				ConfigSource: slsa.ConfigSource{
+					URI:        "github.com/catalog",
+					Digest:     slsa.DigestSet{"sha1": "x123"},
+					EntryPoint: "git-clone.yaml",
+				},
 				Parameters: map[string]v1beta1.ArrayOrString{
 					"CHAINS-GIT_COMMIT": {Type: "string", StringVal: "sha:taskdefault"},
 					"CHAINS-GIT_URL":    {Type: "string", StringVal: "https://git.test.com"},
@@ -555,31 +585,6 @@ func TestTaskRunCreatePayload2(t *testing.T) {
 		t.Errorf("unexpected error: %s", err.Error())
 	}
 	if diff := cmp.Diff(expected, got); diff != "" {
-		t.Errorf("InTotoIte6.CreatePayload(): -want +got: %s", diff)
-	}
-}
-
-func TestCreatePayloadNilTaskRef(t *testing.T) {
-	tr, err := objectloader.TaskRunFromFile("testdata/taskrun1.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	tr.Spec.TaskRef = nil
-	cfg := config.Config{
-		Builder: config.BuilderConfig{
-			ID: "testid",
-		},
-	}
-	f, _ := NewFormatter(cfg, logtesting.TestLogger(t))
-
-	p, err := f.CreatePayload(objects.NewTaskRunObject(tr))
-	if err != nil {
-		t.Errorf("unexpected error: %s", err.Error())
-	}
-
-	ps := p.(in_toto.ProvenanceStatement)
-	if diff := cmp.Diff("", ps.Predicate.Invocation.ConfigSource.EntryPoint); diff != "" {
 		t.Errorf("InTotoIte6.CreatePayload(): -want +got: %s", diff)
 	}
 }

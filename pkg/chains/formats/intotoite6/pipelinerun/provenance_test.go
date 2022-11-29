@@ -62,6 +62,11 @@ func createPro() *objects.PipelineRunObject {
 
 func TestInvocation(t *testing.T) {
 	expected := slsa.ProvenanceInvocation{
+		ConfigSource: slsa.ConfigSource{
+			URI:        "github.com/test",
+			Digest:     map[string]string{"sha1": "28b123"},
+			EntryPoint: "pipeline.yaml",
+		},
 		Parameters: map[string]v1beta1.ArrayOrString{
 			"IMAGE": {Type: "string", StringVal: "test.io/test/image"},
 		},
@@ -97,7 +102,11 @@ func TestBuildConfig(t *testing.T) {
 					},
 				},
 				Invocation: slsa.ProvenanceInvocation{
-					ConfigSource: slsa.ConfigSource{},
+					ConfigSource: slsa.ConfigSource{
+						URI:        "github.com/catalog",
+						Digest:     slsa.DigestSet{"sha1": "x123"},
+						EntryPoint: "git-clone.yaml",
+					},
 					Parameters: map[string]v1beta1.ArrayOrString{
 						"CHAINS-GIT_COMMIT": {Type: "string", StringVal: "sha:taskdefault"},
 						"CHAINS-GIT_URL":    {Type: "string", StringVal: "https://git.test.com"},
@@ -162,7 +171,11 @@ func TestBuildConfig(t *testing.T) {
 					},
 				},
 				Invocation: slsa.ProvenanceInvocation{
-					ConfigSource: slsa.ConfigSource{},
+					ConfigSource: slsa.ConfigSource{
+						URI:        "github.com/test",
+						Digest:     map[string]string{"sha1": "ab123"},
+						EntryPoint: "build.yaml",
+					},
 					Parameters: map[string]v1beta1.ArrayOrString{
 						"CHAINS-GIT_COMMIT": {Type: "string", StringVal: "sha:taskrun"},
 						"CHAINS-GIT_URL":    {Type: "string", StringVal: "https://git.test.com"},
@@ -273,7 +286,11 @@ func TestBuildConfigTaskOrder(t *testing.T) {
 							},
 						},
 						Invocation: slsa.ProvenanceInvocation{
-							ConfigSource: slsa.ConfigSource{},
+							ConfigSource: slsa.ConfigSource{
+								URI:        "github.com/catalog",
+								Digest:     slsa.DigestSet{"sha1": "x123"},
+								EntryPoint: "git-clone.yaml",
+							},
 							Parameters: map[string]v1beta1.ArrayOrString{
 								"CHAINS-GIT_COMMIT": {Type: "string", StringVal: "sha:taskdefault"},
 								"CHAINS-GIT_URL":    {Type: "string", StringVal: "https://git.test.com"},
@@ -338,7 +355,11 @@ func TestBuildConfigTaskOrder(t *testing.T) {
 							},
 						},
 						Invocation: slsa.ProvenanceInvocation{
-							ConfigSource: slsa.ConfigSource{},
+							ConfigSource: slsa.ConfigSource{
+								URI:        "github.com/test",
+								Digest:     map[string]string{"sha1": "ab123"},
+								EntryPoint: "build.yaml",
+							},
 							Parameters: map[string]v1beta1.ArrayOrString{
 								// TODO: Is this right?
 								// "CHAINS-GIT_COMMIT": {Type: "string", StringVal: "abcd"},

@@ -122,6 +122,15 @@
                     "description": "Digest of the file just built."
                 }
             ]
+        },
+      "provenance": {
+          "configSource": {
+            "uri": "github.com/test",
+            "digest": {
+              "sha1": "ab123"
+            },
+            "entryPoint": "build.yaml"
+          }
         }
     }
 }
