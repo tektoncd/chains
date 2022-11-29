@@ -404,6 +404,28 @@ func TestMetadata(t *testing.T) {
 	}
 }
 
+func TestMetadataInTimeZone(t *testing.T) {
+	expected := &slsa.ProvenanceMetadata{
+		BuildStartedOn:  &e1BuildStart,
+		BuildFinishedOn: &e1BuildFinished,
+		Completeness: slsa.ProvenanceComplete{
+			Parameters:  false,
+			Environment: false,
+			Materials:   false,
+		},
+		Reproducible: false,
+	}
+
+	zoned := objects.NewPipelineRunObject(pro.DeepCopy())
+	tz := time.FixedZone("Test Time", int((12 * time.Hour).Seconds()))
+	zoned.Status.StartTime.Time = zoned.Status.StartTime.Time.In(tz)
+	zoned.Status.CompletionTime.Time = zoned.Status.CompletionTime.Time.In(tz)
+	got := metadata(zoned)
+	if diff := cmp.Diff(expected, got); diff != "" {
+		t.Errorf("metadata(): -want +got: %s", diff)
+	}
+}
+
 func TestMaterials(t *testing.T) {
 	expected := []slsa.ProvenanceMaterial{
 		{URI: "abc", Digest: slsa.DigestSet{"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"}},

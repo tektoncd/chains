@@ -72,6 +72,35 @@ func TestMetadata(t *testing.T) {
 	}
 }
 
+func TestMetadataInTimeZone(t *testing.T) {
+	tz := time.FixedZone("Test Time", int((12 * time.Hour).Seconds()))
+	tr := &v1beta1.TaskRun{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "my-taskrun",
+			Namespace: "my-namespace",
+			Annotations: map[string]string{
+				"chains.tekton.dev/reproducible": "true",
+			},
+		},
+		Status: v1beta1.TaskRunStatus{
+			TaskRunStatusFields: v1beta1.TaskRunStatusFields{
+				StartTime:      &v1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 12, tz)},
+				CompletionTime: &v1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 24, tz)},
+			},
+		},
+	}
+	start := time.Date(1995, time.December, 24, 6, 12, 12, 12, tz).UTC()
+	end := time.Date(1995, time.December, 24, 6, 12, 12, 24, tz).UTC()
+	expected := &slsa.ProvenanceMetadata{
+		BuildStartedOn:  &start,
+		BuildFinishedOn: &end,
+	}
+	got := metadata(objects.NewTaskRunObject(tr))
+	if !reflect.DeepEqual(expected, got) {
+		t.Fatalf("expected %v got %v", expected, got)
+	}
+}
+
 func TestMaterialsWithTaskRunResults(t *testing.T) {
 	// make sure this works with Git resources
 	taskrun := `apiVersion: tekton.dev/v1beta1
