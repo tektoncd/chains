@@ -76,3 +76,18 @@ To enable singing with Fulcio, run:
 ```shell
 kubectl patch configmap chains-config -n tekton-chains -p='{"data":{"signers.x509.fulcio.enabled": "true"}}'
 ```
+
+### Better Way Of Navigating in Transparency Log with rekor-search-ui
+
+The `chains.tekton.dev/transparency` annotation on `TaskRun` and `PipelineRun` resources holds the URL to access the transparency log entry via Rekor's API. It is also possible to view the log entry via [Rekor's web interface](https://github.com/chainguard-dev/rekor-search-ui).
+
+There is already a public good instance of the Rekor Search UI provided by the Chainguard team running at <https://rekor.tlog.dev>, which you can use to display the details of the log entry within the transparency log.
+
+If you want to search your entry via `logIndex,` you can use the following URL:
+> _<https://rekor.tlog.dev/?logIndex=735223>_
+
+But the `logIndex` is not the only option. You could also use `email,` `hash,` `commit SHA,` and `UUID` as an option to search the transparency log entry.
+
+For example, you can search via `email`:
+
+> _<https://rekor.tlog.dev/?email=developerguyn@gmail.com>_
