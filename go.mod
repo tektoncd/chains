@@ -3,7 +3,7 @@ module github.com/tektoncd/chains
 go 1.18
 
 require (
-	cloud.google.com/go/compute/metadata v0.2.1
+	cloud.google.com/go/compute/metadata v0.2.2
 	cloud.google.com/go/storage v1.28.0
 	github.com/armon/go-metrics v0.4.1
 	github.com/armon/go-radix v1.0.0
