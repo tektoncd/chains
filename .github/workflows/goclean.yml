@@ -1,0 +1,38 @@
+name: goclean
+
+on:
+  push:
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+    branches: [ main ]
+  pull_request:
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+    branches: [ main ]
+  schedule:
+    - cron: '41 20 * * 1'
+
+jobs:
+  goclean:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3 # check-out repository
+    
+    - name: Setup Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: '1.18.0'
+    
+    - name: go vet
+      run: |
+        # Use in-place vendored dependencies.
+        go vet -mod=vendor ./...
+
+    # If this workflow fails, run `go fmt` on your tree and resubmit.
+    # We ignore vendor/ files whose format we don't control.
+    - name: go fmt
+      run: if [ "$(gofmt -l . | grep -v vendor/ | grep -v third_party/ | wc -l)" -gt 0 ]; then exit 1; fi
