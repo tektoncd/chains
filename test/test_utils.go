@@ -213,12 +213,14 @@ func setConfigMap(ctx context.Context, t *testing.T, c *clients, data map[string
 }
 
 func printDebugging(t *testing.T, obj objects.TektonObject) {
+	kind := obj.GetObjectKind().GroupVersionKind().Kind
+
 	t.Logf("============================== %s logs ==============================", obj.GetGVK())
-	output, _ := exec.Command("tkn", obj.GetGVK(), "logs", "-n", obj.GetNamespace(), obj.GetName()).CombinedOutput()
+	output, _ := exec.Command("tkn", kind, "logs", "-n", obj.GetNamespace(), obj.GetName()).CombinedOutput()
 	t.Log(string(output))
 
 	t.Logf("============================== %s describe ==============================", obj.GetGVK())
-	output, _ = exec.Command("tkn", obj.GetGVK(), "describe", "-n", obj.GetNamespace(), obj.GetName()).CombinedOutput()
+	output, _ = exec.Command("tkn", kind, "describe", "-n", obj.GetNamespace(), obj.GetName()).CombinedOutput()
 	t.Log(string(output))
 
 	t.Log("============================== chains controller logs ==============================")
