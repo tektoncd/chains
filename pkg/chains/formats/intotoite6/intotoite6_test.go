@@ -39,6 +39,8 @@ var e1BuildStart = time.Unix(1617011400, 0)
 var e1BuildFinished = time.Unix(1617011415, 0)
 
 func TestTaskRunCreatePayload1(t *testing.T) {
+	ctx := logtesting.TestContextWithLogger(t)
+
 	tr, err := objectloader.TaskRunFromFile("testdata/taskrun1.json")
 	if err != nil {
 		t.Fatal(err)
@@ -113,9 +115,9 @@ func TestTaskRunCreatePayload1(t *testing.T) {
 			},
 		},
 	}
-	i, _ := NewFormatter(cfg, logtesting.TestLogger(t))
+	i, _ := NewFormatter(cfg)
 
-	got, err := i.CreatePayload(objects.NewTaskRunObject(tr))
+	got, err := i.CreatePayload(ctx, objects.NewTaskRunObject(tr))
 
 	if err != nil {
 		t.Errorf("unexpected error: %s", err.Error())
@@ -126,6 +128,7 @@ func TestTaskRunCreatePayload1(t *testing.T) {
 }
 
 func TestPipelineRunCreatePayload(t *testing.T) {
+	ctx := logtesting.TestContextWithLogger(t)
 	pr, err := objectloader.PipelineRunFromFile("testdata/pipelinerun1.json")
 	if err != nil {
 		t.Fatal(err)
@@ -316,9 +319,9 @@ func TestPipelineRunCreatePayload(t *testing.T) {
 	pro.AppendTaskRun(tr1)
 	pro.AppendTaskRun(tr2)
 
-	i, _ := NewFormatter(cfg, logtesting.TestLogger(t))
+	i, _ := NewFormatter(cfg)
 
-	got, err := i.CreatePayload(pro)
+	got, err := i.CreatePayload(ctx, pro)
 	if err != nil {
 		t.Errorf("unexpected error: %s", err.Error())
 	}
@@ -327,6 +330,7 @@ func TestPipelineRunCreatePayload(t *testing.T) {
 	}
 }
 func TestPipelineRunCreatePayloadChildRefs(t *testing.T) {
+	ctx := logtesting.TestContextWithLogger(t)
 	pr, err := objectloader.PipelineRunFromFile("testdata/pipelinerun-childrefs.json")
 	if err != nil {
 		t.Fatal(err)
@@ -512,8 +516,8 @@ func TestPipelineRunCreatePayloadChildRefs(t *testing.T) {
 	pro.AppendTaskRun(tr1)
 	pro.AppendTaskRun(tr2)
 
-	i, _ := NewFormatter(cfg, logtesting.TestLogger(t))
-	got, err := i.CreatePayload(pro)
+	i, _ := NewFormatter(cfg)
+	got, err := i.CreatePayload(ctx, pro)
 	if err != nil {
 		t.Errorf("unexpected error: %s", err.Error())
 	}
@@ -523,6 +527,7 @@ func TestPipelineRunCreatePayloadChildRefs(t *testing.T) {
 }
 
 func TestTaskRunCreatePayload2(t *testing.T) {
+	ctx := logtesting.TestContextWithLogger(t)
 	tr, err := objectloader.TaskRunFromFile("testdata/taskrun2.json")
 	if err != nil {
 		t.Fatal(err)
@@ -578,8 +583,8 @@ func TestTaskRunCreatePayload2(t *testing.T) {
 			},
 		},
 	}
-	i, _ := NewFormatter(cfg, logtesting.TestLogger(t))
-	got, err := i.CreatePayload(objects.NewTaskRunObject(tr))
+	i, _ := NewFormatter(cfg)
+	got, err := i.CreatePayload(ctx, objects.NewTaskRunObject(tr))
 
 	if err != nil {
 		t.Errorf("unexpected error: %s", err.Error())
@@ -590,6 +595,8 @@ func TestTaskRunCreatePayload2(t *testing.T) {
 }
 
 func TestMultipleSubjects(t *testing.T) {
+	ctx := logtesting.TestContextWithLogger(t)
+
 	tr, err := objectloader.TaskRunFromFile("testdata/taskrun-multiple-subjects.json")
 	if err != nil {
 		t.Fatal(err)
@@ -641,8 +648,8 @@ func TestMultipleSubjects(t *testing.T) {
 		},
 	}
 
-	i, _ := NewFormatter(cfg, logtesting.TestLogger(t))
-	got, err := i.CreatePayload(objects.NewTaskRunObject(tr))
+	i, _ := NewFormatter(cfg)
+	got, err := i.CreatePayload(ctx, objects.NewTaskRunObject(tr))
 	if err != nil {
 		t.Errorf("unexpected error: %s", err.Error())
 	}
@@ -658,7 +665,7 @@ func TestNewFormatter(t *testing.T) {
 				ID: "testid",
 			},
 		}
-		f, err := NewFormatter(cfg, logtesting.TestLogger(t))
+		f, err := NewFormatter(cfg)
 		if f == nil {
 			t.Error("Failed to create formatter")
 		}
@@ -669,15 +676,17 @@ func TestNewFormatter(t *testing.T) {
 }
 
 func TestCreatePayloadError(t *testing.T) {
+	ctx := logtesting.TestContextWithLogger(t)
+
 	cfg := config.Config{
 		Builder: config.BuilderConfig{
 			ID: "testid",
 		},
 	}
-	f, _ := NewFormatter(cfg, logtesting.TestLogger(t))
+	f, _ := NewFormatter(cfg)
 
 	t.Run("Invalid type", func(t *testing.T) {
-		p, err := f.CreatePayload("not a task ref")
+		p, err := f.CreatePayload(ctx, "not a task ref")
 
 		if p != nil {
 			t.Errorf("Unexpected payload")

@@ -14,6 +14,7 @@ limitations under the License.
 package tekton
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
@@ -36,7 +37,7 @@ func TestTekton_CreatePayload(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			i := &Tekton{}
-			got, err := i.CreatePayload(objects.NewTaskRunObject(tt.tr))
+			got, err := i.CreatePayload(context.Background(), objects.NewTaskRunObject(tt.tr))
 			if err != nil {
 				t.Errorf("Tekton.CreatePayload() error = %v", err)
 				return
