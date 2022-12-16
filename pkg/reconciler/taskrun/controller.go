@@ -26,6 +26,8 @@ import (
 	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/logging"
+
+	_ "github.com/tektoncd/chains/pkg/chains/formats/all"
 )
 
 func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
