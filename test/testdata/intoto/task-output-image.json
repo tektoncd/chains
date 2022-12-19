@@ -78,6 +78,14 @@
             "reproducible": false
         },
         "materials": [
+	    {{range .URIDigest}}
+	    {
+		"uri": "{{.URI}}",
+		"digest": {
+		    "sha256": "{{.Digest}}"
+		}
+	    },
+	    {{end}}
             {
                 "uri": "git+https://github.com/GoogleContainerTools/skaffold@v0.32.0",
                 "digest": {
