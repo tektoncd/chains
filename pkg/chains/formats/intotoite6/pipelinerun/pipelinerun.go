@@ -21,6 +21,8 @@ import (
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/formats/intotoite6/attest"
 	"github.com/tektoncd/chains/pkg/chains/formats/intotoite6/extract"
+	"github.com/tektoncd/chains/pkg/chains/formats/intotoite6/internal/material"
+	"github.com/tektoncd/chains/pkg/chains/formats/intotoite6/taskrun"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"go.uber.org/zap"
@@ -47,6 +49,10 @@ type TaskAttestation struct {
 func GenerateAttestation(builderID string, pro *objects.PipelineRunObject, logger *zap.SugaredLogger) (interface{}, error) {
 	subjects := extract.SubjectDigests(pro, logger)
 
+	mat, err := materials(pro, logger)
+	if err != nil {
+		return nil, err
+	}
 	att := intoto.ProvenanceStatement{
 		StatementHeader: intoto.StatementHeader{
 			Type:          intoto.StatementInTotoV01,
@@ -61,7 +67,7 @@ func GenerateAttestation(builderID string, pro *objects.PipelineRunObject, logge
 			Invocation:  invocation(pro),
 			BuildConfig: buildConfig(pro, logger),
 			Metadata:    metadata(pro),
-			Materials:   materials(pro, logger),
+			Materials:   mat,
 		},
 	}
 	return att, nil
@@ -182,8 +188,46 @@ func metadata(pro *objects.PipelineRunObject) *slsa.ProvenanceMetadata {
 }
 
 // add any Git specification to materials
-func materials(pro *objects.PipelineRunObject, logger *zap.SugaredLogger) []slsa.ProvenanceMaterial {
+func materials(pro *objects.PipelineRunObject, logger *zap.SugaredLogger) ([]slsa.ProvenanceMaterial, error) {
 	var mats []slsa.ProvenanceMaterial
+	if p := pro.Status.Provenance; p != nil {
+		m := slsa.ProvenanceMaterial{
+			URI:    p.ConfigSource.URI,
+			Digest: p.ConfigSource.Digest,
+		}
+		mats = append(mats, m)
+	}
+	pSpec := pro.Status.PipelineSpec
+	if pSpec != nil {
+		pipelineTasks := append(pSpec.Tasks, pSpec.Finally...)
+		for _, t := range pipelineTasks {
+			tr := pro.GetTaskRunFromTask(t.Name)
+			// Ignore Tasks that did not execute during the PipelineRun.
+			if tr == nil || tr.Status.CompletionTime == nil {
+				logger.Infof("taskrun status not found for task %s", t.Name)
+				continue
+			}
+
+			// add step images
+			if err := taskrun.AddStepImagesToMaterials(tr.Status.Steps, &mats); err != nil {
+				return mats, nil
+			}
+
+			// add sidecar images
+			if err := taskrun.AddSidecarImagesToMaterials(tr.Status.Sidecars, &mats); err != nil {
+				return mats, nil
+			}
+
+			// add remote task configsource information in materials
+			if tr.Status.Provenance != nil && tr.Status.Provenance.ConfigSource != nil {
+				m := slsa.ProvenanceMaterial{
+					URI:    tr.Status.Provenance.ConfigSource.URI,
+					Digest: tr.Status.Provenance.ConfigSource.Digest,
+				}
+				mats = append(mats, m)
+			}
+		}
+	}
 	var commit, url string
 	// search spec.params
 	for _, p := range pro.Spec.Params {
@@ -231,7 +275,13 @@ func materials(pro *objects.PipelineRunObject, logger *zap.SugaredLogger) []slsa
 			Digest: map[string]string{"sha1": commit},
 		})
 	}
-	return mats
+
+	// remove duplicate materials
+	mats, err := material.RemoveDuplicateMaterials(mats)
+	if err != nil {
+		return mats, err
+	}
+	return mats, nil
 }
 
 // Following tkn cli's behavior

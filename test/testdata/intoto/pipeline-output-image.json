@@ -70,6 +70,14 @@
             "reproducible": false
         },
         "materials": [
+	    {{range .URIDigest}}
+	    {
+		"uri": "{{.URI}}",
+		"digest": {
+		    "sha256": "{{.Digest}}"
+		}
+	    },
+	    {{end}}
             {
                 "uri": "git+https://my-git-url.git",
                 "digest": {

@@ -303,7 +303,7 @@ func TestAddStepImagesToMaterials(t *testing.T) {
 	}}
 	for _, tc := range tests {
 		var mat []slsa.ProvenanceMaterial
-		if err := addStepImagesToMaterials(tc.steps, &mat); err != nil {
+		if err := AddStepImagesToMaterials(tc.steps, &mat); err != nil {
 			if err.Error() != tc.wantError.Error() {
 				t.Fatalf("Expected error %v but got %v", tc.wantError, err)
 			}
@@ -373,7 +373,7 @@ func TestAddSidecarImagesToMaterials(t *testing.T) {
 	}}
 	for _, tc := range tests {
 		var mat []slsa.ProvenanceMaterial
-		if err := addSidecarImagesToMaterials(tc.sidecars, &mat); err != nil {
+		if err := AddSidecarImagesToMaterials(tc.sidecars, &mat); err != nil {
 			if err.Error() != tc.wantError.Error() {
 				t.Fatalf("Expected error %v but got %v", tc.wantError, err)
 			}
@@ -411,7 +411,7 @@ func TestAddImageIDToMaterials(t *testing.T) {
 	}}
 	for _, tc := range tests {
 		mat := []slsa.ProvenanceMaterial{}
-		if err := addImageIDToMaterials(tc.imageID, &mat); err != nil {
+		if err := AddImageIDToMaterials(tc.imageID, &mat); err != nil {
 			if err.Error() != tc.wantError.Error() {
 				t.Fatalf("Expected error %v but got %v", tc.wantError, err)
 			}

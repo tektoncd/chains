@@ -132,6 +132,7 @@ func runInTotoFormatterTests(ctx context.Context, t *testing.T, ns string, c *cl
 			if diff := cmp.Diff(expected, gotProvenance, OptSortMaterial); diff != "" {
 				t.Errorf("provenance dont match: -want +got: %s", diff)
 			}
+
 			// verify signature
 			pub, err := c.secret.x509priv.PublicKey()
 			if err != nil {
@@ -246,11 +247,33 @@ func expectedPipelineRunProvenance(t *testing.T, example string, obj objects.Tek
 
 	buildStartTimes := []string{}
 	buildFinishedTimes := []string{}
+	var uridigest []URIDigestPair
+	uriDigestSet := make(map[string]bool)
 
 	// TODO: Load TaskRun data from ChildReferences.
 	for _, trStatus := range pr.Status.TaskRuns {
 		buildStartTimes = append(buildStartTimes, trStatus.Status.StartTime.Time.UTC().Format(time.RFC3339))
 		buildFinishedTimes = append(buildFinishedTimes, trStatus.Status.CompletionTime.Time.UTC().Format(time.RFC3339))
+		for _, step := range trStatus.Status.Steps {
+			// append uri and digest that havent already been appended
+			uri := strings.Split(step.ImageID, "@")[0]
+			digest := strings.Split(step.ImageID, ":")[1]
+			uriDigest := fmt.Sprintf("%s %s", uri, digest)
+			if _, ok := uriDigestSet[uriDigest]; !ok {
+				uridigest = append(uridigest, URIDigestPair{URI: uri, Digest: digest})
+				uriDigestSet[uriDigest] = true
+			}
+		}
+		for _, sidecar := range trStatus.Status.Sidecars {
+			// append uri and digest that havent already been appended
+			uri := strings.Split(sidecar.ImageID, "@")[0]
+			digest := strings.Split(sidecar.ImageID, ":")[1]
+			uriDigest := fmt.Sprintf("%s %s", uri, digest)
+			if _, ok := uriDigestSet[uriDigest]; !ok {
+				uridigest = append(uridigest, URIDigestPair{URI: uri, Digest: digest})
+				uriDigestSet[uriDigest] = true
+			}
+		}
 	}
 
 	f := Format{
@@ -258,6 +281,7 @@ func expectedPipelineRunProvenance(t *testing.T, example string, obj objects.Tek
 		PipelineFinishedOn: pr.Status.CompletionTime.Time.UTC().Format(time.RFC3339),
 		BuildStartTimes:    buildStartTimes,
 		BuildFinishedTimes: buildFinishedTimes,
+		URIDigest:          uridigest,
 	}
 
 	return readExpectedAttestation(t, example, f)

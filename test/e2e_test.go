@@ -28,12 +28,14 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
 	"cloud.google.com/go/compute/metadata"
 	"cloud.google.com/go/storage"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
@@ -769,8 +771,25 @@ func TestProvenanceMaterials(t *testing.T) {
 					},
 				},
 			}
+			if test.name == "pipelinerun" {
+				pr := signedObj.GetObject().(*v1beta1.PipelineRun)
+				for _, trStatus := range pr.Status.TaskRuns {
+					for _, step := range trStatus.Status.Steps {
+						want = append(want, provenance.ProvenanceMaterial{
+							URI: strings.Split(step.ImageID, "@")[0],
+							Digest: provenance.DigestSet{
+								"sha256": strings.Split(step.ImageID, ":")[1],
+							},
+						})
+					}
+				}
+			}
 			got := predicate.Materials
-			if d := cmp.Diff(want, got); d != "" {
+
+			sortMaterials := cmpopts.SortSlices(func(i, j provenance.ProvenanceMaterial) bool {
+				return i.URI < j.URI
+			})
+			if d := cmp.Diff(want, got, sortMaterials); d != "" {
 				t.Fatal(string(d))
 			}
 		})
