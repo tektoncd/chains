@@ -76,25 +76,31 @@ func ResolveImport(importPath string) string {
 //
 // For example, let's say we have two proto source files: "foo/bar.proto" and
 // "fubar/baz.proto". The latter imports the former using a line like so:
-//    import "foo/bar.proto";
+//
+//	import "foo/bar.proto";
+//
 // However, when protoc is invoked, the command-line args looks like so:
-//    protoc -Ifoo/ --go_out=foo/ bar.proto
-//    protoc -I./ -Ifubar/ --go_out=fubar/ baz.proto
+//
+//	protoc -Ifoo/ --go_out=foo/ bar.proto
+//	protoc -I./ -Ifubar/ --go_out=fubar/ baz.proto
+//
 // Because the path given to protoc is just "bar.proto" and "baz.proto", this is
 // how they are registered in the Go protobuf runtime. So, when loading the
 // descriptor for "fubar/baz.proto", we'll see an import path of "foo/bar.proto"
 // but will find no file registered with that path:
-//    fd, err := desc.LoadFileDescriptor("baz.proto")
-//    // err will be non-nil, complaining that there is no such file
-//    // found named "foo/bar.proto"
+//
+//	fd, err := desc.LoadFileDescriptor("baz.proto")
+//	// err will be non-nil, complaining that there is no such file
+//	// found named "foo/bar.proto"
 //
 // This can be remedied by registering alternate import paths using an
 // ImportResolver. Continuing with the example above, the code below would fix
 // any link issue:
-//    var r desc.ImportResolver
-//    r.RegisterImportPath("bar.proto", "foo/bar.proto")
-//    fd, err := r.LoadFileDescriptor("baz.proto")
-//    // err will be nil; descriptor successfully loaded!
+//
+//	var r desc.ImportResolver
+//	r.RegisterImportPath("bar.proto", "foo/bar.proto")
+//	fd, err := r.LoadFileDescriptor("baz.proto")
+//	// err will be nil; descriptor successfully loaded!
 //
 // If there are files that are *always* imported using a different relative
 // path then how they are registered, consider using the global
@@ -134,7 +140,7 @@ func (r *ImportResolver) resolveImport(source, importPath string) string {
 		return r.importPaths[importPath]
 	}
 	var car, cdr string
-	idx := strings.IndexRune(source, filepath.Separator)
+	idx := strings.IndexRune(source, '/')
 	if idx < 0 {
 		car, cdr = source, ""
 	} else {
@@ -205,7 +211,7 @@ func (r *ImportResolver) registerImportPathFrom(registerPath, importPath, source
 		return
 	}
 	var car, cdr string
-	idx := strings.IndexRune(source, filepath.Separator)
+	idx := strings.IndexRune(source, '/')
 	if idx < 0 {
 		car, cdr = source, ""
 	} else {
@@ -299,13 +305,13 @@ func (r *ImportResolver) CreateFileDescriptorsFromSet(fds *dpb.FileDescriptorSet
 	return createFileDescriptorsFromSet(fds, r)
 }
 
-const dotPrefix = "." + string(filepath.Separator)
+const dotPrefix = "./"
 
 func clean(path string) string {
 	if path == "" {
 		return ""
 	}
-	path = filepath.Clean(path)
+	path = filepath.ToSlash(filepath.Clean(path))
 	if path == "." {
 		return ""
 	}

@@ -3,7 +3,7 @@
 
 # contextcheck
 
-`contextcheck` is a static analysis tool, it is used to check the function whether use a non-inherited context, which will result in a broken call link.
+`contextcheck` is a static analysis tool, it is used to check whether the function uses a non-inherited context, which will result in a broken call link.
 
 For example:
 
