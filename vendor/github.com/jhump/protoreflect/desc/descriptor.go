@@ -549,31 +549,69 @@ func createFieldDescriptor(fd *FileDescriptor, parent Descriptor, enclosing stri
 	return ret, fldName
 }
 
+func descriptorType(d Descriptor) string {
+	switch d := d.(type) {
+	case *FileDescriptor:
+		return "a file"
+	case *MessageDescriptor:
+		return "a message"
+	case *FieldDescriptor:
+		if d.IsExtension() {
+			return "an extension"
+		}
+		return "a field"
+	case *OneOfDescriptor:
+		return "a oneof"
+	case *EnumDescriptor:
+		return "an enum"
+	case *EnumValueDescriptor:
+		return "an enum value"
+	case *ServiceDescriptor:
+		return "a service"
+	case *MethodDescriptor:
+		return "a method"
+	default:
+		return fmt.Sprintf("a %T", d)
+	}
+}
+
 func (fd *FieldDescriptor) resolve(path []int32, scopes []scope) error {
 	if fd.proto.OneofIndex != nil && fd.oneOf == nil {
 		return fmt.Errorf("could not link field %s to one-of index %d", fd.fqn, *fd.proto.OneofIndex)
 	}
 	fd.sourceInfoPath = append([]int32(nil), path...) // defensive copy
 	if fd.proto.GetType() == dpb.FieldDescriptorProto_TYPE_ENUM {
-		if desc, err := resolve(fd.file, fd.proto.GetTypeName(), scopes); err != nil {
+		desc, err := resolve(fd.file, fd.proto.GetTypeName(), scopes)
+		if err != nil {
 			return err
-		} else {
-			fd.enumType = desc.(*EnumDescriptor)
 		}
+		enumType, ok := desc.(*EnumDescriptor)
+		if !ok {
+			return fmt.Errorf("field %v indicates a type of enum, but references %q which is %s", fd.fqn, fd.proto.GetTypeName(), descriptorType(desc))
+		}
+		fd.enumType = enumType
 	}
 	if fd.proto.GetType() == dpb.FieldDescriptorProto_TYPE_MESSAGE || fd.proto.GetType() == dpb.FieldDescriptorProto_TYPE_GROUP {
-		if desc, err := resolve(fd.file, fd.proto.GetTypeName(), scopes); err != nil {
+		desc, err := resolve(fd.file, fd.proto.GetTypeName(), scopes)
+		if err != nil {
 			return err
-		} else {
-			fd.msgType = desc.(*MessageDescriptor)
 		}
+		msgType, ok := desc.(*MessageDescriptor)
+		if !ok {
+			return fmt.Errorf("field %v indicates a type of message, but references %q which is %s", fd.fqn, fd.proto.GetTypeName(), descriptorType(desc))
+		}
+		fd.msgType = msgType
 	}
 	if fd.proto.GetExtendee() != "" {
-		if desc, err := resolve(fd.file, fd.proto.GetExtendee(), scopes); err != nil {
+		desc, err := resolve(fd.file, fd.proto.GetExtendee(), scopes)
+		if err != nil {
 			return err
-		} else {
-			fd.owner = desc.(*MessageDescriptor)
 		}
+		msgType, ok := desc.(*MessageDescriptor)
+		if !ok {
+			return fmt.Errorf("field %v extends %q which should be a message but is %s", fd.fqn, fd.proto.GetExtendee(), descriptorType(desc))
+		}
+		fd.owner = msgType
 	}
 	fd.file.registerField(fd)
 	fd.isMap = fd.proto.GetLabel() == dpb.FieldDescriptorProto_LABEL_REPEATED &&
@@ -1002,7 +1040,7 @@ func (fd *FieldDescriptor) IsRepeated() bool {
 // extensions), will be nested in synthetic oneofs that contain only the single
 // field.
 func (fd *FieldDescriptor) IsProto3Optional() bool {
-	return internal.GetProto3Optional(fd.proto)
+	return fd.proto.GetProto3Optional()
 }
 
 // HasPresence returns true if this field can distinguish when a value is
@@ -1063,19 +1101,20 @@ func (fd *FieldDescriptor) GetEnumType() *EnumDescriptor {
 // Otherwise, it returns the declared default value for the field or a zero value, if no
 // default is declared or if the file is proto3. The type of said return value corresponds
 // to the type of the field:
-//  +-------------------------+-----------+
-//  |       Declared Type     |  Go Type  |
-//  +-------------------------+-----------+
-//  | int32, sint32, sfixed32 | int32     |
-//  | int64, sint64, sfixed64 | int64     |
-//  | uint32, fixed32         | uint32    |
-//  | uint64, fixed64         | uint64    |
-//  | float                   | float32   |
-//  | double                  | double32  |
-//  | bool                    | bool      |
-//  | string                  | string    |
-//  | bytes                   | []byte    |
-//  +-------------------------+-----------+
+//
+//	+-------------------------+-----------+
+//	|       Declared Type     |  Go Type  |
+//	+-------------------------+-----------+
+//	| int32, sint32, sfixed32 | int32     |
+//	| int64, sint64, sfixed64 | int64     |
+//	| uint32, fixed32         | uint32    |
+//	| uint64, fixed64         | uint64    |
+//	| float                   | float32   |
+//	| double                  | double32  |
+//	| bool                    | bool      |
+//	| string                  | string    |
+//	| bytes                   | []byte    |
+//	+-------------------------+-----------+
 func (fd *FieldDescriptor) GetDefaultValue() interface{} {
 	return fd.getDefaultValue()
 }
@@ -1119,6 +1158,7 @@ func (sv sortedValues) Less(i, j int) bool {
 
 func (sv sortedValues) Swap(i, j int) {
 	sv[i], sv[j] = sv[j], sv[i]
+
 }
 
 func (ed *EnumDescriptor) resolve(path []int32) {
@@ -1441,12 +1481,20 @@ func (md *MethodDescriptor) resolve(path []int32, scopes []scope) error {
 	if desc, err := resolve(md.file, md.proto.GetInputType(), scopes); err != nil {
 		return err
 	} else {
-		md.inType = desc.(*MessageDescriptor)
+		msgType, ok := desc.(*MessageDescriptor)
+		if !ok {
+			return fmt.Errorf("method %v has request type %q which should be a message but is %s", md.fqn, md.proto.GetInputType(), descriptorType(desc))
+		}
+		md.inType = msgType
 	}
 	if desc, err := resolve(md.file, md.proto.GetOutputType(), scopes); err != nil {
 		return err
 	} else {
-		md.outType = desc.(*MessageDescriptor)
+		msgType, ok := desc.(*MessageDescriptor)
+		if !ok {
+			return fmt.Errorf("method %v has response type %q which should be a message but is %s", md.fqn, md.proto.GetOutputType(), descriptorType(desc))
+		}
+		md.outType = msgType
 	}
 	return nil
 }
