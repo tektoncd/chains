@@ -46,7 +46,7 @@ installed on your cluster before you install Chains.
 To install the latest version of Chains to your Kubernetes cluster, run:
 
 ```shell
-kubectl apply --filename https://storage.googleapis.com/tekton-releases/chains/latest/release.yaml
+kubectl apply --filename https://storage.googleapis.com/tekton-releases/chains/previous/v0.14.0/release.yaml
 ```
 
 To install a specific version of Chains, run:
@@ -95,7 +95,7 @@ for more information.
 1. Install Tekton Chains:
 
    ```bash
-   oc apply --filename https://storage.googleapis.com/tekton-releases/chains/latest/release.yaml
+   oc apply --filename https://storage.googleapis.com/tekton-releases/chains/previous/v0.14.0/release.yaml
    ```
 
    See the
