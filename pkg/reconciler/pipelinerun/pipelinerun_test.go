@@ -31,7 +31,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"knative.dev/pkg/apis"
-	duckv1beta1 "knative.dev/pkg/apis/duck/v1beta1"
+	duckv1 "knative.dev/pkg/apis/duck/v1"
 	_ "knative.dev/pkg/client/injection/kube/client/fake"
 	"knative.dev/pkg/configmap"
 	pkgreconciler "knative.dev/pkg/reconciler"
@@ -123,7 +123,7 @@ func TestReconciler_handlePipelineRun(t *testing.T) {
 					Annotations: map[string]string{signing.ChainsAnnotation: "true"},
 				},
 				Status: v1beta1.PipelineRunStatus{
-					Status: duckv1beta1.Status{
+					Status: duckv1.Status{
 						Conditions: []apis.Condition{{Type: apis.ConditionSucceeded}},
 					}},
 			},
@@ -138,7 +138,7 @@ func TestReconciler_handlePipelineRun(t *testing.T) {
 					Annotations: map[string]string{},
 				},
 				Status: v1beta1.PipelineRunStatus{
-					Status: duckv1beta1.Status{
+					Status: duckv1.Status{
 						Conditions: []apis.Condition{{Type: apis.ConditionSucceeded}},
 					}},
 			},
@@ -153,7 +153,7 @@ func TestReconciler_handlePipelineRun(t *testing.T) {
 					Annotations: map[string]string{},
 				},
 				Status: v1beta1.PipelineRunStatus{
-					Status: duckv1beta1.Status{
+					Status: duckv1.Status{
 						Conditions: []apis.Condition{},
 					}},
 			},
@@ -168,7 +168,7 @@ func TestReconciler_handlePipelineRun(t *testing.T) {
 					Annotations: map[string]string{},
 				},
 				Status: v1beta1.PipelineRunStatus{
-					Status: duckv1beta1.Status{
+					Status: duckv1.Status{
 						Conditions: []apis.Condition{{Type: apis.ConditionSucceeded}},
 					},
 					PipelineRunStatusFields: v1beta1.PipelineRunStatusFields{
@@ -213,7 +213,7 @@ func TestReconciler_handlePipelineRun(t *testing.T) {
 					Annotations: map[string]string{},
 				},
 				Status: v1beta1.PipelineRunStatus{
-					Status: duckv1beta1.Status{
+					Status: duckv1.Status{
 						Conditions: []apis.Condition{{Type: apis.ConditionSucceeded}},
 					},
 					PipelineRunStatusFields: v1beta1.PipelineRunStatusFields{
@@ -250,7 +250,7 @@ func TestReconciler_handlePipelineRun(t *testing.T) {
 					Annotations: map[string]string{},
 				},
 				Status: v1beta1.PipelineRunStatus{
-					Status: duckv1beta1.Status{
+					Status: duckv1.Status{
 						Conditions: []apis.Condition{{Type: apis.ConditionSucceeded}},
 					},
 					PipelineRunStatusFields: v1beta1.PipelineRunStatusFields{
