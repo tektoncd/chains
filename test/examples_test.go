@@ -60,6 +60,7 @@ type TestExample struct {
 	getExampleObjects func(t *testing.T, ns string) map[string]objects.TektonObject
 	payloadKey        string
 	signatureKey      string
+	outputLocation    string
 }
 
 // TestExamples copies the format in the tektoncd/pipelines repo
@@ -67,7 +68,7 @@ type TestExample struct {
 func TestExamples(t *testing.T) {
 	tests := []TestExample{
 		{
-			name: "taskrun-examples",
+			name: "taskrun-examples-slsa-v1",
 			cm: map[string]string{
 				"artifacts.taskrun.format": "slsa/v1",
 				"artifacts.oci.storage":    "tekton",
@@ -75,6 +76,18 @@ func TestExamples(t *testing.T) {
 			getExampleObjects: getTaskRunExamples,
 			payloadKey:        "chains.tekton.dev/payload-taskrun-%s",
 			signatureKey:      "chains.tekton.dev/signature-taskrun-%s",
+			outputLocation:    "slsa/v1",
+		},
+		{
+			name: "taskrun-examples-slsa-v2",
+			cm: map[string]string{
+				"artifacts.taskrun.format": "slsa/v2alpha1",
+				"artifacts.oci.storage":    "tekton",
+			},
+			getExampleObjects: getTaskRunExamples,
+			payloadKey:        "chains.tekton.dev/payload-taskrun-%s",
+			signatureKey:      "chains.tekton.dev/signature-taskrun-%s",
+			outputLocation:    "slsa/v2",
 		},
 		{
 			name: "pipelinerun-examples",
@@ -85,6 +98,7 @@ func TestExamples(t *testing.T) {
 			getExampleObjects: getPipelineRunExamples,
 			payloadKey:        "chains.tekton.dev/payload-pipelinerun-%s",
 			signatureKey:      "chains.tekton.dev/signature-pipelinerun-%s",
+			outputLocation:    "slsa/v1",
 		},
 	}
 
@@ -129,7 +143,7 @@ func runInTotoFormatterTests(ctx context.Context, t *testing.T, ns string, c *cl
 			if err := json.Unmarshal(payload, &gotProvenance); err != nil {
 				t.Fatal(err)
 			}
-			expected := expectedProvenance(t, path, completed)
+			expected := expectedProvenance(t, path, completed, test.outputLocation)
 
 			opts := []cmp.Option{
 				// Annotations and labels may contain release specific information. Ignore
@@ -186,12 +200,12 @@ func (v *verifier) Public() crypto.PublicKey {
 	return v.pub
 }
 
-func expectedProvenance(t *testing.T, example string, obj objects.TektonObject) intoto.ProvenanceStatement {
+func expectedProvenance(t *testing.T, example string, obj objects.TektonObject, outputLocation string) intoto.ProvenanceStatement {
 	switch obj.(type) {
 	case *objects.TaskRunObject:
-		return expectedTaskRunProvenance(t, example, obj)
+		return expectedTaskRunProvenance(t, example, obj, outputLocation)
 	case *objects.PipelineRunObject:
-		return expectedPipelineRunProvenance(t, example, obj)
+		return expectedPipelineRunProvenance(t, example, obj, outputLocation)
 	default:
 		t.Error("Unexpected type trying to get provenance")
 	}
@@ -214,7 +228,7 @@ type Format struct {
 	URIDigest          []URIDigestPair
 }
 
-func expectedTaskRunProvenance(t *testing.T, example string, obj objects.TektonObject) intoto.ProvenanceStatement {
+func expectedTaskRunProvenance(t *testing.T, example string, obj objects.TektonObject, outputLocation string) intoto.ProvenanceStatement {
 	tr := obj.GetObject().(*v1beta1.TaskRun)
 
 	name := tr.Name
@@ -248,10 +262,10 @@ func expectedTaskRunProvenance(t *testing.T, example string, obj objects.TektonO
 		URIDigest:          uridigest,
 	}
 
-	return readExpectedAttestation(t, example, f)
+	return readExpectedAttestation(t, example, f, outputLocation)
 }
 
-func expectedPipelineRunProvenance(t *testing.T, example string, obj objects.TektonObject) intoto.ProvenanceStatement {
+func expectedPipelineRunProvenance(t *testing.T, example string, obj objects.TektonObject, outputLocation string) intoto.ProvenanceStatement {
 	pr := obj.GetObject().(*v1beta1.PipelineRun)
 
 	buildStartTimes := []string{}
@@ -293,11 +307,11 @@ func expectedPipelineRunProvenance(t *testing.T, example string, obj objects.Tek
 		URIDigest:          uridigest,
 	}
 
-	return readExpectedAttestation(t, example, f)
+	return readExpectedAttestation(t, example, f, outputLocation)
 }
 
-func readExpectedAttestation(t *testing.T, example string, f Format) intoto.ProvenanceStatement {
-	path := filepath.Join("testdata/intoto", strings.Replace(filepath.Base(example), ".yaml", ".json", 1))
+func readExpectedAttestation(t *testing.T, example string, f Format, outputLocation string) intoto.ProvenanceStatement {
+	path := filepath.Join("testdata", outputLocation, strings.Replace(filepath.Base(example), ".yaml", ".json", 1))
 	t.Logf("Reading expected provenance from %s", path)
 
 	contents, err := ioutil.ReadFile(path)

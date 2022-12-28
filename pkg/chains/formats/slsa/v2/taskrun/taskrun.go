@@ -14,17 +14,31 @@ limitations under the License.
 package taskrun
 
 import (
+	"context"
+	"fmt"
+	"reflect"
+
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
-	"github.com/tektoncd/chains/pkg/chains/formats/slsa/attest"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/material"
+	slsav1 "github.com/tektoncd/chains/pkg/chains/formats/slsa/v1/taskrun"
 	"github.com/tektoncd/chains/pkg/chains/objects"
+	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	"go.uber.org/zap"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"knative.dev/pkg/logging"
 )
 
-func GenerateAttestation(builderID string, tro *objects.TaskRunObject, logger *zap.SugaredLogger) (interface{}, error) {
+// BuildConfig is the custom Chains format to fill out the
+// "buildConfig" section of the slsa-provenance predicate
+type BuildConfig struct {
+	TaskSpec       *v1beta1.TaskSpec       `json:"taskSpec"`
+	TaskRunResults []v1beta1.TaskRunResult `json:"taskRunResults"`
+}
+
+func GenerateAttestation(builderID string, payloadType config.PayloadType, tro *objects.TaskRunObject, ctx context.Context) (interface{}, error) {
+	logger := logging.FromContext(ctx)
 	subjects := extract.SubjectDigests(tro, logger)
 
 	mat, err := material.Materials(tro, logger)
@@ -41,10 +55,10 @@ func GenerateAttestation(builderID string, tro *objects.TaskRunObject, logger *z
 			Builder: slsa.ProvenanceBuilder{
 				ID: builderID,
 			},
-			BuildType:   tro.GetGVK(),
+			BuildType:   fmt.Sprintf("https://chains.tekton.dev/format/%v/type/%s", payloadType, tro.GetGVK()),
 			Invocation:  invocation(tro),
-			BuildConfig: buildConfig(tro),
-			Metadata:    Metadata(tro),
+			BuildConfig: BuildConfig{TaskSpec: tro.Status.TaskSpec, TaskRunResults: tro.Status.TaskRunResults},
+			Metadata:    slsav1.Metadata(tro),
 			Materials:   mat,
 		},
 	}
@@ -55,33 +69,29 @@ func GenerateAttestation(builderID string, tro *objects.TaskRunObject, logger *z
 // we currently don't set ConfigSource because we don't know
 // which material the Task definition came from
 func invocation(tro *objects.TaskRunObject) slsa.ProvenanceInvocation {
-	var paramSpecs []v1beta1.ParamSpec
-	if ts := tro.Status.TaskSpec; ts != nil {
-		paramSpecs = ts.Params
-	}
-	var source *v1beta1.ConfigSource
+	i := slsa.ProvenanceInvocation{}
 	if p := tro.Status.Provenance; p != nil {
-		source = p.ConfigSource
-	}
-	return attest.Invocation(source, tro.Spec.Params, paramSpecs, tro.GetObjectMeta())
-}
-
-// Metadata adds taskrun's start time, completion time and reproducibility labels
-// to the metadata section of the generated provenance.
-func Metadata(tro *objects.TaskRunObject) *slsa.ProvenanceMetadata {
-	m := &slsa.ProvenanceMetadata{}
-	if tro.Status.StartTime != nil {
-		utc := tro.Status.StartTime.Time.UTC()
-		m.BuildStartedOn = &utc
-	}
-	if tro.Status.CompletionTime != nil {
-		utc := tro.Status.CompletionTime.Time.UTC()
-		m.BuildFinishedOn = &utc
-	}
-	for label, value := range tro.Labels {
-		if label == attest.ChainsReproducibleAnnotation && value == "true" {
-			m.Reproducible = true
+		i.ConfigSource = slsa.ConfigSource{
+			URI:        p.ConfigSource.URI,
+			Digest:     p.ConfigSource.Digest,
+			EntryPoint: p.ConfigSource.EntryPoint,
 		}
 	}
-	return m
+	i.Parameters = invocationParams(tro)
+	return i
+}
+
+// invocationParams adds all fields from the task run object except
+// TaskRef or TaskSpec since they are in the ConfigSource or buildConfig.
+func invocationParams(tro *objects.TaskRunObject) map[string]any {
+	var iParams map[string]any = make(map[string]any)
+	skipFields := sets.NewString("TaskRef", "TaskSpec")
+	v := reflect.ValueOf(tro.Spec)
+	for i := 0; i < v.NumField(); i++ {
+		fieldName := v.Type().Field(i).Name
+		if !skipFields.Has(v.Type().Field(i).Name) {
+			iParams[fieldName] = v.Field(i).Interface()
+		}
+	}
+	return iParams
 }

@@ -12,3 +12,4 @@ Shown below is the mapping between Tekton chains proveance and SLSA predicate.
 |Tekton Chains Provenance Format version     | SLSA predicate | Notes |
 |:------------------------------------------|---------------:|------:|
 |**slsa/v1**| **slsa v0.2**  | same as currently supported `in-toto` format|
+|**slsa/v2alpha1**| **slsa v0.2**  | contains complete build instructions as in [TEP0122](https://github.com/tektoncd/community/pull/820). This is still a WIP and currently only available for taskrun level provenance. |

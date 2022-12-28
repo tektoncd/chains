@@ -1,5 +1,5 @@
 /*
-Copyright 2022 The Tekton Authors
+Copyright 2023 The Tekton Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,16 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package taskrun
+package material
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/attest"
-	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v1/internal/material"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
@@ -78,8 +78,8 @@ func AddImageIDToMaterials(imageID string, mats *[]slsa.ProvenanceMaterial) erro
 	return nil
 }
 
-// materials constructs `predicate.materials` section by collecting all the artifacts that influence a taskrun such as source code repo and step&sidecar base images.
-func materials(tro *objects.TaskRunObject, logger *zap.SugaredLogger) ([]slsa.ProvenanceMaterial, error) {
+// Materials constructs `predicate.materials` section by collecting all the artifacts that influence a taskrun such as source code repo and step&sidecar base images.
+func Materials(tro *objects.TaskRunObject, logger *zap.SugaredLogger) ([]slsa.ProvenanceMaterial, error) {
 	var mats []slsa.ProvenanceMaterial
 
 	// add step images
@@ -144,7 +144,7 @@ func materials(tro *objects.TaskRunObject, logger *zap.SugaredLogger) ([]slsa.Pr
 	}
 
 	// remove duplicate materials
-	mats, err := material.RemoveDuplicateMaterials(mats)
+	mats, err := RemoveDuplicateMaterials(mats)
 	if err != nil {
 		return mats, err
 	}
@@ -191,4 +191,26 @@ func gitInfo(tro *objects.TaskRunObject) (commit string, url string) {
 
 	url = attest.SPDXGit(url, "")
 	return
+}
+
+// RemoveDuplicateMaterials removes duplicate materials from the slice of materials.
+// Original order of materials is retained.
+func RemoveDuplicateMaterials(mats []slsa.ProvenanceMaterial) ([]slsa.ProvenanceMaterial, error) {
+	out := make([]slsa.ProvenanceMaterial, 0, len(mats))
+
+	// make map to store seen materials
+	seen := map[string]bool{}
+	for _, mat := range mats {
+		m, err := json.Marshal(mat)
+		if err != nil {
+			return nil, err
+		}
+		if seen[string(m)] {
+			continue
+		}
+
+		seen[string(m)] = true
+		out = append(out, mat)
+	}
+	return out, nil
 }
