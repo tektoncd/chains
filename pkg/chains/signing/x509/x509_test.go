@@ -20,7 +20,7 @@ import (
 	"crypto/ed25519"
 	"crypto/sha256"
 	"encoding/json"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -53,7 +53,7 @@ func TestSigner_SignECDSA(t *testing.T) {
 	logger := logtesting.TestLogger(t)
 	d := t.TempDir()
 	p := filepath.Join(d, "x509.pem")
-	if err := ioutil.WriteFile(p, []byte(ecdsaPriv), 0644); err != nil {
+	if err := os.WriteFile(p, []byte(ecdsaPriv), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -95,7 +95,7 @@ func TestSigner_SignED25519(t *testing.T) {
 	logger := logtesting.TestLogger(t)
 	d := t.TempDir()
 	p := filepath.Join(d, "x509.pem")
-	if err := ioutil.WriteFile(p, []byte(ed25519Priv), 0644); err != nil {
+	if err := os.WriteFile(p, []byte(ed25519Priv), 0644); err != nil {
 		t.Fatal(err)
 	}
 
