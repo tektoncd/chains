@@ -66,7 +66,6 @@ type clients struct {
 // cluster specified by the combination of clusterName and configPath.
 func newClients(t *testing.T, configPath, clusterName string) *clients {
 	t.Helper()
-	var err error
 	c := &clients{}
 
 	cfg, err := knativetest.BuildClientConfig(configPath, clusterName)
@@ -159,17 +158,15 @@ func createRegistry(ctx context.Context, t *testing.T, namespace string, kubeCli
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: meta,
 				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{
-							Name:  "registry",
-							Image: "registry:2.7.1@sha256:d5459fcb27aecc752520df4b492b08358a1912fcdfa454f7d2101d4b09991daa",
-							Ports: []corev1.ContainerPort{
-								{
-									ContainerPort: 5000,
-								},
+					Containers: []corev1.Container{{
+						Name:  "registry",
+						Image: "registry:2.7.1@sha256:d5459fcb27aecc752520df4b492b08358a1912fcdfa454f7d2101d4b09991daa",
+						Ports: []corev1.ContainerPort{
+							{
+								ContainerPort: 5000,
 							},
 						},
-					},
+					}},
 				},
 			},
 		},
@@ -216,8 +213,15 @@ func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface, opts
 	}
 
 	// x509
-	_, priv := ecdsaKeyPair(t)
-	s.StringData["x509.pem"] = toPem(t, priv)
+	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := x509.MarshalPKCS8PrivateKey(priv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.StringData["x509.pem"] = string(pem.EncodeToMemory(&pem.Block{Bytes: b, Type: "PRIVATE KEY"}))
 
 	x509Priv, err := signature.LoadECDSASignerVerifier(priv, crypto.SHA256)
 	if err != nil {
@@ -229,46 +233,25 @@ func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface, opts
 	for _, p := range paths {
 		b, err := ioutil.ReadFile(filepath.Join("./testdata", p))
 		if err != nil {
-			t.Error(err)
+			t.Fatal(err)
 		}
 		s.StringData[p] = string(b)
 	}
 	cosignPriv, err := cosign.LoadPrivateKey([]byte(s.StringData["cosign.key"]), []byte(s.StringData["cosign.password"]))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if opts.useCosignSigner {
 		delete(s.StringData, "x509.pem")
 	}
 	if _, err := c.CoreV1().Secrets(namespace).Update(ctx, &s, metav1.UpdateOptions{}); err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
-	time.Sleep(60 * time.Second)
+	time.Sleep(time.Minute) // https://github.com/tektoncd/chains/issues/664
 
 	return secret{
 		cosignPriv: cosignPriv,
 		x509priv:   x509Priv,
 	}
-}
-
-func ecdsaKeyPair(t *testing.T) (crypto.PublicKey, *ecdsa.PrivateKey) {
-	kp, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	return kp.PublicKey, kp
-}
-
-func toPem(t *testing.T, priv *ecdsa.PrivateKey) string {
-	b, err := x509.MarshalPKCS8PrivateKey(priv)
-	if err != nil {
-		t.Fatal(err)
-	}
-	p := pem.EncodeToMemory(&pem.Block{
-		Bytes: b,
-		Type:  "PRIVATE KEY",
-	})
-	return string(p)
 }

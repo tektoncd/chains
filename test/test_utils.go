@@ -58,7 +58,8 @@ func waitForCondition(ctx context.Context, t *testing.T, c pipelineclientset.Int
 	// Do a first quick check before setting the watch
 	o, err := tekton.GetObject(t, ctx, c, obj)
 	if err != nil {
-		t.Errorf("error watching object: %s", err)
+		t.Errorf("error getting object: %s", err)
+		return nil
 	}
 	if cond(o) {
 		return o
@@ -67,14 +68,12 @@ func waitForCondition(ctx context.Context, t *testing.T, c pipelineclientset.Int
 	w, err := tekton.WatchObject(t, ctx, c, obj)
 	if err != nil {
 		t.Errorf("error watching object: %s", err)
+		return nil
 	}
 
-	// Setup a timeout channel
-	timeoutChan := make(chan struct{})
-	go func() {
-		time.Sleep(timeout)
-		timeoutChan <- struct{}{}
-	}()
+	// Set up timeout
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
 
 	// Wait for the condition to be true or a timeout
 	for {
@@ -83,11 +82,12 @@ func waitForCondition(ctx context.Context, t *testing.T, c pipelineclientset.Int
 			obj, err := objects.NewTektonObject(ev.Object)
 			if err != nil {
 				t.Errorf("watch result of unrecognized type: %s", err)
+				return nil
 			}
 			if cond(obj) {
 				return obj
 			}
-		case <-timeoutChan:
+		case <-ctx.Done():
 			// print logs from the Tekton object on timeout
 			printDebugging(t, obj)
 			t.Fatal("time out")
@@ -114,21 +114,15 @@ func signed(obj objects.TektonObject) bool {
 }
 
 var simpleTaskspec = v1beta1.TaskSpec{
-	Steps: []v1beta1.Step{
-		{
-			Image:  "busybox",
-			Script: "echo true",
-		},
-	},
+	Steps: []v1beta1.Step{{
+		Image:  "busybox",
+		Script: "echo true",
+	}},
 }
 
 var simpleTaskRun = v1beta1.TaskRun{
-	ObjectMeta: metav1.ObjectMeta{
-		GenerateName: "test-task-",
-	},
-	Spec: v1beta1.TaskRunSpec{
-		TaskSpec: &simpleTaskspec,
-	},
+	ObjectMeta: metav1.ObjectMeta{GenerateName: "test-task-"},
+	Spec:       v1beta1.TaskRunSpec{TaskSpec: &simpleTaskspec},
 }
 
 func makeBucket(t *testing.T, client *storage.Client) (string, func()) {
@@ -197,7 +191,7 @@ func setConfigMap(ctx context.Context, t *testing.T, c *clients, data map[string
 	if err != nil {
 		t.Fatal(err)
 	}
-	time.Sleep(30 * time.Second)
+	time.Sleep(30 * time.Second) // https://github.com/tektoncd/chains/issues/664
 
 	return func() {
 		for k := range data {
@@ -233,10 +227,12 @@ func verifySignature(ctx context.Context, t *testing.T, c *clients, obj objects.
 	chainsConfig, err := c.KubeClient.CoreV1().ConfigMaps("tekton-chains").Get(ctx, "chains-config", metav1.GetOptions{})
 	if err != nil {
 		t.Errorf("error retrieving tekton chains configmap: %s", err)
+		return
 	}
 	cfg, err := config.NewConfigFromConfigMap(chainsConfig)
 	if err != nil {
 		t.Errorf("error creating tekton chains configuration: %s", err)
+		return
 	}
 
 	// Prepare the logger.
@@ -246,6 +242,7 @@ func verifySignature(ctx context.Context, t *testing.T, c *clients, obj objects.
 	backends, err := chainsstorage.InitializeBackends(ctx, c.PipelineClient, c.KubeClient, logger, *cfg)
 	if err != nil {
 		t.Errorf("error initializing backends: %s", err)
+		return
 	}
 
 	var configuredBackends []string
@@ -264,18 +261,18 @@ func verifySignature(ctx context.Context, t *testing.T, c *clients, obj objects.
 		backend := backends[b]
 
 		// Initialize the storage options.
-		opts := config.StorageOpts{
-			ShortKey: key,
-		}
+		opts := config.StorageOpts{ShortKey: key}
 
 		// Let's fetch the signature and body.
 		signatures, err := backend.RetrieveSignatures(ctx, obj, opts)
 		if err != nil {
 			t.Errorf("error retrieving the signature: %s", err)
+			return
 		}
 		payloads, err := backend.RetrievePayloads(ctx, obj, opts)
 		if err != nil {
 			t.Errorf("error retrieving the payload: %s", err)
+			return
 		}
 
 		for ref, payload := range payloads {
