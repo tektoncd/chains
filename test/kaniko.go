@@ -28,9 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const (
-	taskName = "kaniko-task"
-)
+const taskName = "kaniko-task"
 
 func kanikoPipelineRun(ns string) objects.TektonObject {
 	imagePipelineRun := v1beta1.PipelineRun{
@@ -41,25 +39,20 @@ func kanikoPipelineRun(ns string) objects.TektonObject {
 		},
 		Spec: v1beta1.PipelineRunSpec{
 			PipelineSpec: &v1beta1.PipelineSpec{
-				Tasks: []v1beta1.PipelineTask{
-					{
-						Name: "kaniko",
-						TaskRef: &v1beta1.TaskRef{
-							Name: "kaniko-task",
-							Kind: v1beta1.NamespacedTaskKind,
-						},
+				Tasks: []v1beta1.PipelineTask{{
+					Name: "kaniko",
+					TaskRef: &v1beta1.TaskRef{
+						Name: "kaniko-task",
+						Kind: v1beta1.NamespacedTaskKind,
 					},
-				},
-				Results: []v1beta1.PipelineResult{
-					{
-						Name:  "IMAGE_URL",
-						Value: *v1beta1.NewArrayOrString("$(tasks.kaniko.results.IMAGE_URL)"),
-					},
-					{
-						Name:  "IMAGE_DIGEST",
-						Value: *v1beta1.NewArrayOrString("$(tasks.kaniko.results.IMAGE_DIGEST)"),
-					},
-				},
+				}},
+				Results: []v1beta1.PipelineResult{{
+					Name:  "IMAGE_URL",
+					Value: *v1beta1.NewArrayOrString("$(tasks.kaniko.results.IMAGE_URL)"),
+				}, {
+					Name:  "IMAGE_DIGEST",
+					Value: *v1beta1.NewArrayOrString("$(tasks.kaniko.results.IMAGE_DIGEST)"),
+				}},
 			},
 		},
 	}
@@ -96,55 +89,44 @@ func kanikoTask(t *testing.T, namespace, destinationImage string) *v1beta1.Task 
 				{Name: "IMAGE_URL"},
 				{Name: "IMAGE_DIGEST"},
 			},
-			Steps: []v1beta1.Step{
-				{
-					Name:  "create-dockerfile",
-					Image: "bash:latest",
-					VolumeMounts: []v1.VolumeMount{
-						{
-							Name:      "dockerfile",
-							MountPath: "/dockerfile",
-						},
-					},
-					Script: "#!/usr/bin/env bash\necho \"FROM gcr.io/distroless/base@sha256:6ec6da1888b18dd971802c2a58a76a7702902b4c9c1be28f38e75e871cedc2df\" > /dockerfile/Dockerfile",
-				}, {
-					Name:    "build-and-push",
-					Image:   "gcr.io/kaniko-project/executor:v1.6.0",
-					Command: []string{"/kaniko/executor"},
-					Args: []string{
-						"--dockerfile=/dockerfile/Dockerfile",
-						fmt.Sprintf("--destination=%s", destinationImage),
-						"--context=/dockerfile",
-						"--digest-file=$(results.IMAGE_DIGEST.path)",
-						// Need this to push the image to the insecure registry
-						"--insecure",
-					},
-					VolumeMounts: []v1.VolumeMount{
-						{
-							Name:      "dockerfile",
-							MountPath: "/dockerfile",
-						},
-					},
-				}, {
-					Name:  "save-image-url",
-					Image: "bash:latest",
-					VolumeMounts: []v1.VolumeMount{
-						{
-							Name:      "dockerfile",
-							MountPath: "/dockerfile",
-						},
-					},
-					Script: fmt.Sprintf("#!/usr/bin/env bash\necho %s | tee $(results.IMAGE_URL.path)", ref.String()),
+			Steps: []v1beta1.Step{{
+				Name:  "create-dockerfile",
+				Image: "bash:latest",
+				VolumeMounts: []v1.VolumeMount{{
+					Name:      "dockerfile",
+					MountPath: "/dockerfile",
+				}},
+				Script: "#!/usr/bin/env bash\necho \"FROM gcr.io/distroless/base@sha256:6ec6da1888b18dd971802c2a58a76a7702902b4c9c1be28f38e75e871cedc2df\" > /dockerfile/Dockerfile",
+			}, {
+				Name:    "build-and-push",
+				Image:   "gcr.io/kaniko-project/executor:v1.6.0",
+				Command: []string{"/kaniko/executor"},
+				Args: []string{
+					"--dockerfile=/dockerfile/Dockerfile",
+					fmt.Sprintf("--destination=%s", destinationImage),
+					"--context=/dockerfile",
+					"--digest-file=$(results.IMAGE_DIGEST.path)",
+					// Need this to push the image to the insecure registry
+					"--insecure",
 				},
+				VolumeMounts: []v1.VolumeMount{{
+					Name:      "dockerfile",
+					MountPath: "/dockerfile",
+				}},
+			}, {
+				Name:  "save-image-url",
+				Image: "bash:latest",
+				VolumeMounts: []v1.VolumeMount{{
+					Name:      "dockerfile",
+					MountPath: "/dockerfile",
+				}},
+				Script: fmt.Sprintf("#!/usr/bin/env bash\necho %s | tee $(results.IMAGE_URL.path)", ref.String()),
 			},
-			Volumes: []v1.Volume{
-				{
-					Name: "dockerfile",
-					VolumeSource: v1.VolumeSource{
-						EmptyDir: &v1.EmptyDirVolumeSource{},
-					},
-				},
 			},
+			Volumes: []v1.Volume{{
+				Name:         "dockerfile",
+				VolumeSource: v1.VolumeSource{EmptyDir: &v1.EmptyDirVolumeSource{}},
+			}},
 		},
 	}
 }
@@ -169,13 +151,11 @@ cosign verify-attestation --allow-insecure-registry --key cosign.pub %s`
 		},
 		Spec: v1beta1.TaskRunSpec{
 			TaskSpec: &v1beta1.TaskSpec{
-				Steps: []v1beta1.Step{
-					{
-						Name:   "verify-image",
-						Image:  "gcr.io/projectsigstore/cosign/ci/cosign:d764e8b89934dc1043bd1b13112a66641c63a038@sha256:228c37f9f37415efbd6a4ff16aae81197206ce1410a227bcab8ac8b039b36237",
-						Script: script,
-					},
-				},
+				Steps: []v1beta1.Step{{
+					Name:   "verify-image",
+					Image:  "gcr.io/projectsigstore/cosign/ci/cosign:d764e8b89934dc1043bd1b13112a66641c63a038@sha256:228c37f9f37415efbd6a4ff16aae81197206ce1410a227bcab8ac8b039b36237",
+					Script: script,
+				}},
 			},
 		},
 	})

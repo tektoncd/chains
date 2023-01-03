@@ -41,9 +41,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-const (
-	StorageBackendOCI = "oci"
-)
+const StorageBackendOCI = "oci"
 
 type Backend struct {
 	logger           *zap.SugaredLogger

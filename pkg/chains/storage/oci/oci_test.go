@@ -39,9 +39,7 @@ import (
 	logtesting "knative.dev/pkg/logging/testing"
 )
 
-const (
-	namespace = "oci-test"
-)
+const namespace = "oci-test"
 
 var (
 	tr = &v1beta1.TaskRun{
@@ -116,126 +114,117 @@ func TestBackend_StorePayload(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
-	}{
-		{
-			name: "simplesigning payload",
-			fields: fields{
-				object: objects.NewTaskRunObject(tr),
-			},
-			args: args{
-				payload:   simple,
-				signature: "simplesigning",
-				storageOpts: config.StorageOpts{
-					PayloadFormat: formats.PayloadTypeSimpleSigning,
-				},
-			},
-			wantErr: false,
+	}{{
+		name: "simplesigning payload",
+		fields: fields{
+			object: objects.NewTaskRunObject(tr),
 		},
-		{
-			name: "into-to payload",
-			fields: fields{
-				object: objects.NewTaskRunObject(tr),
+		args: args{
+			payload:   simple,
+			signature: "simplesigning",
+			storageOpts: config.StorageOpts{
+				PayloadFormat: formats.PayloadTypeSimpleSigning,
 			},
-			args: args{
-				payload:   intotoStatement,
-				signature: "into-to",
-				storageOpts: config.StorageOpts{
-					PayloadFormat: "in-toto",
-				},
-			},
-			wantErr: false,
 		},
-		{
-			name: "no subject",
-			fields: fields{
-				object: objects.NewTaskRunObject(tr),
-			},
-			args: args{
-				payload:   in_toto.Statement{},
-				signature: "",
-				storageOpts: config.StorageOpts{
-					PayloadFormat: "in-toto",
-				},
-			},
-			wantErr: false,
+		wantErr: false,
+	}, {
+		name: "into-to payload",
+		fields: fields{
+			object: objects.NewTaskRunObject(tr),
 		},
-		{
-			name: "simplesigning payload",
-			fields: fields{
-				object: objects.NewPipelineRunObject(pr),
+		args: args{
+			payload:   intotoStatement,
+			signature: "into-to",
+			storageOpts: config.StorageOpts{
+				PayloadFormat: "in-toto",
 			},
-			args: args{
-				payload:   simple,
-				signature: "simplesigning",
-				storageOpts: config.StorageOpts{
-					PayloadFormat: formats.PayloadTypeSimpleSigning,
-				},
-			},
-			wantErr: false,
 		},
-		{
-			name: "into-to payload",
-			fields: fields{
-				object: objects.NewPipelineRunObject(pr),
-			},
-			args: args{
-				payload:   intotoStatement,
-				signature: "into-to",
-				storageOpts: config.StorageOpts{
-					PayloadFormat: "in-toto",
-				},
-			},
-			wantErr: false,
+		wantErr: false,
+	}, {
+		name: "no subject",
+		fields: fields{
+			object: objects.NewTaskRunObject(tr),
 		},
-		{
-			name: "in-toto-and-simple-payload",
-			fields: fields{
-				object: objects.NewTaskRunObject(tr),
+		args: args{
+			payload:   in_toto.Statement{},
+			signature: "",
+			storageOpts: config.StorageOpts{
+				PayloadFormat: "in-toto",
 			},
-			args: args{
-				payload:   simple,
-				signature: "",
-				storageOpts: config.StorageOpts{
-					PayloadFormat: "in-toto",
-				},
-			},
-			wantErr: false,
 		},
-		{
-			name: "tekton-and-simple-payload",
-			fields: fields{
-				object: objects.NewTaskRunObject(tr),
-			},
-			args: args{
-				payload:   simple,
-				signature: "",
-				storageOpts: config.StorageOpts{
-					PayloadFormat: "tekton",
-				},
-			},
-			wantErr: false,
+		wantErr: false,
+	}, {
+		name: "simplesigning payload",
+		fields: fields{
+			object: objects.NewPipelineRunObject(pr),
 		},
-		{
-			name: "no subject",
-			fields: fields{
-				object: objects.NewPipelineRunObject(pr),
+		args: args{
+			payload:   simple,
+			signature: "simplesigning",
+			storageOpts: config.StorageOpts{
+				PayloadFormat: formats.PayloadTypeSimpleSigning,
 			},
-			args: args{
-				payload:   in_toto.Statement{},
-				signature: "",
-				storageOpts: config.StorageOpts{
-					PayloadFormat: "in-toto",
-				},
-			},
-			wantErr: false,
 		},
-	}
+		wantErr: false,
+	}, {
+		name: "into-to payload",
+		fields: fields{
+			object: objects.NewPipelineRunObject(pr),
+		},
+		args: args{
+			payload:   intotoStatement,
+			signature: "into-to",
+			storageOpts: config.StorageOpts{
+				PayloadFormat: "in-toto",
+			},
+		},
+		wantErr: false,
+	}, {
+		name: "in-toto-and-simple-payload",
+		fields: fields{
+			object: objects.NewTaskRunObject(tr),
+		},
+		args: args{
+			payload:   simple,
+			signature: "",
+			storageOpts: config.StorageOpts{
+				PayloadFormat: "in-toto",
+			},
+		},
+		wantErr: false,
+	}, {
+		name: "tekton-and-simple-payload",
+		fields: fields{
+			object: objects.NewTaskRunObject(tr),
+		},
+		args: args{
+			payload:   simple,
+			signature: "",
+			storageOpts: config.StorageOpts{
+				PayloadFormat: "tekton",
+			},
+		},
+		wantErr: false,
+	}, {
+		name: "no subject",
+		fields: fields{
+			object: objects.NewPipelineRunObject(pr),
+		},
+		args: args{
+			payload:   in_toto.Statement{},
+			signature: "",
+			storageOpts: config.StorageOpts{
+				PayloadFormat: "in-toto",
+			},
+		},
+		wantErr: false,
+	}}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			b := &Backend{
 				logger: logtesting.TestLogger(t),
-				getAuthenticator: func(_ context.Context, _ objects.TektonObject, _ kubernetes.Interface) (remote.Option, error) {
+				getAuthenticator: func(context.Context, objects.TektonObject, kubernetes.Interface) (remote.Option, error) {
 					return remote.WithAuthFromKeychain(authn.DefaultKeychain), nil
 				},
 			}
