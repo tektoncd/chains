@@ -129,10 +129,9 @@ func runInTotoFormatterTests(ctx context.Context, t *testing.T, ns string, c *cl
 			}
 			expected := expectedProvenance(t, path, completed)
 
-			if d := cmp.Diff(gotProvenance, expected); d != "" {
-				t.Fatalf("expected and got do not match:\n%v", d)
+			if diff := cmp.Diff(expected, gotProvenance, OptSortMaterial); diff != "" {
+				t.Errorf("provenance dont match: -want +got: %s", diff)
 			}
-
 			// verify signature
 			pub, err := c.secret.x509priv.PublicKey()
 			if err != nil {
@@ -189,6 +188,11 @@ func expectedProvenance(t *testing.T, example string, obj objects.TektonObject) 
 	return intoto.ProvenanceStatement{}
 }
 
+type URIDigestPair struct {
+	URI    string
+	Digest string
+}
+
 type Format struct {
 	Entrypoint         string
 	PipelineStartedOn  string
@@ -197,6 +201,7 @@ type Format struct {
 	BuildFinishedTimes []string
 	ContainerNames     []string
 	StepImages         []string
+	URIDigest          []URIDigestPair
 }
 
 func expectedTaskRunProvenance(t *testing.T, example string, obj objects.TektonObject) intoto.ProvenanceStatement {
@@ -209,9 +214,19 @@ func expectedTaskRunProvenance(t *testing.T, example string, obj objects.TektonO
 
 	var stepNames []string
 	var images []string
+	var uridigest []URIDigestPair
+	uriDigestSet := make(map[string]bool)
 	for _, step := range tr.Status.Steps {
 		stepNames = append(stepNames, step.Name)
 		images = append(images, step.ImageID)
+		// append uri and digest that havent already been appended
+		uri := strings.Split(step.ImageID, "@")[0]
+		digest := strings.Split(step.ImageID, ":")[1]
+		uriDigest := fmt.Sprintf("%s %s", uri, digest)
+		if _, ok := uriDigestSet[uriDigest]; !ok {
+			uridigest = append(uridigest, URIDigestPair{URI: uri, Digest: digest})
+			uriDigestSet[uriDigest] = true
+		}
 	}
 
 	f := Format{
@@ -220,6 +235,7 @@ func expectedTaskRunProvenance(t *testing.T, example string, obj objects.TektonO
 		BuildFinishedTimes: []string{tr.Status.CompletionTime.Time.UTC().Format(time.RFC3339)},
 		ContainerNames:     stepNames,
 		StepImages:         images,
+		URIDigest:          uridigest,
 	}
 
 	return readExpectedAttestation(t, example, f)
