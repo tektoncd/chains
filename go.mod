@@ -43,7 +43,7 @@ require (
 	github.com/sigstore/sigstore v1.5.0
 	github.com/spiffe/go-spiffe/v2 v2.1.1
 	github.com/stretchr/testify v1.8.1
-	github.com/tektoncd/pipeline v0.43.1
+	github.com/tektoncd/pipeline v0.43.2
 	github.com/tektoncd/plumbing v0.0.0-20221102182345-5dbcfda657d7
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399
 	go.uber.org/atomic v1.10.0
