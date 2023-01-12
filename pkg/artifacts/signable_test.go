@@ -29,10 +29,16 @@ import (
 )
 
 const (
-	digest1 = "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5"
-	digest2 = "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b6"
-	digest3 = "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b7"
-	digest4 = "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b8"
+	digest1                 = "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5"
+	digest2                 = "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b6"
+	digest3                 = "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b7"
+	digest4                 = "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b8"
+	digest_sha384           = "sha384:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b893c56eeba9ec70f74c9bfd297d951664"
+	digest_sha512           = "sha512:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b805f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b8"
+	digest_sha1             = "sha1:93c56eeba9ec70f74c9bfd297d9516642d366cb5"
+	digest_incorrect_sha1   = "sha1:93c56eeba9ec70f74c9bfd297d9516642d366c5"
+	digest_incorrect_sha512 = "sha512:05f95b26ed1066b7183c1e2da98610e91372fa9f510046d4ce5812addad86b805f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b8"
+	digest_incorrect_sha384 = "sha384:0595b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b893c56eeba9ec70f74c9bfd297d951664"
 )
 
 var ignore = []cmp.Option{cmpopts.IgnoreUnexported(name.Registry{}, name.Repository{}, name.Digest{})}
@@ -413,6 +419,48 @@ func TestExtractStructuredTargetFromResults(t *testing.T) {
 						}),
 					},
 					{
+						Name: "img2_input_sha1" + "_" + ArtifactsInputsResultName,
+						Value: *v1beta1.NewObject(map[string]string{
+							"uri":    "gcr.io/foo/bar",
+							"digest": digest_sha1,
+						}),
+					},
+					{
+						Name: "img2_input_incorrect_sha1" + "_" + ArtifactsInputsResultName,
+						Value: *v1beta1.NewObject(map[string]string{
+							"uri":    "gcr.io/foo/bar",
+							"digest": digest_incorrect_sha1,
+						}),
+					},
+					{
+						Name: "img3_input_sha384" + "_" + ArtifactsInputsResultName,
+						Value: *v1beta1.NewObject(map[string]string{
+							"uri":    "gcr.io/foo/bar",
+							"digest": digest_sha384,
+						}),
+					},
+					{
+						Name: "img3_input_incorrect_sha384" + "_" + ArtifactsInputsResultName,
+						Value: *v1beta1.NewObject(map[string]string{
+							"uri":    "gcr.io/foo/bar",
+							"digest": digest_incorrect_sha384,
+						}),
+					},
+					{
+						Name: "img4_input_sha512" + "_" + ArtifactsInputsResultName,
+						Value: *v1beta1.NewObject(map[string]string{
+							"uri":    "gcr.io/foo/bar",
+							"digest": digest_sha512,
+						}),
+					},
+					{
+						Name: "img4_input_incorrect_sha512" + "_" + ArtifactsInputsResultName,
+						Value: *v1beta1.NewObject(map[string]string{
+							"uri":    "gcr.io/foo/bar",
+							"digest": digest_incorrect_sha512,
+						}),
+					},
+					{
 						Name: "img2_input_no_digest" + "_" + ArtifactsInputsResultName,
 						Value: *v1beta1.NewObject(map[string]string{
 							"uri":    "gcr.io/foo/foo",
@@ -426,6 +474,9 @@ func TestExtractStructuredTargetFromResults(t *testing.T) {
 
 	wantInputs := []*StructuredSignable{
 		{URI: "gcr.io/foo/bar", Digest: digest3},
+		{URI: "gcr.io/foo/bar", Digest: digest_sha1},
+		{URI: "gcr.io/foo/bar", Digest: digest_sha384},
+		{URI: "gcr.io/foo/bar", Digest: digest_sha512},
 	}
 	gotInputs := ExtractStructuredTargetFromResults(objects.NewTaskRunObject(tr), ArtifactsInputsResultName, logtesting.TestLogger(t))
 	if diff := cmp.Diff(gotInputs, wantInputs, cmpopts.SortSlices(func(x, y *StructuredSignable) bool { return x.Digest < y.Digest })); diff != "" {
