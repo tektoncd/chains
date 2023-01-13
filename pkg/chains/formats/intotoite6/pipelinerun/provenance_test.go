@@ -33,16 +33,18 @@ import (
 
 // Global pro is only read from, never modified
 var pro *objects.PipelineRunObject
+var proStructuredResults *objects.PipelineRunObject
 var e1BuildStart = time.Unix(1617011400, 0)
 var e1BuildFinished = time.Unix(1617011415, 0)
 
 func init() {
-	pro = createPro()
+	pro = createPro("../testdata/pipelinerun1.json")
+	proStructuredResults = createPro("../testdata/pipelinerun_structured_results.json")
 }
 
-func createPro() *objects.PipelineRunObject {
+func createPro(path string) *objects.PipelineRunObject {
 	var err error
-	pr, err := objectloader.PipelineRunFromFile("../testdata/pipelinerun1.json")
+	pr, err := objectloader.PipelineRunFromFile(path)
 	if err != nil {
 		panic(err)
 	}
@@ -397,7 +399,7 @@ func TestBuildConfigTaskOrder(t *testing.T) {
 				WhenExpressions: tt.whenExpressions,
 				RunAfter:        tt.runAfter,
 			}
-			pro := createPro()
+			pro := createPro("../testdata/pipelinerun1.json")
 			pro.Status.PipelineSpec.Tasks[BUILD_TASK] = pt
 			got := buildConfig(pro, logtesting.TestLogger(t))
 			if diff := cmp.Diff(expected, got); diff != "" {
@@ -454,6 +456,21 @@ func TestMaterials(t *testing.T) {
 	}
 	got := materials(pro, logtesting.TestLogger(t))
 	if diff := cmp.Diff(expected, got); diff != "" {
+		t.Errorf("materials(): -want +got: %s", diff)
+	}
+}
+
+func TestStructuredResultMaterials(t *testing.T) {
+	want := []slsa.ProvenanceMaterial{
+		{
+			URI: "abcd",
+			Digest: slsa.DigestSet{
+				"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7",
+			},
+		},
+	}
+	got := materials(proStructuredResults, logtesting.TestLogger(t))
+	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("materials(): -want +got: %s", diff)
 	}
 }
