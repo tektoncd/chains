@@ -224,11 +224,13 @@ func materials(pro *objects.PipelineRunObject, logger *zap.SugaredLogger) []slsa
 			url = r.Value.StringVal
 		}
 	}
-	url = attest.SPDXGit(url, "")
-	mats = append(mats, slsa.ProvenanceMaterial{
-		URI:    url,
-		Digest: map[string]string{"sha1": commit},
-	})
+	if len(commit) > 0 && len(url) > 0 {
+		url = attest.SPDXGit(url, "")
+		mats = append(mats, slsa.ProvenanceMaterial{
+			URI:    url,
+			Digest: map[string]string{"sha1": commit},
+		})
+	}
 	return mats
 }
 
