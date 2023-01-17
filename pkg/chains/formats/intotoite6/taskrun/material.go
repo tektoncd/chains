@@ -35,28 +35,28 @@ const (
 	digestSeparator = ":"
 )
 
-// addStepImagesToMaterials adds step images to predicate.materials
-func addStepImagesToMaterials(steps []v1beta1.StepState, mats *[]slsa.ProvenanceMaterial) error {
+// AddStepImagesToMaterials adds step images to predicate.materials
+func AddStepImagesToMaterials(steps []v1beta1.StepState, mats *[]slsa.ProvenanceMaterial) error {
 	for _, stepState := range steps {
-		if err := addImageIDToMaterials(stepState.ImageID, mats); err != nil {
+		if err := AddImageIDToMaterials(stepState.ImageID, mats); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-// addSidecarImagesToMaterials adds sidecar images to predicate.materials
-func addSidecarImagesToMaterials(sidecars []v1beta1.SidecarState, mats *[]slsa.ProvenanceMaterial) error {
+// AddSidecarImagesToMaterials adds sidecar images to predicate.materials
+func AddSidecarImagesToMaterials(sidecars []v1beta1.SidecarState, mats *[]slsa.ProvenanceMaterial) error {
 	for _, sidecarState := range sidecars {
-		if err := addImageIDToMaterials(sidecarState.ImageID, mats); err != nil {
+		if err := AddImageIDToMaterials(sidecarState.ImageID, mats); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-// addImageIDToMaterials converts an imageId with format <uri>@sha256:<digest> and then adds it to a provenance materials.
-func addImageIDToMaterials(imageID string, mats *[]slsa.ProvenanceMaterial) error {
+// AddImageIDToMaterials converts an imageId with format <uri>@sha256:<digest> and then adds it to a provenance materials.
+func AddImageIDToMaterials(imageID string, mats *[]slsa.ProvenanceMaterial) error {
 	m := slsa.ProvenanceMaterial{
 		Digest: slsa.DigestSet{},
 	}
@@ -83,12 +83,12 @@ func materials(tro *objects.TaskRunObject, logger *zap.SugaredLogger) ([]slsa.Pr
 	var mats []slsa.ProvenanceMaterial
 
 	// add step images
-	if err := addStepImagesToMaterials(tro.Status.Steps, &mats); err != nil {
+	if err := AddStepImagesToMaterials(tro.Status.Steps, &mats); err != nil {
 		return mats, nil
 	}
 
 	// add sidecar images
-	if err := addSidecarImagesToMaterials(tro.Status.Sidecars, &mats); err != nil {
+	if err := AddSidecarImagesToMaterials(tro.Status.Sidecars, &mats); err != nil {
 		return mats, nil
 	}
 

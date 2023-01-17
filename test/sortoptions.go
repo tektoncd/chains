@@ -23,5 +23,16 @@ import (
 
 // OptSortMaterial provides compare options to sort a slice of materials by URI in the provenance
 var OptSortMaterial = cmpopts.SortSlices(func(i, j slsa.ProvenanceMaterial) bool {
+	if i.URI == j.URI {
+		i_DigestValue := ""
+		for _, v := range i.Digest {
+			i_DigestValue = v
+		}
+		j_DigestValue := ""
+		for _, v := range j.Digest {
+			j_DigestValue = v
+		}
+		return i_DigestValue < j_DigestValue
+	}
 	return i.URI < j.URI
 })
