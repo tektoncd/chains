@@ -22,8 +22,8 @@ import (
 
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/tektoncd/chains/pkg/artifacts"
-	"github.com/tektoncd/chains/pkg/chains/formats/intotoite6/attest"
-	"github.com/tektoncd/chains/pkg/chains/formats/intotoite6/internal/material"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/attest"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v1/internal/material"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"

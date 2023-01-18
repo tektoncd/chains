@@ -14,16 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package intotoite6
+package v1
 
 import (
 	"testing"
 	"time"
 
 	"github.com/tektoncd/chains/pkg/chains/formats"
-	"github.com/tektoncd/chains/pkg/chains/formats/intotoite6/attest"
-	"github.com/tektoncd/chains/pkg/chains/formats/intotoite6/pipelinerun"
-	"github.com/tektoncd/chains/pkg/chains/formats/intotoite6/taskrun"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/attest"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v1/pipelinerun"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v1/taskrun"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/chains/pkg/internal/objectloader"
@@ -42,7 +42,7 @@ var e1BuildFinished = time.Unix(1617011415, 0)
 func TestTaskRunCreatePayload1(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
 
-	tr, err := objectloader.TaskRunFromFile("testdata/taskrun1.json")
+	tr, err := objectloader.TaskRunFromFile("../testdata/taskrun1.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -143,7 +143,7 @@ func TestTaskRunCreatePayload1(t *testing.T) {
 
 func TestPipelineRunCreatePayload(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
-	pr, err := objectloader.PipelineRunFromFile("testdata/pipelinerun1.json")
+	pr, err := objectloader.PipelineRunFromFile("../testdata/pipelinerun1.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -336,11 +336,11 @@ func TestPipelineRunCreatePayload(t *testing.T) {
 		},
 	}
 
-	tr1, err := objectloader.TaskRunFromFile("testdata/taskrun1.json")
+	tr1, err := objectloader.TaskRunFromFile("../testdata/taskrun1.json")
 	if err != nil {
 		t.Errorf("error reading taskrun1: %s", err.Error())
 	}
-	tr2, err := objectloader.TaskRunFromFile("testdata/taskrun2.json")
+	tr2, err := objectloader.TaskRunFromFile("../testdata/taskrun2.json")
 	if err != nil {
 		t.Errorf("error reading taskrun: %s", err.Error())
 	}
@@ -361,7 +361,7 @@ func TestPipelineRunCreatePayload(t *testing.T) {
 }
 func TestPipelineRunCreatePayloadChildRefs(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
-	pr, err := objectloader.PipelineRunFromFile("testdata/pipelinerun-childrefs.json")
+	pr, err := objectloader.PipelineRunFromFile("../testdata/pipelinerun-childrefs.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -548,11 +548,11 @@ func TestPipelineRunCreatePayloadChildRefs(t *testing.T) {
 		},
 	}
 
-	tr1, err := objectloader.TaskRunFromFile("testdata/taskrun1.json")
+	tr1, err := objectloader.TaskRunFromFile("../testdata/taskrun1.json")
 	if err != nil {
 		t.Errorf("error reading taskrun1: %s", err.Error())
 	}
-	tr2, err := objectloader.TaskRunFromFile("testdata/taskrun2.json")
+	tr2, err := objectloader.TaskRunFromFile("../testdata/taskrun2.json")
 	if err != nil {
 		t.Errorf("error reading taskrun: %s", err.Error())
 	}
@@ -573,7 +573,7 @@ func TestPipelineRunCreatePayloadChildRefs(t *testing.T) {
 
 func TestTaskRunCreatePayload2(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
-	tr, err := objectloader.TaskRunFromFile("testdata/taskrun2.json")
+	tr, err := objectloader.TaskRunFromFile("../testdata/taskrun2.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -646,7 +646,7 @@ func TestTaskRunCreatePayload2(t *testing.T) {
 func TestMultipleSubjects(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
 
-	tr, err := objectloader.TaskRunFromFile("testdata/taskrun-multiple-subjects.json")
+	tr, err := objectloader.TaskRunFromFile("../testdata/taskrun-multiple-subjects.json")
 	if err != nil {
 		t.Fatal(err)
 	}
