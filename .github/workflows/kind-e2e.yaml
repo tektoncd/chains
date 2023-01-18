@@ -2,7 +2,9 @@ name: Chains kind E2E Tests
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: 
+      - main
+      - release-*
 
 defaults:
   run:

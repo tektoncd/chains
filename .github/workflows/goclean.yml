@@ -6,13 +6,17 @@ on:
       - '**.go'
       - 'go.mod'
       - 'go.sum'
-    branches: [ main ]
+    branches: 
+      - main
+      - release-*
   pull_request:
     paths:
       - '**.go'
       - 'go.mod'
       - 'go.sum'
-    branches: [ main ]
+    branches: 
+      - main
+      - release-*
   schedule:
     - cron: '41 20 * * 1'
 
