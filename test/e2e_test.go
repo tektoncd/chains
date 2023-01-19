@@ -72,7 +72,7 @@ func TestTektonStorage(t *testing.T) {
 		{
 			name: "taskrun",
 			cm: map[string]string{
-				"artifacts.taskrun.format":  "tekton",
+				"artifacts.taskrun.format":  "in-toto",
 				"artifacts.taskrun.signer":  "x509",
 				"artifacts.taskrun.storage": "tekton",
 				"artifacts.oci.format":      "simplesigning",
@@ -84,7 +84,7 @@ func TestTektonStorage(t *testing.T) {
 		{
 			name: "pipelinerun",
 			cm: map[string]string{
-				"artifacts.pipelinerun.format":  "tekton",
+				"artifacts.pipelinerun.format":  "in-toto",
 				"artifacts.pipelinerun.signer":  "x509",
 				"artifacts.pipelinerun.storage": "tekton",
 				"artifacts.oci.format":          "simplesigning",
@@ -133,7 +133,7 @@ func TestRekor(t *testing.T) {
 		{
 			name: "taskrun",
 			cm: map[string]string{
-				"artifacts.taskrun.format":  "tekton",
+				"artifacts.taskrun.format":  "in-toto",
 				"artifacts.taskrun.signer":  "x509",
 				"artifacts.taskrun.storage": "tekton",
 				"artifacts.oci.format":      "simplesigning",
@@ -146,7 +146,7 @@ func TestRekor(t *testing.T) {
 		{
 			name: "pipelinerun",
 			cm: map[string]string{
-				"artifacts.pipelinerun.format":  "tekton",
+				"artifacts.pipelinerun.format":  "in-toto",
 				"artifacts.pipelinerun.signer":  "x509",
 				"artifacts.pipelinerun.storage": "tekton",
 				"artifacts.oci.format":          "simplesigning",
@@ -213,7 +213,7 @@ func TestOCISigning(t *testing.T) {
 			t.Cleanup(cleanup)
 
 			// Setup the right config.
-			resetConfig := setConfigMap(ctx, t, c, map[string]string{"artifacts.oci.storage": "tekton", "artifacts.taskrun.format": "tekton"})
+			resetConfig := setConfigMap(ctx, t, c, map[string]string{"artifacts.oci.storage": "tekton", "artifacts.taskrun.format": "in-toto"})
 			t.Cleanup(resetConfig)
 
 			tro := getTaskRunObject(ns)
@@ -831,7 +831,7 @@ func TestVaultKMSSpire(t *testing.T) {
 	// verify the cert against the signature and payload
 	sigKey := fmt.Sprintf("chains.tekton.dev/signature-taskrun-%s", obj.GetUID())
 	payloadKey := fmt.Sprintf("chains.tekton.dev/payload-taskrun-%s", obj.GetUID())
-	sigBytes := base64Decode(t, obj.GetAnnotations()[sigKey])
+	envelopeBytes := base64Decode(t, obj.GetAnnotations()[sigKey])
 	payloadBytes := base64Decode(t, obj.GetAnnotations()[payloadKey])
 
 	certPEM, err := os.ReadFile("testdata/vault.pub")
@@ -848,7 +848,16 @@ func TestVaultKMSSpire(t *testing.T) {
 	}
 
 	// verify the signature
-	if err := pubKey.VerifySignature(bytes.NewReader(sigBytes), bytes.NewReader(payloadBytes)); err != nil {
+	var envelope dsse.Envelope
+	if err := json.Unmarshal(envelopeBytes, &envelope); err != nil {
+		t.Fatal(err)
+	}
+
+	paeEnc := dsse.PAE(in_toto.PayloadType, payloadBytes)
+	sigEncoded := envelope.Signatures[0].Sig
+	sig := base64Decode(t, sigEncoded)
+
+	if err := pubKey.VerifySignature(bytes.NewReader([]byte(sig)), bytes.NewReader(paeEnc)); err != nil {
 		t.Fatal(err)
 	}
 }

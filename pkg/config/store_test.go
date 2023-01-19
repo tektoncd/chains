@@ -97,12 +97,12 @@ var defaultBuilder = BuilderConfig{
 
 var defaultArtifacts = ArtifactConfigs{
 	TaskRuns: Artifact{
-		Format:         "tekton",
+		Format:         "in-toto",
 		StorageBackend: sets.NewString("tekton"),
 		Signer:         "x509",
 	},
 	PipelineRuns: Artifact{
-		Format:         "tekton",
+		Format:         "in-toto",
 		Signer:         "x509",
 		StorageBackend: sets.NewString("tekton"),
 	},
@@ -187,12 +187,12 @@ func TestParse(t *testing.T) {
 				Builder: defaultBuilder,
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
-						Format:         "tekton",
+						Format:         "in-toto",
 						StorageBackend: sets.NewString("tekton", "oci"),
 						Signer:         "x509",
 					},
 					PipelineRuns: Artifact{
-						Format:         "tekton",
+						Format:         "in-toto",
 						Signer:         "x509",
 						StorageBackend: sets.NewString("tekton"),
 					},
@@ -216,12 +216,12 @@ func TestParse(t *testing.T) {
 				Builder: defaultBuilder,
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
-						Format:         "tekton",
+						Format:         "in-toto",
 						StorageBackend: sets.NewString(""),
 						Signer:         "x509",
 					},
 					PipelineRuns: Artifact{
-						Format:         "tekton",
+						Format:         "in-toto",
 						Signer:         "x509",
 						StorageBackend: sets.NewString("tekton"),
 					},
@@ -245,12 +245,12 @@ func TestParse(t *testing.T) {
 				Builder: defaultBuilder,
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
-						Format:         "tekton",
+						Format:         "in-toto",
 						StorageBackend: sets.NewString("tekton"),
 						Signer:         "x509",
 					},
 					PipelineRuns: Artifact{
-						Format:         "tekton",
+						Format:         "in-toto",
 						Signer:         "x509",
 						StorageBackend: sets.NewString("tekton"),
 					},
@@ -274,12 +274,12 @@ func TestParse(t *testing.T) {
 				Builder: defaultBuilder,
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
-						Format:         "tekton",
+						Format:         "in-toto",
 						StorageBackend: sets.NewString("tekton"),
 						Signer:         "x509",
 					},
 					PipelineRuns: Artifact{
-						Format:         "tekton",
+						Format:         "in-toto",
 						Signer:         "x509",
 						StorageBackend: sets.NewString("tekton"),
 					},
@@ -306,12 +306,12 @@ func TestParse(t *testing.T) {
 				Builder: defaultBuilder,
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
-						Format:         "tekton",
+						Format:         "in-toto",
 						StorageBackend: sets.NewString("tekton", "oci"),
 						Signer:         "x509",
 					},
 					PipelineRuns: Artifact{
-						Format:         "tekton",
+						Format:         "in-toto",
 						Signer:         "x509",
 						StorageBackend: sets.NewString("tekton"),
 					},
@@ -338,12 +338,12 @@ func TestParse(t *testing.T) {
 				Builder: defaultBuilder,
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
-						Format:         "tekton",
+						Format:         "in-toto",
 						StorageBackend: sets.NewString(""),
 						Signer:         "x509",
 					},
 					PipelineRuns: Artifact{
-						Format:         "tekton",
+						Format:         "in-toto",
 						Signer:         "x509",
 						StorageBackend: sets.NewString("tekton"),
 					},
@@ -367,12 +367,12 @@ func TestParse(t *testing.T) {
 				Builder: defaultBuilder,
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
-						Format:         "tekton",
+						Format:         "in-toto",
 						Signer:         "x509",
 						StorageBackend: sets.NewString("tekton"),
 					},
 					PipelineRuns: Artifact{
-						Format:         "tekton",
+						Format:         "in-toto",
 						Signer:         "x509",
 						StorageBackend: sets.NewString("tekton"),
 					},
@@ -416,12 +416,12 @@ func TestParse(t *testing.T) {
 				Builder: defaultBuilder,
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
-						Format:         "tekton",
+						Format:         "in-toto",
 						Signer:         "x509",
 						StorageBackend: sets.NewString("tekton"),
 					},
 					PipelineRuns: Artifact{
-						Format:         "tekton",
+						Format:         "in-toto",
 						Signer:         "x509",
 						StorageBackend: sets.NewString("tekton"),
 					},
@@ -448,12 +448,12 @@ func TestParse(t *testing.T) {
 				Builder: defaultBuilder,
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
-						Format:         "tekton",
+						Format:         "in-toto",
 						Signer:         "x509",
 						StorageBackend: sets.NewString("tekton"),
 					},
 					PipelineRuns: Artifact{
-						Format:         "tekton",
+						Format:         "in-toto",
 						Signer:         "x509",
 						StorageBackend: sets.NewString("tekton"),
 					},

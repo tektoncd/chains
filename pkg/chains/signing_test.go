@@ -57,7 +57,7 @@ func TestSigner_Sign(t *testing.T) {
 	tcfg := &config.Config{
 		Artifacts: config.ArtifactConfigs{
 			TaskRuns: config.Artifact{
-				Format:         "tekton",
+				Format:         "in-toto",
 				StorageBackend: sets.NewString("mock"),
 				Signer:         "x509",
 			},
@@ -67,7 +67,7 @@ func TestSigner_Sign(t *testing.T) {
 	pcfg := &config.Config{
 		Artifacts: config.ArtifactConfigs{
 			PipelineRuns: config.Artifact{
-				Format:         "tekton",
+				Format:         "in-toto",
 				StorageBackend: sets.NewString("mock"),
 				Signer:         "x509",
 			},
@@ -241,43 +241,11 @@ func TestSigner_Transparency(t *testing.T) {
 			getNewObject: newTaskRun,
 		},
 		{
-			name: "taskrun tekton",
-			cfg: &config.Config{
-				Artifacts: config.ArtifactConfigs{
-					TaskRuns: config.Artifact{
-						Format:         "tekton",
-						StorageBackend: sets.NewString("mock"),
-						Signer:         "x509",
-					},
-				},
-				Transparency: config.TransparencyConfig{
-					Enabled: false,
-				},
-			},
-			getNewObject: newTaskRun,
-		},
-		{
 			name: "pipelinerun in-toto",
 			cfg: &config.Config{
 				Artifacts: config.ArtifactConfigs{
 					PipelineRuns: config.Artifact{
 						Format:         "in-toto",
-						StorageBackend: sets.NewString("mock"),
-						Signer:         "x509",
-					},
-				},
-				Transparency: config.TransparencyConfig{
-					Enabled: false,
-				},
-			},
-			getNewObject: newPipelineRun,
-		},
-		{
-			name: "pipelinerun tekton",
-			cfg: &config.Config{
-				Artifacts: config.ArtifactConfigs{
-					PipelineRuns: config.Artifact{
-						Format:         "tekton",
 						StorageBackend: sets.NewString("mock"),
 						Signer:         "x509",
 					},
@@ -380,7 +348,7 @@ func TestSigningObjects(t *testing.T) {
 			config: config.Config{
 				Artifacts: config.ArtifactConfigs{
 					TaskRuns: config.Artifact{
-						Format:         "tekton",
+						Format:         "in-toto",
 						StorageBackend: sets.NewString("mock"),
 						Signer:         "x509",
 					},
@@ -394,12 +362,12 @@ func TestSigningObjects(t *testing.T) {
 			config: config.Config{
 				Artifacts: config.ArtifactConfigs{
 					TaskRuns: config.Artifact{
-						Format:         "tekton",
+						Format:         "in-toto",
 						StorageBackend: sets.NewString("mock"),
 						Signer:         "x509",
 					},
 					OCI: config.Artifact{
-						Format:         "tekton",
+						Format:         "in-toto",
 						StorageBackend: sets.NewString("mock"),
 						Signer:         "x509",
 					},
@@ -413,11 +381,11 @@ func TestSigningObjects(t *testing.T) {
 			config: config.Config{
 				Artifacts: config.ArtifactConfigs{
 					TaskRuns: config.Artifact{
-						Format:         "tekton",
+						Format:         "in-toto",
 						StorageBackend: sets.NewString("mock"),
 					},
 					OCI: config.Artifact{
-						Format:         "tekton",
+						Format:         "in-toto",
 						StorageBackend: sets.NewString("mock"),
 					},
 				},
