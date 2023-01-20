@@ -14,15 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package intotoite6
+package v1
 
 import (
 	"context"
 	"fmt"
 
 	"github.com/tektoncd/chains/pkg/chains/formats"
-	"github.com/tektoncd/chains/pkg/chains/formats/intotoite6/pipelinerun"
-	"github.com/tektoncd/chains/pkg/chains/formats/intotoite6/taskrun"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v1/pipelinerun"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v1/taskrun"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
 	"knative.dev/pkg/logging"

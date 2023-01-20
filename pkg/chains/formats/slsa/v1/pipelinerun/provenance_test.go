@@ -22,8 +22,8 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
-	"github.com/tektoncd/chains/pkg/chains/formats/intotoite6/attest"
-	"github.com/tektoncd/chains/pkg/chains/formats/intotoite6/extract"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/attest"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/internal/objectloader"
 	"github.com/tektoncd/chains/test"
@@ -39,8 +39,8 @@ var e1BuildStart = time.Unix(1617011400, 0)
 var e1BuildFinished = time.Unix(1617011415, 0)
 
 func init() {
-	pro = createPro("../testdata/pipelinerun1.json")
-	proStructuredResults = createPro("../testdata/pipelinerun_structured_results.json")
+	pro = createPro("../../testdata/pipelinerun1.json")
+	proStructuredResults = createPro("../../testdata/pipelinerun_structured_results.json")
 }
 
 func createPro(path string) *objects.PipelineRunObject {
@@ -49,11 +49,11 @@ func createPro(path string) *objects.PipelineRunObject {
 	if err != nil {
 		panic(err)
 	}
-	tr1, err := objectloader.TaskRunFromFile("../testdata/taskrun1.json")
+	tr1, err := objectloader.TaskRunFromFile("../../testdata/taskrun1.json")
 	if err != nil {
 		panic(err)
 	}
-	tr2, err := objectloader.TaskRunFromFile("../testdata/taskrun2.json")
+	tr2, err := objectloader.TaskRunFromFile("../../testdata/taskrun2.json")
 	if err != nil {
 		panic(err)
 	}
@@ -400,7 +400,7 @@ func TestBuildConfigTaskOrder(t *testing.T) {
 				WhenExpressions: tt.whenExpressions,
 				RunAfter:        tt.runAfter,
 			}
-			pro := createPro("../testdata/pipelinerun1.json")
+			pro := createPro("../../testdata/pipelinerun1.json")
 			pro.Status.PipelineSpec.Tasks[BUILD_TASK] = pt
 			got := buildConfig(pro, logtesting.TestLogger(t))
 			if diff := cmp.Diff(expected, got); diff != "" {
