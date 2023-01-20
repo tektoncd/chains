@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/in-toto/in-toto-golang/in_toto"
+	"github.com/tektoncd/chains/pkg/chains/formats"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -71,7 +72,7 @@ func TestBackend_StorePayload(t *testing.T) {
 				rawPayload: sampleIntotoStatementBytes,
 				signature:  "signature",
 				storageOpts: config.StorageOpts{
-					PayloadFormat: "in-toto",
+					PayloadFormat: formats.PayloadTypeSlsav1,
 				},
 			},
 			wantErr: false,

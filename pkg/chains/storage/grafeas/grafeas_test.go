@@ -264,7 +264,7 @@ func TestGrafeasBackend_StoreAndRetrieve(t *testing.T) {
 				},
 				payload:   getRawPayload(t, cloneTaskRunProvenance),
 				signature: "clone taskrun signatures",
-				opts:      config.StorageOpts{PayloadFormat: formats.PayloadTypeInTotoIte6},
+				opts:      config.StorageOpts{PayloadFormat: formats.PayloadTypeSlsav1},
 			},
 			wantOccurrences: nil,
 			wantErr:         false,
@@ -277,7 +277,7 @@ func TestGrafeasBackend_StoreAndRetrieve(t *testing.T) {
 				},
 				payload:   getRawPayload(t, buildTaskRunProvenance),
 				signature: "build taskrun signature",
-				opts:      config.StorageOpts{PayloadFormat: formats.PayloadTypeInTotoIte6},
+				opts:      config.StorageOpts{PayloadFormat: formats.PayloadTypeSlsav1},
 			},
 			wantOccurrences: []*pb.Occurrence{getTaskRunBuildOcc(t, artifactIdentifier1), getTaskRunBuildOcc(t, artifactIdentifier2)},
 			wantErr:         false,
@@ -303,7 +303,7 @@ func TestGrafeasBackend_StoreAndRetrieve(t *testing.T) {
 				},
 				payload:   getRawPayload(t, ciPipelineRunProvenance),
 				signature: "ci pipelinerun signature",
-				opts:      config.StorageOpts{PayloadFormat: formats.PayloadTypeInTotoIte6},
+				opts:      config.StorageOpts{PayloadFormat: formats.PayloadTypeSlsav1},
 			},
 			wantOccurrences: []*pb.Occurrence{getPipelineRunBuildOcc(t, artifactIdentifier1), getPipelineRunBuildOcc(t, artifactIdentifier2)},
 			wantErr:         false,
@@ -397,7 +397,7 @@ func testStoreAndRetrieveHelper(ctx context.Context, t *testing.T, test testConf
 	if test.args.opts.PayloadFormat == formats.PayloadTypeSimpleSigning {
 		expectSignature[test.args.opts.FullKey] = []string{test.args.signature}
 	}
-	if test.args.opts.PayloadFormat == formats.PayloadTypeInTotoIte6 {
+	if _, ok := formats.IntotoAttestationSet[test.args.opts.PayloadFormat]; ok {
 		allURIs := extract.RetrieveAllArtifactURIs(test.args.runObject, backend.logger)
 		for _, u := range allURIs {
 			expectSignature[u] = []string{test.args.signature}
@@ -419,7 +419,7 @@ func testStoreAndRetrieveHelper(ctx context.Context, t *testing.T, test testConf
 	if test.args.opts.PayloadFormat == formats.PayloadTypeSimpleSigning {
 		expectPayload[test.args.opts.FullKey] = string(test.args.payload)
 	}
-	if test.args.opts.PayloadFormat == formats.PayloadTypeInTotoIte6 {
+	if _, ok := formats.IntotoAttestationSet[test.args.opts.PayloadFormat]; ok {
 		allURIs := extract.RetrieveAllArtifactURIs(test.args.runObject, backend.logger)
 		for _, u := range allURIs {
 			expectPayload[u] = string(test.args.payload)

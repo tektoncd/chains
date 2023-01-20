@@ -20,10 +20,11 @@ The in-toto format can be enabled by running:
 
 ```
 # For TaskRuns
-kubectl patch configmap chains-config -n tekton-chains -p='{"data":{"artifacts.taskrun.format": "in-toto"}}'
+kubectl patch configmap chains-config -n tekton-chains -p='{"data":{"artifacts.taskrun.format": "slsa/v1"}}'
 # For PipelineRuns
-kubectl patch configmap chains-config -n tekton-chains -p='{"data":{"artifacts.pipelinerun.format": "in-toto"}}'
+kubectl patch configmap chains-config -n tekton-chains -p='{"data":{"artifacts.pipelinerun.format": "slsa/v1"}}'
 ```
+**Note**, you can continue to use the older alias of `slsa/v1`: `in-toto`.
 
 To provide a git URL/commit as material, add a parameter named
 `CHAINS-GIT_COMMIT` and `CHAINS-GIT_URL`. The value of these

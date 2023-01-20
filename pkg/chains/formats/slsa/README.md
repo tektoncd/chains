@@ -1,0 +1,14 @@
+# SLSA Branding of Tekton Chains Provenance Format
+
+`Tekton Chains` is migrating the naming of provenance formats from `intotoite6` to `slsa`.
+As different versions of provenance formats are rolled out in the future, they will take 
+the form `slsa/v1, slsa/v2` and the `package names` will be `v1`, `v2` and so on, respectively.
+
+**Note**: the `slsa` branding in `Tekton Chains` does not map directly to the slsa predicate release.
+Tekton chains `slsa/v1` is not the same as `slsav1.0`.
+
+Shown below is the mapping between Tekton chains proveance and SLSA predicate.
+
+|Tekton Chains Provenance Format version     | SLSA predicate | Notes |
+|:------------------------------------------|---------------:|------:|
+|**slsa/v1**| **slsa v0.2**  | same as currently supported `in-toto` format|

@@ -312,7 +312,7 @@ func TestFulcio(t *testing.T) {
 	resetConfig := setConfigMap(ctx, t, c, map[string]string{
 		"artifacts.taskrun.storage":   "tekton",
 		"artifacts.taskrun.signer":    "x509",
-		"artifacts.taskrun.format":    "in-toto",
+		"artifacts.taskrun.format":    "slsa/v1",
 		"artifacts.oci.signer":        "x509",
 		"signers.x509.fulcio.enabled": "true",
 		"transparency.enabled":        "false",
@@ -404,7 +404,7 @@ func TestOCIStorage(t *testing.T) {
 		"artifacts.oci.format":            "simplesigning",
 		"artifacts.oci.storage":           "oci",
 		"artifacts.oci.signer":            "x509",
-		"artifacts.taskrun.format":        "in-toto",
+		"artifacts.taskrun.format":        "slsa/v1",
 		"artifacts.taskrun.signer":        "x509",
 		"artifacts.taskrun.storage":       "oci",
 		"storage.oci.repository.insecure": "true",
@@ -459,7 +459,7 @@ func TestMultiBackendStorage(t *testing.T) {
 				"artifacts.oci.format":            "simplesigning",
 				"artifacts.oci.storage":           "tekton,oci",
 				"artifacts.oci.signer":            "x509",
-				"artifacts.taskrun.format":        "in-toto",
+				"artifacts.taskrun.format":        "slsa/v1",
 				"artifacts.taskrun.signer":        "x509",
 				"artifacts.taskrun.storage":       "tekton,oci",
 				"storage.oci.repository.insecure": "true",
@@ -469,7 +469,7 @@ func TestMultiBackendStorage(t *testing.T) {
 		{
 			name: "pipelinerun",
 			cm: map[string]string{
-				"artifacts.pipelinerun.format":    "in-toto",
+				"artifacts.pipelinerun.format":    "slsa/v1",
 				"artifacts.pipelinerun.signer":    "x509",
 				"artifacts.pipelinerun.storage":   "tekton,oci",
 				"storage.oci.repository.insecure": "true",
@@ -546,7 +546,7 @@ func TestRetryFailed(t *testing.T) {
 				"transparency.url":              "doesnotexist",
 				"transparency.enabled":          "true",
 				"artifacts.pipelinerun.storage": "tekton",
-				"artifacts.pipelinerun.format":  "in-toto",
+				"artifacts.pipelinerun.format":  "slsa/v1",
 			},
 			opts: setupOpts{
 				registry:        true,
@@ -693,7 +693,7 @@ func TestProvenanceMaterials(t *testing.T) {
 		{
 			name: "taskrun",
 			cm: map[string]string{
-				"artifacts.taskrun.format":  "in-toto",
+				"artifacts.taskrun.format":  "slsa/v1",
 				"artifacts.taskrun.signer":  "x509",
 				"artifacts.taskrun.storage": "tekton",
 			},
@@ -703,7 +703,7 @@ func TestProvenanceMaterials(t *testing.T) {
 		{
 			name: "pipelinerun",
 			cm: map[string]string{
-				"artifacts.pipelinerun.format":  "in-toto",
+				"artifacts.pipelinerun.format":  "slsa/v1",
 				"artifacts.pipelinerun.signer":  "x509",
 				"artifacts.pipelinerun.storage": "tekton",
 			},

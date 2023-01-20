@@ -56,7 +56,7 @@ func TestBackend_StorePayload(t *testing.T) {
 				},
 				signed:    []byte("signed"),
 				signature: "signature",
-				opts:      config.StorageOpts{ShortKey: "foo.uuid", PayloadFormat: formats.PayloadTypeInTotoIte6},
+				opts:      config.StorageOpts{ShortKey: "foo.uuid", PayloadFormat: formats.PayloadTypeSlsav1},
 			},
 		},
 		{
