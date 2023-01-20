@@ -76,7 +76,8 @@ under certain conditions:
 
 - Security
 
-  We will make breaking changes for security reasons if necessary.
+  We will make breaking changes for security reasons (e.g. in response to CVEs
+  or other vulnerabilities) if necessary.
 
 - Backwards incompatible changes from dependencies
 
