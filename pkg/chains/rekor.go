@@ -68,7 +68,6 @@ func publicKeyOrCert(signer signing.Signer, cert string) ([]byte, error) {
 	return pem, nil
 }
 
-// for testing
 var getRekor = func(url string, l *zap.SugaredLogger) (rekorClient, error) {
 	rekorClient, err := rc.GetRekorClient(url)
 	if err != nil {
