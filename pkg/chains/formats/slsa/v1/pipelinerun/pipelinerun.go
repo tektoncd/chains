@@ -82,7 +82,7 @@ func invocation(pro *objects.PipelineRunObject) slsa.ProvenanceInvocation {
 	if p := pro.Status.Provenance; p != nil {
 		source = p.ConfigSource
 	}
-	return attest.Invocation(source, pro.Spec.Params, paramSpecs)
+	return attest.Invocation(source, pro.Spec.Params, paramSpecs, pro.GetObjectMeta())
 }
 
 func buildConfig(pro *objects.PipelineRunObject, logger *zap.SugaredLogger) BuildConfig {
@@ -153,7 +153,7 @@ func buildConfig(pro *objects.PipelineRunObject, logger *zap.SugaredLogger) Buil
 			FinishedOn: tr.Status.CompletionTime.Time.UTC(),
 			Status:     getStatus(tr.Status.Conditions),
 			Steps:      steps,
-			Invocation: attest.Invocation(source, params, paramSpecs),
+			Invocation: attest.Invocation(source, params, paramSpecs, &tr.ObjectMeta),
 			Results:    tr.Status.TaskRunResults,
 		}
 

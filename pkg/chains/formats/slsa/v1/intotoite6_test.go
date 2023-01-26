@@ -96,6 +96,9 @@ func TestTaskRunCreatePayload1(t *testing.T) {
 					"CHAINS-GIT_COMMIT": {Type: "string", StringVal: "sha:taskrun"},
 					"CHAINS-GIT_URL":    {Type: "string", StringVal: "https://git.test.com"},
 				},
+				Environment: map[string]map[string]string{
+					"labels": {"tekton.dev/pipelineTask": "build"},
+				},
 			},
 			Builder: slsa.ProvenanceBuilder{
 				ID: "test_builder-1",
@@ -245,6 +248,9 @@ func TestPipelineRunCreatePayload(t *testing.T) {
 								"revision":          {Type: "string", StringVal: ""},
 								"url":               {Type: "string", StringVal: "https://git.test.com"},
 							},
+							Environment: map[string]map[string]string{
+								"labels": {"tekton.dev/pipelineTask": "git-clone"},
+							},
 						},
 						Results: []v1beta1.TaskRunResult{
 							{
@@ -312,6 +318,9 @@ func TestPipelineRunCreatePayload(t *testing.T) {
 								"CHAINS-GIT_COMMIT": {Type: "string", StringVal: "sha:taskrun"},
 								"CHAINS-GIT_URL":    {Type: "string", StringVal: "https://git.test.com"},
 								"IMAGE":             {Type: "string", StringVal: "test.io/test/image"},
+							},
+							Environment: map[string]map[string]string{
+								"labels": {"tekton.dev/pipelineTask": "build"},
 							},
 						},
 						Results: []v1beta1.TaskRunResult{
@@ -457,6 +466,9 @@ func TestPipelineRunCreatePayloadChildRefs(t *testing.T) {
 								"revision":          {Type: "string", StringVal: ""},
 								"url":               {Type: "string", StringVal: "https://git.test.com"},
 							},
+							Environment: map[string]map[string]string{
+								"labels": {"tekton.dev/pipelineTask": "git-clone"},
+							},
 						},
 						Results: []v1beta1.TaskRunResult{
 							{
@@ -524,6 +536,9 @@ func TestPipelineRunCreatePayloadChildRefs(t *testing.T) {
 								"CHAINS-GIT_COMMIT": {Type: "string", StringVal: "sha:taskrun"},
 								"CHAINS-GIT_URL":    {Type: "string", StringVal: "https://git.test.com"},
 								"IMAGE":             {Type: "string", StringVal: "test.io/test/image"},
+							},
+							Environment: map[string]map[string]string{
+								"labels": {"tekton.dev/pipelineTask": "build"},
 							},
 						},
 						Results: []v1beta1.TaskRunResult{
@@ -615,6 +630,9 @@ func TestTaskRunCreatePayload2(t *testing.T) {
 					"CHAINS-GIT_URL":    {Type: "string", StringVal: "https://git.test.com"},
 					"revision":          {Type: "string"},
 					"url":               {Type: "string", StringVal: "https://git.test.com"},
+				},
+				Environment: map[string]map[string]string{
+					"labels": {"tekton.dev/pipelineTask": "git-clone"},
 				},
 			},
 			BuildType: "tekton.dev/v1beta1/TaskRun",
