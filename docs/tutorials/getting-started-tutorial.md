@@ -41,7 +41,7 @@ storage and format is set to `tekton`.
 You can set these fields by running the following command:
 
 ```shell
-kubectl patch configmap chains-config -n tekton-chains -p='{"data":{"artifacts.oci.storage": "", "artifacts.taskrun.format":"tekton", "artifacts.taskrun.storage": "tekton"}}'
+kubectl patch configmap chains-config -n tekton-chains -p='{"data":{"artifacts.oci.storage": "", "artifacts.taskrun.format":"in-toto", "artifacts.taskrun.storage": "tekton"}}'
 ```
 
 Then restart the controller to ensure it picks up the changes:
