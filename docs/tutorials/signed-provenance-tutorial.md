@@ -55,17 +55,19 @@ kubectl create secret generic [DOCKERCONFIG_SECRET_NAME] --from-file [PATH TO CO
 
 You'll need to make these changes to the Tekton Chains Config:
 
-* `artifacts.taskrun.format=in-toto`
+* `artifacts.taskrun.format=slsa/v1`
 * `artifacts.taskrun.storage=oci`
 * `transparency.enabled=true`
 
 You can set these fields by running
 
 ```shell
-kubectl patch configmap chains-config -n tekton-chains -p='{"data":{"artifacts.taskrun.format": "in-toto"}}'
+kubectl patch configmap chains-config -n tekton-chains -p='{"data":{"artifacts.taskrun.format": "slsa/v1"}}'
 kubectl patch configmap chains-config -n tekton-chains -p='{"data":{"artifacts.taskrun.storage": "oci"}}'
 kubectl patch configmap chains-config -n tekton-chains -p='{"data":{"transparency.enabled": "true"}}'
 ```
+
+**Note**, you can continue to use the older alias of `slsa/v1`: `in-toto` above.
 
 This tells Chains to generate an in-toto attestation and store it in the specified OCI registry.
 Attestations will also be stored in [rekor](https://github.com/sigstore/rekor) since transparency is enabled.

@@ -136,7 +136,7 @@ func TestBackend_StorePayload(t *testing.T) {
 			payload:   intotoStatement,
 			signature: "into-to",
 			storageOpts: config.StorageOpts{
-				PayloadFormat: "in-toto",
+				PayloadFormat: formats.PayloadTypeSlsav1,
 			},
 		},
 		wantErr: false,
@@ -149,7 +149,7 @@ func TestBackend_StorePayload(t *testing.T) {
 			payload:   in_toto.Statement{},
 			signature: "",
 			storageOpts: config.StorageOpts{
-				PayloadFormat: "in-toto",
+				PayloadFormat: formats.PayloadTypeSlsav1,
 			},
 		},
 		wantErr: false,
@@ -175,7 +175,7 @@ func TestBackend_StorePayload(t *testing.T) {
 			payload:   intotoStatement,
 			signature: "into-to",
 			storageOpts: config.StorageOpts{
-				PayloadFormat: "in-toto",
+				PayloadFormat: formats.PayloadTypeSlsav1,
 			},
 		},
 		wantErr: false,
@@ -188,7 +188,7 @@ func TestBackend_StorePayload(t *testing.T) {
 			payload:   simple,
 			signature: "",
 			storageOpts: config.StorageOpts{
-				PayloadFormat: "in-toto",
+				PayloadFormat: formats.PayloadTypeSlsav1,
 			},
 		},
 		wantErr: false,
@@ -214,7 +214,7 @@ func TestBackend_StorePayload(t *testing.T) {
 			payload:   in_toto.Statement{},
 			signature: "",
 			storageOpts: config.StorageOpts{
-				PayloadFormat: "in-toto",
+				PayloadFormat: formats.PayloadTypeSlsav1,
 			},
 		},
 		wantErr: false,

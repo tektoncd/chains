@@ -30,10 +30,12 @@ import (
 
 const (
 	PayloadTypeInTotoIte6 = formats.PayloadTypeInTotoIte6
+	PayloadTypeSlsav1     = formats.PayloadTypeSlsav1
 )
 
 func init() {
 	formats.RegisterPayloader(PayloadTypeInTotoIte6, NewFormatter)
+	formats.RegisterPayloader(PayloadTypeSlsav1, NewFormatter)
 }
 
 type InTotoIte6 struct {
@@ -63,5 +65,5 @@ func (i *InTotoIte6) CreatePayload(ctx context.Context, obj interface{}) (interf
 }
 
 func (i *InTotoIte6) Type() config.PayloadType {
-	return formats.PayloadTypeInTotoIte6
+	return formats.PayloadTypeSlsav1
 }

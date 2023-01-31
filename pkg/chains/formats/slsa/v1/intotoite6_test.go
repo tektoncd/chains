@@ -759,7 +759,7 @@ func TestCreatePayloadError(t *testing.T) {
 
 func TestCorrectPayloadType(t *testing.T) {
 	var i InTotoIte6
-	if i.Type() != formats.PayloadTypeInTotoIte6 {
+	if i.Type() != formats.PayloadTypeSlsav1 {
 		t.Errorf("Invalid type returned: %s", i.Type())
 	}
 }

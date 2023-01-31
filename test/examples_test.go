@@ -67,7 +67,7 @@ func TestExamples(t *testing.T) {
 		{
 			name: "taskrun-examples",
 			cm: map[string]string{
-				"artifacts.taskrun.format": "in-toto",
+				"artifacts.taskrun.format": "slsa/v1",
 				"artifacts.oci.storage":    "tekton",
 			},
 			getExampleObjects: getTaskRunExamples,
@@ -77,7 +77,7 @@ func TestExamples(t *testing.T) {
 		{
 			name: "pipelinerun-examples",
 			cm: map[string]string{
-				"artifacts.pipelinerun.format":  "in-toto",
+				"artifacts.pipelinerun.format":  "slsa/v1",
 				"artifacts.pipelinerun.storage": "tekton",
 			},
 			getExampleObjects: getPipelineRunExamples,

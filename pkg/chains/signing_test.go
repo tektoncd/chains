@@ -229,7 +229,7 @@ func TestSigner_Transparency(t *testing.T) {
 			cfg: &config.Config{
 				Artifacts: config.ArtifactConfigs{
 					TaskRuns: config.Artifact{
-						Format:         "in-toto",
+						Format:         "slsa/v1",
 						StorageBackend: sets.NewString("mock"),
 						Signer:         "x509",
 					},
@@ -245,7 +245,7 @@ func TestSigner_Transparency(t *testing.T) {
 			cfg: &config.Config{
 				Artifacts: config.ArtifactConfigs{
 					PipelineRuns: config.Artifact{
-						Format:         "in-toto",
+						Format:         "slsa/v1",
 						StorageBackend: sets.NewString("mock"),
 						Signer:         "x509",
 					},
