@@ -48,6 +48,8 @@ metadata:
 #   artifacts.oci.storage: oci
 #   artifacts.oci.format: simplesigning
 #   artifacts.oci.signer: x509
+#   transparency.enabled: false
+#   transparency.url: https://rekor.sigstore.dev
 ---
 apiVersion: apps/v1
 kind: Deployment
