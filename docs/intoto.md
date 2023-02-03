@@ -455,3 +455,17 @@ results:
                digest: sha256@89dedecaca1b85346600c7db9939a4fe090a42ez
 ```
 
+### Invocation Environment
+
+TaskRun attestations include the annotations and labels of the underlying TaskRun resource. The
+same is true for PipelineRun attestations. These are included under the path
+`.predicate.invocation.environment.annotations` and `.predicate.invocation.environment.labels`
+repectively.
+
+PipelineRun attestations also include the annotations and labels of the TaskRuns used at
+`.predicate.buildConfig.tasks[].invocation.environment`.
+
+The following annotations are always excluded:
+
+* `kubectl.kubernetes.io/last-applied-configuration`
+* Annotations starting with `chains.tekton.dev/`

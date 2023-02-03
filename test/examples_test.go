@@ -38,7 +38,9 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
+	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
 
 	"github.com/ghodss/yaml"
@@ -129,7 +131,15 @@ func runInTotoFormatterTests(ctx context.Context, t *testing.T, ns string, c *cl
 			}
 			expected := expectedProvenance(t, path, completed)
 
-			if diff := cmp.Diff(expected, gotProvenance, OptSortMaterial); diff != "" {
+			opts := []cmp.Option{
+				// Annotations and labels may contain release specific information. Ignore
+				// those to avoid brittle tests.
+				cmpopts.IgnoreFields(slsa.ProvenanceInvocation{}, "Environment"),
+				cmpopts.IgnoreMapEntries(ignoreEnvironmentAnnotationsAndLabels),
+				OptSortMaterial,
+			}
+
+			if diff := cmp.Diff(expected, gotProvenance, opts...); diff != "" {
 				t.Errorf("provenance dont match: -want +got: %s", diff)
 			}
 
@@ -374,4 +384,19 @@ func pipelineRunFromExample(t *testing.T, ns, example string) objects.TektonObje
 	}
 	pr.Namespace = ns
 	return objects.NewPipelineRunObject(pr)
+}
+
+func ignoreEnvironmentAnnotationsAndLabels(key string, value any) bool {
+	if key != "environment" {
+		return false
+	}
+	// There are multiple maps with the key "environment", so we must carefully
+	// choose the right one.
+	switch v := value.(type) {
+	case map[string]any:
+		_, hasAnnotations := v["annotations"]
+		_, hasLabels := v["labels"]
+		return hasAnnotations || hasLabels
+	}
+	return false
 }

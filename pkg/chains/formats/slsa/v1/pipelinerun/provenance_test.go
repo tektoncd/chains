@@ -116,6 +116,9 @@ func TestBuildConfig(t *testing.T) {
 						"revision":          {Type: "string", StringVal: ""},
 						"url":               {Type: "string", StringVal: "https://git.test.com"},
 					},
+					Environment: map[string]map[string]string{
+						"labels": {"tekton.dev/pipelineTask": "git-clone"},
+					},
 				},
 				Results: []v1beta1.TaskRunResult{
 					{
@@ -183,6 +186,9 @@ func TestBuildConfig(t *testing.T) {
 						"CHAINS-GIT_COMMIT": {Type: "string", StringVal: "sha:taskrun"},
 						"CHAINS-GIT_URL":    {Type: "string", StringVal: "https://git.test.com"},
 						"IMAGE":             {Type: "string", StringVal: "test.io/test/image"},
+					},
+					Environment: map[string]map[string]string{
+						"labels": {"tekton.dev/pipelineTask": "build"},
 					},
 				},
 				Results: []v1beta1.TaskRunResult{
@@ -300,6 +306,11 @@ func TestBuildConfigTaskOrder(t *testing.T) {
 								"url":               {Type: "string", StringVal: "https://git.test.com"},
 								"revision":          {Type: "string", StringVal: ""},
 							},
+							Environment: map[string]map[string]string{
+								"labels": {
+									"tekton.dev/pipelineTask": "git-clone",
+								},
+							},
 						},
 						Results: []v1beta1.TaskRunResult{
 							{
@@ -369,6 +380,11 @@ func TestBuildConfigTaskOrder(t *testing.T) {
 								"CHAINS-GIT_COMMIT": {Type: "string", StringVal: "sha:taskrun"},
 								"CHAINS-GIT_URL":    {Type: "string", StringVal: "https://git.test.com"},
 								"IMAGE":             {Type: "string", StringVal: "test.io/test/image"},
+							},
+							Environment: map[string]map[string]string{
+								"labels": {
+									"tekton.dev/pipelineTask": "build",
+								},
 							},
 						},
 						Results: []v1beta1.TaskRunResult{

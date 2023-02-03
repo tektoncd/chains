@@ -106,6 +106,14 @@ func TestInvocation(t *testing.T) {
 kind: TaskRun
 metadata:
   uid: my-uid
+  annotations:
+    ann1: ann-one
+    ann2: ann-two
+    kubectl.kubernetes.io/last-applied-configuration: ignored
+    chains.tekton.dev/any: "ignored"
+  labels:
+    label1: label-one
+    label2: label-two
 spec:
   params:
   - name: my-param
@@ -165,6 +173,16 @@ status:
 			"my-empty-array-param":          {Type: "array", ArrayVal: []string{}},
 			"my-default-empty-string-param": {Type: "string", StringVal: ""},
 			"my-default-empty-array-param":  {Type: "array", ArrayVal: []string{}},
+		},
+		Environment: map[string]map[string]string{
+			"annotations": {
+				"ann1": "ann-one",
+				"ann2": "ann-two",
+			},
+			"labels": {
+				"label1": "label-one",
+				"label2": "label-two",
+			},
 		},
 	}
 
