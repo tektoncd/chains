@@ -4,6 +4,8 @@ builds:
       - CGO_ENABLED=0
     flags:
       - -trimpath
+    ldflags:
+      - -s -w -X main.version={{.Version}}
     targets:
       - darwin_amd64
       - darwin_arm64
