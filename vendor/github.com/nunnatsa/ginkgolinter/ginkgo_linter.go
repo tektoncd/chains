@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-
 	"go/ast"
 	"go/printer"
 	"go/token"
 	gotypes "go/types"
 
+	"github.com/go-toolsmith/astcopy"
 	"golang.org/x/tools/go/analysis"
 
 	"github.com/nunnatsa/ginkgolinter/gomegahandler"
@@ -161,6 +161,7 @@ func (l *ginkgoLinter) run(pass *analysis.Pass) (interface{}, error) {
 }
 
 func checkExpression(pass *analysis.Pass, exprSuppress types.Suppress, actualArg ast.Expr, assertionExp *ast.CallExpr, handler gomegahandler.Handler) bool {
+	assertionExp = astcopy.CallExpr(assertionExp)
 	oldExpr := goFmt(pass.Fset, assertionExp)
 	if !bool(exprSuppress.Len) && isActualIsLenFunc(actualArg) {
 

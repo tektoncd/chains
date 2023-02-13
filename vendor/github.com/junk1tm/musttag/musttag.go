@@ -206,7 +206,11 @@ func checkStruct(s *types.Struct, tag string, pos *token.Pos) (ok bool) {
 
 		st := reflect.StructTag(s.Tag(i))
 		if _, ok := st.Lookup(tag); !ok {
-			return false
+			// it's ok for embedded types not to be tagged,
+			// see https://github.com/junk1tm/musttag/issues/12
+			if !s.Field(i).Embedded() {
+				return false
+			}
 		}
 
 		// check if the field is a nested struct.
