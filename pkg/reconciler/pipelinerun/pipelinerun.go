@@ -65,7 +65,7 @@ func (r *Reconciler) FinalizeKind(ctx context.Context, pr *v1beta1.PipelineRun) 
 	pro := objects.NewPipelineRunObject(pr)
 
 	// Check to see if it has already been signed.
-	if signing.Reconciled(pro) {
+	if signing.Reconciled(ctx, r.Pipelineclientset, pro) {
 		logging.FromContext(ctx).Infof("pipelinerun has been reconciled")
 		return nil
 	}
@@ -111,7 +111,7 @@ func (r *Reconciler) FinalizeKind(ctx context.Context, pr *v1beta1.PipelineRun) 
 			logging.FromContext(ctx).Infof("taskrun %s within pipelinerun is not yet finalized: status is not complete", name)
 			return r.trackTaskRun(tr, pr)
 		}
-		reconciled := signing.Reconciled(objects.NewTaskRunObject(tr))
+		reconciled := signing.Reconciled(ctx, r.Pipelineclientset, objects.NewTaskRunObject(tr))
 		if !reconciled {
 			logging.FromContext(ctx).Infof("taskrun %s within pipelinerun is not yet reconciled", name)
 			return r.trackTaskRun(tr, pr)

@@ -19,6 +19,7 @@ import (
 	signing "github.com/tektoncd/chains/pkg/chains"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	"github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	taskrunreconciler "github.com/tektoncd/pipeline/pkg/client/injection/reconciler/pipeline/v1beta1/taskrun"
 	"knative.dev/pkg/logging"
 	pkgreconciler "knative.dev/pkg/reconciler"
@@ -30,7 +31,8 @@ const (
 )
 
 type Reconciler struct {
-	TaskRunSigner signing.Signer
+	TaskRunSigner     signing.Signer
+	Pipelineclientset versioned.Interface
 }
 
 // Check that our Reconciler implements taskrunreconciler.Interface and taskrunreconciler.Finalizer
@@ -57,7 +59,7 @@ func (r *Reconciler) FinalizeKind(ctx context.Context, tr *v1beta1.TaskRun) pkgr
 	obj := objects.NewTaskRunObject(tr)
 
 	// Check to see if it has already been signed.
-	if signing.Reconciled(obj) {
+	if signing.Reconciled(ctx, r.Pipelineclientset, obj) {
 		logging.FromContext(ctx).Infof("taskrun %s/%s has been reconciled", tr.Namespace, tr.Name)
 		return nil
 	}
