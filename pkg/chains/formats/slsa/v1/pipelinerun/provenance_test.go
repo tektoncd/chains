@@ -26,7 +26,6 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/internal/objectloader"
-	"github.com/tektoncd/chains/test"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"k8s.io/apimachinery/pkg/selection"
 	logtesting "knative.dev/pkg/logging/testing"
@@ -468,6 +467,7 @@ func TestMetadataInTimeZone(t *testing.T) {
 
 func TestMaterials(t *testing.T) {
 	expected := []slsa.ProvenanceMaterial{
+		{URI: "github.com/test", Digest: slsa.DigestSet{"sha1": "28b123"}},
 		{
 			URI:    "docker-pullable://gcr.io/test1/test1",
 			Digest: slsa.DigestSet{"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"},
@@ -481,7 +481,6 @@ func TestMaterials(t *testing.T) {
 			URI:    "docker-pullable://gcr.io/test3/test3",
 			Digest: slsa.DigestSet{"sha256": "f1a8b8549c179f41e27ff3db0fe1a1793e4b109da46586501a8343637b1d0478"},
 		},
-		{URI: "github.com/test", Digest: slsa.DigestSet{"sha1": "28b123"}},
 		{URI: "github.com/test", Digest: slsa.DigestSet{"sha1": "ab123"}},
 		{URI: "abc", Digest: slsa.DigestSet{"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"}},
 		{URI: "git+https://git.test.com.git", Digest: slsa.DigestSet{"sha1": "abcd"}},
@@ -490,7 +489,7 @@ func TestMaterials(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if diff := cmp.Diff(expected, got, test.OptSortMaterial); diff != "" {
+	if diff := cmp.Diff(expected, got); diff != "" {
 		t.Errorf("Materials(): -want +got: %s", diff)
 	}
 }
@@ -523,7 +522,7 @@ func TestStructuredResultMaterials(t *testing.T) {
 	if err != nil {
 		t.Errorf("error while extracting materials: %v", err)
 	}
-	if diff := cmp.Diff(want, got, test.OptSortMaterial); diff != "" {
+	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("materials(): -want +got: %s", diff)
 	}
 }

@@ -22,20 +22,24 @@ import (
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 )
 
-// RemoveDuplicateMaterials removes duplicate materials from the slice of materials
+// RemoveDuplicateMaterials removes duplicate materials from the slice of materials.
+// Original order of materials is retained.
 func RemoveDuplicateMaterials(mats []slsa.ProvenanceMaterial) ([]slsa.ProvenanceMaterial, error) {
-	// make materialMap to store unique materials
-	materialMap := map[string]slsa.ProvenanceMaterial{}
+	out := make([]slsa.ProvenanceMaterial, 0, len(mats))
+
+	// make map to store seen materials
+	seen := map[string]bool{}
 	for _, mat := range mats {
 		m, err := json.Marshal(mat)
 		if err != nil {
 			return nil, err
 		}
-		materialMap[string(m)] = mat
+		if seen[string(m)] {
+			continue
+		}
+
+		seen[string(m)] = true
+		out = append(out, mat)
 	}
-	distinctMaterials := make([]slsa.ProvenanceMaterial, 0, len(materialMap))
-	for _, mat := range materialMap {
-		distinctMaterials = append(distinctMaterials, mat)
-	}
-	return distinctMaterials, nil
+	return out, nil
 }

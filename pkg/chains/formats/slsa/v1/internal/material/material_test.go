@@ -21,7 +21,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
-	"github.com/tektoncd/chains/test"
 )
 
 func TestRemoveDuplicates(t *testing.T) {
@@ -118,14 +117,44 @@ func TestRemoveDuplicates(t *testing.T) {
 				},
 			},
 		},
+	}, {
+		name: "same uri but different digest, swap order",
+		mats: []slsa.ProvenanceMaterial{
+			{
+				URI: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+				Digest: slsa.DigestSet{
+					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01248",
+				},
+			}, {
+				URI: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+				Digest: slsa.DigestSet{
+					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
+				},
+			},
+		},
+		want: []slsa.ProvenanceMaterial{
+			{
+				URI: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+				Digest: slsa.DigestSet{
+					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01248",
+				},
+			}, {
+				URI: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+				Digest: slsa.DigestSet{
+					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
+				},
+			},
+		},
 	}}
 	for _, tc := range tests {
-		mat, err := RemoveDuplicateMaterials(tc.mats)
-		if err != nil {
-			t.Fatalf("Did not expect an error but got %v", err)
-		}
-		if diff := cmp.Diff(tc.want, mat, test.OptSortMaterial); diff != "" {
-			t.Errorf("materials(): -want +got: %s", diff)
-		}
+		t.Run(tc.name, func(t *testing.T) {
+			mat, err := RemoveDuplicateMaterials(tc.mats)
+			if err != nil {
+				t.Fatalf("Did not expect an error but got %v", err)
+			}
+			if diff := cmp.Diff(tc.want, mat); diff != "" {
+				t.Errorf("materials(): -want +got: %s", diff)
+			}
+		})
 	}
 }
