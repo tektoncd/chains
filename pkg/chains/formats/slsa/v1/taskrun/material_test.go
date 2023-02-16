@@ -236,13 +236,15 @@ func TestMaterials(t *testing.T) {
 		},
 	}}
 	for _, tc := range tests {
-		mat, err := materials(objects.NewTaskRunObject(tc.taskRun), logtesting.TestLogger(t))
-		if err != nil {
-			t.Fatalf("Did not expect an error but got %v", err)
-		}
-		if diff := cmp.Diff(tc.want, mat, test.OptSortMaterial); diff != "" {
-			t.Errorf("Materials(): -want +got: %s", diff)
-		}
+		t.Run(tc.name, func(t *testing.T) {
+			mat, err := materials(objects.NewTaskRunObject(tc.taskRun), logtesting.TestLogger(t))
+			if err != nil {
+				t.Fatalf("Did not expect an error but got %v", err)
+			}
+			if diff := cmp.Diff(tc.want, mat); diff != "" {
+				t.Errorf("Materials(): -want +got: %s", diff)
+			}
+		})
 	}
 }
 
