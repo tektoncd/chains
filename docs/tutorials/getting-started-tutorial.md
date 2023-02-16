@@ -82,14 +82,13 @@ base64-encoded annotations):
 
 ```shell
 export TASKRUN_UID=$(tkn tr describe --last -o  jsonpath='{.metadata.uid}')
-tkn tr describe --last -o jsonpath="{.metadata.annotations.chains\.tekton\.dev/signature-taskrun-$TASKRUN_UID}" > signature
-tkn tr describe --last -o jsonpath="{.metadata.annotations.chains\.tekton\.dev/payload-taskrun-$TASKRUN_UID}" | base64 -d > payload
+tkn tr describe --last -o jsonpath="{.metadata.annotations.chains\.tekton\.dev/signature-taskrun-$TASKRUN_UID}" | base64 -d > sig
 ```
 
 Finally, we can check the signature with [cosign]:
 
 ```shell
-$ cosign verify-blob --key k8s://tekton-chains/signing-secrets --signature ./signature ./payload
+$ cosign verify-blob --key k8s://tekton-chains/signing-secrets --signature sig sig
 Verified OK
 ```
 
