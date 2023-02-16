@@ -27,7 +27,6 @@ import (
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/objects"
-	"github.com/tektoncd/chains/test"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
 	logtesting "knative.dev/pkg/logging/testing"
@@ -311,7 +310,7 @@ func TestAddStepImagesToMaterials(t *testing.T) {
 			}
 		}
 		if tc.wantError == nil {
-			if diff := cmp.Diff(tc.want, mat, test.OptSortMaterial); diff != "" {
+			if diff := cmp.Diff(tc.want, mat); diff != "" {
 				t.Errorf("materials(): -want +got: %s", diff)
 			}
 		}
@@ -381,7 +380,7 @@ func TestAddSidecarImagesToMaterials(t *testing.T) {
 			}
 		}
 		if tc.wantError == nil {
-			if diff := cmp.Diff(tc.want, mat, test.OptSortMaterial); diff != "" {
+			if diff := cmp.Diff(tc.want, mat); diff != "" {
 				t.Errorf("materials(): -want +got: %s", diff)
 			}
 		}
@@ -419,7 +418,7 @@ func TestAddImageIDToMaterials(t *testing.T) {
 			}
 		}
 		if tc.wantError == nil {
-			if diff := cmp.Diff(tc.want, mat, test.OptSortMaterial); diff != "" {
+			if diff := cmp.Diff(tc.want, mat); diff != "" {
 				t.Errorf("materials(): -want +got: %s", diff)
 			}
 		}

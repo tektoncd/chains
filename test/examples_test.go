@@ -136,7 +136,6 @@ func runInTotoFormatterTests(ctx context.Context, t *testing.T, ns string, c *cl
 				// those to avoid brittle tests.
 				cmpopts.IgnoreFields(slsa.ProvenanceInvocation{}, "Environment"),
 				cmpopts.IgnoreMapEntries(ignoreEnvironmentAnnotationsAndLabels),
-				OptSortMaterial,
 			}
 
 			if diff := cmp.Diff(expected, gotProvenance, opts...); diff != "" {

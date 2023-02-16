@@ -147,12 +147,14 @@ func TestRemoveDuplicates(t *testing.T) {
 		},
 	}}
 	for _, tc := range tests {
-		mat, err := RemoveDuplicateMaterials(tc.mats)
-		if err != nil {
-			t.Fatalf("Did not expect an error but got %v", err)
-		}
-		if diff := cmp.Diff(tc.want, mat); diff != "" {
-			t.Errorf("materials(): -want +got: %s", diff)
-		}
+		t.Run(tc.name, func(t *testing.T) {
+			mat, err := RemoveDuplicateMaterials(tc.mats)
+			if err != nil {
+				t.Fatalf("Did not expect an error but got %v", err)
+			}
+			if diff := cmp.Diff(tc.want, mat); diff != "" {
+				t.Errorf("materials(): -want +got: %s", diff)
+			}
+		})
 	}
 }
