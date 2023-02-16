@@ -29,9 +29,13 @@ import (
 	"github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
+	slsav1 "github.com/tektoncd/chains/pkg/chains/formats/slsa/v1/taskrun"
 	"github.com/tektoncd/chains/pkg/chains/objects"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/pod"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logtesting "knative.dev/pkg/logging/testing"
 )
@@ -66,7 +70,7 @@ func TestMetadata(t *testing.T) {
 		BuildStartedOn:  &start,
 		BuildFinishedOn: &end,
 	}
-	got := Metadata(objects.NewTaskRunObject(tr))
+	got := slsav1.Metadata(objects.NewTaskRunObject(tr))
 	if !reflect.DeepEqual(expected, got) {
 		t.Fatalf("expected %v got %v", expected, got)
 	}
@@ -95,7 +99,7 @@ func TestMetadataInTimeZone(t *testing.T) {
 		BuildStartedOn:  &start,
 		BuildFinishedOn: &end,
 	}
-	got := Metadata(objects.NewTaskRunObject(tr))
+	got := slsav1.Metadata(objects.NewTaskRunObject(tr))
 	if !reflect.DeepEqual(expected, got) {
 		t.Fatalf("expected %v got %v", expected, got)
 	}
@@ -106,14 +110,6 @@ func TestInvocation(t *testing.T) {
 kind: TaskRun
 metadata:
   uid: my-uid
-  annotations:
-    ann1: ann-one
-    ann2: ann-two
-    kubectl.kubernetes.io/last-applied-configuration: ignored
-    chains.tekton.dev/any: "ignored"
-  labels:
-    label1: label-one
-    label2: label-two
 spec:
   params:
   - name: my-param
@@ -164,28 +160,36 @@ status:
 	}
 
 	expected := slsa.ProvenanceInvocation{
-		Parameters: map[string]v1beta1.ArrayOrString{
-			"my-param":                      {Type: "string", StringVal: "string-param"},
-			"my-array-param":                {Type: "array", ArrayVal: []string{"my", "array"}},
-			"my-default-param":              {Type: "string", StringVal: "string-default-param"},
-			"my-default-array-param":        {Type: "array", ArrayVal: []string{"array", "default", "param"}},
-			"my-empty-string-param":         {Type: "string", StringVal: ""},
-			"my-empty-array-param":          {Type: "array", ArrayVal: []string{}},
-			"my-default-empty-string-param": {Type: "string", StringVal: ""},
-			"my-default-empty-array-param":  {Type: "array", ArrayVal: []string{}},
-		},
-		Environment: map[string]map[string]string{
-			"annotations": {
-				"ann1": "ann-one",
-				"ann2": "ann-two",
+		Parameters: map[string]any{
+			"Params": []v1beta1.Param{
+				{
+					Name:  "my-param",
+					Value: v1beta1.ParamValue{Type: "string", StringVal: "string-param"},
+				},
+				{
+					Name:  "my-array-param",
+					Value: v1beta1.ParamValue{Type: "array", ArrayVal: []string{"my", "array"}},
+				},
+				{Name: "my-empty-string-param", Value: v1beta1.ParamValue{Type: "string"}},
+				{
+					Name:  "my-empty-array-param",
+					Value: v1beta1.ParamValue{Type: "array", ArrayVal: []string{}},
+				},
 			},
-			"labels": {
-				"label1": "label-one",
-				"label2": "label-two",
-			},
+			"ComputeResources":   (*corev1.ResourceRequirements)(nil),
+			"Debug":              (*v1beta1.TaskRunDebug)(nil),
+			"PodTemplate":        (*pod.Template)(nil),
+			"Resources":          (*v1beta1.TaskRunResources)(nil),
+			"Retries":            0,
+			"ServiceAccountName": "",
+			"SidecarOverrides":   []v1beta1.TaskRunSidecarOverride(nil),
+			"Status":             v1beta1.TaskRunSpecStatus(""),
+			"StatusMessage":      v1beta1.TaskRunSpecStatusMessage(""),
+			"StepOverrides":      []v1beta1.TaskRunStepOverride(nil),
+			"Timeout":            (*metav1.Duration)(nil),
+			"Workspaces":         []v1beta1.WorkspaceBinding(nil),
 		},
 	}
-
 	got := invocation(objects.NewTaskRunObject(taskRun))
 	if !reflect.DeepEqual(expected, got) {
 		if d := cmp.Diff(expected, got); d != "" {

@@ -51,11 +51,12 @@ Supported keys include:
 
 | Key | Description | Supported Values | Default |
 | :--- | :--- | :--- | :--- |
-| `artifacts.taskrun.format` | The format to store `TaskRun` payloads in. | `in-toto`, `slsa/v1`| `in-toto` |
+| `artifacts.taskrun.format` | The format to store `TaskRun` payloads in. | `in-toto`, `slsa/v1`, `slsa/v2alpha1`| `in-toto` |
 | `artifacts.taskrun.storage` | The storage backend to store `TaskRun` signatures in. Multiple backends can be specified with comma-separated list ("tekton,oci"). To disable the `TaskRun` artifact input an empty string ("").  | `tekton`, `oci`, `gcs`, `docdb`, `grafeas` | `tekton` |
 | `artifacts.taskrun.signer` | The signature backend to sign `TaskRun` payloads with. | `x509`, `kms` | `x509` |
 
 > NOTE:, `slsa/v1` is an alias of `in-toto` for backwards compatibality.
+> NOTE:, `slsa/v2alpha1` is WIP and is likely to undergo multiple changes. 
 
 ### PipelineRun Configuration
 
@@ -67,6 +68,7 @@ Supported keys include:
 
 > NOTE: For grafeas storage backend, currently we only support Container Analysis. We will make grafeas server address configurabe within a short time.
 > NOTE: `slsa/v1` is an alias of `in-toto` for backwards compatibality.
+> NOTE:, `slsa/v2alpha1` is currently not supported for pipelinerun level provenance. 
 
 ### OCI Configuration
 

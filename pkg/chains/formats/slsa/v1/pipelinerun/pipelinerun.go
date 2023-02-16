@@ -21,8 +21,7 @@ import (
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/attest"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
-	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v1/internal/material"
-	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v1/taskrun"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/material"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"go.uber.org/zap"
@@ -209,12 +208,12 @@ func materials(pro *objects.PipelineRunObject, logger *zap.SugaredLogger) ([]sls
 			}
 
 			// add step images
-			if err := taskrun.AddStepImagesToMaterials(tr.Status.Steps, &mats); err != nil {
+			if err := material.AddStepImagesToMaterials(tr.Status.Steps, &mats); err != nil {
 				return mats, nil
 			}
 
 			// add sidecar images
-			if err := taskrun.AddSidecarImagesToMaterials(tr.Status.Sidecars, &mats); err != nil {
+			if err := material.AddSidecarImagesToMaterials(tr.Status.Sidecars, &mats); err != nil {
 				return mats, nil
 			}
 
