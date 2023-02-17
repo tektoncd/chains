@@ -172,14 +172,10 @@ func TestReconciler_handlePipelineRun(t *testing.T) {
 						Conditions: []apis.Condition{{Type: apis.ConditionSucceeded}},
 					},
 					PipelineRunStatusFields: v1beta1.PipelineRunStatusFields{
-						TaskRuns: map[string]*v1beta1.PipelineRunTaskRunStatus{
-							"taskrun1": {
+						ChildReferences: []v1beta1.ChildStatusReference{
+							v1beta1.ChildStatusReference{
+								Name:             "taskrun1",
 								PipelineTaskName: "task1",
-								Status: &v1beta1.TaskRunStatus{
-									TaskRunStatusFields: v1beta1.TaskRunStatusFields{
-										CompletionTime: &metav1.Time{},
-									},
-								},
 							},
 						},
 					},
@@ -217,14 +213,10 @@ func TestReconciler_handlePipelineRun(t *testing.T) {
 						Conditions: []apis.Condition{{Type: apis.ConditionSucceeded}},
 					},
 					PipelineRunStatusFields: v1beta1.PipelineRunStatusFields{
-						TaskRuns: map[string]*v1beta1.PipelineRunTaskRunStatus{
-							"taskrun1": {
+						ChildReferences: []v1beta1.ChildStatusReference{
+							v1beta1.ChildStatusReference{
+								Name:             "taskrun1",
 								PipelineTaskName: "task1",
-								Status: &v1beta1.TaskRunStatus{
-									TaskRunStatusFields: v1beta1.TaskRunStatusFields{
-										CompletionTime: &metav1.Time{},
-									},
-								},
 							},
 						},
 					},
@@ -254,14 +246,10 @@ func TestReconciler_handlePipelineRun(t *testing.T) {
 						Conditions: []apis.Condition{{Type: apis.ConditionSucceeded}},
 					},
 					PipelineRunStatusFields: v1beta1.PipelineRunStatusFields{
-						TaskRuns: map[string]*v1beta1.PipelineRunTaskRunStatus{
-							"taskrun1": {
+						ChildReferences: []v1beta1.ChildStatusReference{
+							v1beta1.ChildStatusReference{
+								Name:             "taskrun1",
 								PipelineTaskName: "task1",
-								Status: &v1beta1.TaskRunStatus{
-									TaskRunStatusFields: v1beta1.TaskRunStatusFields{
-										CompletionTime: &metav1.Time{},
-									},
-								},
 							},
 						},
 					},

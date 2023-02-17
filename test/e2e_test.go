@@ -771,10 +771,15 @@ func TestProvenanceMaterials(t *testing.T) {
 					},
 				},
 			}
+
 			if test.name == "pipelinerun" {
 				pr := signedObj.GetObject().(*v1beta1.PipelineRun)
-				for _, trStatus := range pr.Status.TaskRuns {
-					for _, step := range trStatus.Status.Steps {
+				for _, cr := range pr.Status.ChildReferences {
+					taskRun, err := c.PipelineClient.TektonV1beta1().TaskRuns(ns).Get(ctx, cr.Name, metav1.GetOptions{})
+					if err != nil {
+						t.Errorf("Did not expect an error but got %v", err)
+					}
+					for _, step := range taskRun.Status.Steps {
 						want = append(want, provenance.ProvenanceMaterial{
 							URI: strings.Split(step.ImageID, "@")[0],
 							Digest: provenance.DigestSet{
@@ -782,6 +787,16 @@ func TestProvenanceMaterials(t *testing.T) {
 							},
 						})
 					}
+				}
+			} else {
+				tr := signedObj.GetObject().(*v1beta1.TaskRun)
+				for _, step := range tr.Status.Steps {
+					want = append(want, provenance.ProvenanceMaterial{
+						URI: strings.Split(step.ImageID, "@")[0],
+						Digest: provenance.DigestSet{
+							"sha256": strings.Split(step.ImageID, ":")[1],
+						},
+					})
 				}
 			}
 			got := predicate.Materials
