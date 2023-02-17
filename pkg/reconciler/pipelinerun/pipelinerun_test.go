@@ -19,8 +19,10 @@ import (
 	"time"
 
 	signing "github.com/tektoncd/chains/pkg/chains"
+	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/chains/pkg/internal/mocksigner"
+	"github.com/tektoncd/chains/pkg/test/tekton"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	informers "github.com/tektoncd/pipeline/pkg/client/informers/externalversions/pipeline/v1beta1"
 	fakepipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client/fake"
@@ -276,6 +278,7 @@ func TestReconciler_handlePipelineRun(t *testing.T) {
 			signer := &mocksigner.Signer{}
 			ctx, _ := rtesting.SetupFakeContext(t)
 			c := fakepipelineclient.Get(ctx)
+			tekton.CreateObject(t, ctx, c, objects.NewPipelineRunObject(tt.pr))
 			tri := faketaskruninformer.Get(ctx)
 
 			r := &Reconciler{

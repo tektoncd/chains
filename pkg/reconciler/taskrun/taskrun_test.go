@@ -18,8 +18,10 @@ import (
 	"testing"
 
 	signing "github.com/tektoncd/chains/pkg/chains"
+	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/chains/pkg/internal/mocksigner"
+	"github.com/tektoncd/chains/pkg/test/tekton"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	informers "github.com/tektoncd/pipeline/pkg/client/informers/externalversions/pipeline/v1beta1"
 	fakepipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client/fake"
@@ -152,9 +154,12 @@ func TestReconciler_handleTaskRun(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			signer := &mocksigner.Signer{}
 			ctx, _ := rtesting.SetupFakeContext(t)
+			c := fakepipelineclient.Get(ctx)
+			tekton.CreateObject(t, ctx, c, objects.NewTaskRunObject(tt.tr))
 
 			r := &Reconciler{
-				TaskRunSigner: signer,
+				TaskRunSigner:     signer,
+				Pipelineclientset: c,
 			}
 			if err := r.ReconcileKind(ctx, tt.tr); err != nil {
 				t.Errorf("Reconciler.handleTaskRun() error = %v", err)

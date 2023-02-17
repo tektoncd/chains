@@ -164,8 +164,8 @@ func TestSigner_Sign(t *testing.T) {
 
 			// Check it is marked as signed
 			shouldBeSigned := !tt.wantErr
-			if Reconciled(updatedObject) != shouldBeSigned {
-				t.Errorf("IsSigned()=%t, wanted %t", Reconciled(updatedObject), shouldBeSigned)
+			if Reconciled(ctx, ps, updatedObject) != shouldBeSigned {
+				t.Errorf("IsSigned()=%t, wanted %t", Reconciled(ctx, ps, updatedObject), shouldBeSigned)
 			}
 			// Check the payloads were stored in all the backends.
 			for _, b := range tt.backends {

@@ -26,17 +26,18 @@ import (
 
 func TestReconciled(t *testing.T) {
 	tests := []struct {
-		name       string
-		annotation string
-		want       bool
+		name             string
+		annotation       string
+		latestAnnotation string
+		want             bool
 	}{
 		{
-			name:       "signed",
+			name:       "signed success",
 			want:       true,
 			annotation: "true",
 		},
 		{
-			name:       "signed",
+			name:       "signed failed",
 			want:       true,
 			annotation: "failed",
 		},
@@ -50,31 +51,74 @@ func TestReconciled(t *testing.T) {
 			want:       false,
 			annotation: "",
 		},
+		{
+			name:             "latest signed success",
+			want:             true,
+			latestAnnotation: "true",
+		},
+		{
+			name:             "latest signed failed",
+			want:             true,
+			latestAnnotation: "failed",
+		},
+		{
+			name:             "latest signed with other string",
+			want:             false,
+			latestAnnotation: "baz",
+		},
+		{
+			name:             "latest not signed",
+			want:             false,
+			latestAnnotation: "",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctx, _ := rtesting.SetupFakeContext(t)
+			c := fakepipelineclient.Get(ctx)
+
 			// Test TaskRun
-			tro := objects.NewTaskRunObject(&v1beta1.TaskRun{
+			taskRun := objects.NewTaskRunObject(&v1beta1.TaskRun{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
 						ChainsAnnotation: tt.annotation,
 					},
 				},
 			})
-			got := Reconciled(tro)
+			tekton.CreateObject(t, ctx, c, taskRun)
+
+			cachedTaskRun := objects.NewTaskRunObject(&v1beta1.TaskRun{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						ChainsAnnotation: tt.latestAnnotation,
+					},
+				},
+			})
+
+			got := Reconciled(ctx, c, cachedTaskRun)
 			if got != tt.want {
 				t.Errorf("Reconciled() got = %v, want %v", got, tt.want)
 			}
 
 			// Test PipelineRun
-			pro := objects.NewPipelineRunObject(&v1beta1.PipelineRun{
+			pipelineRun := objects.NewPipelineRunObject(&v1beta1.PipelineRun{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
 						ChainsAnnotation: tt.annotation,
 					},
 				},
 			})
-			got = Reconciled(pro)
+			tekton.CreateObject(t, ctx, c, pipelineRun)
+
+			cachedPipelineRun := objects.NewPipelineRunObject(&v1beta1.PipelineRun{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						ChainsAnnotation: tt.latestAnnotation,
+					},
+				},
+			})
+
+			got = Reconciled(ctx, c, cachedPipelineRun)
 			if got != tt.want {
 				t.Errorf("Reconciled() got = %v, want %v", got, tt.want)
 			}

@@ -43,7 +43,8 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	}
 
 	c := &Reconciler{
-		TaskRunSigner: tsSigner,
+		TaskRunSigner:     tsSigner,
+		Pipelineclientset: pipelineClient,
 	}
 	impl := taskrunreconciler.NewImpl(ctx, c, func(impl *controller.Impl) controller.Options {
 		cfgStore := config.NewConfigStore(logger, func(name string, value interface{}) {
