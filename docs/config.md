@@ -80,7 +80,7 @@ Supported keys include:
 
 | Key | Description | Supported Values | Default |
 | :--- | :--- | :--- | :--- |
-| `signers.kms.kmsref` | The URI reference to a KMS service to use in `KMS` signers. | One of the three formats: <br/>`gcpkms://projects/[PROJECT]/locations/[LOCATION]>/keyRings/[KEYRING]/cryptoKeys/[KEY]` <br/> `gcpkms://projects/[PROJECT]/locations/[LOCATION]>/keyRings/[KEYRING]/cryptoKeys/[KEY]/cryptoKeyVersions/[KEY_VERSION]` <br/> `gcpkms://projects/[PROJECT]/locations/[LOCATION]>/keyRings/[KEYRING]/cryptoKeys/[KEY]/versions/[KEY_VERSION]`| |
+| `signers.kms.kmsref` | The URI reference to a KMS service to use in `KMS` signers. | Supported schemes: `gcpkms://`, `awskms://`, `azurekms://`, `hashivault://`. See https://docs.sigstore.dev/cosign/kms_support for more details. | |
 
 ### Storage Configuration
 
