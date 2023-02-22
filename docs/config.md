@@ -111,14 +111,14 @@ You can read more about Grafeas notes and occurrences [here](https://github.com/
 | :--- | :--- | :--- | :--- |
 | `builder.id` | The builder ID to set for in-toto attestations | | `https://tekton.dev/chains/v2`|
 
-### Experimental Features Configuration
+### Sigstore Features Configuration
 
 #### Transparency Log
 
 | Key | Description | Supported Values | Default |
 | :--- | :--- | :--- | :--- |
-| `transparency.enabled` | EXPERIMENTAL. Whether to enable automatic binary transparency uploads. | `true`, `false`, `manual` | `false` |
-| `transparency.url` | EXPERIMENTAL. The URL to upload binary transparency attestations to, if enabled. | |`https://rekor.sigstore.dev`|
+| `transparency.enabled` | Whether to enable automatic binary transparency uploads. | `true`, `false`, `manual` | `false` |
+| `transparency.url` | The URL to upload binary transparency attestations to, if enabled. | |`https://rekor.sigstore.dev`|
 
 **Note**: If `transparency.enabled` is set to `manual`, then only `TaskRuns` and `PipelineRuns` with the following annotation will be uploaded to the transparency log:
 
@@ -130,10 +130,10 @@ chains.tekton.dev/transparency-upload: "true"
 
 | Key | Description | Supported Values | Default |
 | :--- | :--- | :--- | :--- |
-| `signers.x509.fulcio.enabled` | EXPERIMENTAL. Whether to enable automatic certificates from fulcio. | `true`, `false` | `false`|
-| `signers.x509.fulcio.address` | EXPERIMENTAL. Fulcio address to request certificate from, if enabled | |`https://v1.fulcio.sigstore.dev` |
-| `signers.x509.fulcio.issuer` | EXPERIMENTAL. Expected OIDC issuer. | |`https://oauth2.sigstore.dev/auth` |
-| `signers.x509.fulcio.provider` | EXPERIMENTAL. Provider to request ID Token from | `google`, `spiffe`, `github`, `filesystem` | Unset, each provider will be attempted. |
+| `signers.x509.fulcio.enabled` | Whether to enable automatic certificates from fulcio. | `true`, `false` | `false`|
+| `signers.x509.fulcio.address` | Fulcio address to request certificate from, if enabled | |`https://v1.fulcio.sigstore.dev` |
+| `signers.x509.fulcio.issuer` | Expected OIDC issuer. | |`https://oauth2.sigstore.dev/auth` |
+| `signers.x509.fulcio.provider` | Provider to request ID Token from | `google`, `spiffe`, `github`, `filesystem` | Unset, each provider will be attempted. |
 
 #### KMS OIDC and Spire Configuration
 
