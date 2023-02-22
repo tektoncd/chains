@@ -31,6 +31,7 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
 	slsav1 "github.com/tektoncd/chains/pkg/chains/formats/slsa/v1/taskrun"
 	"github.com/tektoncd/chains/pkg/chains/objects"
+	"github.com/tektoncd/pipeline/pkg/apis/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/pod"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
@@ -152,6 +153,16 @@ status:
     - name: my-default-empty-array-param
       type: array
       default: []
+  provenance:
+    featureFlags:
+      AwaitSidecarReadiness: true
+      CustomTaskVersion: v1beta1
+      EnableAPIFields: stable
+      EnableProvenanceInStatus: true
+      MaxResultSize: 4096
+      ResourceVerificationMode: skip
+      ResultExtractionMethod: termination-message
+      RunningInEnvWithInjectedSidecars: true
 `
 
 	var taskRun *v1beta1.TaskRun
@@ -188,6 +199,18 @@ status:
 			"StepOverrides":      []v1beta1.TaskRunStepOverride(nil),
 			"Timeout":            (*metav1.Duration)(nil),
 			"Workspaces":         []v1beta1.WorkspaceBinding(nil),
+		},
+		Environment: map[string]any{
+			"tekton-pipelines-feature-flags": &config.FeatureFlags{
+				RunningInEnvWithInjectedSidecars: true,
+				EnableAPIFields:                  "stable",
+				AwaitSidecarReadiness:            true,
+				ResourceVerificationMode:         "skip",
+				EnableProvenanceInStatus:         true,
+				ResultExtractionMethod:           "termination-message",
+				MaxResultSize:                    4096,
+				CustomTaskVersion:                "v1beta1",
+			},
 		},
 	}
 	got := invocation(objects.NewTaskRunObject(taskRun))
