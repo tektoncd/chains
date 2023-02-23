@@ -70,7 +70,7 @@ func GenerateAttestation(builderID string, payloadType config.PayloadType, tro *
 // which material the Task definition came from
 func invocation(tro *objects.TaskRunObject) slsa.ProvenanceInvocation {
 	i := slsa.ProvenanceInvocation{}
-	if p := tro.Status.Provenance; p != nil {
+	if p := tro.Status.Provenance; p != nil && p.ConfigSource != nil {
 		i.ConfigSource = slsa.ConfigSource{
 			URI:        p.ConfigSource.URI,
 			Digest:     p.ConfigSource.Digest,
@@ -78,7 +78,22 @@ func invocation(tro *objects.TaskRunObject) slsa.ProvenanceInvocation {
 		}
 	}
 	i.Parameters = invocationParams(tro)
+	env := invocationEnv(tro)
+	if len(env) > 0 {
+		i.Environment = env
+	}
 	return i
+}
+
+// invocationEnv adds the tekton feature flags that were enabled
+// for the taskrun. In the future, we can populate versioning information
+// here as well.
+func invocationEnv(tro *objects.TaskRunObject) map[string]any {
+	var iEnv map[string]any = make(map[string]any)
+	if tro.Status.Provenance != nil && tro.Status.Provenance.FeatureFlags != nil {
+		iEnv["tekton-pipelines-feature-flags"] = tro.Status.Provenance.FeatureFlags
+	}
+	return iEnv
 }
 
 // invocationParams adds all fields from the task run object except
