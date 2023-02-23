@@ -72,21 +72,8 @@ func (r *Reconciler) FinalizeKind(ctx context.Context, pr *v1beta1.PipelineRun) 
 
 	// Get TaskRun names depending on whether embeddedstatus feature is set or not
 	var trs []string
-	if len(pr.Status.ChildReferences) == 0 || len(pr.Status.TaskRuns) > 0 || len(pr.Status.Runs) > 0 {
-		for trName, ptrs := range pr.Status.TaskRuns {
-			// TaskRuns within a PipelineRun may not have been finalized yet if the PipelineRun timeout
-			// has exceeded. Wait to process the PipelineRun on the next update, see
-			// https://github.com/tektoncd/pipeline/issues/4916
-			if ptrs.Status == nil || ptrs.Status.CompletionTime == nil {
-				logging.FromContext(ctx).Infof("taskrun %s within pipelinerun is not yet finalized: embedded status is not complete", trName)
-				return nil
-			}
-			trs = append(trs, trName)
-		}
-	} else {
-		for _, cr := range pr.Status.ChildReferences {
-			trs = append(trs, cr.Name)
-		}
+	for _, cr := range pr.Status.ChildReferences {
+		trs = append(trs, cr.Name)
 	}
 
 	// Signing both taskruns and pipelineruns causes a race condition when using oci storage
