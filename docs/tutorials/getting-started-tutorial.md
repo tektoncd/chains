@@ -88,9 +88,18 @@ tkn tr describe --last -o jsonpath="{.metadata.annotations.chains\.tekton\.dev/s
 Finally, we can check the signature with [cosign]:
 
 ```shell
+$ cosign verify-blob-attestation --insecure-ignore-tlog --key k8s://tekton-chains/signing-secrets --signature sig --type slsaprovenance --check-claims=false /dev/null
+Verified OK
+```
+
+<details><summary>If using Cosign v1</summary>
+
+```shell
 $ cosign verify-blob --key k8s://tekton-chains/signing-secrets --signature sig sig
 Verified OK
 ```
+
+</details>
 
 Now we have a verifiable record of the `TaskRun`!
 
