@@ -134,6 +134,8 @@ chains.tekton.dev/transparency-upload: "true"
 | `signers.x509.fulcio.address` | Fulcio address to request certificate from, if enabled | |`https://v1.fulcio.sigstore.dev` |
 | `signers.x509.fulcio.issuer` | Expected OIDC issuer. | |`https://oauth2.sigstore.dev/auth` |
 | `signers.x509.fulcio.provider` | Provider to request ID Token from | `google`, `spiffe`, `github`, `filesystem` | Unset, each provider will be attempted. |
+| `signers.x509.identity.token.file` | Path to file containing ID Token. | |
+| `signers.x509.tuf.mirror.url` | TUF server URL. $TUF_URL/root.json is expected to be present. | | `https://sigstore-tuf-root.storage.googleapis.com` |
 
 #### KMS OIDC and Spire Configuration
 
