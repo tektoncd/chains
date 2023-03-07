@@ -19,28 +19,27 @@ metadata:
   labels:
     build: chains
 spec:
-  resources:
-    inputs:
-      - name: repo
-        resourceSpec:
-          type: git
-          params:
-            - name: url
-              value: https://github.com/tektoncd/chains
-            - name: revision
-              value: v0.3.0
+  params:
+    - name: url
+      value: https://github.com/tektoncd/chains
+    - name: revision
+      value: v0.3.0
+  workspaces:
+    - name: source
+      emptyDir: {}
   taskSpec:
-    resources:
-      inputs:
-      - name: repo
-        type: git
-        targetPath: /go/src/github.com/tektoncd/chains
+    params:
+      - name: url
+      - name: revision
+    workspaces:
+      - name: source
     results:
+      - name: IMAGE_URL
       - name: IMAGE_DIGEST
     steps:
     - name: ko
       image: gcr.io/tekton-releases/dogfooding/ko@sha256:ff918ec2c8bbe416d5a9b6f9d25dfe9012dce673922fe7b2d5d69a99b02df0ac
-      workingDir: /workspace/go/src/github.com/tektoncd/chains
+      workingDir: /workspaces
       env:
       - name: KO_DOCKER_REPO
         value: myrepo
@@ -54,6 +53,10 @@ spec:
         #!/usr/bin/env sh
         set -ex
 
+        git clone $(params.url) $(workspaces.sources)
+        cd $(workspaces.sources)
+        git checkout $(params.revision)
+        
         # For each cmd/* directory, include a full gzipped tar of all source in
         # vendor/. This is overkill. Some deps' licenses require the source to be
         # included in the container image when they're used as a dependency.
@@ -74,3 +77,4 @@ spec:
 
         ko resolve '--platform=linux/amd64,linux/arm64' --preserve-import-paths -t v0.3.0 -f ./config > release.yaml
         grep image: ./release.yaml | cut -d '@' -f 2 > $(results.IMAGE_DIGEST.path)
+        grep image: ./release.yaml | cut -d '@' -f 1 > $(results.IMAGE_URL.path)
