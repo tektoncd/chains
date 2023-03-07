@@ -3,10 +3,18 @@ linters-settings:
 linters:
   enable:
   - bodyclose
+  - containedctx
   - decorder
   - depguard
+  - dogsled
+  - dupl
   - dupword
   - errcheck
+  - errchkjson
+  - errname
+  - errorlint
+  - exhaustive
+  - goconst
   - gocritic
   - gofmt
   - goimports
@@ -14,14 +22,18 @@ linters:
   - gosec
   - gosimple
   - govet
+  - ireturn
   - misspell
   - revive
+  - staticheck
   - thelper
   - typecheck
   - unconvert
+  - unparam
   - unused
   - usestdlibvars
   - whitespace
+  - wrapcheck
 # Enabling presets means that new linters that we automatically adopt new
 # linters that augment a preset. This also opts us in for replacement linters
 # when a linter is deprecated.
