@@ -189,7 +189,7 @@ func metadata(pro *objects.PipelineRunObject) *slsa.ProvenanceMetadata {
 // add any Git specification to materials
 func materials(pro *objects.PipelineRunObject, logger *zap.SugaredLogger) ([]slsa.ProvenanceMaterial, error) {
 	var mats []slsa.ProvenanceMaterial
-	if p := pro.Status.Provenance; p != nil {
+	if p := pro.Status.Provenance; p != nil && p.ConfigSource != nil {
 		m := slsa.ProvenanceMaterial{
 			URI:    p.ConfigSource.URI,
 			Digest: p.ConfigSource.Digest,
