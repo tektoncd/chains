@@ -21,47 +21,11 @@
         "buildConfig": {
             "steps": [
                 {
-                    "entryPoint": "",
+                    "entryPoint": "#!/usr/bin/env sh\necho 'gcr.io/foo/bar' | tee /tekton/results/IMAGE_URL\necho 'sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5' | tee /tekton/results/IMAGE_DIGEST",
                     "arguments": null,
                     "environment": {
                         "container": "{{index .ContainerNames 0}}",
                         "image": "{{index .StepImages 0}}"
-                    },
-                    "annotations": null
-                },
-                {
-                    "entryPoint": "",
-                    "arguments": null,
-                    "environment": {
-                        "container": "{{index .ContainerNames 1}}",
-                        "image": "{{index .StepImages 1}}"
-                    },
-                    "annotations": null
-                },
-                {
-                    "entryPoint": "set -e\ncat \u003c\u003cEOF \u003e $(inputs.resources.sourcerepo.path)/index.json\n{\n\"schemaVersion\": 2,\n\"manifests\": [\n    {\n    \"mediaType\": \"application/vnd.oci.image.index.v1+json\",\n    \"size\": 314,\n    \"digest\": \"sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5\"\n    }\n]\n}\n",
-                    "arguments": null,
-                    "environment": {
-                        "container": "{{index .ContainerNames 2}}",
-                        "image": "{{index .StepImages 2}}"
-                    },
-                    "annotations": null
-                },
-                {
-                    "entryPoint": "cat $(inputs.resources.sourcerepo.path)/index.json",
-                    "arguments": null,
-                    "environment": {
-                        "container": "{{index .ContainerNames 3}}",
-                        "image": "{{index .StepImages 3}}"
-                    },
-                    "annotations": null
-                },
-                {
-                    "entryPoint": "",
-                    "arguments": null,
-                    "environment": {
-                        "container": "{{index .ContainerNames 4}}",
-                        "image": "{{index .StepImages 4}}"
                     },
                     "annotations": null
                 }
@@ -84,14 +48,8 @@
 		"digest": {
 		    "sha256": "{{.Digest}}"
 		}
-	    },
+	    }
 	    {{end}}
-            {
-                "uri": "git+https://github.com/GoogleContainerTools/skaffold@v0.32.0",
-                "digest": {
-                    "sha1": "6ed7aad5e8a36052ee5f6079fc91368e362121f7"
-                }
-            }
         ]
     }
 }

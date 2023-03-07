@@ -21,28 +21,7 @@
        		"Debug":            null,
        		"Params":           null,
        		"PodTemplate":      null,
-       		"Resources": {
-       			"inputs": [{
-			    "name": "sourcerepo",
-			    "resourceSpec": {
-				"params": [
-					{"name": "revision", "value": "v0.32.0"},
-					{
-						"name":  "url",
-						"value": "https://github.com/GoogleContainerTools/skaffold"
-					}
-				],
-				"type": "git"
-			    }
-       			}],
-       			"outputs": [{
-       			    "name": "builtImage",
-			    "resourceSpec": {
-        			"params": [{"name": "url", "value": "gcr.io/foo/bar"}],
-        			"type":   "image"
-			    }
-       			}]
-       		},
+       		"Resources":        null,
        		"Retries":            0,
        		"ServiceAccountName": "default",
        		"SidecarOverrides":   null,
@@ -55,32 +34,37 @@
         },
         "buildConfig": {
             "taskSpec": {
-                "resources": {
-		    "inputs": [{
-                        "name": "sourcerepo",
-			"type": "git"
-		    }],
-		    "outputs": [{
-                        "name": "builtImage",
-			"type": "image",
-			"targetPath": "/workspace/sourcerepo"
-		    }]
-                },
-		"steps": [
-		    {
-		        "name": "build-and-push",
-			"image": "busybox",
-			"resources": {},
-			"script": "set -e\ncat \u003c\u003cEOF > $(inputs.resources.sourcerepo.path)/index.json\n{\n\"schemaVersion\": 2,\n\"manifests\": [\n    {\n    \"mediaType\": \"application/vnd.oci.image.index.v1+json\",\n    \"size\": 314,\n    \"digest\": \"sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5\"\n    }\n]\n}\n" 
-		    },{
-		        "name": "echo",
-			"image": "busybox",
-			"resources": {},
-			"script": "cat $(inputs.resources.sourcerepo.path)/index.json"
-		    }	
-		]
+        "steps": [
+          {
+            "name": "create-image",
+            "image": "busybox",
+            "resources": {},
+            "script": "#!/usr/bin/env sh\necho 'gcr.io/foo/bar' | tee /tekton/results/IMAGE_URL\necho 'sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5' | tee /tekton/results/IMAGE_DIGEST"
+          }
+        ],
+        "results": [
+          {
+            "name": "IMAGE_URL",
+            "type": "string"
+          },
+          {
+            "name": "IMAGE_DIGEST",
+            "type": "string"
+          }
+        ]
 	    },
-	    "taskRunResults": null
+      "taskRunResults": [
+        {
+          "name": "IMAGE_DIGEST",
+          "type": "string",
+          "value": "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5\n"
+        },
+        {
+          "name": "IMAGE_URL",
+          "type": "string",
+          "value": "gcr.io/foo/bar\n"
+        }
+      ]
         },
         "metadata": {
             "buildStartedOn": "{{index .BuildStartTimes 0}}",
@@ -99,14 +83,8 @@
 		"digest": {
 		    "sha256": "{{.Digest}}"
 		}
-	    },
+	    }
 	    {{end}}
-            {
-                "uri": "git+https://github.com/GoogleContainerTools/skaffold@v0.32.0",
-                "digest": {
-                    "sha1": "6ed7aad5e8a36052ee5f6079fc91368e362121f7"
-                }
-            }
         ]
     }
 }
