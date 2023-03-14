@@ -175,7 +175,7 @@ func runInTotoFormatterTests(ctx context.Context, t *testing.T, ns string, c *cl
 				t.Fatal(err)
 			}
 
-			if _, err := ev.Verify(&env); err != nil {
+			if _, err := ev.Verify(ctx, &env); err != nil {
 				t.Fatal(err)
 			}
 		})
@@ -186,7 +186,7 @@ type verifier struct {
 	pub *ecdsa.PublicKey
 }
 
-func (v *verifier) Verify(data, sig []byte) error {
+func (v *verifier) Verify(_ context.Context, data, sig []byte) error {
 	h := sha256.Sum256(data)
 	if ecdsa.VerifyASN1(v.pub, h[:], sig) {
 		return nil

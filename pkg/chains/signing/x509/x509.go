@@ -28,10 +28,10 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
-	"github.com/sigstore/cosign/cmd/cosign/cli/fulcio"
-	"github.com/sigstore/cosign/cmd/cosign/cli/options"
-	"github.com/sigstore/cosign/pkg/cosign"
-	"github.com/sigstore/cosign/pkg/providers"
+	"github.com/sigstore/cosign/v2/cmd/cosign/cli/fulcio"
+	"github.com/sigstore/cosign/v2/cmd/cosign/cli/options"
+	"github.com/sigstore/cosign/v2/pkg/cosign"
+	"github.com/sigstore/cosign/v2/pkg/providers"
 
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/tuf"
@@ -110,17 +110,25 @@ func fulcioSigner(ctx context.Context, cfg config.X509Signer, logger *zap.Sugare
 	}
 
 	logger.Info("Signing with fulcio ...")
+	priv, err := cosign.GeneratePrivateKey()
+	if err != nil {
+		return nil, fmt.Errorf("error generating keypair: %w", err)
+	}
+	signer, err := signature.LoadECDSASignerVerifier(priv, crypto.SHA256)
+	if err != nil {
+		return nil, fmt.Errorf("error loading sigstore signer: %w", err)
+	}
 	k, err := fulcio.NewSigner(ctx, options.KeyOpts{
 		FulcioURL:    cfg.FulcioAddr,
 		IDToken:      tok,
 		OIDCIssuer:   cfg.FulcioOIDCIssuer,
 		OIDCClientID: defaultOIDCClientID,
-	})
+	}, signer)
 	if err != nil {
 		return nil, errors.Wrap(err, "new signer")
 	}
 	return &Signer{
-		SignerVerifier: k.ECDSASignerVerifier,
+		SignerVerifier: signer,
 		cert:           string(k.Cert),
 		chain:          string(k.Chain),
 		logger:         logger,

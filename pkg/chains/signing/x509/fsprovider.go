@@ -19,8 +19,8 @@ import (
 	"context"
 	"os"
 
-	"github.com/sigstore/cosign/pkg/providers"
-	"github.com/sigstore/cosign/pkg/providers/filesystem"
+	"github.com/sigstore/cosign/v2/pkg/providers"
+	"github.com/sigstore/cosign/v2/pkg/providers/filesystem"
 )
 
 const (
