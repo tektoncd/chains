@@ -674,7 +674,7 @@ github.com/go-playground/locales/currency
 # github.com/go-playground/universal-translator v0.18.0
 ## explicit; go 1.13
 github.com/go-playground/universal-translator
-# github.com/go-playground/validator/v10 v10.11.0
+# github.com/go-playground/validator/v10 v10.11.1
 ## explicit; go 1.13
 github.com/go-playground/validator/v10
 # github.com/go-toolsmith/astcast v1.1.0
@@ -1531,7 +1531,7 @@ github.com/sigstore/cosign/pkg/types
 # github.com/sigstore/fulcio v0.6.0
 ## explicit; go 1.18
 github.com/sigstore/fulcio/pkg/api
-# github.com/sigstore/rekor v0.12.1-0.20220915152154-4bb6f441c1b2
+# github.com/sigstore/rekor v1.0.1
 ## explicit; go 1.18
 github.com/sigstore/rekor/pkg/client
 github.com/sigstore/rekor/pkg/generated/client

@@ -1283,8 +1283,8 @@ github.com/go-playground/universal-translator v0.18.0 h1:82dyy6p4OuJq4/CByFNOn/j
 github.com/go-playground/universal-translator v0.18.0/go.mod h1:UvRDBj+xPUEGrFYl+lu/H90nyDXpg0fqeB/AQUGNTVA=
 github.com/go-playground/validator/v10 v10.2.0/go.mod h1:uOYAAleCW8F/7oMFd6aG0GOhaH6EGOAJShg8Id5JGkI=
 github.com/go-playground/validator/v10 v10.4.1/go.mod h1:nlOn6nFhuKACm19sB/8EGNn9GlaMV7XkbRSipzJ0Ii4=
-github.com/go-playground/validator/v10 v10.11.0 h1:0W+xRM511GY47Yy3bZUbJVitCNg2BOGlCyvTqsp/xIw=
-github.com/go-playground/validator/v10 v10.11.0/go.mod h1:i+3WkQ1FvaUjjxh1kSvIA4dMGDBiPU55YFDl0WbKdWU=
+github.com/go-playground/validator/v10 v10.11.1 h1:prmOlTVv+YjZjmRmNSF3VmspqJIxJWXmqUsHwfTRRkQ=
+github.com/go-playground/validator/v10 v10.11.1/go.mod h1:i+3WkQ1FvaUjjxh1kSvIA4dMGDBiPU55YFDl0WbKdWU=
 github.com/go-redis/redis v6.15.9+incompatible/go.mod h1:NAIEuMOZ/fxfXJIrKDQDz8wamY7mA7PouImQ2Jvg6kA=
 github.com/go-resty/resty/v2 v2.1.1-0.20191201195748-d7b97669fe48/go.mod h1:dZGr0i9PLlaaTD4H/hoZIDjQ+r6xq8mgbRzHZf7f2J8=
 github.com/go-rod/rod v0.112.3 h1:xbSaA9trZ8v/+eJRGOM6exK1RCsLPwwnzA78vpES0gk=
@@ -2428,8 +2428,8 @@ github.com/sigstore/cosign v1.13.1 h1:+5oF8jisEcDw2TuXxCADC1u5//HfdnJhGbpv9Isiwu
 github.com/sigstore/cosign v1.13.1/go.mod h1:PlfJODkovUOKsLrGI7Su57Ie/Eb/Ks7hRHw3tn5hQS4=
 github.com/sigstore/fulcio v0.6.0 h1:YNfnGm9EjYPlzHiPDcIVhslYj846jkPtHQH+FTKNncw=
 github.com/sigstore/fulcio v0.6.0/go.mod h1:lwxzHDYYQ0lVVWqaj68ZQNkcP847aoF7AIa7ra9rRqA=
-github.com/sigstore/rekor v0.12.1-0.20220915152154-4bb6f441c1b2 h1:LD8LcwygdD2DxaINWwbkaUEBAknr205wmn66/N05s7c=
-github.com/sigstore/rekor v0.12.1-0.20220915152154-4bb6f441c1b2/go.mod h1:C/jZ3EZywl/Kew48fGMWQoh+1LxOMk0BkP3DHmtB+8M=
+github.com/sigstore/rekor v1.0.1 h1:rcESXSNkAPRWFYZel9rarspdvneET60F2ngNkadi89c=
+github.com/sigstore/rekor v1.0.1/go.mod h1:ecTKdZWGWqE1pl3U1m1JebQJLU/hSjD9vYHOmHQ7w4g=
 github.com/sigstore/sigstore v1.5.1 h1:iUou0QJW8eQKMUkTXbFyof9ZOblDtfaW2Sn2+QI8Tcs=
 github.com/sigstore/sigstore v1.5.1/go.mod h1:3i6UTWVNtFwOtbgG63FZZNID4vO9KcO8AszIJlaNI8k=
 github.com/sirupsen/logrus v1.0.4-0.20170822132746-89742aefa4b2/go.mod h1:pMByvHTf9Beacp5x1UXfOR9xyW/9antXMhjMPG0dEzc=

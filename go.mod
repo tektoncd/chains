@@ -19,7 +19,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/secure-systems-lab/go-securesystemslib v0.4.0
 	github.com/sigstore/cosign v1.13.1
-	github.com/sigstore/rekor v0.12.1-0.20220915152154-4bb6f441c1b2
+	github.com/sigstore/rekor v1.0.1
 	github.com/sigstore/sigstore v1.5.1
 	github.com/spiffe/go-spiffe/v2 v2.1.2
 	github.com/stretchr/testify v1.8.2
@@ -187,7 +187,7 @@ require (
 	github.com/go-openapi/validate v0.22.0 // indirect
 	github.com/go-playground/locales v0.14.0 // indirect
 	github.com/go-playground/universal-translator v0.18.0 // indirect
-	github.com/go-playground/validator/v10 v10.11.0 // indirect
+	github.com/go-playground/validator/v10 v10.11.1 // indirect
 	github.com/go-toolsmith/astcast v1.1.0 // indirect
 	github.com/go-toolsmith/astcopy v1.1.0 // indirect
 	github.com/go-toolsmith/astequal v1.1.0 // indirect
