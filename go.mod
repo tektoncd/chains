@@ -11,7 +11,7 @@ require (
 	github.com/google/go-cmp v0.5.9
 	github.com/google/go-containerregistry v0.13.0
 	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20221030203717-1711cefd7eec
-	github.com/google/go-licenses v0.0.0-20210816172045-3099c18c36e1
+	github.com/google/go-licenses v1.6.0
 	github.com/grafeas/grafeas v0.2.2-0.20220620154915-0ec8596e37d3
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/in-toto/in-toto-golang v0.3.4-0.20220709202702-fa494aaa0add

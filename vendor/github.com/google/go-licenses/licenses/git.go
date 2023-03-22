@@ -22,8 +22,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/golang/glog"
 	git "gopkg.in/src-d/go-git.v4"
+	"k8s.io/klog/v2"
 )
 
 var (
@@ -46,7 +46,10 @@ type GitRepo struct {
 // FindGitRepo finds the Git repository that contains the specified filePath
 // by searching upwards through the directory tree for a ".git" directory.
 func FindGitRepo(filePath string) (*GitRepo, error) {
-	path, err := findUpwards(filepath.Dir(filePath), gitRegexp, srcDirRegexps, nil)
+	// TODO(Bobgy): the "/" is used just to fix the test. git.go is not
+	// currently used, but I plan to bring it back to detect version of the
+	// main module in following up PRs.
+	path, err := findUpwards(filepath.Dir(filePath), gitRegexp, "/", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +91,7 @@ func gitRemoteURL(repoPath string, remoteName string) (*url.URL, error) {
 	for _, urlStr := range remote.Config().URLs {
 		u, err := url.Parse(urlStr)
 		if err != nil {
-			glog.Warningf("Error parsing %q as URL from remote %q in Git repo at %q: %s", urlStr, remoteName, repoPath, err)
+			klog.Warningf("Error parsing %q as URL from remote %q in Git repo at %q: %s", urlStr, remoteName, repoPath, err)
 			continue
 		}
 		return u, nil
