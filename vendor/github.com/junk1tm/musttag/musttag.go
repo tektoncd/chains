@@ -6,6 +6,8 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
+	"path"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -23,42 +25,39 @@ type Func struct {
 	ArgPos int    // ArgPos is the position of the argument to check.
 }
 
-// builtin is a set of functions supported out of the box.
-var builtin = []Func{
-	{Name: "encoding/json.Marshal", Tag: "json", ArgPos: 0},
-	{Name: "encoding/json.MarshalIndent", Tag: "json", ArgPos: 0},
-	{Name: "encoding/json.Unmarshal", Tag: "json", ArgPos: 1},
-	{Name: "(*encoding/json.Encoder).Encode", Tag: "json", ArgPos: 0},
-	{Name: "(*encoding/json.Decoder).Decode", Tag: "json", ArgPos: 0},
-
-	{Name: "encoding/xml.Marshal", Tag: "xml", ArgPos: 0},
-	{Name: "encoding/xml.MarshalIndent", Tag: "xml", ArgPos: 0},
-	{Name: "encoding/xml.Unmarshal", Tag: "xml", ArgPos: 1},
-	{Name: "(*encoding/xml.Encoder).Encode", Tag: "xml", ArgPos: 0},
-	{Name: "(*encoding/xml.Decoder).Decode", Tag: "xml", ArgPos: 0},
-	{Name: "(*encoding/xml.Encoder).EncodeElement", Tag: "xml", ArgPos: 0},
-	{Name: "(*encoding/xml.Decoder).DecodeElement", Tag: "xml", ArgPos: 0},
-
-	{Name: "gopkg.in/yaml.v3.Marshal", Tag: "yaml", ArgPos: 0},
-	{Name: "gopkg.in/yaml.v3.Unmarshal", Tag: "yaml", ArgPos: 1},
-	{Name: "(*gopkg.in/yaml.v3.Encoder).Encode", Tag: "yaml", ArgPos: 0},
-	{Name: "(*gopkg.in/yaml.v3.Decoder).Decode", Tag: "yaml", ArgPos: 0},
-
-	{Name: "github.com/BurntSushi/toml.Unmarshal", Tag: "toml", ArgPos: 1},
-	{Name: "github.com/BurntSushi/toml.Decode", Tag: "toml", ArgPos: 1},
-	{Name: "github.com/BurntSushi/toml.DecodeFS", Tag: "toml", ArgPos: 2},
-	{Name: "github.com/BurntSushi/toml.DecodeFile", Tag: "toml", ArgPos: 1},
-	{Name: "(*github.com/BurntSushi/toml.Encoder).Encode", Tag: "toml", ArgPos: 0},
-	{Name: "(*github.com/BurntSushi/toml.Decoder).Decode", Tag: "toml", ArgPos: 0},
-
-	{Name: "github.com/mitchellh/mapstructure.Decode", Tag: "mapstructure", ArgPos: 1},
-	{Name: "github.com/mitchellh/mapstructure.DecodeMetadata", Tag: "mapstructure", ArgPos: 1},
-	{Name: "github.com/mitchellh/mapstructure.WeakDecode", Tag: "mapstructure", ArgPos: 1},
-	{Name: "github.com/mitchellh/mapstructure.WeakDecodeMetadata", Tag: "mapstructure", ArgPos: 1},
+func (fn Func) shortName() string {
+	name := strings.NewReplacer("*", "", "(", "", ")", "").Replace(fn.Name)
+	return path.Base(name)
 }
 
-// flags creates a flag set for the analyzer. The funcs slice will be filled
-// with custom functions passed via CLI flags.
+// New creates a new musttag analyzer.
+// To report a custom function provide its description via Func,
+// it will be added to the builtin ones.
+func New(funcs ...Func) *analysis.Analyzer {
+	var flagFuncs []Func
+	return &analysis.Analyzer{
+		Name:     "musttag",
+		Doc:      "enforce field tags in (un)marshaled structs",
+		Flags:    flags(&flagFuncs),
+		Requires: []*analysis.Analyzer{inspect.Analyzer},
+		Run: func(pass *analysis.Pass) (any, error) {
+			l := len(builtins) + len(funcs) + len(flagFuncs)
+			m := make(map[string]Func, l)
+			toMap := func(slice []Func) {
+				for _, fn := range slice {
+					m[fn.Name] = fn
+				}
+			}
+			toMap(builtins)
+			toMap(funcs)
+			toMap(flagFuncs)
+			return run(pass, m)
+		},
+	}
+}
+
+// flags creates a flag set for the analyzer.
+// The funcs slice will be filled with custom functions passed via CLI flags.
 func flags(funcs *[]Func) flag.FlagSet {
 	fs := flag.NewFlagSet("musttag", flag.ContinueOnError)
 	fs.Func("fn", "report custom function (name:tag:argpos)", func(s string) error {
@@ -80,157 +79,173 @@ func flags(funcs *[]Func) flag.FlagSet {
 	return *fs
 }
 
-// New creates a new musttag analyzer. To report a custom function provide its
-// description via Func, it will be added to the builtin ones.
-func New(funcs ...Func) *analysis.Analyzer {
-	var flagFuncs []Func
-	return &analysis.Analyzer{
-		Name:     "musttag",
-		Doc:      "enforce field tags in (un)marshaled structs",
-		Flags:    flags(&flagFuncs),
-		Requires: []*analysis.Analyzer{inspect.Analyzer},
-		Run: func(pass *analysis.Pass) (any, error) {
-			l := len(builtin) + len(funcs) + len(flagFuncs)
-			m := make(map[string]Func, l)
-			toMap := func(slice []Func) {
-				for _, fn := range slice {
-					m[fn.Name] = fn
-				}
-			}
-			toMap(builtin)
-			toMap(funcs)
-			toMap(flagFuncs)
-			return run(pass, m)
-		},
-	}
-}
-
 // for tests only.
 var (
-	// should the same struct be reported only once for the same tag?
-	reportOnce = true
-
-	// reportf is a wrapper for pass.Reportf (as a variable, so it could be mocked in tests).
-	reportf = func(pass *analysis.Pass, pos token.Pos, fn Func) {
-		pass.Reportf(pos, "exported fields should be annotated with the %q tag", fn.Tag)
+	reportf = func(pass *analysis.Pass, st *structType, fn Func, fnPos token.Position) {
+		const format = "`%s` should be annotated with the `%s` tag as it is passed to `%s` at %s"
+		pass.Reportf(st.Pos, format, st.Name, fn.Tag, fn.shortName(), fnPos)
 	}
+
+	// HACK(junk1tm): mainModulePackages() does not return packages from `testdata`,
+	// because it is ignored by the go tool, and thus, by the `go list` command.
+	// For tests to pass we need to add the packages with tests to the main module manually.
+	testPackages []string
 )
 
 // run starts the analysis.
 func run(pass *analysis.Pass, funcs map[string]Func) (any, error) {
-	insp := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
-
-	filter := []ast.Node{
-		(*ast.CallExpr)(nil),
+	moduleDir, modulePackages, err := mainModule()
+	if err != nil {
+		return nil, err
+	}
+	for _, pkg := range testPackages {
+		modulePackages[pkg] = struct{}{}
 	}
 
-	type report struct {
-		pos token.Pos
-		tag string
-	}
-	reported := make(map[report]struct{})
+	walk := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
+	filter := []ast.Node{(*ast.CallExpr)(nil)}
 
-	insp.Preorder(filter, func(n ast.Node) {
-		call := n.(*ast.CallExpr)
-
-		callee := typeutil.StaticCallee(pass.TypesInfo, call)
-		if callee == nil {
-			return
-		}
-
-		fn, ok := funcs[callee.FullName()]
+	walk.Preorder(filter, func(n ast.Node) {
+		call, ok := n.(*ast.CallExpr)
 		if !ok {
-			return
+			return // not a function call.
 		}
 
-		s, pos, ok := structAndPos(pass, call.Args[fn.ArgPos])
+		caller := typeutil.StaticCallee(pass.TypesInfo, call)
+		if caller == nil {
+			return // not a static call.
+		}
+
+		fn, ok := funcs[caller.FullName()]
 		if !ok {
-			return
+			return // the function is not supported.
 		}
 
-		if ok := checkStruct(s, fn.Tag, &pos); ok {
-			return
+		if len(call.Args) <= fn.ArgPos {
+			return // TODO(junk1tm): return a proper error.
 		}
 
-		r := report{pos, fn.Tag}
-		if _, ok := reported[r]; ok && reportOnce {
-			return
+		arg := call.Args[fn.ArgPos]
+		if unary, ok := arg.(*ast.UnaryExpr); ok {
+			arg = unary.X // e.g. json.Marshal(&foo)
 		}
 
-		reportf(pass, pos, fn)
-		reported[r] = struct{}{}
+		initialPos := token.NoPos
+		switch arg := arg.(type) {
+		case *ast.Ident: // e.g. json.Marshal(foo)
+			if arg.Obj == nil {
+				return // e.g. json.Marshal(nil)
+			}
+			initialPos = arg.Obj.Pos()
+		case *ast.CompositeLit: // e.g. json.Marshal(struct{}{})
+			initialPos = arg.Pos()
+		}
+
+		checker := checker{
+			mainModule: modulePackages,
+			seenTypes:  make(map[string]struct{}),
+		}
+
+		t := pass.TypesInfo.TypeOf(arg)
+		st, ok := checker.parseStructType(t, initialPos)
+		if !ok {
+			return // not a struct argument.
+		}
+
+		result, ok := checker.checkStructType(st, fn.Tag)
+		if ok {
+			return // nothing to report.
+		}
+
+		p := pass.Fset.Position(call.Pos())
+		p.Filename, _ = filepath.Rel(moduleDir, p.Filename)
+		reportf(pass, result, fn, p)
 	})
 
 	return nil, nil
 }
 
-// structAndPos analyses the given expression and returns the struct to check
-// and the position to report if needed.
-func structAndPos(pass *analysis.Pass, expr ast.Expr) (*types.Struct, token.Pos, bool) {
-	t := pass.TypesInfo.TypeOf(expr)
-	if ptr, ok := t.(*types.Pointer); ok {
+// structType is an extension for types.Struct.
+// The content of the fields depends on whether the type is named or not.
+type structType struct {
+	*types.Struct
+	Name string    // for types.Named: the type's name; for anonymous: a placeholder string.
+	Pos  token.Pos // for types.Named: the type's position; for anonymous: the corresponding identifier's position.
+}
+
+// checker parses and checks struct types.
+type checker struct {
+	mainModule map[string]struct{} // do not check types outside of the main module; see issue #17.
+	seenTypes  map[string]struct{} // prevent panic on recursive types; see issue #16.
+}
+
+// parseStructType parses the given types.Type, returning the underlying struct type.
+func (c *checker) parseStructType(t types.Type, pos token.Pos) (*structType, bool) {
+	for {
+		// unwrap pointers (if any) first.
+		ptr, ok := t.(*types.Pointer)
+		if !ok {
+			break
+		}
 		t = ptr.Elem()
 	}
 
 	switch t := t.(type) {
-	case *types.Named: // named type
+	case *types.Named: // a struct of the named type.
+		pkg := t.Obj().Pkg().Path()
+		if _, ok := c.mainModule[pkg]; !ok {
+			return nil, false
+		}
 		s, ok := t.Underlying().(*types.Struct)
-		if ok {
-			return s, t.Obj().Pos(), true
+		if !ok {
+			return nil, false
 		}
+		return &structType{
+			Struct: s,
+			Pos:    t.Obj().Pos(),
+			Name:   t.Obj().Name(),
+		}, true
 
-	case *types.Struct: // anonymous struct
-		if unary, ok := expr.(*ast.UnaryExpr); ok {
-			expr = unary.X // &x
-		}
-		//nolint:gocritic // commentedOutCode: these are examples
-		switch arg := expr.(type) {
-		case *ast.Ident: // var x struct{}; json.Marshal(x)
-			return t, arg.Obj.Pos(), true
-		case *ast.CompositeLit: // json.Marshal(struct{}{})
-			return t, arg.Pos(), true
-		}
+	case *types.Struct: // an anonymous struct.
+		return &structType{
+			Struct: t,
+			Pos:    pos,
+			Name:   "anonymous struct",
+		}, true
 	}
 
-	return nil, 0, false
+	return nil, false
 }
 
-// checkStruct checks that exported fields of the given struct are annotated
-// with the tag and updates the position to report in case a nested struct of a
-// named type is found.
-func checkStruct(s *types.Struct, tag string, pos *token.Pos) (ok bool) {
-	for i := 0; i < s.NumFields(); i++ {
-		if !s.Field(i).Exported() {
+// checkStructType recursively checks whether the given struct type is annotated with the tag.
+// The result is the type of the first nested struct which fields are not properly annotated.
+func (c *checker) checkStructType(st *structType, tag string) (*structType, bool) {
+	c.seenTypes[st.String()] = struct{}{}
+
+	for i := 0; i < st.NumFields(); i++ {
+		field := st.Field(i)
+		if !field.Exported() {
 			continue
 		}
 
-		st := reflect.StructTag(s.Tag(i))
-		if _, ok := st.Lookup(tag); !ok {
-			// it's ok for embedded types not to be tagged,
-			// see https://github.com/junk1tm/musttag/issues/12
-			if !s.Field(i).Embedded() {
-				return false
+		if _, ok := reflect.StructTag(st.Tag(i)).Lookup(tag); !ok {
+			// tag is not required for embedded types; see issue #12.
+			if !field.Embedded() {
+				return st, false
 			}
 		}
 
-		// check if the field is a nested struct.
-		t := s.Field(i).Type()
-		if ptr, ok := t.(*types.Pointer); ok {
-			t = ptr.Elem()
-		}
-		nested, ok := t.Underlying().(*types.Struct)
+		nested, ok := c.parseStructType(field.Type(), st.Pos) // TODO(junk1tm): or field.Pos()?
 		if !ok {
 			continue
 		}
-		if ok := checkStruct(nested, tag, pos); ok {
+		if _, ok := c.seenTypes[nested.String()]; ok {
 			continue
 		}
-		// update the position to point to the named type.
-		if named, ok := t.(*types.Named); ok {
-			*pos = named.Obj().Pos()
+		if result, ok := c.checkStructType(nested, tag); !ok {
+			return result, false
 		}
-		return false
 	}
 
-	return true
+	return nil, true
 }
