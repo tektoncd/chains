@@ -2,7 +2,7 @@ name: Chains kind E2E Tests
 
 on:
   pull_request:
-    branches: 
+    branches:
       - main
       - release-*
 
@@ -29,10 +29,10 @@ jobs:
       KO_DOCKER_REPO: registry.local:5000/knative
       KOCACHE: ~/ko
       SIGSTORE_SCAFFOLDING_RELEASE_VERSION: "v0.4.13"
-      TEKTON_PIPELINES_RELEASE: "https://storage.googleapis.com/tekton-releases/pipeline/previous/v0.41.0/release.yaml"
+      TEKTON_PIPELINES_RELEASE: "https://storage.googleapis.com/tekton-releases/pipeline/previous/v0.45.0/release.yaml"
       # Note that we do not include the v prefix here so we can use it in all
       # the places this is used.
-      TEKTON_CLI_RELEASE: "0.26.1"
+      TEKTON_CLI_RELEASE: "0.30.0"
 
     steps:
     # https://github.com/mvdan/github-actions-golang#how-do-i-set-up-caching-between-builds
