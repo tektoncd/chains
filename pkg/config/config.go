@@ -166,10 +166,6 @@ const (
 	grafeasNoteIDKey         = "storage.grafeas.noteid"
 	grafeasNoteHint          = "storage.grafeas.notehint"
 
-	// No config needed for Tekton object storage
-
-	// No config needed for x509 signer
-
 	// PubSub - General
 	pubsubProvider = "storage.pubsub.provider"
 	pubsubTopic    = "storage.pubsub.topic"
