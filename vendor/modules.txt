@@ -886,8 +886,12 @@ github.com/google/go-containerregistry/pkg/authn/kubernetes
 # github.com/google/go-github/v45 v45.2.0
 ## explicit; go 1.17
 github.com/google/go-github/v45/github
-# github.com/google/go-licenses v0.0.0-20210816172045-3099c18c36e1
+# github.com/google/go-licenses v1.6.0
 ## explicit; go 1.16
+github.com/google/go-licenses/internal/third_party/pkgsite/derrors
+github.com/google/go-licenses/internal/third_party/pkgsite/source
+github.com/google/go-licenses/internal/third_party/pkgsite/stdlib
+github.com/google/go-licenses/internal/third_party/pkgsite/version
 github.com/google/go-licenses/licenses
 # github.com/google/go-querystring v1.1.0
 ## explicit; go 1.10
