@@ -35,12 +35,12 @@ func init() {
 }
 
 type Slsa struct {
-	builderID string
+	BuilderID string
 }
 
 func NewFormatter(cfg config.Config) (formats.Payloader, error) {
 	return &Slsa{
-		builderID: cfg.Builder.ID,
+		BuilderID: cfg.Builder.ID,
 	}, nil
 }
 
@@ -51,7 +51,7 @@ func (s *Slsa) Wrap() bool {
 func (s *Slsa) CreatePayload(ctx context.Context, obj interface{}) (interface{}, error) {
 	switch v := obj.(type) {
 	case *objects.TaskRunObject:
-		return taskrun.GenerateAttestation(s.builderID, s.Type(), v, ctx)
+		return taskrun.GenerateAttestation(s.BuilderID, s.Type(), v, ctx)
 	default:
 		return nil, fmt.Errorf("intoto does not support type: %s", v)
 	}

@@ -39,12 +39,12 @@ func init() {
 }
 
 type InTotoIte6 struct {
-	builderID string
+	BuilderID string
 }
 
 func NewFormatter(cfg config.Config) (formats.Payloader, error) {
 	return &InTotoIte6{
-		builderID: cfg.Builder.ID,
+		BuilderID: cfg.Builder.ID,
 	}, nil
 }
 
@@ -56,9 +56,9 @@ func (i *InTotoIte6) CreatePayload(ctx context.Context, obj interface{}) (interf
 	logger := logging.FromContext(ctx)
 	switch v := obj.(type) {
 	case *objects.TaskRunObject:
-		return taskrun.GenerateAttestation(i.builderID, v, logger)
+		return taskrun.GenerateAttestation(i.BuilderID, v, logger)
 	case *objects.PipelineRunObject:
-		return pipelinerun.GenerateAttestation(i.builderID, v, logger)
+		return pipelinerun.GenerateAttestation(i.BuilderID, v, logger)
 	default:
 		return nil, fmt.Errorf("intoto does not support type: %s", v)
 	}
