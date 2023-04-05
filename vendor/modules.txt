@@ -964,7 +964,7 @@ github.com/hexops/gotextdiff/span
 # github.com/imdario/mergo v0.3.13
 ## explicit; go 1.13
 github.com/imdario/mergo
-# github.com/in-toto/in-toto-golang v0.7.1-0.20230308211011-2d81ebf6a457
+# github.com/in-toto/in-toto-golang v0.7.1
 ## explicit; go 1.17
 github.com/in-toto/in-toto-golang/in_toto
 github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common
@@ -1475,7 +1475,7 @@ github.com/spf13/afero/mem
 # github.com/spf13/cast v1.5.0
 ## explicit; go 1.18
 github.com/spf13/cast
-# github.com/spf13/cobra v1.6.1
+# github.com/spf13/cobra v1.7.0
 ## explicit; go 1.15
 github.com/spf13/cobra
 # github.com/spf13/jwalterweatherman v1.1.0
@@ -2133,7 +2133,7 @@ google.golang.org/genproto/googleapis/type/date
 google.golang.org/genproto/googleapis/type/expr
 google.golang.org/genproto/googleapis/type/latlng
 google.golang.org/genproto/protobuf/field_mask
-# google.golang.org/grpc v1.53.0
+# google.golang.org/grpc v1.54.0
 ## explicit; go 1.17
 google.golang.org/grpc
 google.golang.org/grpc/attributes

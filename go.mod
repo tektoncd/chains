@@ -14,7 +14,7 @@ require (
 	github.com/google/go-licenses v1.6.0
 	github.com/grafeas/grafeas v0.2.2-0.20220620154915-0ec8596e37d3
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/in-toto/in-toto-golang v0.7.1-0.20230308211011-2d81ebf6a457
+	github.com/in-toto/in-toto-golang v0.7.1
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/pkg/errors v0.9.1
 	github.com/secure-systems-lab/go-securesystemslib v0.5.0
@@ -30,7 +30,7 @@ require (
 	gocloud.dev/docstore/mongodocstore v0.28.0
 	gocloud.dev/pubsub/kafkapubsub v0.28.0
 	golang.org/x/crypto v0.7.0
-	google.golang.org/grpc v1.53.0
+	google.golang.org/grpc v1.54.0
 	google.golang.org/protobuf v1.30.0
 	k8s.io/api v0.26.1
 	k8s.io/apimachinery v0.26.1
@@ -337,7 +337,7 @@ require (
 	github.com/sourcegraph/go-diff v0.7.0 // indirect
 	github.com/spf13/afero v1.9.3 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
-	github.com/spf13/cobra v1.6.1 // indirect
+	github.com/spf13/cobra v1.7.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.15.0 // indirect
