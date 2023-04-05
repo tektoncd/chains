@@ -1,6 +1,6 @@
 /*
  *
- * Copyright 2019 gRPC authors.
+ * Copyright 2023 gRPC authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,23 +16,13 @@
  *
  */
 
-package testutils
+package xdsresource
 
 import (
-	"github.com/golang/protobuf/proto"
-	"google.golang.org/grpc/status"
+	"google.golang.org/grpc/grpclog"
+	internalgrpclog "google.golang.org/grpc/internal/grpclog"
 )
 
-// StatusErrEqual returns true iff both err1 and err2 wrap status.Status errors
-// and their underlying status protos are equal.
-func StatusErrEqual(err1, err2 error) bool {
-	status1, ok := status.FromError(err1)
-	if !ok {
-		return false
-	}
-	status2, ok := status.FromError(err2)
-	if !ok {
-		return false
-	}
-	return proto.Equal(status1.Proto(), status2.Proto())
-}
+const prefix = "[xds-resource] "
+
+var logger = internalgrpclog.NewPrefixLogger(grpclog.Component("xds"), prefix)

@@ -1,6 +1,5 @@
-/*
- *
- * Copyright 2021 gRPC authors.
+/*-
+ * Copyright 2017 Square Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,22 +14,9 @@
  * limitations under the License.
  */
 
-package testutils
+/*
 
-import (
-	"fmt"
+Package jwt provides an implementation of the JSON Web Token standard.
 
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
-	"google.golang.org/protobuf/types/known/anypb"
-)
-
-// MarshalAny is a convenience function to marshal protobuf messages into any
-// protos. It will panic if the marshaling fails.
-func MarshalAny(m proto.Message) *anypb.Any {
-	a, err := ptypes.MarshalAny(m)
-	if err != nil {
-		panic(fmt.Sprintf("ptypes.MarshalAny(%+v) failed: %v", m, err))
-	}
-	return a
-}
+*/
+package jwt
