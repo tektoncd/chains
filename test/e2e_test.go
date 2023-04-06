@@ -569,7 +569,7 @@ func TestRetryFailed(t *testing.T) {
 			obj := tekton.CreateObject(t, ctx, c.PipelineClient, test.getObject(ns))
 
 			// Give it a minute to complete.
-			if got := waitForCondition(ctx, t, c.PipelineClient, obj, failed, time.Minute); got == nil {
+			if got := waitForCondition(ctx, t, c.PipelineClient, obj, failed, 2*time.Minute); got == nil {
 				t.Fatal("expected failure; object never failed")
 			}
 		})

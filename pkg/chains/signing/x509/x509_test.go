@@ -25,7 +25,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sigstore/cosign/pkg/providers"
+	"github.com/sigstore/cosign/v2/pkg/providers"
 	"github.com/tektoncd/chains/pkg/config"
 	logtesting "knative.dev/pkg/logging/testing"
 )
