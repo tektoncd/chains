@@ -73,6 +73,9 @@ func TestTaskRunCreatePayload1(t *testing.T) {
 			Metadata: &slsa.ProvenanceMetadata{
 				BuildStartedOn:  &e1BuildStart,
 				BuildFinishedOn: &e1BuildFinished,
+				Completeness: slsa.ProvenanceComplete{
+					Parameters: true,
+				},
 			},
 			Materials: []common.ProvenanceMaterial{
 				{
@@ -190,6 +193,9 @@ func TestTaskRunCreatePayload2(t *testing.T) {
 			Metadata: &slsa.ProvenanceMetadata{
 				BuildStartedOn:  &e1BuildStart,
 				BuildFinishedOn: &e1BuildFinished,
+				Completeness: slsa.ProvenanceComplete{
+					Parameters: true,
+				},
 			},
 			Builder: common.ProvenanceBuilder{
 				ID: "test_builder-2",
@@ -299,7 +305,11 @@ func TestMultipleSubjects(t *testing.T) {
 		},
 		Predicate: slsa.ProvenancePredicate{
 			BuildType: "https://chains.tekton.dev/format/slsa/v2alpha1/type/tekton.dev/v1beta1/TaskRun",
-			Metadata:  &slsa.ProvenanceMetadata{},
+			Metadata: &slsa.ProvenanceMetadata{
+				Completeness: slsa.ProvenanceComplete{
+					Parameters: true,
+				},
+			},
 			Builder: common.ProvenanceBuilder{
 				ID: "test_builder-multiple",
 			},
