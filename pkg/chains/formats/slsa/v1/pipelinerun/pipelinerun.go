@@ -17,6 +17,7 @@ import (
 	"time"
 
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
+	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/attest"
@@ -59,7 +60,7 @@ func GenerateAttestation(builderID string, pro *objects.PipelineRunObject, logge
 			Subject:       subjects,
 		},
 		Predicate: slsa.ProvenancePredicate{
-			Builder: slsa.ProvenanceBuilder{
+			Builder: common.ProvenanceBuilder{
 				ID: builderID,
 			},
 			BuildType:   pro.GetGVK(),
@@ -187,10 +188,10 @@ func metadata(pro *objects.PipelineRunObject) *slsa.ProvenanceMetadata {
 }
 
 // add any Git specification to materials
-func materials(pro *objects.PipelineRunObject, logger *zap.SugaredLogger) ([]slsa.ProvenanceMaterial, error) {
-	var mats []slsa.ProvenanceMaterial
+func materials(pro *objects.PipelineRunObject, logger *zap.SugaredLogger) ([]common.ProvenanceMaterial, error) {
+	var mats []common.ProvenanceMaterial
 	if p := pro.Status.Provenance; p != nil && p.ConfigSource != nil {
-		m := slsa.ProvenanceMaterial{
+		m := common.ProvenanceMaterial{
 			URI:    p.ConfigSource.URI,
 			Digest: p.ConfigSource.Digest,
 		}
@@ -219,7 +220,7 @@ func materials(pro *objects.PipelineRunObject, logger *zap.SugaredLogger) ([]sls
 
 			// add remote task configsource information in materials
 			if tr.Status.Provenance != nil && tr.Status.Provenance.ConfigSource != nil {
-				m := slsa.ProvenanceMaterial{
+				m := common.ProvenanceMaterial{
 					URI:    tr.Status.Provenance.ConfigSource.URI,
 					Digest: tr.Status.Provenance.ConfigSource.Digest,
 				}
@@ -269,7 +270,7 @@ func materials(pro *objects.PipelineRunObject, logger *zap.SugaredLogger) ([]sls
 	}
 	if len(commit) > 0 && len(url) > 0 {
 		url = attest.SPDXGit(url, "")
-		mats = append(mats, slsa.ProvenanceMaterial{
+		mats = append(mats, common.ProvenanceMaterial{
 			URI:    url,
 			Digest: map[string]string{"sha1": commit},
 		})

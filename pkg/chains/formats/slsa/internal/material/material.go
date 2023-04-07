@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"strings"
 
-	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
+	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/attest"
 	"github.com/tektoncd/chains/pkg/chains/objects"
@@ -36,7 +36,7 @@ const (
 )
 
 // AddStepImagesToMaterials adds step images to predicate.materials
-func AddStepImagesToMaterials(steps []v1beta1.StepState, mats *[]slsa.ProvenanceMaterial) error {
+func AddStepImagesToMaterials(steps []v1beta1.StepState, mats *[]common.ProvenanceMaterial) error {
 	for _, stepState := range steps {
 		if err := AddImageIDToMaterials(stepState.ImageID, mats); err != nil {
 			return err
@@ -46,7 +46,7 @@ func AddStepImagesToMaterials(steps []v1beta1.StepState, mats *[]slsa.Provenance
 }
 
 // AddSidecarImagesToMaterials adds sidecar images to predicate.materials
-func AddSidecarImagesToMaterials(sidecars []v1beta1.SidecarState, mats *[]slsa.ProvenanceMaterial) error {
+func AddSidecarImagesToMaterials(sidecars []v1beta1.SidecarState, mats *[]common.ProvenanceMaterial) error {
 	for _, sidecarState := range sidecars {
 		if err := AddImageIDToMaterials(sidecarState.ImageID, mats); err != nil {
 			return err
@@ -56,9 +56,9 @@ func AddSidecarImagesToMaterials(sidecars []v1beta1.SidecarState, mats *[]slsa.P
 }
 
 // AddImageIDToMaterials converts an imageId with format <uri>@sha256:<digest> and then adds it to a provenance materials.
-func AddImageIDToMaterials(imageID string, mats *[]slsa.ProvenanceMaterial) error {
-	m := slsa.ProvenanceMaterial{
-		Digest: slsa.DigestSet{},
+func AddImageIDToMaterials(imageID string, mats *[]common.ProvenanceMaterial) error {
+	m := common.ProvenanceMaterial{
+		Digest: common.DigestSet{},
 	}
 	uriDigest := strings.Split(imageID, uriSeparator)
 	if len(uriDigest) == 2 {
@@ -79,8 +79,8 @@ func AddImageIDToMaterials(imageID string, mats *[]slsa.ProvenanceMaterial) erro
 }
 
 // Materials constructs `predicate.materials` section by collecting all the artifacts that influence a taskrun such as source code repo and step&sidecar base images.
-func Materials(tro *objects.TaskRunObject, logger *zap.SugaredLogger) ([]slsa.ProvenanceMaterial, error) {
-	var mats []slsa.ProvenanceMaterial
+func Materials(tro *objects.TaskRunObject, logger *zap.SugaredLogger) ([]common.ProvenanceMaterial, error) {
+	var mats []common.ProvenanceMaterial
 
 	// add step images
 	if err := AddStepImagesToMaterials(tro.Status.Steps, &mats); err != nil {
@@ -96,7 +96,7 @@ func Materials(tro *objects.TaskRunObject, logger *zap.SugaredLogger) ([]slsa.Pr
 
 	// Store git rev as Materials and Recipe.Material
 	if gitCommit != "" && gitURL != "" {
-		mats = append(mats, slsa.ProvenanceMaterial{
+		mats = append(mats, common.ProvenanceMaterial{
 			URI:    gitURL,
 			Digest: map[string]string{"sha1": gitCommit},
 		})
@@ -113,8 +113,8 @@ func Materials(tro *objects.TaskRunObject, logger *zap.SugaredLogger) ([]slsa.Pr
 				continue
 			}
 
-			m := slsa.ProvenanceMaterial{
-				Digest: slsa.DigestSet{},
+			m := common.ProvenanceMaterial{
+				Digest: common.DigestSet{},
 			}
 
 			for _, rr := range tro.Status.ResourcesResult {
@@ -195,8 +195,8 @@ func gitInfo(tro *objects.TaskRunObject) (commit string, url string) {
 
 // RemoveDuplicateMaterials removes duplicate materials from the slice of materials.
 // Original order of materials is retained.
-func RemoveDuplicateMaterials(mats []slsa.ProvenanceMaterial) ([]slsa.ProvenanceMaterial, error) {
-	out := make([]slsa.ProvenanceMaterial, 0, len(mats))
+func RemoveDuplicateMaterials(mats []common.ProvenanceMaterial) ([]common.ProvenanceMaterial, error) {
+	out := make([]common.ProvenanceMaterial, 0, len(mats))
 
 	// make map to store seen materials
 	seen := map[string]bool{}

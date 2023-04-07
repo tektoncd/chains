@@ -21,7 +21,7 @@ import (
 	"strings"
 
 	"github.com/google/go-containerregistry/pkg/name"
-	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
+	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	"github.com/opencontainers/go-digest"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
@@ -302,9 +302,9 @@ func extractTargetFromResults(obj objects.TektonObject, identifierSuffix string,
 }
 
 // RetrieveMaterialsFromStructuredResults retrieves structured results from Tekton Object, and convert them into materials.
-func RetrieveMaterialsFromStructuredResults(obj objects.TektonObject, categoryMarker string, logger *zap.SugaredLogger) []slsa.ProvenanceMaterial {
+func RetrieveMaterialsFromStructuredResults(obj objects.TektonObject, categoryMarker string, logger *zap.SugaredLogger) []common.ProvenanceMaterial {
 	// Retrieve structured provenance for inputs.
-	mats := []slsa.ProvenanceMaterial{}
+	mats := []common.ProvenanceMaterial{}
 	ssts := ExtractStructuredTargetFromResults(obj, ArtifactsInputsResultName, logger)
 	for _, s := range ssts {
 		if err := checkDigest(s.Digest); err != nil {
@@ -314,7 +314,7 @@ func RetrieveMaterialsFromStructuredResults(obj objects.TektonObject, categoryMa
 		splits := strings.Split(s.Digest, ":")
 		alg := splits[0]
 		digest := splits[1]
-		mats = append(mats, slsa.ProvenanceMaterial{
+		mats = append(mats, common.ProvenanceMaterial{
 			URI:    s.URI,
 			Digest: map[string]string{alg: digest},
 		})

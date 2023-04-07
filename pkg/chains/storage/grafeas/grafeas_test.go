@@ -24,6 +24,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
+	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/tektoncd/chains/pkg/chains/formats"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
@@ -83,10 +84,10 @@ var (
 	// clone taskrun provenance
 	cloneTaskRunProvenance = intoto.ProvenanceStatement{
 		Predicate: slsa.ProvenancePredicate{
-			Materials: []slsa.ProvenanceMaterial{
+			Materials: []common.ProvenanceMaterial{
 				{
 					URI: repoURL,
-					Digest: slsa.DigestSet{
+					Digest: common.DigestSet{
 						"sha1": commitSHA,
 					},
 				},
@@ -122,13 +123,13 @@ var (
 			Subject: []intoto.Subject{
 				{
 					Name: artifactURL1,
-					Digest: slsa.DigestSet{
+					Digest: common.DigestSet{
 						"sha256": artifactDigest1,
 					},
 				},
 				{
 					Name: artifactURL2,
-					Digest: slsa.DigestSet{
+					Digest: common.DigestSet{
 						"sha256": artifactDigest2,
 					},
 				},

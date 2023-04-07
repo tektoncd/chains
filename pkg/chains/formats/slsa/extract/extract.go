@@ -23,7 +23,7 @@ import (
 
 	"github.com/google/go-containerregistry/pkg/name"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
-	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
+	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -46,7 +46,7 @@ func SubjectDigests(obj objects.TektonObject, logger *zap.SugaredLogger) []intot
 		if d, ok := i.(name.Digest); ok {
 			subjects = append(subjects, intoto.Subject{
 				Name: d.Repository.Name(),
-				Digest: slsa.DigestSet{
+				Digest: common.DigestSet{
 					"sha256": strings.TrimPrefix(d.DigestStr(), "sha256:"),
 				},
 			})
@@ -62,7 +62,7 @@ func SubjectDigests(obj objects.TektonObject, logger *zap.SugaredLogger) []intot
 		}
 		subjects = append(subjects, intoto.Subject{
 			Name: obj.URI,
-			Digest: slsa.DigestSet{
+			Digest: common.DigestSet{
 				splits[0]: splits[1],
 			},
 		})
@@ -75,7 +75,7 @@ func SubjectDigests(obj objects.TektonObject, logger *zap.SugaredLogger) []intot
 		digest := splits[1]
 		subjects = append(subjects, intoto.Subject{
 			Name: s.URI,
-			Digest: slsa.DigestSet{
+			Digest: common.DigestSet{
 				alg: digest,
 			},
 		})
@@ -113,7 +113,7 @@ func SubjectDigests(obj objects.TektonObject, logger *zap.SugaredLogger) []intot
 			}
 			subjects = append(subjects, intoto.Subject{
 				Name: url,
-				Digest: slsa.DigestSet{
+				Digest: common.DigestSet{
 					"sha256": strings.TrimPrefix(digest, "sha256:"),
 				},
 			})

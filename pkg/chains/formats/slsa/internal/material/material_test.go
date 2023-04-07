@@ -24,7 +24,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/google/go-cmp/cmp"
-	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
+	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -56,10 +56,10 @@ status:
 		t.Fatal(err)
 	}
 
-	want := []slsa.ProvenanceMaterial{
+	want := []common.ProvenanceMaterial{
 		{
 			URI: "git+https://github.com/GoogleContainerTools/distroless.git",
-			Digest: slsa.DigestSet{
+			Digest: common.DigestSet{
 				"sha1": "50c56a48cfb3a5a80fa36ed91c739bdac8381cbe",
 			},
 		},
@@ -78,7 +78,7 @@ func TestMaterials(t *testing.T) {
 	tests := []struct {
 		name    string
 		taskRun *v1beta1.TaskRun
-		want    []slsa.ProvenanceMaterial
+		want    []common.ProvenanceMaterial
 	}{{
 		name: "materials from pipeline resources",
 		taskRun: &v1beta1.TaskRun{
@@ -128,16 +128,16 @@ func TestMaterials(t *testing.T) {
 				},
 			},
 		},
-		want: []slsa.ProvenanceMaterial{
+		want: []common.ProvenanceMaterial{
 			{
 				URI: "gcr.io/foo/bar",
-				Digest: slsa.DigestSet{
+				Digest: common.DigestSet{
 					"sha256": strings.TrimPrefix(digest, "sha256:"),
 				},
 			},
 			{
 				URI: "git+https://github.com/GoogleContainerTools/distroless.git",
-				Digest: slsa.DigestSet{
+				Digest: common.DigestSet{
 					"sha1": "50c56a48cfb3a5a80fa36ed91c739bdac8381cbe",
 				},
 			},
@@ -155,10 +155,10 @@ func TestMaterials(t *testing.T) {
 				}},
 			},
 		},
-		want: []slsa.ProvenanceMaterial{
+		want: []common.ProvenanceMaterial{
 			{
 				URI: "git+github.com/something.git",
-				Digest: slsa.DigestSet{
+				Digest: common.DigestSet{
 					"sha1": "my-commit",
 				},
 			},
@@ -181,16 +181,16 @@ func TestMaterials(t *testing.T) {
 				},
 			},
 		},
-		want: []slsa.ProvenanceMaterial{
+		want: []common.ProvenanceMaterial{
 			{
 				URI: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
-				Digest: slsa.DigestSet{
+				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
 			},
 			{
 				URI: "gcr.io/cloud-marketplace-containers/google/bazel",
-				Digest: slsa.DigestSet{
+				Digest: common.DigestSet{
 					"sha256": "010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
 				},
 			},
@@ -217,20 +217,20 @@ func TestMaterials(t *testing.T) {
 				},
 			},
 		},
-		want: []slsa.ProvenanceMaterial{
+		want: []common.ProvenanceMaterial{
 			{
 				URI: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
-				Digest: slsa.DigestSet{
+				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
 			}, {
 				URI: "gcr.io/cloud-marketplace-containers/google/bazel",
-				Digest: slsa.DigestSet{
+				Digest: common.DigestSet{
 					"sha256": "010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
 				},
 			}, {
 				URI: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/sidecar-git-init",
-				Digest: slsa.DigestSet{
+				Digest: common.DigestSet{
 					"sha256": "a1234f6e7a69617db57b685893256f978436277094c21d43b153994acd8a09567",
 				},
 			},
@@ -253,7 +253,7 @@ func TestAddStepImagesToMaterials(t *testing.T) {
 	tests := []struct {
 		name      string
 		steps     []v1beta1.StepState
-		want      []slsa.ProvenanceMaterial
+		want      []common.ProvenanceMaterial
 		wantError error
 	}{{
 		name: "steps with proper imageID",
@@ -267,22 +267,22 @@ func TestAddStepImagesToMaterials(t *testing.T) {
 			Name:    "build",
 			ImageID: "gcr.io/cloud-marketplace-containers/google/bazel@sha256:010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
 		}},
-		want: []slsa.ProvenanceMaterial{
+		want: []common.ProvenanceMaterial{
 			{
 				URI: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
-				Digest: slsa.DigestSet{
+				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
 			},
 			{
 				URI: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
-				Digest: slsa.DigestSet{
+				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
 			},
 			{
 				URI: "gcr.io/cloud-marketplace-containers/google/bazel",
-				Digest: slsa.DigestSet{
+				Digest: common.DigestSet{
 					"sha256": "010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
 				},
 			},
@@ -293,7 +293,7 @@ func TestAddStepImagesToMaterials(t *testing.T) {
 			Name:    "git-source-repo-jwqcl",
 			ImageID: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init-sha256:b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 		}},
-		want:      []slsa.ProvenanceMaterial{{}},
+		want:      []common.ProvenanceMaterial{{}},
 		wantError: fmt.Errorf("expected imageID gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init-sha256:b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247 to be separable by @"),
 	}, {
 		name: "step with bad imageId - no digest",
@@ -301,11 +301,11 @@ func TestAddStepImagesToMaterials(t *testing.T) {
 			Name:    "git-source-repo-jwqcl",
 			ImageID: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init@sha256-b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 		}},
-		want:      []slsa.ProvenanceMaterial{{}},
+		want:      []common.ProvenanceMaterial{{}},
 		wantError: fmt.Errorf("expected imageID gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init@sha256-b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247 to be separable by @ and :"),
 	}}
 	for _, tc := range tests {
-		var mat []slsa.ProvenanceMaterial
+		var mat []common.ProvenanceMaterial
 		if err := AddStepImagesToMaterials(tc.steps, &mat); err != nil {
 			if err.Error() != tc.wantError.Error() {
 				t.Fatalf("Expected error %v but got %v", tc.wantError, err)
@@ -323,7 +323,7 @@ func TestAddSidecarImagesToMaterials(t *testing.T) {
 	tests := []struct {
 		name      string
 		sidecars  []v1beta1.SidecarState
-		want      []slsa.ProvenanceMaterial
+		want      []common.ProvenanceMaterial
 		wantError error
 	}{{
 		name: "sidecars with proper imageID",
@@ -337,22 +337,22 @@ func TestAddSidecarImagesToMaterials(t *testing.T) {
 			Name:    "build",
 			ImageID: "gcr.io/cloud-marketplace-containers/google/bazel@sha256:010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
 		}},
-		want: []slsa.ProvenanceMaterial{
+		want: []common.ProvenanceMaterial{
 			{
 				URI: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
-				Digest: slsa.DigestSet{
+				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
 			},
 			{
 				URI: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
-				Digest: slsa.DigestSet{
+				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
 			},
 			{
 				URI: "gcr.io/cloud-marketplace-containers/google/bazel",
-				Digest: slsa.DigestSet{
+				Digest: common.DigestSet{
 					"sha256": "010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
 				},
 			},
@@ -363,7 +363,7 @@ func TestAddSidecarImagesToMaterials(t *testing.T) {
 			Name:    "git-source-repo-jwqcl",
 			ImageID: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init-sha256:b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 		}},
-		want:      []slsa.ProvenanceMaterial{{}},
+		want:      []common.ProvenanceMaterial{{}},
 		wantError: fmt.Errorf("expected imageID gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init-sha256:b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247 to be separable by @"),
 	}, {
 		name: "sidecars with bad imageId - no digest",
@@ -371,11 +371,11 @@ func TestAddSidecarImagesToMaterials(t *testing.T) {
 			Name:    "git-source-repo-jwqcl",
 			ImageID: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init@sha256-b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 		}},
-		want:      []slsa.ProvenanceMaterial{{}},
+		want:      []common.ProvenanceMaterial{{}},
 		wantError: fmt.Errorf("expected imageID gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init@sha256-b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247 to be separable by @ and :"),
 	}}
 	for _, tc := range tests {
-		var mat []slsa.ProvenanceMaterial
+		var mat []common.ProvenanceMaterial
 		if err := AddSidecarImagesToMaterials(tc.sidecars, &mat); err != nil {
 			if err.Error() != tc.wantError.Error() {
 				t.Fatalf("Expected error %v but got %v", tc.wantError, err)
@@ -393,15 +393,15 @@ func TestAddImageIDToMaterials(t *testing.T) {
 	tests := []struct {
 		name      string
 		imageID   string
-		want      []slsa.ProvenanceMaterial
+		want      []common.ProvenanceMaterial
 		wantError error
 	}{{
 		name:    "proper ImageID",
 		imageID: "gcr.io/cloud-marketplace-containers/google/bazel@sha256:010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
-		want: []slsa.ProvenanceMaterial{
+		want: []common.ProvenanceMaterial{
 			{
 				URI: "gcr.io/cloud-marketplace-containers/google/bazel",
-				Digest: slsa.DigestSet{
+				Digest: common.DigestSet{
 					"sha256": "010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
 				},
 			},
@@ -409,11 +409,11 @@ func TestAddImageIDToMaterials(t *testing.T) {
 	}, {
 		name:      "bad ImageID",
 		imageID:   "badImageId",
-		want:      []slsa.ProvenanceMaterial{},
+		want:      []common.ProvenanceMaterial{},
 		wantError: fmt.Errorf("expected imageID badImageId to be separable by @"),
 	}}
 	for _, tc := range tests {
-		mat := []slsa.ProvenanceMaterial{}
+		mat := []common.ProvenanceMaterial{}
 		if err := AddImageIDToMaterials(tc.imageID, &mat); err != nil {
 			if err.Error() != tc.wantError.Error() {
 				t.Fatalf("Expected error %v but got %v", tc.wantError, err)
@@ -430,121 +430,121 @@ func TestAddImageIDToMaterials(t *testing.T) {
 func TestRemoveDuplicates(t *testing.T) {
 	tests := []struct {
 		name string
-		mats []slsa.ProvenanceMaterial
-		want []slsa.ProvenanceMaterial
+		mats []common.ProvenanceMaterial
+		want []common.ProvenanceMaterial
 	}{{
 		name: "no duplicate materials",
-		mats: []slsa.ProvenanceMaterial{
+		mats: []common.ProvenanceMaterial{
 			{
 				URI: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
-				Digest: slsa.DigestSet{
+				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
 			}, {
 				URI: "gcr.io/cloud-marketplace-containers/google/bazel",
-				Digest: slsa.DigestSet{
+				Digest: common.DigestSet{
 					"sha256": "010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
 				},
 			}, {
 				URI: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/sidecar-git-init",
-				Digest: slsa.DigestSet{
+				Digest: common.DigestSet{
 					"sha256": "a1234f6e7a69617db57b685893256f978436277094c21d43b153994acd8a09567",
 				},
 			},
 		},
-		want: []slsa.ProvenanceMaterial{
+		want: []common.ProvenanceMaterial{
 			{
 				URI: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
-				Digest: slsa.DigestSet{
+				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
 			}, {
 				URI: "gcr.io/cloud-marketplace-containers/google/bazel",
-				Digest: slsa.DigestSet{
+				Digest: common.DigestSet{
 					"sha256": "010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
 				},
 			}, {
 				URI: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/sidecar-git-init",
-				Digest: slsa.DigestSet{
+				Digest: common.DigestSet{
 					"sha256": "a1234f6e7a69617db57b685893256f978436277094c21d43b153994acd8a09567",
 				},
 			},
 		},
 	}, {
 		name: "same uri and digest",
-		mats: []slsa.ProvenanceMaterial{
+		mats: []common.ProvenanceMaterial{
 			{
 				URI: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
-				Digest: slsa.DigestSet{
+				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
 			}, {
 				URI: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
-				Digest: slsa.DigestSet{
+				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
 			},
 		},
-		want: []slsa.ProvenanceMaterial{
+		want: []common.ProvenanceMaterial{
 			{
 				URI: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
-				Digest: slsa.DigestSet{
+				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
 			},
 		},
 	}, {
 		name: "same uri but different digest",
-		mats: []slsa.ProvenanceMaterial{
+		mats: []common.ProvenanceMaterial{
 			{
 				URI: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
-				Digest: slsa.DigestSet{
+				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
 			}, {
 				URI: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
-				Digest: slsa.DigestSet{
+				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01248",
 				},
 			},
 		},
-		want: []slsa.ProvenanceMaterial{
+		want: []common.ProvenanceMaterial{
 			{
 				URI: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
-				Digest: slsa.DigestSet{
+				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
 			}, {
 				URI: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
-				Digest: slsa.DigestSet{
+				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01248",
 				},
 			},
 		},
 	}, {
 		name: "same uri but different digest, swap order",
-		mats: []slsa.ProvenanceMaterial{
+		mats: []common.ProvenanceMaterial{
 			{
 				URI: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
-				Digest: slsa.DigestSet{
+				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01248",
 				},
 			}, {
 				URI: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
-				Digest: slsa.DigestSet{
+				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
 			},
 		},
-		want: []slsa.ProvenanceMaterial{
+		want: []common.ProvenanceMaterial{
 			{
 				URI: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
-				Digest: slsa.DigestSet{
+				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01248",
 				},
 			}, {
 				URI: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
-				Digest: slsa.DigestSet{
+				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
 			},
