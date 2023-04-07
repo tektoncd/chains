@@ -19,6 +19,7 @@ import (
 	"reflect"
 
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
+	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/material"
@@ -52,7 +53,7 @@ func GenerateAttestation(builderID string, payloadType config.PayloadType, tro *
 			Subject:       subjects,
 		},
 		Predicate: slsa.ProvenancePredicate{
-			Builder: slsa.ProvenanceBuilder{
+			Builder: common.ProvenanceBuilder{
 				ID: builderID,
 			},
 			BuildType:   fmt.Sprintf("https://chains.tekton.dev/format/%v/type/%s", payloadType, tro.GetGVK()),

@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 
 	"github.com/ghodss/yaml"
@@ -321,37 +322,37 @@ func TestGetSubjectDigests(t *testing.T) {
 	expected := []in_toto.Subject{
 		{
 			Name: "com.google.guava:guava:1.0-jre.pom",
-			Digest: slsa.DigestSet{
+			Digest: common.DigestSet{
 				"sha256": strings.TrimPrefix(digest2, "sha256:"),
 			},
 		}, {
 			Name: "index.docker.io/registry/myimage",
-			Digest: slsa.DigestSet{
+			Digest: common.DigestSet{
 				"sha256": strings.TrimPrefix(digest1, "sha256:"),
 			},
 		}, {
 			Name: "maven-test-0.1.1-sources.jar",
-			Digest: slsa.DigestSet{
+			Digest: common.DigestSet{
 				"sha256": strings.TrimPrefix(digest5, "sha256:"),
 			},
 		}, {
 			Name: "maven-test-0.1.1.jar",
-			Digest: slsa.DigestSet{
+			Digest: common.DigestSet{
 				"sha256": strings.TrimPrefix(digest3, "sha256:"),
 			},
 		}, {
 			Name: "maven-test-0.1.1.pom",
-			Digest: slsa.DigestSet{
+			Digest: common.DigestSet{
 				"sha256": strings.TrimPrefix(digest4, "sha256:"),
 			},
 		}, {
 			Name: "projects/test-project-1/locations/us-west4/repositories/test-repo/mavenArtifacts/com.google.guava:guava:31.0-jre",
-			Digest: slsa.DigestSet{
+			Digest: common.DigestSet{
 				"sha256": strings.TrimPrefix(digest1, "sha256:"),
 			},
 		}, {
 			Name: "registry/resource-image",
-			Digest: slsa.DigestSet{
+			Digest: common.DigestSet{
 				"sha256": strings.TrimPrefix(digest2, "sha256:"),
 			},
 		},

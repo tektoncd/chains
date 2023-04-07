@@ -15,6 +15,7 @@ package taskrun
 
 import (
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
+	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/attest"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
@@ -38,7 +39,7 @@ func GenerateAttestation(builderID string, tro *objects.TaskRunObject, logger *z
 			Subject:       subjects,
 		},
 		Predicate: slsa.ProvenancePredicate{
-			Builder: slsa.ProvenanceBuilder{
+			Builder: common.ProvenanceBuilder{
 				ID: builderID,
 			},
 			BuildType:   tro.GetGVK(),

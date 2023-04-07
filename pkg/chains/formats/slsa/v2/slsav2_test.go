@@ -31,6 +31,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/in-toto/in-toto-golang/in_toto"
+	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/pod"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -62,7 +63,7 @@ func TestTaskRunCreatePayload1(t *testing.T) {
 			Subject: []in_toto.Subject{
 				{
 					Name: "gcr.io/my/image",
-					Digest: slsa.DigestSet{
+					Digest: common.DigestSet{
 						"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7",
 					},
 				},
@@ -73,20 +74,20 @@ func TestTaskRunCreatePayload1(t *testing.T) {
 				BuildStartedOn:  &e1BuildStart,
 				BuildFinishedOn: &e1BuildFinished,
 			},
-			Materials: []slsa.ProvenanceMaterial{
+			Materials: []common.ProvenanceMaterial{
 				{
 					URI:    "docker-pullable://gcr.io/test1/test1",
-					Digest: slsa.DigestSet{"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"},
+					Digest: common.DigestSet{"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"},
 				},
 				{
 					URI:    "docker-pullable://gcr.io/test2/test2",
-					Digest: slsa.DigestSet{"sha256": "4d6dd704ef58cb214dd826519929e92a978a57cdee43693006139c0080fd6fac"},
+					Digest: common.DigestSet{"sha256": "4d6dd704ef58cb214dd826519929e92a978a57cdee43693006139c0080fd6fac"},
 				},
 				{
 					URI:    "docker-pullable://gcr.io/test3/test3",
-					Digest: slsa.DigestSet{"sha256": "f1a8b8549c179f41e27ff3db0fe1a1793e4b109da46586501a8343637b1d0478"},
+					Digest: common.DigestSet{"sha256": "f1a8b8549c179f41e27ff3db0fe1a1793e4b109da46586501a8343637b1d0478"},
 				},
-				{URI: "git+https://git.test.com.git", Digest: slsa.DigestSet{"sha1": "sha:taskrun"}},
+				{URI: "git+https://git.test.com.git", Digest: common.DigestSet{"sha1": "sha:taskrun"}},
 			},
 			Invocation: slsa.ProvenanceInvocation{
 				ConfigSource: slsa.ConfigSource{
@@ -123,7 +124,7 @@ func TestTaskRunCreatePayload1(t *testing.T) {
 					"Workspaces":         []v1beta1.WorkspaceBinding(nil),
 				},
 			},
-			Builder: slsa.ProvenanceBuilder{
+			Builder: common.ProvenanceBuilder{
 				ID: "test_builder-1",
 			},
 			BuildType: "https://chains.tekton.dev/format/slsa/v2alpha1/type/tekton.dev/v1beta1/TaskRun",
@@ -190,20 +191,20 @@ func TestTaskRunCreatePayload2(t *testing.T) {
 				BuildStartedOn:  &e1BuildStart,
 				BuildFinishedOn: &e1BuildFinished,
 			},
-			Builder: slsa.ProvenanceBuilder{
+			Builder: common.ProvenanceBuilder{
 				ID: "test_builder-2",
 			},
-			Materials: []slsa.ProvenanceMaterial{
+			Materials: []common.ProvenanceMaterial{
 				{
 					URI:    "docker-pullable://gcr.io/test1/test1",
-					Digest: slsa.DigestSet{"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"},
+					Digest: common.DigestSet{"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"},
 				},
-				{URI: "git+https://git.test.com.git", Digest: slsa.DigestSet{"sha1": "sha:taskdefault"}},
+				{URI: "git+https://git.test.com.git", Digest: common.DigestSet{"sha1": "sha:taskdefault"}},
 			},
 			Invocation: slsa.ProvenanceInvocation{
 				ConfigSource: slsa.ConfigSource{
 					URI:        "github.com/catalog",
-					Digest:     slsa.DigestSet{"sha1": "x123"},
+					Digest:     common.DigestSet{"sha1": "x123"},
 					EntryPoint: "git-clone.yaml",
 				},
 				Parameters: map[string]any{
@@ -285,12 +286,12 @@ func TestMultipleSubjects(t *testing.T) {
 			Subject: []in_toto.Subject{
 				{
 					Name: "gcr.io/myimage",
-					Digest: slsa.DigestSet{
+					Digest: common.DigestSet{
 						"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6",
 					},
 				}, {
 					Name: "gcr.io/myimage",
-					Digest: slsa.DigestSet{
+					Digest: common.DigestSet{
 						"sha256": "daa1a56e13c85cf164e7d9e595006649e3a04c47fe4a8261320e18a0bf3b0367",
 					},
 				},
@@ -299,13 +300,13 @@ func TestMultipleSubjects(t *testing.T) {
 		Predicate: slsa.ProvenancePredicate{
 			BuildType: "https://chains.tekton.dev/format/slsa/v2alpha1/type/tekton.dev/v1beta1/TaskRun",
 			Metadata:  &slsa.ProvenanceMetadata{},
-			Builder: slsa.ProvenanceBuilder{
+			Builder: common.ProvenanceBuilder{
 				ID: "test_builder-multiple",
 			},
-			Materials: []slsa.ProvenanceMaterial{
+			Materials: []common.ProvenanceMaterial{
 				{
 					URI:    "docker-pullable://gcr.io/test1/test1",
-					Digest: slsa.DigestSet{"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"},
+					Digest: common.DigestSet{"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"},
 				},
 			},
 			Invocation: slsa.ProvenanceInvocation{

@@ -30,6 +30,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/registry"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/in-toto/in-toto-golang/in_toto"
+	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/sigstore/sigstore/pkg/signature/payload"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -92,7 +93,7 @@ func TestBackend_StorePayload(t *testing.T) {
 			Subject: []in_toto.Subject{
 				{
 					Name: u.Host + "/task/" + tr.Name,
-					Digest: slsa.DigestSet{
+					Digest: common.DigestSet{
 						algo: hex,
 					},
 				},

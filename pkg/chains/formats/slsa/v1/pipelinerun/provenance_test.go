@@ -21,6 +21,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/go-containerregistry/pkg/name"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
+	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/attest"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
@@ -106,7 +107,7 @@ func TestBuildConfig(t *testing.T) {
 				Invocation: slsa.ProvenanceInvocation{
 					ConfigSource: slsa.ConfigSource{
 						URI:        "github.com/catalog",
-						Digest:     slsa.DigestSet{"sha1": "x123"},
+						Digest:     common.DigestSet{"sha1": "x123"},
 						EntryPoint: "git-clone.yaml",
 					},
 					Parameters: map[string]v1beta1.ArrayOrString{
@@ -296,7 +297,7 @@ func TestBuildConfigTaskOrder(t *testing.T) {
 						Invocation: slsa.ProvenanceInvocation{
 							ConfigSource: slsa.ConfigSource{
 								URI:        "github.com/catalog",
-								Digest:     slsa.DigestSet{"sha1": "x123"},
+								Digest:     common.DigestSet{"sha1": "x123"},
 								EntryPoint: "git-clone.yaml",
 							},
 							Parameters: map[string]v1beta1.ArrayOrString{
@@ -466,24 +467,24 @@ func TestMetadataInTimeZone(t *testing.T) {
 }
 
 func TestMaterials(t *testing.T) {
-	expected := []slsa.ProvenanceMaterial{
-		{URI: "github.com/test", Digest: slsa.DigestSet{"sha1": "28b123"}},
+	expected := []common.ProvenanceMaterial{
+		{URI: "github.com/test", Digest: common.DigestSet{"sha1": "28b123"}},
 		{
 			URI:    "docker-pullable://gcr.io/test1/test1",
-			Digest: slsa.DigestSet{"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"},
+			Digest: common.DigestSet{"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"},
 		},
-		{URI: "github.com/catalog", Digest: slsa.DigestSet{"sha1": "x123"}},
+		{URI: "github.com/catalog", Digest: common.DigestSet{"sha1": "x123"}},
 		{
 			URI:    "docker-pullable://gcr.io/test2/test2",
-			Digest: slsa.DigestSet{"sha256": "4d6dd704ef58cb214dd826519929e92a978a57cdee43693006139c0080fd6fac"},
+			Digest: common.DigestSet{"sha256": "4d6dd704ef58cb214dd826519929e92a978a57cdee43693006139c0080fd6fac"},
 		},
 		{
 			URI:    "docker-pullable://gcr.io/test3/test3",
-			Digest: slsa.DigestSet{"sha256": "f1a8b8549c179f41e27ff3db0fe1a1793e4b109da46586501a8343637b1d0478"},
+			Digest: common.DigestSet{"sha256": "f1a8b8549c179f41e27ff3db0fe1a1793e4b109da46586501a8343637b1d0478"},
 		},
-		{URI: "github.com/test", Digest: slsa.DigestSet{"sha1": "ab123"}},
-		{URI: "abc", Digest: slsa.DigestSet{"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"}},
-		{URI: "git+https://git.test.com.git", Digest: slsa.DigestSet{"sha1": "abcd"}},
+		{URI: "github.com/test", Digest: common.DigestSet{"sha1": "ab123"}},
+		{URI: "abc", Digest: common.DigestSet{"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"}},
+		{URI: "git+https://git.test.com.git", Digest: common.DigestSet{"sha1": "abcd"}},
 	}
 	got, err := materials(pro, logtesting.TestLogger(t))
 	if err != nil {
@@ -495,25 +496,25 @@ func TestMaterials(t *testing.T) {
 }
 
 func TestStructuredResultMaterials(t *testing.T) {
-	want := []slsa.ProvenanceMaterial{
-		{URI: "github.com/test", Digest: slsa.DigestSet{"sha1": "28b123"}},
+	want := []common.ProvenanceMaterial{
+		{URI: "github.com/test", Digest: common.DigestSet{"sha1": "28b123"}},
 		{
 			URI:    "docker-pullable://gcr.io/test1/test1",
-			Digest: slsa.DigestSet{"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"},
+			Digest: common.DigestSet{"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"},
 		},
-		{URI: "github.com/catalog", Digest: slsa.DigestSet{"sha1": "x123"}},
+		{URI: "github.com/catalog", Digest: common.DigestSet{"sha1": "x123"}},
 		{
 			URI:    "docker-pullable://gcr.io/test2/test2",
-			Digest: slsa.DigestSet{"sha256": "4d6dd704ef58cb214dd826519929e92a978a57cdee43693006139c0080fd6fac"},
+			Digest: common.DigestSet{"sha256": "4d6dd704ef58cb214dd826519929e92a978a57cdee43693006139c0080fd6fac"},
 		},
 		{
 			URI:    "docker-pullable://gcr.io/test3/test3",
-			Digest: slsa.DigestSet{"sha256": "f1a8b8549c179f41e27ff3db0fe1a1793e4b109da46586501a8343637b1d0478"},
+			Digest: common.DigestSet{"sha256": "f1a8b8549c179f41e27ff3db0fe1a1793e4b109da46586501a8343637b1d0478"},
 		},
-		{URI: "github.com/test", Digest: slsa.DigestSet{"sha1": "ab123"}},
+		{URI: "github.com/test", Digest: common.DigestSet{"sha1": "ab123"}},
 		{
 			URI: "abcd",
-			Digest: slsa.DigestSet{
+			Digest: common.DigestSet{
 				"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7",
 			},
 		},
@@ -533,7 +534,7 @@ func TestSubjectDigests(t *testing.T) {
 	wantSubjects := []intoto.Subject{
 		{
 			Name:   "test.io/test/image",
-			Digest: slsa.DigestSet{"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"},
+			Digest: common.DigestSet{"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"},
 		},
 	}
 
