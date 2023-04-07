@@ -1552,8 +1552,8 @@ github.com/t-yuki/gocover-cobertura
 # github.com/tdakkota/asciicheck v0.2.0
 ## explicit; go 1.18
 github.com/tdakkota/asciicheck
-# github.com/tektoncd/pipeline v0.45.0
-## explicit; go 1.18
+# github.com/tektoncd/pipeline v0.46.0
+## explicit; go 1.19
 github.com/tektoncd/pipeline/pkg/apis/config
 github.com/tektoncd/pipeline/pkg/apis/config/resolver
 github.com/tektoncd/pipeline/pkg/apis/pipeline
@@ -1564,7 +1564,6 @@ github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1
 github.com/tektoncd/pipeline/pkg/apis/resolution
 github.com/tektoncd/pipeline/pkg/apis/resolution/v1alpha1
 github.com/tektoncd/pipeline/pkg/apis/resolution/v1beta1
-github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1
 github.com/tektoncd/pipeline/pkg/apis/run/v1alpha1
 github.com/tektoncd/pipeline/pkg/apis/run/v1beta1
 github.com/tektoncd/pipeline/pkg/apis/validate
@@ -1629,22 +1628,6 @@ github.com/tektoncd/pipeline/pkg/client/resolution/injection/informers/resolutio
 github.com/tektoncd/pipeline/pkg/client/resolution/injection/informers/resolution/v1beta1/resolutionrequest/fake
 github.com/tektoncd/pipeline/pkg/client/resolution/listers/resolution/v1alpha1
 github.com/tektoncd/pipeline/pkg/client/resolution/listers/resolution/v1beta1
-github.com/tektoncd/pipeline/pkg/client/resource/clientset/versioned
-github.com/tektoncd/pipeline/pkg/client/resource/clientset/versioned/fake
-github.com/tektoncd/pipeline/pkg/client/resource/clientset/versioned/scheme
-github.com/tektoncd/pipeline/pkg/client/resource/clientset/versioned/typed/resource/v1alpha1
-github.com/tektoncd/pipeline/pkg/client/resource/clientset/versioned/typed/resource/v1alpha1/fake
-github.com/tektoncd/pipeline/pkg/client/resource/informers/externalversions
-github.com/tektoncd/pipeline/pkg/client/resource/informers/externalversions/internalinterfaces
-github.com/tektoncd/pipeline/pkg/client/resource/informers/externalversions/resource
-github.com/tektoncd/pipeline/pkg/client/resource/informers/externalversions/resource/v1alpha1
-github.com/tektoncd/pipeline/pkg/client/resource/injection/client
-github.com/tektoncd/pipeline/pkg/client/resource/injection/client/fake
-github.com/tektoncd/pipeline/pkg/client/resource/injection/informers/factory
-github.com/tektoncd/pipeline/pkg/client/resource/injection/informers/factory/fake
-github.com/tektoncd/pipeline/pkg/client/resource/injection/informers/resource/v1alpha1/pipelineresource
-github.com/tektoncd/pipeline/pkg/client/resource/injection/informers/resource/v1alpha1/pipelineresource/fake
-github.com/tektoncd/pipeline/pkg/client/resource/listers/resource/v1alpha1
 github.com/tektoncd/pipeline/pkg/list
 github.com/tektoncd/pipeline/pkg/names
 github.com/tektoncd/pipeline/pkg/reconciler/events/cache
@@ -1764,7 +1747,7 @@ github.com/zeebo/errs
 # gitlab.com/bosi/decorder v0.2.3
 ## explicit; go 1.17
 gitlab.com/bosi/decorder
-# go.mongodb.org/mongo-driver v1.11.0
+# go.mongodb.org/mongo-driver v1.11.4
 ## explicit; go 1.13
 go.mongodb.org/mongo-driver/bson
 go.mongodb.org/mongo-driver/bson/bsoncodec
@@ -1932,9 +1915,10 @@ golang.org/x/crypto/ssh/agent
 golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 golang.org/x/crypto/ssh/knownhosts
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/exp v0.0.0-20221031165847-c99f073a8326
+# golang.org/x/exp v0.0.0-20230307190834-24139beb5833
 ## explicit; go 1.18
 golang.org/x/exp/constraints
+golang.org/x/exp/maps
 golang.org/x/exp/slices
 # golang.org/x/exp/typeparams v0.0.0-20230224173230-c95f2b4c22f2
 ## explicit; go 1.18
@@ -2439,7 +2423,7 @@ k8s.io/apimachinery/pkg/version
 k8s.io/apimachinery/pkg/watch
 k8s.io/apimachinery/third_party/forked/golang/json
 k8s.io/apimachinery/third_party/forked/golang/reflect
-# k8s.io/client-go v0.25.4
+# k8s.io/client-go v0.25.7
 ## explicit; go 1.19
 k8s.io/client-go/applyconfigurations/admissionregistration/v1
 k8s.io/client-go/applyconfigurations/admissionregistration/v1beta1
@@ -2726,7 +2710,7 @@ k8s.io/client-go/util/jsonpath
 k8s.io/client-go/util/keyutil
 k8s.io/client-go/util/retry
 k8s.io/client-go/util/workqueue
-# k8s.io/code-generator v0.25.4
+# k8s.io/code-generator v0.25.7
 ## explicit; go 1.19
 k8s.io/code-generator/cmd/deepcopy-gen
 k8s.io/code-generator/cmd/deepcopy-gen/args
@@ -2773,7 +2757,7 @@ k8s.io/utils/net
 k8s.io/utils/pointer
 k8s.io/utils/strings/slices
 k8s.io/utils/trace
-# knative.dev/pkg v0.0.0-20230125083639-408ad0773f47
+# knative.dev/pkg v0.0.0-20230221145627-8efb3485adcf
 ## explicit; go 1.18
 knative.dev/pkg/apis
 knative.dev/pkg/apis/duck

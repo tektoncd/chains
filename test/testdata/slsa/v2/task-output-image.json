@@ -21,7 +21,6 @@
        		"Debug":            null,
        		"Params":           null,
        		"PodTemplate":      null,
-       		"Resources":        null,
        		"Retries":            0,
        		"ServiceAccountName": "default",
        		"SidecarOverrides":   null,

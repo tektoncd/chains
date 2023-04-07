@@ -71,7 +71,6 @@ The following output was generated. Notice the following below:
             "fsGroup": 65532
           }
         },
-        "Resources": null,
         "Retries": 0,
         "ServiceAccountName": "default",
         "SidecarOverrides": null,

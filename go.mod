@@ -23,7 +23,7 @@ require (
 	github.com/sigstore/sigstore v1.6.1
 	github.com/spiffe/go-spiffe/v2 v2.1.3
 	github.com/stretchr/testify v1.8.2
-	github.com/tektoncd/pipeline v0.45.0
+	github.com/tektoncd/pipeline v0.46.0
 	github.com/tektoncd/plumbing v0.0.0-20221102182345-5dbcfda657d7
 	go.uber.org/zap v1.24.0
 	gocloud.dev v0.28.0
@@ -34,9 +34,9 @@ require (
 	google.golang.org/protobuf v1.30.0
 	k8s.io/api v0.26.1
 	k8s.io/apimachinery v0.26.1
-	k8s.io/client-go v0.25.4
-	k8s.io/code-generator v0.25.4
-	knative.dev/pkg v0.0.0-20230125083639-408ad0773f47
+	k8s.io/client-go v0.25.7
+	k8s.io/code-generator v0.25.7
+	knative.dev/pkg v0.0.0-20230221145627-8efb3485adcf
 )
 
 require (
@@ -374,7 +374,7 @@ require (
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a // indirect
 	github.com/zeebo/errs v1.3.0 // indirect
 	gitlab.com/bosi/decorder v0.2.3 // indirect
-	go.mongodb.org/mongo-driver v1.11.0 // indirect
+	go.mongodb.org/mongo-driver v1.11.4 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/otel v1.14.0 // indirect
 	go.opentelemetry.io/otel/trace v1.14.0 // indirect
@@ -382,7 +382,7 @@ require (
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/automaxprocs v1.5.1 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
-	golang.org/x/exp v0.0.0-20221031165847-c99f073a8326 // indirect
+	golang.org/x/exp v0.0.0-20230307190834-24139beb5833 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20230224173230-c95f2b4c22f2 // indirect
 	golang.org/x/mod v0.9.0 // indirect
 	golang.org/x/net v0.8.0 // indirect

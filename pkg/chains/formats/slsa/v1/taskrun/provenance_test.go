@@ -31,7 +31,6 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	"github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logtesting "knative.dev/pkg/logging/testing"
 )
@@ -197,24 +196,6 @@ status:
 
 func TestGetSubjectDigests(t *testing.T) {
 	tr := &v1beta1.TaskRun{
-		Spec: v1beta1.TaskRunSpec{
-			Resources: &v1beta1.TaskRunResources{
-				Outputs: []v1beta1.TaskResourceBinding{
-					{
-						PipelineResourceBinding: v1beta1.PipelineResourceBinding{
-							Name: "nil-check",
-						},
-					}, {
-						PipelineResourceBinding: v1beta1.PipelineResourceBinding{
-							Name: "built-image",
-							ResourceSpec: &v1alpha1.PipelineResourceSpec{
-								Type: v1alpha1.PipelineResourceTypeImage,
-							},
-						},
-					},
-				},
-			},
-		},
 		Status: v1beta1.TaskRunStatus{
 			TaskRunStatusFields: v1beta1.TaskRunStatusFields{
 				TaskRunResults: []v1beta1.TaskRunResult{
@@ -276,17 +257,6 @@ func TestGetSubjectDigests(t *testing.T) {
 						}),
 					},
 				},
-				ResourcesResult: []v1beta1.PipelineResourceResult{
-					{
-						ResourceName: "built-image",
-						Key:          "url",
-						Value:        "registry/resource-image",
-					}, {
-						ResourceName: "built-image",
-						Key:          "digest",
-						Value:        digest2,
-					},
-				},
 			},
 		},
 	}
@@ -321,11 +291,6 @@ func TestGetSubjectDigests(t *testing.T) {
 			Name: "projects/test-project-1/locations/us-west4/repositories/test-repo/mavenArtifacts/com.google.guava:guava:31.0-jre",
 			Digest: slsa.DigestSet{
 				"sha256": strings.TrimPrefix(digest1, "sha256:"),
-			},
-		}, {
-			Name: "registry/resource-image",
-			Digest: slsa.DigestSet{
-				"sha256": strings.TrimPrefix(digest2, "sha256:"),
 			},
 		},
 	}

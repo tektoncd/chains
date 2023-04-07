@@ -25,7 +25,6 @@ import (
 	"github.com/opencontainers/go-digest"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
@@ -161,41 +160,7 @@ type StructuredSignable struct {
 func (oa *OCIArtifact) ExtractObjects(obj objects.TektonObject) []interface{} {
 	objs := []interface{}{}
 
-	// TODO: Not applicable to PipelineRuns, should look into a better way to separate this out
-	if tr, ok := obj.GetObject().(*v1beta1.TaskRun); ok {
-		imageResourceNames := map[string]*image{}
-		if tr.Status.TaskSpec != nil && tr.Status.TaskSpec.Resources != nil {
-			for _, output := range tr.Status.TaskSpec.Resources.Outputs {
-				if output.Type == v1beta1.PipelineResourceTypeImage {
-					imageResourceNames[output.Name] = &image{}
-				}
-			}
-		}
-
-		for _, rr := range tr.Status.ResourcesResult {
-			img, ok := imageResourceNames[rr.ResourceName]
-			if !ok {
-				continue
-			}
-			// We have a result for an image!
-			if rr.Key == "url" {
-				img.url = rr.Value
-			} else if rr.Key == "digest" {
-				img.digest = rr.Value
-			}
-		}
-
-		for _, image := range imageResourceNames {
-			dgst, err := name.NewDigest(fmt.Sprintf("%s@%s", image.url, image.digest))
-			if err != nil {
-				oa.Logger.Error(err)
-				continue
-			}
-			objs = append(objs, dgst)
-		}
-	}
-
-	// Now check TaskResults
+	// check TaskResults
 	resultImages := ExtractOCIImagesFromResults(obj, oa.Logger)
 	objs = append(objs, resultImages...)
 

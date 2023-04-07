@@ -51,7 +51,7 @@ function install_pipeline_crd() {
     fail_test "Tekton pipeline installation failed"
 
   # Make sure that eveything is cleaned up in the current namespace.
-  for res in pipelineresources tasks pipelines taskruns pipelineruns; do
+  for res in tasks pipelines taskruns pipelineruns; do
     kubectl delete --ignore-not-found=true ${res}.tekton.dev --all
   done
 

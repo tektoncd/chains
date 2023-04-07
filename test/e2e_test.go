@@ -45,7 +45,6 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/provenance"
 	"github.com/tektoncd/chains/pkg/test/tekton"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	"github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logtesting "knative.dev/pkg/logging/testing"
 )
@@ -595,16 +594,6 @@ cat <<EOF > $(outputs.resources.image.path)/index.json
 `,
 		},
 	},
-	Resources: &v1beta1.TaskResources{
-		Outputs: []v1beta1.TaskResource{
-			{
-				ResourceDeclaration: v1alpha1.ResourceDeclaration{
-					Name: "image",
-					Type: "image",
-				},
-			},
-		},
-	},
 }
 
 var imageTaskRun = v1beta1.TaskRun{
@@ -614,22 +603,6 @@ var imageTaskRun = v1beta1.TaskRun{
 	},
 	Spec: v1beta1.TaskRunSpec{
 		TaskSpec: &imageTaskSpec,
-		Resources: &v1beta1.TaskRunResources{
-			Outputs: []v1beta1.TaskResourceBinding{{
-				PipelineResourceBinding: v1beta1.PipelineResourceBinding{
-					Name: "image",
-					ResourceSpec: &v1alpha1.PipelineResourceSpec{
-						Type: "image",
-						Params: []v1alpha1.ResourceParam{
-							{
-								Name:  "url",
-								Value: "gcr.io/foo/bar",
-							},
-						},
-					},
-				},
-			}},
-		},
 	},
 }
 

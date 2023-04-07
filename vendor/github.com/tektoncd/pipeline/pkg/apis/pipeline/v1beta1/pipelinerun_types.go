@@ -20,14 +20,13 @@ import (
 	"context"
 	"time"
 
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-
 	"github.com/tektoncd/pipeline/pkg/apis/config"
 	apisconfig "github.com/tektoncd/pipeline/pkg/apis/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline"
 	pod "github.com/tektoncd/pipeline/pkg/apis/pipeline/pod"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/clock"
@@ -224,11 +223,6 @@ type PipelineRunSpec struct {
 	PipelineRef *PipelineRef `json:"pipelineRef,omitempty"`
 	// +optional
 	PipelineSpec *PipelineSpec `json:"pipelineSpec,omitempty"`
-	// Resources is a list of bindings specifying which actual instances of
-	// PipelineResources to use for the resources the Pipeline has declared
-	// it needs.
-	// +listType=atomic
-	Resources []PipelineResourceBinding `json:"resources,omitempty"`
 	// Params is a list of parameter names and values.
 	// +listType=atomic
 	Params []Param `json:"params,omitempty"`
@@ -245,9 +239,12 @@ type PipelineRunSpec struct {
 	// +optional
 	Timeouts *TimeoutFields `json:"timeouts,omitempty"`
 
-	// Timeout Deprecated: use pipelineRunSpec.Timeouts.Pipeline instead
-	// Time after which the Pipeline times out. Defaults to never.
+	// Timeout is the Time after which the Pipeline times out.
+	// Defaults to never.
 	// Refer to Go's ParseDuration documentation for expected format: https://golang.org/pkg/time/#ParseDuration
+	//
+	// Deprecated: use pipelineRunSpec.Timeouts.Pipeline instead
+	//
 	// +optional
 	Timeout *metav1.Duration `json:"timeout,omitempty"`
 	// PodTemplate holds pod specific configuration
@@ -415,6 +412,22 @@ type PipelineRunStatusFields struct {
 
 	// CompletionTime is the time the PipelineRun completed.
 	CompletionTime *metav1.Time `json:"completionTime,omitempty"`
+
+	// TaskRuns is a map of PipelineRunTaskRunStatus with the taskRun name as the key.
+	//
+	// Deprecated: use ChildReferences instead. As of v0.45.0, this field is no
+	// longer populated and is only included for backwards compatibility with
+	// older server versions.
+	// +optional
+	TaskRuns map[string]*PipelineRunTaskRunStatus `json:"taskRuns,omitempty"`
+
+	// Runs is a map of PipelineRunRunStatus with the run name as the key
+	//
+	// Deprecated: use ChildReferences instead. As of v0.45.0, this field is no
+	// longer populated and is only included for backwards compatibility with
+	// older server versions.
+	// +optional
+	Runs map[string]*PipelineRunRunStatus `json:"runs,omitempty"`
 
 	// PipelineResults are the list of results written out by the pipeline task's containers
 	// +optional

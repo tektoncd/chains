@@ -26,7 +26,6 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/attest"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	"github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
 	"go.uber.org/zap"
 )
 
@@ -105,43 +104,6 @@ func Materials(tro *objects.TaskRunObject, logger *zap.SugaredLogger) ([]slsa.Pr
 
 	sms := artifacts.RetrieveMaterialsFromStructuredResults(tro, artifacts.ArtifactsInputsResultName, logger)
 	mats = append(mats, sms...)
-
-	if tro.Spec.Resources != nil {
-		// check for a Git PipelineResource
-		for _, input := range tro.Spec.Resources.Inputs {
-			if input.ResourceSpec == nil || input.ResourceSpec.Type != v1alpha1.PipelineResourceTypeGit {
-				continue
-			}
-
-			m := slsa.ProvenanceMaterial{
-				Digest: slsa.DigestSet{},
-			}
-
-			for _, rr := range tro.Status.ResourcesResult {
-				if rr.ResourceName != input.Name {
-					continue
-				}
-				if rr.Key == "url" {
-					m.URI = attest.SPDXGit(rr.Value, "")
-				} else if rr.Key == "commit" {
-					m.Digest["sha1"] = rr.Value
-				}
-			}
-
-			var url string
-			var revision string
-			for _, param := range input.ResourceSpec.Params {
-				if param.Name == "url" {
-					url = param.Value
-				}
-				if param.Name == "revision" {
-					revision = param.Value
-				}
-			}
-			m.URI = attest.SPDXGit(url, revision)
-			mats = append(mats, m)
-		}
-	}
 
 	// remove duplicate materials
 	mats, err := RemoveDuplicateMaterials(mats)

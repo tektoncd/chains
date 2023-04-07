@@ -19,16 +19,13 @@ package material
 import (
 	"fmt"
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/ghodss/yaml"
 	"github.com/google/go-cmp/cmp"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
-	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	"github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
 	logtesting "knative.dev/pkg/logging/testing"
 )
 
@@ -80,69 +77,6 @@ func TestMaterials(t *testing.T) {
 		taskRun *v1beta1.TaskRun
 		want    []slsa.ProvenanceMaterial
 	}{{
-		name: "materials from pipeline resources",
-		taskRun: &v1beta1.TaskRun{
-			Spec: v1beta1.TaskRunSpec{
-				Resources: &v1beta1.TaskRunResources{
-					Inputs: []v1beta1.TaskResourceBinding{
-						{
-							PipelineResourceBinding: v1beta1.PipelineResourceBinding{
-								Name: "nil-resource-spec",
-							},
-						}, {
-							PipelineResourceBinding: v1beta1.PipelineResourceBinding{
-								Name: "repo",
-								ResourceSpec: &v1alpha1.PipelineResourceSpec{
-									Params: []v1alpha1.ResourceParam{
-										{Name: "url", Value: "https://github.com/GoogleContainerTools/distroless"},
-									},
-									Type: v1alpha1.PipelineResourceTypeGit,
-								},
-							},
-						},
-					},
-				},
-			},
-			Status: v1beta1.TaskRunStatus{
-				TaskRunStatusFields: v1beta1.TaskRunStatusFields{
-					TaskRunResults: []v1beta1.TaskRunResult{
-						{
-							Name: "img1_input" + "-" + artifacts.ArtifactsInputsResultName,
-							Value: *v1beta1.NewObject(map[string]string{
-								"uri":    "gcr.io/foo/bar",
-								"digest": digest,
-							}),
-						},
-					},
-					ResourcesResult: []v1beta1.PipelineResourceResult{
-						{
-							ResourceName: "repo",
-							Key:          "commit",
-							Value:        "50c56a48cfb3a5a80fa36ed91c739bdac8381cbe",
-						}, {
-							ResourceName: "repo",
-							Key:          "url",
-							Value:        "https://github.com/GoogleContainerTools/distroless",
-						},
-					},
-				},
-			},
-		},
-		want: []slsa.ProvenanceMaterial{
-			{
-				URI: "gcr.io/foo/bar",
-				Digest: slsa.DigestSet{
-					"sha256": strings.TrimPrefix(digest, "sha256:"),
-				},
-			},
-			{
-				URI: "git+https://github.com/GoogleContainerTools/distroless.git",
-				Digest: slsa.DigestSet{
-					"sha1": "50c56a48cfb3a5a80fa36ed91c739bdac8381cbe",
-				},
-			},
-		},
-	}, {
 		name: "materials from git results",
 		taskRun: &v1beta1.TaskRun{
 			Spec: v1beta1.TaskRunSpec{

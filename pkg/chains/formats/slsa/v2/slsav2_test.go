@@ -112,7 +112,6 @@ func TestTaskRunCreatePayload1(t *testing.T) {
 						},
 					},
 					"PodTemplate":        (*pod.Template)(nil),
-					"Resources":          (*v1beta1.TaskRunResources)(nil),
 					"Retries":            0,
 					"ServiceAccountName": "default",
 					"SidecarOverrides":   []v1beta1.TaskRunSidecarOverride(nil),
@@ -217,7 +216,6 @@ func TestTaskRunCreatePayload2(t *testing.T) {
 						{Name: "revision", Value: v1beta1.ParamValue{Type: "string"}},
 					},
 					"PodTemplate":        (*pod.Template)(nil),
-					"Resources":          (*v1beta1.TaskRunResources)(nil),
 					"Retries":            0,
 					"ServiceAccountName": "default",
 					"SidecarOverrides":   []v1beta1.TaskRunSidecarOverride(nil),
@@ -286,12 +284,12 @@ func TestMultipleSubjects(t *testing.T) {
 				{
 					Name: "gcr.io/myimage",
 					Digest: slsa.DigestSet{
-						"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6",
+						"sha256": "daa1a56e13c85cf164e7d9e595006649e3a04c47fe4a8261320e18a0bf3b0367",
 					},
 				}, {
 					Name: "gcr.io/myimage",
 					Digest: slsa.DigestSet{
-						"sha256": "daa1a56e13c85cf164e7d9e595006649e3a04c47fe4a8261320e18a0bf3b0367",
+						"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6",
 					},
 				},
 			},
@@ -314,7 +312,6 @@ func TestMultipleSubjects(t *testing.T) {
 					"Debug":              (*v1beta1.TaskRunDebug)(nil),
 					"Params":             []v1beta1.Param{},
 					"PodTemplate":        (*pod.Template)(nil),
-					"Resources":          (*v1beta1.TaskRunResources)(nil),
 					"Retries":            0,
 					"ServiceAccountName": "default",
 					"SidecarOverrides":   []v1beta1.TaskRunSidecarOverride(nil),

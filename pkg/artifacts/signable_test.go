@@ -24,7 +24,6 @@ import (
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logtesting "knative.dev/pkg/logging/testing"
 )
 
@@ -49,250 +48,43 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 		name string
 		obj  objects.TektonObject
 		want []interface{}
-	}{
-		{
-			name: "one image",
-			obj: objects.NewTaskRunObject(&v1beta1.TaskRun{
-				TypeMeta: metav1.TypeMeta{
-					Kind: "TaskRun",
-				},
-				Status: v1beta1.TaskRunStatus{
-					TaskRunStatusFields: v1beta1.TaskRunStatusFields{
-						ResourcesResult: []v1beta1.PipelineResourceResult{
-							{
-								ResourceName: "my-image",
-								Key:          "url",
-								Value:        "gcr.io/foo/bar",
-							},
-							{
-								ResourceName: "my-image",
-								Key:          "digest",
-								Value:        digest1,
-							},
-						},
-						TaskSpec: &v1beta1.TaskSpec{
-							Resources: &v1beta1.TaskResources{
-								Outputs: []v1beta1.TaskResource{
-									{
-										ResourceDeclaration: v1beta1.ResourceDeclaration{
-											Name: "my-image",
-											Type: "image",
-										},
-									},
-								},
-							},
+	}{{
+		name: "images",
+		obj: objects.NewTaskRunObject(&v1beta1.TaskRun{
+			Status: v1beta1.TaskRunStatus{
+				TaskRunStatusFields: v1beta1.TaskRunStatusFields{
+					TaskRunResults: []v1beta1.TaskRunResult{
+						{
+							Name:  "IMAGES",
+							Value: *v1beta1.NewArrayOrString(fmt.Sprintf("  \n \tgcr.io/foo/bar@%s\n,gcr.io/baz/bar@%s", digest1, digest2)),
 						},
 					},
 				},
-			}),
-			want: []interface{}{createDigest(t, "gcr.io/foo/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5")},
-		},
-		{
-			name: "two images",
-			obj: objects.NewTaskRunObject(&v1beta1.TaskRun{
-				TypeMeta: metav1.TypeMeta{
-					Kind: "TaskRun",
-				},
-				Status: v1beta1.TaskRunStatus{
-					TaskRunStatusFields: v1beta1.TaskRunStatusFields{
-						ResourcesResult: []v1beta1.PipelineResourceResult{
-							{
-								ResourceName: "my-image1",
-								Key:          "url",
-								Value:        "gcr.io/foo/bar",
-							},
-							{
-								ResourceName: "my-image1",
-								Key:          "digest",
-								Value:        digest1,
-							},
-							{
-								ResourceName: "my-image2",
-								Key:          "url",
-								Value:        "gcr.io/foo/baz",
-							},
-							{
-								ResourceName: "my-image2",
-								Key:          "digest",
-								Value:        digest2,
-							},
-						},
-						TaskSpec: &v1beta1.TaskSpec{
-							Resources: &v1beta1.TaskResources{
-								Outputs: []v1beta1.TaskResource{
-									{
-										ResourceDeclaration: v1beta1.ResourceDeclaration{
-											Name: "my-image1",
-											Type: "image",
-										},
-									},
-									{
-										ResourceDeclaration: v1beta1.ResourceDeclaration{
-											Name: "my-image2",
-											Type: "image",
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			}),
-			want: []interface{}{
-				createDigest(t, "gcr.io/foo/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5"),
-				createDigest(t, "gcr.io/foo/baz@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b6"),
 			},
+		}),
+		want: []interface{}{
+			createDigest(t, "gcr.io/foo/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5"),
+			createDigest(t, "gcr.io/baz/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b6"),
 		},
-		{
-			name: "resource and result",
-			obj: objects.NewTaskRunObject(&v1beta1.TaskRun{
-				TypeMeta: metav1.TypeMeta{
-					Kind: "TaskRun",
-				},
-				Status: v1beta1.TaskRunStatus{
-					TaskRunStatusFields: v1beta1.TaskRunStatusFields{
-						ResourcesResult: []v1beta1.PipelineResourceResult{
-							{
-								ResourceName: "my-image",
-								Key:          "url",
-								Value:        "gcr.io/foo/bar",
-							},
-							{
-								ResourceName: "my-image",
-								Key:          "digest",
-								Value:        digest1,
-							},
-						},
-						TaskRunResults: []v1beta1.TaskRunResult{
-							{
-								Name:  "IMAGE_URL",
-								Value: *v1beta1.NewArrayOrString("gcr.io/foo/bat"),
-							},
-							{
-								Name:  "IMAGE_DIGEST",
-								Value: *v1beta1.NewArrayOrString("sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b4"),
-							},
-						},
-						TaskSpec: &v1beta1.TaskSpec{
-							Results: []v1beta1.TaskResult{
-								{
-									Name: "IMAGE_URL",
-								},
-								{
-									Name: "IMAGE_DIGEST",
-								},
-							},
-							Resources: &v1beta1.TaskResources{
-								Outputs: []v1beta1.TaskResource{
-									{
-										ResourceDeclaration: v1beta1.ResourceDeclaration{
-											Name: "my-image",
-											Type: "image",
-										},
-									},
-								},
-							},
+	}, {
+		name: "images-newline",
+		obj: objects.NewTaskRunObject(&v1beta1.TaskRun{
+			Status: v1beta1.TaskRunStatus{
+				TaskRunStatusFields: v1beta1.TaskRunStatusFields{
+					TaskRunResults: []v1beta1.TaskRunResult{
+						{
+							Name:  "IMAGES",
+							Value: *v1beta1.NewArrayOrString(fmt.Sprintf("gcr.io/foo/bar@%s\ngcr.io/baz/bar@%s\n\n", digest1, digest2)),
 						},
 					},
 				},
-			}),
-			want: []interface{}{
-				createDigest(t, "gcr.io/foo/bat@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b4"),
-				createDigest(t, "gcr.io/foo/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5")},
-		},
-		{
-			name: "extra",
-			obj: objects.NewTaskRunObject(&v1beta1.TaskRun{
-				TypeMeta: metav1.TypeMeta{
-					Kind: "TaskRun",
-				},
-				Status: v1beta1.TaskRunStatus{
-					TaskRunStatusFields: v1beta1.TaskRunStatusFields{
-						TaskRunResults: []v1beta1.TaskRunResult{
-							{
-								Name:  "IMAGE_URL",
-								Value: *v1beta1.NewArrayOrString("foo"),
-							},
-							{
-								Name:  "gibberish",
-								Value: *v1beta1.NewArrayOrString("baz"),
-							},
-						},
-						ResourcesResult: []v1beta1.PipelineResourceResult{
-							{
-								ResourceName: "my-image",
-								Key:          "url",
-								Value:        "gcr.io/foo/bar",
-							},
-							{
-								ResourceName: "my-image",
-								Key:          "digest",
-								Value:        digest1,
-							},
-							{
-								ResourceName: "gibberish",
-								Key:          "url",
-								Value:        "gcr.io/foo/bar",
-							},
-							{
-								ResourceName: "gobble-dygook",
-								Key:          "digest",
-								Value:        digest1,
-							},
-						},
-						TaskSpec: &v1beta1.TaskSpec{
-							Resources: &v1beta1.TaskResources{
-								Outputs: []v1beta1.TaskResource{
-									{
-										ResourceDeclaration: v1beta1.ResourceDeclaration{
-											Name: "my-image",
-											Type: "image",
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			}),
-			want: []interface{}{createDigest(t, "gcr.io/foo/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5")},
-		}, {
-			name: "images",
-			obj: objects.NewTaskRunObject(&v1beta1.TaskRun{
-				Status: v1beta1.TaskRunStatus{
-					TaskRunStatusFields: v1beta1.TaskRunStatusFields{
-						TaskRunResults: []v1beta1.TaskRunResult{
-							{
-								Name:  "IMAGES",
-								Value: *v1beta1.NewArrayOrString(fmt.Sprintf("  \n \tgcr.io/foo/bar@%s\n,gcr.io/baz/bar@%s", digest1, digest2)),
-							},
-						},
-					},
-				},
-			}),
-			want: []interface{}{
-				createDigest(t, "gcr.io/foo/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5"),
-				createDigest(t, "gcr.io/baz/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b6"),
 			},
-		}, {
-			name: "images-newline",
-			obj: objects.NewTaskRunObject(&v1beta1.TaskRun{
-				Status: v1beta1.TaskRunStatus{
-					TaskRunStatusFields: v1beta1.TaskRunStatusFields{
-						TaskRunResults: []v1beta1.TaskRunResult{
-							{
-								Name:  "IMAGES",
-								Value: *v1beta1.NewArrayOrString(fmt.Sprintf("gcr.io/foo/bar@%s\ngcr.io/baz/bar@%s\n\n", digest1, digest2)),
-							},
-						},
-					},
-				},
-			}),
-			want: []interface{}{
-				createDigest(t, "gcr.io/foo/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5"),
-				createDigest(t, "gcr.io/baz/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b6"),
-			},
+		}),
+		want: []interface{}{
+			createDigest(t, "gcr.io/foo/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5"),
+			createDigest(t, "gcr.io/baz/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b6"),
 		},
+	},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
