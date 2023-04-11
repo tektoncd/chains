@@ -164,14 +164,6 @@ func (oa *OCIArtifact) ExtractObjects(obj objects.TektonObject) []interface{} {
 	// TODO: Not applicable to PipelineRuns, should look into a better way to separate this out
 	if tr, ok := obj.GetObject().(*v1beta1.TaskRun); ok {
 		imageResourceNames := map[string]*image{}
-		if tr.Status.TaskSpec != nil && tr.Status.TaskSpec.Resources != nil {
-			for _, output := range tr.Status.TaskSpec.Resources.Outputs {
-				if output.Type == v1beta1.PipelineResourceTypeImage {
-					imageResourceNames[output.Name] = &image{}
-				}
-			}
-		}
-
 		for _, rr := range tr.Status.ResourcesResult {
 			img, ok := imageResourceNames[rr.ResourceName]
 			if !ok {

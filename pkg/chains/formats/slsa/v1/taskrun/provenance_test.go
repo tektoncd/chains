@@ -32,7 +32,6 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	"github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logtesting "knative.dev/pkg/logging/testing"
 )
@@ -198,24 +197,6 @@ status:
 
 func TestGetSubjectDigests(t *testing.T) {
 	tr := &v1beta1.TaskRun{
-		Spec: v1beta1.TaskRunSpec{
-			Resources: &v1beta1.TaskRunResources{
-				Outputs: []v1beta1.TaskResourceBinding{
-					{
-						PipelineResourceBinding: v1beta1.PipelineResourceBinding{
-							Name: "nil-check",
-						},
-					}, {
-						PipelineResourceBinding: v1beta1.PipelineResourceBinding{
-							Name: "built-image",
-							ResourceSpec: &v1alpha1.PipelineResourceSpec{
-								Type: v1alpha1.PipelineResourceTypeImage,
-							},
-						},
-					},
-				},
-			},
-		},
 		Status: v1beta1.TaskRunStatus{
 			TaskRunStatusFields: v1beta1.TaskRunStatusFields{
 				TaskRunResults: []v1beta1.TaskRunResult{
@@ -277,36 +258,15 @@ func TestGetSubjectDigests(t *testing.T) {
 						}),
 					},
 				},
-				ResourcesResult: []v1beta1.PipelineResourceResult{
-					{
-						ResourceName: "built-image",
-						Key:          "url",
-						Value:        "registry/resource-image",
-					}, {
-						ResourceName: "built-image",
-						Key:          "digest",
-						Value:        digest2,
-					},
-				},
 			},
 		},
 	}
 
 	expected := []in_toto.Subject{
 		{
-			Name: "com.google.guava:guava:1.0-jre.pom",
-			Digest: common.DigestSet{
-				"sha256": strings.TrimPrefix(digest2, "sha256:"),
-			},
-		}, {
 			Name: "index.docker.io/registry/myimage",
 			Digest: common.DigestSet{
 				"sha256": strings.TrimPrefix(digest1, "sha256:"),
-			},
-		}, {
-			Name: "maven-test-0.1.1-sources.jar",
-			Digest: common.DigestSet{
-				"sha256": strings.TrimPrefix(digest5, "sha256:"),
 			},
 		}, {
 			Name: "maven-test-0.1.1.jar",
@@ -319,12 +279,17 @@ func TestGetSubjectDigests(t *testing.T) {
 				"sha256": strings.TrimPrefix(digest4, "sha256:"),
 			},
 		}, {
+			Name: "maven-test-0.1.1-sources.jar",
+			Digest: common.DigestSet{
+				"sha256": strings.TrimPrefix(digest5, "sha256:"),
+			},
+		}, {
 			Name: "projects/test-project-1/locations/us-west4/repositories/test-repo/mavenArtifacts/com.google.guava:guava:31.0-jre",
 			Digest: common.DigestSet{
 				"sha256": strings.TrimPrefix(digest1, "sha256:"),
 			},
 		}, {
-			Name: "registry/resource-image",
+			Name: "com.google.guava:guava:1.0-jre.pom",
 			Digest: common.DigestSet{
 				"sha256": strings.TrimPrefix(digest2, "sha256:"),
 			},
