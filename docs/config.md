@@ -10,11 +10,11 @@ weight: 20
 `Chains` works by observing `TaskRun` and `PipelineRun` executions, capturing relevant information, and storing it in a cryptographically-signed format.
 
 `TaskRuns` and `PipelineRuns` can indicate inputs and outputs which are then captured and surfaced in the `Chains` payload formats, where relevant.
-`Chains` uses the standard mechanisms (`Results` and `PipelineResources`) where possible, and provides a few other mechanisms to *hint* at the correct inputs and outputs. These are outlined below:
+`Chains` uses the standard mechanisms (`Results`) where possible, and provides a few other mechanisms to *hint* at the correct inputs and outputs. These are outlined below:
 
 ## Chains Type Hinting
 
-When outputting an OCI image without using a `PipelineResource`, `Chains` will look for the following Results:
+`Chains` will look for the following Results:
 
 * `*IMAGE_URL` - The URL to the built OCI image
 * `*IMAGE_DIGEST` - The Digest of the built OCI image
@@ -39,8 +39,6 @@ When processing a `PipelineRun`, Chains will only attest each image. Thus, if bo
 
 For in-toto attestations, see [intoto.md](intoto.md) for description
 of in-toto specific type hinting.
-
-Note that these are provided automatically when using `PipelineResources`.
 
 ## Chains Configuration
 
