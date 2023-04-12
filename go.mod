@@ -21,7 +21,7 @@ require (
 	github.com/sigstore/cosign/v2 v2.0.1-0.20230323140840-42c4b8d9016a
 	github.com/sigstore/rekor v1.0.1
 	github.com/sigstore/sigstore v1.6.1
-	github.com/spiffe/go-spiffe/v2 v2.1.3
+	github.com/spiffe/go-spiffe/v2 v2.1.4
 	github.com/stretchr/testify v1.8.2
 	github.com/tektoncd/pipeline v0.45.0
 	github.com/tektoncd/plumbing v0.0.0-20221102182345-5dbcfda657d7
