@@ -2,12 +2,7 @@
 
 approvers:
 - chuangw6
-- dlorenc
-- font
 - lcarva
-- lukehinds
-- mattmoor
-- mpeters
 - priyawadhwa
 - wlynch
 
@@ -17,3 +12,10 @@ reviewers:
 - lcarva
 - priyawadhwa
 - wlynch
+
+emeritus_approvers:
+- dlorenc
+- font
+- lukehinds
+- mattmoor
+- mpeters
