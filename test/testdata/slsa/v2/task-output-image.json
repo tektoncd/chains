@@ -70,7 +70,7 @@
             "buildStartedOn": "{{index .BuildStartTimes 0}}",
             "buildFinishedOn": "{{index .BuildFinishedTimes 0}}",
             "completeness": {
-                "parameters": false,
+                "parameters": true,
                 "environment": false,
                 "materials": false
             },

@@ -59,11 +59,19 @@ func GenerateAttestation(builderID string, payloadType config.PayloadType, tro *
 			BuildType:   fmt.Sprintf("https://chains.tekton.dev/format/%v/type/%s", payloadType, tro.GetGVK()),
 			Invocation:  invocation(tro),
 			BuildConfig: BuildConfig{TaskSpec: tro.Status.TaskSpec, TaskRunResults: tro.Status.TaskRunResults},
-			Metadata:    slsav1.Metadata(tro),
+			Metadata:    metadata(tro),
 			Materials:   mat,
 		},
 	}
 	return att, nil
+}
+
+func metadata(tro *objects.TaskRunObject) *slsa.ProvenanceMetadata {
+	m := slsav1.Metadata(tro)
+	m.Completeness = slsa.ProvenanceComplete{
+		Parameters: true,
+	}
+	return m
 }
 
 // invocation describes the event that kicked off the build
