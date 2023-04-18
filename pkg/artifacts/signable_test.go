@@ -296,11 +296,9 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			logger := logtesting.TestLogger(t)
-			oa := &OCIArtifact{
-				Logger: logger,
-			}
-			got := oa.ExtractObjects(tt.obj)
+			ctx := logtesting.TestContextWithLogger(t)
+			oa := &OCIArtifact{}
+			got := oa.ExtractObjects(ctx, tt.obj)
 			sort.Slice(got, func(i, j int) bool {
 				a := got[i].(name.Digest)
 				b := got[j].(name.Digest)
@@ -338,7 +336,8 @@ func TestExtractOCIImagesFromResults(t *testing.T) {
 		createDigest(t, fmt.Sprintf("img2@%s", digest2)),
 		createDigest(t, fmt.Sprintf("img3@%s", digest1)),
 	}
-	got := ExtractOCIImagesFromResults(obj, logtesting.TestLogger(t))
+	ctx := logtesting.TestContextWithLogger(t)
+	got := ExtractOCIImagesFromResults(ctx, obj)
 	sort.Slice(got, func(i, j int) bool {
 		a := got[i].(name.Digest)
 		b := got[j].(name.Digest)
@@ -378,7 +377,8 @@ func TestExtractSignableTargetFromResults(t *testing.T) {
 		{URI: "projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/a.b.c:d:1.0-jre", Digest: digest4},
 		{URI: "projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/empty_prefix", Digest: digest1},
 	}
-	got := ExtractSignableTargetFromResults(objects.NewTaskRunObject(tr), logtesting.TestLogger(t))
+	ctx := logtesting.TestContextWithLogger(t)
+	got := ExtractSignableTargetFromResults(ctx, objects.NewTaskRunObject(tr))
 	sort.Slice(got, func(i, j int) bool {
 		return got[i].URI < got[j].URI
 	})
@@ -478,7 +478,8 @@ func TestExtractStructuredTargetFromResults(t *testing.T) {
 		{URI: "gcr.io/foo/bar", Digest: digest_sha384},
 		{URI: "gcr.io/foo/bar", Digest: digest_sha512},
 	}
-	gotInputs := ExtractStructuredTargetFromResults(objects.NewTaskRunObject(tr), ArtifactsInputsResultName, logtesting.TestLogger(t))
+	ctx := logtesting.TestContextWithLogger(t)
+	gotInputs := ExtractStructuredTargetFromResults(ctx, objects.NewTaskRunObject(tr), ArtifactsInputsResultName)
 	if diff := cmp.Diff(gotInputs, wantInputs, cmpopts.SortSlices(func(x, y *StructuredSignable) bool { return x.Digest < y.Digest })); diff != "" {
 		t.Errorf("Inputs are not as expected: %v", diff)
 	}
@@ -487,7 +488,7 @@ func TestExtractStructuredTargetFromResults(t *testing.T) {
 		{URI: "projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/com.google.guava:guava:31.0-jre", Digest: digest1},
 		{URI: "com.google.guava:guava:31.0-jre.pom", Digest: digest2},
 	}
-	gotOutputs := ExtractStructuredTargetFromResults(objects.NewTaskRunObject(tr), ArtifactsOutputsResultName, logtesting.TestLogger(t))
+	gotOutputs := ExtractStructuredTargetFromResults(ctx, objects.NewTaskRunObject(tr), ArtifactsOutputsResultName)
 	opts := append(ignore, cmpopts.SortSlices(func(x, y *StructuredSignable) bool { return x.Digest < y.Digest }))
 	if diff := cmp.Diff(gotOutputs, wantOutputs, opts...); diff != "" {
 		t.Error(diff)
@@ -530,8 +531,8 @@ func TestRetrieveMaterialsFromStructuredResults(t *testing.T) {
 			Digest: map[string]string{"sha256": "05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b7"},
 		},
 	}
-
-	gotMaterials := RetrieveMaterialsFromStructuredResults(objects.NewTaskRunObject(tr), ArtifactsInputsResultName, logtesting.TestLogger(t))
+	ctx := logtesting.TestContextWithLogger(t)
+	gotMaterials := RetrieveMaterialsFromStructuredResults(ctx, objects.NewTaskRunObject(tr), ArtifactsInputsResultName)
 
 	if diff := cmp.Diff(gotMaterials, wantMaterials, ignore...); diff != "" {
 		t.Fatalf("Materials not the same %s", diff)

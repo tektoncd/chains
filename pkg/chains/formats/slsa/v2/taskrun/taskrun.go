@@ -28,7 +28,6 @@ import (
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"knative.dev/pkg/logging"
 )
 
 // BuildConfig is the custom Chains format to fill out the
@@ -38,11 +37,9 @@ type BuildConfig struct {
 	TaskRunResults []v1beta1.TaskRunResult `json:"taskRunResults"`
 }
 
-func GenerateAttestation(builderID string, payloadType config.PayloadType, tro *objects.TaskRunObject, ctx context.Context) (interface{}, error) {
-	logger := logging.FromContext(ctx)
-	subjects := extract.SubjectDigests(tro, logger)
-
-	mat, err := material.Materials(tro, logger)
+func GenerateAttestation(ctx context.Context, builderID string, payloadType config.PayloadType, tro *objects.TaskRunObject) (interface{}, error) {
+	subjects := extract.SubjectDigests(ctx, tro)
+	mat, err := material.Materials(ctx, tro)
 	if err != nil {
 		return nil, err
 	}

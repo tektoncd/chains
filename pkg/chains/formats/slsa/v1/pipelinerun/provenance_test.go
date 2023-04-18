@@ -210,7 +210,8 @@ func TestBuildConfig(t *testing.T) {
 			},
 		},
 	}
-	got := buildConfig(pro, logtesting.TestLogger(t))
+	ctx := logtesting.TestContextWithLogger(t)
+	got := buildConfig(ctx, pro)
 	if diff := cmp.Diff(expected, got); diff != "" {
 		t.Errorf("buildConfig(): -want +got: %s", diff)
 	}
@@ -418,7 +419,8 @@ func TestBuildConfigTaskOrder(t *testing.T) {
 			}
 			pro := createPro("../../testdata/pipelinerun1.json")
 			pro.Status.PipelineSpec.Tasks[BUILD_TASK] = pt
-			got := buildConfig(pro, logtesting.TestLogger(t))
+			ctx := logtesting.TestContextWithLogger(t)
+			got := buildConfig(ctx, pro)
 			if diff := cmp.Diff(expected, got); diff != "" {
 				t.Errorf("buildConfig(): -want +got: %s", diff)
 			}
@@ -486,7 +488,8 @@ func TestMaterials(t *testing.T) {
 		{URI: "abc", Digest: common.DigestSet{"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"}},
 		{URI: "git+https://git.test.com.git", Digest: common.DigestSet{"sha1": "abcd"}},
 	}
-	got, err := materials(pro, logtesting.TestLogger(t))
+	ctx := logtesting.TestContextWithLogger(t)
+	got, err := materials(ctx, pro)
 	if err != nil {
 		t.Error(err)
 	}
@@ -519,7 +522,8 @@ func TestStructuredResultMaterials(t *testing.T) {
 			},
 		},
 	}
-	got, err := materials(proStructuredResults, logtesting.TestLogger(t))
+	ctx := logtesting.TestContextWithLogger(t)
+	got, err := materials(ctx, proStructuredResults)
 	if err != nil {
 		t.Errorf("error while extracting materials: %v", err)
 	}
@@ -538,7 +542,8 @@ func TestSubjectDigests(t *testing.T) {
 		},
 	}
 
-	gotSubjects := extract.SubjectDigests(pro, logtesting.TestLogger(t))
+	ctx := logtesting.TestContextWithLogger(t)
+	gotSubjects := extract.SubjectDigests(ctx, pro)
 	opts := append(ignore, cmpopts.SortSlices(func(x, y intoto.Subject) bool { return x.Name < y.Name }))
 	if diff := cmp.Diff(gotSubjects, wantSubjects, opts...); diff != "" {
 		t.Errorf("Differences in subjects: -want +got: %s", diff)

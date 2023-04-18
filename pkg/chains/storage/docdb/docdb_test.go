@@ -24,6 +24,7 @@ import (
 	_ "gocloud.dev/docstore/memdocstore"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"knative.dev/pkg/logging"
 	logtesting "knative.dev/pkg/logging/testing"
 	rtesting "knative.dev/pkg/reconciler/testing"
 )
@@ -67,10 +68,10 @@ func TestBackend_StorePayload(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctx := logging.WithLogger(ctx, logtesting.TestLogger(t))
 			// Prepare the document.
 			b := &Backend{
-				logger: logtesting.TestLogger(t),
-				coll:   coll,
+				coll: coll,
 			}
 			sb, err := json.Marshal(tt.args.rawPayload)
 			if err != nil {

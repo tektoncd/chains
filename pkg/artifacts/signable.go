@@ -14,6 +14,7 @@ limitations under the License.
 package artifacts
 
 import (
+	"context"
 	_ "crypto/sha256" // Recommended by go-digest.
 	_ "crypto/sha512" // Recommended by go-digest.
 	"fmt"
@@ -26,8 +27,8 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"knative.dev/pkg/logging"
 )
 
 const (
@@ -40,9 +41,8 @@ var (
 )
 
 type Signable interface {
-	ExtractObjects(obj objects.TektonObject) []interface{}
+	ExtractObjects(ctx context.Context, obj objects.TektonObject) []interface{}
 	StorageBackend(cfg config.Config) sets.Set[string]
-
 	Signer(cfg config.Config) string
 	PayloadFormat(cfg config.Config) config.PayloadType
 	// FullKey returns the full identifier for a signable artifact.
@@ -57,9 +57,7 @@ type Signable interface {
 	Enabled(cfg config.Config) bool
 }
 
-type TaskRunArtifact struct {
-	Logger *zap.SugaredLogger
-}
+type TaskRunArtifact struct{}
 
 var _ Signable = &TaskRunArtifact{}
 
@@ -74,7 +72,7 @@ func (ta *TaskRunArtifact) FullKey(obj interface{}) string {
 	return fmt.Sprintf("%s-%s-%s-%s", gvk.Group, gvk.Version, gvk.Kind, tro.UID)
 }
 
-func (ta *TaskRunArtifact) ExtractObjects(obj objects.TektonObject) []interface{} {
+func (ta *TaskRunArtifact) ExtractObjects(ctx context.Context, obj objects.TektonObject) []interface{} {
 	return []interface{}{obj}
 }
 
@@ -98,9 +96,7 @@ func (ta *TaskRunArtifact) Enabled(cfg config.Config) bool {
 	return cfg.Artifacts.TaskRuns.Enabled()
 }
 
-type PipelineRunArtifact struct {
-	Logger *zap.SugaredLogger
-}
+type PipelineRunArtifact struct{}
 
 var _ Signable = &PipelineRunArtifact{}
 
@@ -115,7 +111,7 @@ func (pa *PipelineRunArtifact) FullKey(obj interface{}) string {
 	return fmt.Sprintf("%s-%s-%s-%s", gvk.Group, gvk.Version, gvk.Kind, pro.UID)
 }
 
-func (pa *PipelineRunArtifact) ExtractObjects(obj objects.TektonObject) []interface{} {
+func (pa *PipelineRunArtifact) ExtractObjects(ctx context.Context, obj objects.TektonObject) []interface{} {
 	return []interface{}{obj}
 }
 
@@ -140,9 +136,7 @@ func (pa *PipelineRunArtifact) Enabled(cfg config.Config) bool {
 	return cfg.Artifacts.PipelineRuns.Enabled()
 }
 
-type OCIArtifact struct {
-	Logger *zap.SugaredLogger
-}
+type OCIArtifact struct{}
 
 var _ Signable = &OCIArtifact{}
 
@@ -159,7 +153,8 @@ type StructuredSignable struct {
 	Digest string
 }
 
-func (oa *OCIArtifact) ExtractObjects(obj objects.TektonObject) []interface{} {
+func (oa *OCIArtifact) ExtractObjects(ctx context.Context, obj objects.TektonObject) []interface{} {
+	log := logging.FromContext(ctx)
 	objs := []interface{}{}
 
 	// TODO: Not applicable to PipelineRuns, should look into a better way to separate this out
@@ -189,7 +184,7 @@ func (oa *OCIArtifact) ExtractObjects(obj objects.TektonObject) []interface{} {
 		for _, image := range imageResourceNames {
 			dgst, err := name.NewDigest(fmt.Sprintf("%s@%s", image.url, image.digest))
 			if err != nil {
-				oa.Logger.Error(err)
+				log.Error(err)
 				continue
 			}
 			objs = append(objs, dgst)
@@ -197,15 +192,16 @@ func (oa *OCIArtifact) ExtractObjects(obj objects.TektonObject) []interface{} {
 	}
 
 	// Now check TaskResults
-	resultImages := ExtractOCIImagesFromResults(obj, oa.Logger)
+	resultImages := ExtractOCIImagesFromResults(ctx, obj)
 	objs = append(objs, resultImages...)
 
 	return objs
 }
 
-func ExtractOCIImagesFromResults(obj objects.TektonObject, logger *zap.SugaredLogger) []interface{} {
+func ExtractOCIImagesFromResults(ctx context.Context, obj objects.TektonObject) []interface{} {
+	logger := logging.FromContext(ctx)
 	objs := []interface{}{}
-	ss := extractTargetFromResults(obj, "IMAGE_URL", "IMAGE_DIGEST", logger)
+	ss := extractTargetFromResults(ctx, obj, "IMAGE_URL", "IMAGE_DIGEST")
 	for _, s := range ss {
 		if s == nil || s.Digest == "" || s.URI == "" {
 			continue
@@ -243,9 +239,10 @@ func ExtractOCIImagesFromResults(obj objects.TektonObject, logger *zap.SugaredLo
 }
 
 // ExtractSignableTargetFromResults extracts signable targets that aim to generate intoto provenance as materials within TaskRun results and store them as StructuredSignable.
-func ExtractSignableTargetFromResults(obj objects.TektonObject, logger *zap.SugaredLogger) []*StructuredSignable {
+func ExtractSignableTargetFromResults(ctx context.Context, obj objects.TektonObject) []*StructuredSignable {
+	logger := logging.FromContext(ctx)
 	objs := []*StructuredSignable{}
-	ss := extractTargetFromResults(obj, "ARTIFACT_URI", "ARTIFACT_DIGEST", logger)
+	ss := extractTargetFromResults(ctx, obj, "ARTIFACT_URI", "ARTIFACT_DIGEST")
 	// Only add it if we got both the signable URI and digest.
 	for _, s := range ss {
 		if s == nil || s.Digest == "" || s.URI == "" {
@@ -267,7 +264,8 @@ func (s *StructuredSignable) FullRef() string {
 	return fmt.Sprintf("%s@%s", s.URI, s.Digest)
 }
 
-func extractTargetFromResults(obj objects.TektonObject, identifierSuffix string, digestSuffix string, logger *zap.SugaredLogger) map[string]*StructuredSignable {
+func extractTargetFromResults(ctx context.Context, obj objects.TektonObject, identifierSuffix string, digestSuffix string) map[string]*StructuredSignable {
+	logger := logging.FromContext(ctx)
 	ss := map[string]*StructuredSignable{}
 
 	for _, res := range obj.GetResults() {
@@ -303,10 +301,11 @@ func extractTargetFromResults(obj objects.TektonObject, identifierSuffix string,
 }
 
 // RetrieveMaterialsFromStructuredResults retrieves structured results from Tekton Object, and convert them into materials.
-func RetrieveMaterialsFromStructuredResults(obj objects.TektonObject, categoryMarker string, logger *zap.SugaredLogger) []common.ProvenanceMaterial {
+func RetrieveMaterialsFromStructuredResults(ctx context.Context, obj objects.TektonObject, categoryMarker string) []common.ProvenanceMaterial {
+	logger := logging.FromContext(ctx)
 	// Retrieve structured provenance for inputs.
 	mats := []common.ProvenanceMaterial{}
-	ssts := ExtractStructuredTargetFromResults(obj, ArtifactsInputsResultName, logger)
+	ssts := ExtractStructuredTargetFromResults(ctx, obj, ArtifactsInputsResultName)
 	for _, s := range ssts {
 		if err := checkDigest(s.Digest); err != nil {
 			logger.Debugf("Digest for %s not in the right format: %s, %v", s.URI, s.Digest, err)
@@ -325,7 +324,8 @@ func RetrieveMaterialsFromStructuredResults(obj objects.TektonObject, categoryMa
 
 // ExtractStructuredTargetFromResults extracts structured signable targets aim to generate intoto provenance as materials within TaskRun results and store them as StructuredSignable.
 // categoryMarker categorizes signable targets into inputs and outputs.
-func ExtractStructuredTargetFromResults(obj objects.TektonObject, categoryMarker string, logger *zap.SugaredLogger) []*StructuredSignable {
+func ExtractStructuredTargetFromResults(ctx context.Context, obj objects.TektonObject, categoryMarker string) []*StructuredSignable {
+	logger := logging.FromContext(ctx)
 	objs := []*StructuredSignable{}
 	if categoryMarker != ArtifactsInputsResultName && categoryMarker != ArtifactsOutputsResultName {
 		return objs

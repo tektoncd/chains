@@ -46,18 +46,18 @@ func (tv *TaskRunVerifier) VerifyTaskRun(ctx context.Context, tr *v1beta1.TaskRu
 
 	// TODO: Hook this up to config.
 	enabledSignableTypes := []artifacts.Signable{
-		&artifacts.TaskRunArtifact{Logger: logger},
-		&artifacts.OCIArtifact{Logger: logger},
+		&artifacts.TaskRunArtifact{},
+		&artifacts.OCIArtifact{},
 	}
 
 	trObj := objects.NewTaskRunObject(tr)
 
 	// Storage
-	allBackends, err := storage.InitializeBackends(ctx, tv.Pipelineclientset, tv.KubeClient, logger, cfg)
+	allBackends, err := storage.InitializeBackends(ctx, tv.Pipelineclientset, tv.KubeClient, cfg)
 	if err != nil {
 		return err
 	}
-	signers := allSigners(ctx, tv.SecretPath, cfg, logger)
+	signers := allSigners(ctx, tv.SecretPath, cfg)
 
 	for _, signableType := range enabledSignableTypes {
 		if !signableType.Enabled(cfg) {

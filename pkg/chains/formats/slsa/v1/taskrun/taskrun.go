@@ -14,6 +14,8 @@ limitations under the License.
 package taskrun
 
 import (
+	"context"
+
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
@@ -22,13 +24,12 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/material"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	"go.uber.org/zap"
 )
 
-func GenerateAttestation(builderID string, tro *objects.TaskRunObject, logger *zap.SugaredLogger) (interface{}, error) {
-	subjects := extract.SubjectDigests(tro, logger)
+func GenerateAttestation(ctx context.Context, builderID string, tro *objects.TaskRunObject) (interface{}, error) {
+	subjects := extract.SubjectDigests(ctx, tro)
 
-	mat, err := material.Materials(tro, logger)
+	mat, err := material.Materials(ctx, tro)
 	if err != nil {
 		return nil, err
 	}

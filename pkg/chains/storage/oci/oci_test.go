@@ -58,8 +58,6 @@ var (
 )
 
 func TestBackend_StorePayload(t *testing.T) {
-	ctx := context.Background()
-
 	// Create registry server
 	s := httptest.NewServer(registry.New())
 	defer s.Close()
@@ -223,8 +221,8 @@ func TestBackend_StorePayload(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctx := logtesting.TestContextWithLogger(t)
 			b := &Backend{
-				logger: logtesting.TestLogger(t),
 				getAuthenticator: func(context.Context, objects.TektonObject, kubernetes.Interface) (remote.Option, error) {
 					return remote.WithAuthFromKeychain(authn.DefaultKeychain), nil
 				},

@@ -52,7 +52,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 			cfg := *value.(*config.Config)
 
 			// get all backends for storing provenance
-			backends, err := storage.InitializeBackends(ctx, pipelineClient, kubeClient, logger, cfg)
+			backends, err := storage.InitializeBackends(ctx, pipelineClient, kubeClient, cfg)
 			if err != nil {
 				logger.Error(err)
 			}

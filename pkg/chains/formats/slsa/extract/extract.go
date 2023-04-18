@@ -17,6 +17,7 @@ limitations under the License.
 package extract
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strings"
@@ -28,7 +29,7 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
-	"go.uber.org/zap"
+	"knative.dev/pkg/logging"
 )
 
 // SubjectDigests returns software artifacts produced from the TaskRun/PipelineRun object
@@ -38,10 +39,11 @@ import (
 //   - have suffix `IMAGE_URL` & `IMAGE_DIGEST` or `ARTIFACT_URI` & `ARTIFACT_DIGEST` pair.
 //   - the `*_DIGEST` field must be in the format of "<algorithm>:<actual-sha>" where the algorithm must be "sha256" and actual sha must be valid per https://github.com/opencontainers/image-spec/blob/main/descriptor.md#sha-256.
 //   - the `*_URL` or `*_URI` fields cannot be empty.
-func SubjectDigests(obj objects.TektonObject, logger *zap.SugaredLogger) []intoto.Subject {
+func SubjectDigests(ctx context.Context, obj objects.TektonObject) []intoto.Subject {
+	logger := logging.FromContext(ctx)
 	var subjects []intoto.Subject
 
-	imgs := artifacts.ExtractOCIImagesFromResults(obj, logger)
+	imgs := artifacts.ExtractOCIImagesFromResults(ctx, obj)
 	for _, i := range imgs {
 		if d, ok := i.(name.Digest); ok {
 			subjects = append(subjects, intoto.Subject{
@@ -53,7 +55,7 @@ func SubjectDigests(obj objects.TektonObject, logger *zap.SugaredLogger) []intot
 		}
 	}
 
-	sts := artifacts.ExtractSignableTargetFromResults(obj, logger)
+	sts := artifacts.ExtractSignableTargetFromResults(ctx, obj)
 	for _, obj := range sts {
 		splits := strings.Split(obj.Digest, ":")
 		if len(splits) != 2 {
@@ -68,7 +70,7 @@ func SubjectDigests(obj objects.TektonObject, logger *zap.SugaredLogger) []intot
 		})
 	}
 
-	ssts := artifacts.ExtractStructuredTargetFromResults(obj, artifacts.ArtifactsOutputsResultName, logger)
+	ssts := artifacts.ExtractStructuredTargetFromResults(ctx, obj, artifacts.ArtifactsOutputsResultName)
 	for _, s := range ssts {
 		splits := strings.Split(s.Digest, ":")
 		alg := splits[0]
@@ -129,9 +131,9 @@ func SubjectDigests(obj objects.TektonObject, logger *zap.SugaredLogger) []intot
 // - It first extracts intoto subjects from run object results and converts the subjects
 // to a slice of string URIs in the format of "NAME" + "@" + "ALGORITHM" + ":" + "DIGEST".
 // - If no subjects could be extracted from results, then an empty slice is returned.
-func RetrieveAllArtifactURIs(obj objects.TektonObject, logger *zap.SugaredLogger) []string {
+func RetrieveAllArtifactURIs(ctx context.Context, obj objects.TektonObject) []string {
 	result := []string{}
-	subjects := SubjectDigests(obj, logger)
+	subjects := SubjectDigests(ctx, obj)
 
 	for _, s := range subjects {
 		for algo, digest := range s.Digest {
