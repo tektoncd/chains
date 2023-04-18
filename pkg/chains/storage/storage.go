@@ -26,6 +26,7 @@ import (
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	"go.uber.org/zap"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -45,13 +46,13 @@ func InitializeBackends(ctx context.Context, ps versioned.Interface, kc kubernet
 	// Add an entry here for every configured backend
 	configuredBackends := []string{}
 	if cfg.Artifacts.TaskRuns.Enabled() {
-		configuredBackends = append(configuredBackends, cfg.Artifacts.TaskRuns.StorageBackend.List()...)
+		configuredBackends = append(configuredBackends, sets.List[string](cfg.Artifacts.TaskRuns.StorageBackend)...)
 	}
 	if cfg.Artifacts.OCI.Enabled() {
-		configuredBackends = append(configuredBackends, cfg.Artifacts.OCI.StorageBackend.List()...)
+		configuredBackends = append(configuredBackends, sets.List[string](cfg.Artifacts.OCI.StorageBackend)...)
 	}
 	if cfg.Artifacts.PipelineRuns.Enabled() {
-		configuredBackends = append(configuredBackends, cfg.Artifacts.PipelineRuns.StorageBackend.List()...)
+		configuredBackends = append(configuredBackends, sets.List[string](cfg.Artifacts.PipelineRuns.StorageBackend)...)
 	}
 
 	// Now only initialize and return the configured ones.

@@ -58,7 +58,7 @@ func TestSigner_Sign(t *testing.T) {
 		Artifacts: config.ArtifactConfigs{
 			TaskRuns: config.Artifact{
 				Format:         "in-toto",
-				StorageBackend: sets.NewString("mock"),
+				StorageBackend: sets.New[string]("mock"),
 				Signer:         "x509",
 			},
 		},
@@ -68,7 +68,7 @@ func TestSigner_Sign(t *testing.T) {
 		Artifacts: config.ArtifactConfigs{
 			PipelineRuns: config.Artifact{
 				Format:         "in-toto",
-				StorageBackend: sets.NewString("mock"),
+				StorageBackend: sets.New[string]("mock"),
 				Signer:         "x509",
 			},
 		},
@@ -228,7 +228,7 @@ func TestSigner_Transparency(t *testing.T) {
 				Artifacts: config.ArtifactConfigs{
 					TaskRuns: config.Artifact{
 						Format:         "slsa/v1",
-						StorageBackend: sets.NewString("mock"),
+						StorageBackend: sets.New[string]("mock"),
 						Signer:         "x509",
 					},
 				},
@@ -244,7 +244,7 @@ func TestSigner_Transparency(t *testing.T) {
 				Artifacts: config.ArtifactConfigs{
 					PipelineRuns: config.Artifact{
 						Format:         "slsa/v1",
-						StorageBackend: sets.NewString("mock"),
+						StorageBackend: sets.New[string]("mock"),
 						Signer:         "x509",
 					},
 				},
@@ -347,7 +347,7 @@ func TestSigningObjects(t *testing.T) {
 				Artifacts: config.ArtifactConfigs{
 					TaskRuns: config.Artifact{
 						Format:         "in-toto",
-						StorageBackend: sets.NewString("mock"),
+						StorageBackend: sets.New[string]("mock"),
 						Signer:         "x509",
 					},
 				},
@@ -361,12 +361,12 @@ func TestSigningObjects(t *testing.T) {
 				Artifacts: config.ArtifactConfigs{
 					TaskRuns: config.Artifact{
 						Format:         "in-toto",
-						StorageBackend: sets.NewString("mock"),
+						StorageBackend: sets.New[string]("mock"),
 						Signer:         "x509",
 					},
 					OCI: config.Artifact{
 						Format:         "in-toto",
-						StorageBackend: sets.NewString("mock"),
+						StorageBackend: sets.New[string]("mock"),
 						Signer:         "x509",
 					},
 				},
@@ -380,11 +380,11 @@ func TestSigningObjects(t *testing.T) {
 				Artifacts: config.ArtifactConfigs{
 					TaskRuns: config.Artifact{
 						Format:         "in-toto",
-						StorageBackend: sets.NewString("mock"),
+						StorageBackend: sets.New[string]("mock"),
 					},
 					OCI: config.Artifact{
 						Format:         "in-toto",
-						StorageBackend: sets.NewString("mock"),
+						StorageBackend: sets.New[string]("mock"),
 					},
 				},
 				Transparency: config.TransparencyConfig{

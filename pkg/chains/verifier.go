@@ -23,6 +23,7 @@ import (
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	versioned "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes"
 	"knative.dev/pkg/logging"
 )
@@ -70,7 +71,7 @@ func (tv *TaskRunVerifier) VerifyTaskRun(ctx context.Context, tr *v1beta1.TaskRu
 			continue
 		}
 
-		for _, backend := range signableType.StorageBackend(cfg).List() {
+		for _, backend := range sets.List[string](signableType.StorageBackend(cfg)) {
 			b := allBackends[backend]
 			signatures, err := b.RetrieveSignatures(ctx, trObj, config.StorageOpts{})
 			if err != nil {
