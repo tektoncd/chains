@@ -38,6 +38,7 @@ import (
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	pipelineclientset "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"knative.dev/pkg/logging"
 )
 
@@ -249,10 +250,10 @@ func verifySignature(ctx context.Context, t *testing.T, c *clients, obj objects.
 	var key string
 	switch obj.GetObject().(type) {
 	case *objects.TaskRunObject:
-		configuredBackends = cfg.Artifacts.TaskRuns.StorageBackend.List()
+		configuredBackends = sets.List[string](cfg.Artifacts.TaskRuns.StorageBackend)
 		key = fmt.Sprintf("taskrun-%s", obj.GetUID())
 	case *objects.PipelineRunObject:
-		configuredBackends = cfg.Artifacts.PipelineRuns.StorageBackend.List()
+		configuredBackends = sets.List[string](cfg.Artifacts.PipelineRuns.StorageBackend)
 		key = fmt.Sprintf("pipelinerun-%s", obj.GetUID())
 	}
 

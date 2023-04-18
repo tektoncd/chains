@@ -40,34 +40,34 @@ func TestInitializeBackends(t *testing.T) {
 		{
 			name: "tekton",
 			want: []string{"tekton"},
-			cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: sets.NewString("tekton")}}},
+			cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: sets.New[string]("tekton")}}},
 		},
 		// TODO: Re-enable this test when it doesn't rely on ambient GCP credentials.
 		//{
 		//	name: "gcs",
 		//	want: []string{"gcs"},
-		//	cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: sets.NewString("gcs")}}},
+		//	cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: sets.New[string]("gcs")}}},
 		//},
 		{
 			name: "oci",
 			want: []string{"oci"},
-			cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: sets.NewString("oci")}}},
+			cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: sets.New[string]("oci")}}},
 		},
 		// TODO: Re-enable this test when it doesn't rely on ambient GCP credentials.
 		// {
 		// 	name: "grafeas",
 		// 	want: []string{"grafeas"},
-		// 	cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: sets.NewString("grafeas")}}},
+		// 	cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: sets.New[string]("grafeas")}}},
 		// },
 		{
 			name: "multi",
 			want: []string{"oci", "tekton"},
-			cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: sets.NewString("oci", "tekton")}}},
+			cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: sets.New[string]("oci", "tekton")}}},
 		},
 		{
 			name: "pubsub",
 			want: []string{"pubsub"},
-			cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: sets.NewString("pubsub")}}}},
+			cfg:  config.Config{Artifacts: config.ArtifactConfigs{TaskRuns: config.Artifact{StorageBackend: sets.New[string]("pubsub")}}}},
 	}
 	logger := logtesting.TestLogger(t)
 	ctx, _ := rtesting.SetupFakeContext(t)

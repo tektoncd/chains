@@ -41,7 +41,8 @@ var (
 
 type Signable interface {
 	ExtractObjects(obj objects.TektonObject) []interface{}
-	StorageBackend(cfg config.Config) sets.String
+	StorageBackend(cfg config.Config) sets.Set[string]
+
 	Signer(cfg config.Config) string
 	PayloadFormat(cfg config.Config) config.PayloadType
 	// FullKey returns the full identifier for a signable artifact.
@@ -81,7 +82,7 @@ func (ta *TaskRunArtifact) Type() string {
 	return "tekton"
 }
 
-func (ta *TaskRunArtifact) StorageBackend(cfg config.Config) sets.String {
+func (ta *TaskRunArtifact) StorageBackend(cfg config.Config) sets.Set[string] {
 	return cfg.Artifacts.TaskRuns.StorageBackend
 }
 
@@ -123,7 +124,7 @@ func (pa *PipelineRunArtifact) Type() string {
 	return "tekton-pipeline-run"
 }
 
-func (pa *PipelineRunArtifact) StorageBackend(cfg config.Config) sets.String {
+func (pa *PipelineRunArtifact) StorageBackend(cfg config.Config) sets.Set[string] {
 	return cfg.Artifacts.PipelineRuns.StorageBackend
 }
 
@@ -409,7 +410,7 @@ func (oa *OCIArtifact) Type() string {
 	return "oci"
 }
 
-func (oa *OCIArtifact) StorageBackend(cfg config.Config) sets.String {
+func (oa *OCIArtifact) StorageBackend(cfg config.Config) sets.Set[string] {
 	return cfg.Artifacts.OCI.StorageBackend
 }
 

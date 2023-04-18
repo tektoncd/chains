@@ -31,6 +31,7 @@ import (
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	versioned "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	"go.uber.org/zap"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"knative.dev/pkg/logging"
 )
 
@@ -171,7 +172,7 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 			}
 
 			// Now store those!
-			for _, backend := range signableType.StorageBackend(cfg).List() {
+			for _, backend := range sets.List[string](signableType.StorageBackend(cfg)) {
 				b := o.Backends[backend]
 				storageOpts := config.StorageOpts{
 					ShortKey:      signableType.ShortKey(obj),

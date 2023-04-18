@@ -99,17 +99,17 @@ var defaultBuilder = BuilderConfig{
 var defaultArtifacts = ArtifactConfigs{
 	TaskRuns: Artifact{
 		Format:         "in-toto",
-		StorageBackend: sets.NewString("tekton"),
+		StorageBackend: sets.New[string]("tekton"),
 		Signer:         "x509",
 	},
 	PipelineRuns: Artifact{
 		Format:         "in-toto",
 		Signer:         "x509",
-		StorageBackend: sets.NewString("tekton"),
+		StorageBackend: sets.New[string]("tekton"),
 	},
 	OCI: Artifact{
 		Format:         "simplesigning",
-		StorageBackend: sets.NewString("oci"),
+		StorageBackend: sets.New[string]("oci"),
 		Signer:         "x509",
 	},
 }
@@ -189,17 +189,17 @@ func TestParse(t *testing.T) {
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
 						Format:         "in-toto",
-						StorageBackend: sets.NewString("tekton", "oci"),
+						StorageBackend: sets.New[string]("tekton", "oci"),
 						Signer:         "x509",
 					},
 					PipelineRuns: Artifact{
 						Format:         "in-toto",
 						Signer:         "x509",
-						StorageBackend: sets.NewString("tekton"),
+						StorageBackend: sets.New[string]("tekton"),
 					},
 					OCI: Artifact{
 						Format:         "simplesigning",
-						StorageBackend: sets.NewString("oci"),
+						StorageBackend: sets.New[string]("oci"),
 						Signer:         "x509",
 					},
 				},
@@ -218,17 +218,17 @@ func TestParse(t *testing.T) {
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
 						Format:         "in-toto",
-						StorageBackend: sets.NewString(""),
+						StorageBackend: sets.New[string](""),
 						Signer:         "x509",
 					},
 					PipelineRuns: Artifact{
 						Format:         "in-toto",
 						Signer:         "x509",
-						StorageBackend: sets.NewString("tekton"),
+						StorageBackend: sets.New[string]("tekton"),
 					},
 					OCI: Artifact{
 						Format:         "simplesigning",
-						StorageBackend: sets.NewString("oci"),
+						StorageBackend: sets.New[string]("oci"),
 						Signer:         "x509",
 					},
 				},
@@ -247,17 +247,17 @@ func TestParse(t *testing.T) {
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
 						Format:         "in-toto",
-						StorageBackend: sets.NewString("tekton"),
+						StorageBackend: sets.New[string]("tekton"),
 						Signer:         "x509",
 					},
 					PipelineRuns: Artifact{
 						Format:         "in-toto",
 						Signer:         "x509",
-						StorageBackend: sets.NewString("tekton"),
+						StorageBackend: sets.New[string]("tekton"),
 					},
 					OCI: Artifact{
 						Format:         "simplesigning",
-						StorageBackend: sets.NewString("oci", "tekton"),
+						StorageBackend: sets.New[string]("oci", "tekton"),
 						Signer:         "x509",
 					},
 				},
@@ -276,17 +276,17 @@ func TestParse(t *testing.T) {
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
 						Format:         "in-toto",
-						StorageBackend: sets.NewString("tekton"),
+						StorageBackend: sets.New[string]("tekton"),
 						Signer:         "x509",
 					},
 					PipelineRuns: Artifact{
 						Format:         "in-toto",
 						Signer:         "x509",
-						StorageBackend: sets.NewString("tekton"),
+						StorageBackend: sets.New[string]("tekton"),
 					},
 					OCI: Artifact{
 						Format:         "simplesigning",
-						StorageBackend: sets.NewString(""),
+						StorageBackend: sets.New[string](""),
 						Signer:         "x509",
 					},
 				},
@@ -308,17 +308,17 @@ func TestParse(t *testing.T) {
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
 						Format:         "in-toto",
-						StorageBackend: sets.NewString("tekton", "oci"),
+						StorageBackend: sets.New[string]("tekton", "oci"),
 						Signer:         "x509",
 					},
 					PipelineRuns: Artifact{
 						Format:         "in-toto",
 						Signer:         "x509",
-						StorageBackend: sets.NewString("tekton"),
+						StorageBackend: sets.New[string]("tekton"),
 					},
 					OCI: Artifact{
 						Format:         "simplesigning",
-						StorageBackend: sets.NewString(""),
+						StorageBackend: sets.New[string](""),
 						Signer:         "x509",
 					},
 				},
@@ -340,17 +340,17 @@ func TestParse(t *testing.T) {
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
 						Format:         "in-toto",
-						StorageBackend: sets.NewString(""),
+						StorageBackend: sets.New[string](""),
 						Signer:         "x509",
 					},
 					PipelineRuns: Artifact{
 						Format:         "in-toto",
 						Signer:         "x509",
-						StorageBackend: sets.NewString("tekton"),
+						StorageBackend: sets.New[string]("tekton"),
 					},
 					OCI: Artifact{
 						Format:         "simplesigning",
-						StorageBackend: sets.NewString("oci", "tekton"),
+						StorageBackend: sets.New[string]("oci", "tekton"),
 						Signer:         "x509",
 					},
 				},
@@ -370,16 +370,16 @@ func TestParse(t *testing.T) {
 					TaskRuns: Artifact{
 						Format:         "in-toto",
 						Signer:         "x509",
-						StorageBackend: sets.NewString("tekton"),
+						StorageBackend: sets.New[string]("tekton"),
 					},
 					PipelineRuns: Artifact{
 						Format:         "in-toto",
 						Signer:         "x509",
-						StorageBackend: sets.NewString("tekton"),
+						StorageBackend: sets.New[string]("tekton"),
 					},
 					OCI: Artifact{
 						Format:         "simplesigning",
-						StorageBackend: sets.NewString("oci"),
+						StorageBackend: sets.New[string]("oci"),
 						Signer:         "x509",
 					},
 				},
@@ -419,16 +419,16 @@ func TestParse(t *testing.T) {
 					TaskRuns: Artifact{
 						Format:         "in-toto",
 						Signer:         "x509",
-						StorageBackend: sets.NewString("tekton"),
+						StorageBackend: sets.New[string]("tekton"),
 					},
 					PipelineRuns: Artifact{
 						Format:         "in-toto",
 						Signer:         "x509",
-						StorageBackend: sets.NewString("tekton"),
+						StorageBackend: sets.New[string]("tekton"),
 					},
 					OCI: Artifact{
 						Format:         "simplesigning",
-						StorageBackend: sets.NewString("oci"),
+						StorageBackend: sets.New[string]("oci"),
 						Signer:         "x509",
 					},
 				},
@@ -451,16 +451,16 @@ func TestParse(t *testing.T) {
 					TaskRuns: Artifact{
 						Format:         "in-toto",
 						Signer:         "x509",
-						StorageBackend: sets.NewString("tekton"),
+						StorageBackend: sets.New[string]("tekton"),
 					},
 					PipelineRuns: Artifact{
 						Format:         "in-toto",
 						Signer:         "x509",
-						StorageBackend: sets.NewString("tekton"),
+						StorageBackend: sets.New[string]("tekton"),
 					},
 					OCI: Artifact{
 						Format:         "simplesigning",
-						StorageBackend: sets.NewString("oci"),
+						StorageBackend: sets.New[string]("oci"),
 						Signer:         "x509",
 					},
 				},
