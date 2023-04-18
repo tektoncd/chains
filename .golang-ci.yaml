@@ -34,10 +34,10 @@ linters:
   - usestdlibvars
   - whitespace
   - wrapcheck
-# Enabling presets means that new linters that we automatically adopt new
-# linters that augment a preset. This also opts us in for replacement linters
-# when a linter is deprecated.
-presets:
+  # Enabling presets means that new linters that we automatically adopt new
+  # linters that augment a preset. This also opts us in for replacement linters
+  # when a linter is deprecated.
+  presets:
   - bugs
   - comment
   - complexity
@@ -63,8 +63,8 @@ issues:
   max-same-issues: 0
   include:
   # Enable off-by-default rules for revive requiring that all exported elements have a properly formatted comment.
-  - EXC0012
-  - EXC0014
+  - EXC0012 # https://golangci-lint.run/usage/false-positives/#exc0012
+  - EXC0014 # https://golangci-lint.run/usage/false-positives/#exc0014
 run:
   issues-exit-code: 1
   build-tags:
