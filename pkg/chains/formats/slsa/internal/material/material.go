@@ -17,6 +17,7 @@ limitations under the License.
 package material
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -27,7 +28,6 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
-	"go.uber.org/zap"
 )
 
 const (
@@ -79,7 +79,7 @@ func AddImageIDToMaterials(imageID string, mats *[]common.ProvenanceMaterial) er
 }
 
 // Materials constructs `predicate.materials` section by collecting all the artifacts that influence a taskrun such as source code repo and step&sidecar base images.
-func Materials(tro *objects.TaskRunObject, logger *zap.SugaredLogger) ([]common.ProvenanceMaterial, error) {
+func Materials(ctx context.Context, tro *objects.TaskRunObject) ([]common.ProvenanceMaterial, error) {
 	var mats []common.ProvenanceMaterial
 
 	// add step images
@@ -103,7 +103,7 @@ func Materials(tro *objects.TaskRunObject, logger *zap.SugaredLogger) ([]common.
 		return mats, nil
 	}
 
-	sms := artifacts.RetrieveMaterialsFromStructuredResults(tro, artifacts.ArtifactsInputsResultName, logger)
+	sms := artifacts.RetrieveMaterialsFromStructuredResults(ctx, tro, artifacts.ArtifactsInputsResultName)
 	mats = append(mats, sms...)
 
 	if tro.Spec.Resources != nil {

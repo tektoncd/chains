@@ -26,12 +26,10 @@ import (
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	logtesting "knative.dev/pkg/logging/testing"
 	rtesting "knative.dev/pkg/reconciler/testing"
 )
 
 func TestBackend_StorePayload(t *testing.T) {
-	ctx, _ := rtesting.SetupFakeContext(t)
 
 	type args struct {
 		tr        *v1beta1.TaskRun
@@ -77,11 +75,10 @@ func TestBackend_StorePayload(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
+			ctx, _ := rtesting.SetupFakeContext(t)
 			mockGcsWrite := &mockGcsWriter{objects: map[string]*bytes.Buffer{}}
 			mockGcsRead := &mockGcsReader{objects: mockGcsWrite.objects}
 			b := &Backend{
-				logger: logtesting.TestLogger(t),
 				writer: mockGcsWrite,
 				reader: mockGcsRead,
 				cfg:    config.Config{Storage: config.StorageConfigs{GCS: config.GCSStorageConfig{Bucket: "foo"}}},

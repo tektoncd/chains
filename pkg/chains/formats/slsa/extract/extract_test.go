@@ -98,6 +98,7 @@ func TestSubjectDigestsAndRetrieveAllArtifactURIs(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			ctx := logtesting.TestContextWithLogger(t)
 			// test both taskrun object and pipelinerun object
 			runObjects := []objects.TektonObject{
 				createTaskRunObjectWithResults(tc.results),
@@ -105,12 +106,12 @@ func TestSubjectDigestsAndRetrieveAllArtifactURIs(t *testing.T) {
 			}
 
 			for _, o := range runObjects {
-				gotSubjects := extract.SubjectDigests(o, logtesting.TestLogger(t))
+				gotSubjects := extract.SubjectDigests(ctx, o)
 				if diff := cmp.Diff(tc.wantSubjects, gotSubjects, cmpopts.SortSlices(func(x, y intoto.Subject) bool { return x.Name < y.Name })); diff != "" {
 					t.Errorf("Wrong subjects extracted, diff=%s", diff)
 				}
 
-				gotURIs := extract.RetrieveAllArtifactURIs(o, logtesting.TestLogger(t))
+				gotURIs := extract.RetrieveAllArtifactURIs(ctx, o)
 				if diff := cmp.Diff(tc.wantFullURLs, gotURIs, cmpopts.SortSlices(func(x, y string) bool { return x < y })); diff != "" {
 					t.Errorf("Wrong URIs extracted, diff=%s", diff)
 				}

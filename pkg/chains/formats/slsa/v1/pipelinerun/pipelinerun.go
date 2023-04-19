@@ -14,6 +14,7 @@ limitations under the License.
 package pipelinerun
 
 import (
+	"context"
 	"time"
 
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
@@ -25,9 +26,9 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/material"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"knative.dev/pkg/apis"
+	"knative.dev/pkg/logging"
 )
 
 type BuildConfig struct {
@@ -46,10 +47,10 @@ type TaskAttestation struct {
 	Results    []v1beta1.TaskRunResult   `json:"results,omitempty"`
 }
 
-func GenerateAttestation(builderID string, pro *objects.PipelineRunObject, logger *zap.SugaredLogger) (interface{}, error) {
-	subjects := extract.SubjectDigests(pro, logger)
+func GenerateAttestation(ctx context.Context, builderID string, pro *objects.PipelineRunObject) (interface{}, error) {
+	subjects := extract.SubjectDigests(ctx, pro)
 
-	mat, err := materials(pro, logger)
+	mat, err := materials(ctx, pro)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +66,7 @@ func GenerateAttestation(builderID string, pro *objects.PipelineRunObject, logge
 			},
 			BuildType:   pro.GetGVK(),
 			Invocation:  invocation(pro),
-			BuildConfig: buildConfig(pro, logger),
+			BuildConfig: buildConfig(ctx, pro),
 			Metadata:    metadata(pro),
 			Materials:   mat,
 		},
@@ -85,7 +86,8 @@ func invocation(pro *objects.PipelineRunObject) slsa.ProvenanceInvocation {
 	return attest.Invocation(source, pro.Spec.Params, paramSpecs, pro.GetObjectMeta())
 }
 
-func buildConfig(pro *objects.PipelineRunObject, logger *zap.SugaredLogger) BuildConfig {
+func buildConfig(ctx context.Context, pro *objects.PipelineRunObject) BuildConfig {
+	logger := logging.FromContext(ctx)
 	tasks := []TaskAttestation{}
 
 	pSpec := pro.Status.PipelineSpec
@@ -188,7 +190,8 @@ func metadata(pro *objects.PipelineRunObject) *slsa.ProvenanceMetadata {
 }
 
 // add any Git specification to materials
-func materials(pro *objects.PipelineRunObject, logger *zap.SugaredLogger) ([]common.ProvenanceMaterial, error) {
+func materials(ctx context.Context, pro *objects.PipelineRunObject) ([]common.ProvenanceMaterial, error) {
+	logger := logging.FromContext(ctx)
 	var mats []common.ProvenanceMaterial
 	if p := pro.Status.Provenance; p != nil && p.ConfigSource != nil {
 		m := common.ProvenanceMaterial{
@@ -240,7 +243,7 @@ func materials(pro *objects.PipelineRunObject, logger *zap.SugaredLogger) ([]com
 		}
 	}
 
-	sms := artifacts.RetrieveMaterialsFromStructuredResults(pro, artifacts.ArtifactsInputsResultName, logger)
+	sms := artifacts.RetrieveMaterialsFromStructuredResults(ctx, pro, artifacts.ArtifactsInputsResultName)
 	mats = append(mats, sms...)
 
 	// search status.PipelineSpec.params

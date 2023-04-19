@@ -28,10 +28,8 @@ import (
 	"github.com/tektoncd/chains/pkg/test/tekton"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	fakepipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client/fake"
-	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"knative.dev/pkg/logging"
 	rtesting "knative.dev/pkg/reconciler/testing"
 
 	_ "github.com/tektoncd/chains/pkg/chains/formats/all"
@@ -332,8 +330,6 @@ func TestSigner_Transparency(t *testing.T) {
 }
 
 func TestSigningObjects(t *testing.T) {
-	ctx, _ := rtesting.SetupFakeContext(t)
-	logger := logging.FromContext(ctx)
 	tests := []struct {
 		name       string
 		signers    []string
@@ -396,7 +392,8 @@ func TestSigningObjects(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			signers := allSigners(ctx, tt.SecretPath, tt.config, logger)
+			ctx, _ := rtesting.SetupFakeContext(t)
+			signers := allSigners(ctx, tt.SecretPath, tt.config)
 			var signerTypes []string
 			for _, signer := range signers {
 				signerTypes = append(signerTypes, signer.Type())
@@ -418,7 +415,7 @@ func fakeAllBackends(backends []*mockBackend) map[string]storage.Backend {
 
 func setupMocks(rekor *mockRekor) func() {
 	oldRekor := getRekor
-	getRekor = func(_ string, _ *zap.SugaredLogger) (rekorClient, error) {
+	getRekor = func(_ string) (rekorClient, error) {
 		return rekor, nil
 	}
 	return func() {

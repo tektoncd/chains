@@ -39,7 +39,6 @@ import (
 	pipelineclientset "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"knative.dev/pkg/logging"
 )
 
 func getTr(ctx context.Context, t *testing.T, c pipelineclientset.Interface, name, ns string) (tr *v1beta1.TaskRun) {
@@ -236,11 +235,8 @@ func verifySignature(ctx context.Context, t *testing.T, c *clients, obj objects.
 		return
 	}
 
-	// Prepare the logger.
-	logger := logging.FromContext(ctx)
-
 	// Initialize the backend.
-	backends, err := chainsstorage.InitializeBackends(ctx, c.PipelineClient, c.KubeClient, logger, *cfg)
+	backends, err := chainsstorage.InitializeBackends(ctx, c.PipelineClient, c.KubeClient, *cfg)
 	if err != nil {
 		t.Errorf("error initializing backends: %s", err)
 		return

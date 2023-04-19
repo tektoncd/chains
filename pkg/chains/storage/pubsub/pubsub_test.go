@@ -82,8 +82,7 @@ func TestBackend_StorePayload(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			b := &Backend{
-				logger: logger,
-				cfg:    tt.fields.cfg,
+				cfg: tt.fields.cfg,
 			}
 			addr := fmt.Sprintf("mem://%s", tt.fields.cfg.Storage.PubSub.Topic)
 			ctx, _ := rtesting.SetupFakeContext(t)

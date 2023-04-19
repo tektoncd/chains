@@ -15,7 +15,6 @@ package x509
 
 import (
 	"bytes"
-	"context"
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/sha256"
@@ -54,8 +53,7 @@ MC4CAQAwBQYDK2VwBCIEIGQn0bJwshjwuVdnd/FylMk3Gvb89aGgH49bQpgzCY0n
 const token = `eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE2Nzc1NjAyMTgsImV4cCI6MTY3NzU2MzgxOCwiaXNzIjoidXNlcjEyMyJ9.c-sDgCyuZA6VaIGl7Y3-9XxttW1PUkBeNBLE9gCKG8s`
 
 func TestCreateSignerFulcioEnabled(t *testing.T) {
-	ctx := context.Background()
-	logger := logtesting.TestLogger(t)
+	ctx := logtesting.TestContextWithLogger(t)
 	d := t.TempDir()
 	tk := filepath.Join(d, "token")
 	if err := os.WriteFile(tk, []byte(token), 0644); err != nil {
@@ -77,7 +75,7 @@ func TestCreateSignerFulcioEnabled(t *testing.T) {
 	if !cfg.Signers.X509.FulcioEnabled {
 		t.Fatal("fulcio is not enabled, expected to be enabled")
 	}
-	_, err = NewSigner(ctx, d, *cfg, logger)
+	_, err = NewSigner(ctx, d, *cfg)
 	if err != nil {
 		if !providers.Enabled(ctx) {
 			t.Fatal("fulcio provider not configured")
@@ -90,8 +88,7 @@ func TestCreateSignerFulcioEnabled(t *testing.T) {
 }
 
 func TestCreateSignerFulcioEnabledFilesystemProvider(t *testing.T) {
-	ctx := context.Background()
-	logger := logtesting.TestLogger(t)
+	ctx := logtesting.TestContextWithLogger(t)
 	d := t.TempDir()
 	tk := filepath.Join(d, "token")
 	if err := os.WriteFile(tk, []byte(token), 0644); err != nil {
@@ -114,7 +111,7 @@ func TestCreateSignerFulcioEnabledFilesystemProvider(t *testing.T) {
 	if !cfg.Signers.X509.FulcioEnabled {
 		t.Fatal("fulcio is not enabled, expected to be enabled")
 	}
-	_, err = NewSigner(ctx, d, *cfg, logger)
+	_, err = NewSigner(ctx, d, *cfg)
 	if err != nil {
 		if !providers.Enabled(ctx) {
 			t.Fatal("fulcio provider not configured")
@@ -127,8 +124,7 @@ func TestCreateSignerFulcioEnabledFilesystemProvider(t *testing.T) {
 }
 
 func TestSigner_SignECDSA(t *testing.T) {
-	ctx := context.Background()
-	logger := logtesting.TestLogger(t)
+	ctx := logtesting.TestContextWithLogger(t)
 	d := t.TempDir()
 	p := filepath.Join(d, "x509.pem")
 	if err := os.WriteFile(p, []byte(ecdsaPriv), 0644); err != nil {
@@ -136,7 +132,7 @@ func TestSigner_SignECDSA(t *testing.T) {
 	}
 
 	// create a signer
-	signer, err := NewSigner(ctx, d, config.Config{}, logger)
+	signer, err := NewSigner(ctx, d, config.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -169,8 +165,7 @@ func TestSigner_SignECDSA(t *testing.T) {
 
 func TestSigner_SignED25519(t *testing.T) {
 	t.Skip("skip test until ed25519 signing is implemented")
-	ctx := context.Background()
-	logger := logtesting.TestLogger(t)
+	ctx := logtesting.TestContextWithLogger(t)
 	d := t.TempDir()
 	p := filepath.Join(d, "x509.pem")
 	if err := os.WriteFile(p, []byte(ed25519Priv), 0644); err != nil {
@@ -178,7 +173,7 @@ func TestSigner_SignED25519(t *testing.T) {
 	}
 
 	// create a signer
-	signer, err := NewSigner(ctx, d, config.Config{}, logger)
+	signer, err := NewSigner(ctx, d, config.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

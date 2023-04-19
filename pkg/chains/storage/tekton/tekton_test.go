@@ -24,7 +24,6 @@ import (
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	fakepipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	logtesting "knative.dev/pkg/logging/testing"
 	rtesting "knative.dev/pkg/reconciler/testing"
 )
 
@@ -87,7 +86,6 @@ func TestBackend_StorePayload(t *testing.T) {
 
 			b := &Backend{
 				pipelineclientset: c,
-				logger:            logtesting.TestLogger(t),
 			}
 			payload, err := json.Marshal(tt.payload)
 			if err != nil {

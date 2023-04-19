@@ -41,6 +41,7 @@ import (
 	pb "github.com/grafeas/grafeas/proto/v1/grafeas_go_proto"
 	"github.com/tektoncd/chains/pkg/config"
 	gstatus "google.golang.org/grpc/status"
+	"knative.dev/pkg/logging"
 	logtesting "knative.dev/pkg/logging/testing"
 	rtesting "knative.dev/pkg/reconciler/testing"
 )
@@ -330,18 +331,16 @@ func TestGrafeasBackend_StoreAndRetrieve(t *testing.T) {
 	if err != nil {
 		t.Fatal("Failed to create grafeas client.")
 	}
-
 	defer conn.Close()
 
 	// collect all the occurences expected to be created in the server
 	allOccurrencesInServer := []*pb.Occurrence{}
-
 	for _, test := range tests {
 
 		// run the test
 		t.Run(test.name, func(t *testing.T) {
+			ctx := logging.WithLogger(ctx, logtesting.TestLogger(t))
 			backend := Backend{
-				logger: logtesting.TestLogger(t),
 				client: client,
 				cfg: config.Config{
 					Storage: config.StorageConfigs{
@@ -399,7 +398,7 @@ func testStoreAndRetrieveHelper(ctx context.Context, t *testing.T, test testConf
 		expectSignature[test.args.opts.FullKey] = []string{test.args.signature}
 	}
 	if _, ok := formats.IntotoAttestationSet[test.args.opts.PayloadFormat]; ok {
-		allURIs := extract.RetrieveAllArtifactURIs(test.args.runObject, backend.logger)
+		allURIs := extract.RetrieveAllArtifactURIs(ctx, test.args.runObject)
 		for _, u := range allURIs {
 			expectSignature[u] = []string{test.args.signature}
 		}
@@ -421,7 +420,7 @@ func testStoreAndRetrieveHelper(ctx context.Context, t *testing.T, test testConf
 		expectPayload[test.args.opts.FullKey] = string(test.args.payload)
 	}
 	if _, ok := formats.IntotoAttestationSet[test.args.opts.PayloadFormat]; ok {
-		allURIs := extract.RetrieveAllArtifactURIs(test.args.runObject, backend.logger)
+		allURIs := extract.RetrieveAllArtifactURIs(ctx, test.args.runObject)
 		for _, u := range allURIs {
 			expectPayload[u] = string(test.args.payload)
 		}

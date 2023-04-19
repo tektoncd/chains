@@ -25,7 +25,6 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v1/taskrun"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
-	"knative.dev/pkg/logging"
 )
 
 const (
@@ -53,12 +52,11 @@ func (i *InTotoIte6) Wrap() bool {
 }
 
 func (i *InTotoIte6) CreatePayload(ctx context.Context, obj interface{}) (interface{}, error) {
-	logger := logging.FromContext(ctx)
 	switch v := obj.(type) {
 	case *objects.TaskRunObject:
-		return taskrun.GenerateAttestation(i.builderID, v, logger)
+		return taskrun.GenerateAttestation(ctx, i.builderID, v)
 	case *objects.PipelineRunObject:
-		return pipelinerun.GenerateAttestation(i.builderID, v, logger)
+		return pipelinerun.GenerateAttestation(ctx, i.builderID, v)
 	default:
 		return nil, fmt.Errorf("intoto does not support type: %s", v)
 	}

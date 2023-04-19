@@ -65,7 +65,8 @@ status:
 		},
 	}
 
-	got, err := Materials(objects.NewTaskRunObject(taskRun), logtesting.TestLogger(t))
+	ctx := logtesting.TestContextWithLogger(t)
+	got, err := Materials(ctx, objects.NewTaskRunObject(taskRun))
 	if err != nil {
 		t.Fatalf("Did not expect an error but got %v", err)
 	}
@@ -238,7 +239,8 @@ func TestMaterials(t *testing.T) {
 	}}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			mat, err := Materials(objects.NewTaskRunObject(tc.taskRun), logtesting.TestLogger(t))
+			ctx := logtesting.TestContextWithLogger(t)
+			mat, err := Materials(ctx, objects.NewTaskRunObject(tc.taskRun))
 			if err != nil {
 				t.Fatalf("Did not expect an error but got %v", err)
 			}
