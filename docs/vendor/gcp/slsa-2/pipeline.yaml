@@ -1,0 +1,74 @@
+# Copyright 2023 The Tekton Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: slsa-demo-pipeline
+spec:
+  description: | 
+    This pipeline clones a git repo, builds a Docker image with Kaniko and
+    pushes it to a registry
+  params:
+    - name: repo-url
+      type: string
+    - name: image-reference
+      type: string
+  results:
+    - name: image-ARTIFACT_INPUTS
+      description: Source code used to build the artifact.
+      value:
+        uri: $(tasks.fetch-source.results.url)
+        digest: sha1:$(tasks.fetch-source.results.commit)
+    - name: image-ARTIFACT_OUTPUTS
+      description: The artifact that has been built.
+      value:
+        uri: $(tasks.build.results.IMAGE_URL)
+        digest: $(tasks.build.results.IMAGE_DIGEST)
+  workspaces:
+    - name: shared-data
+  tasks:
+    - name: fetch-source
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: https://github.com/tektoncd/catalog.git
+          - name: pathInRepo
+            value: /task/git-clone/0.6/git-clone.yaml
+          - name: revision
+            value: main
+      workspaces:
+        - name: output
+          workspace: shared-data
+      params:
+      - name: url
+        value: $(params.repo-url)
+    - name: build
+      runAfter: ["fetch-source"]
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: https://github.com/tektoncd/catalog.git
+          - name: pathInRepo
+            value: /task/kaniko/0.6/kaniko.yaml
+          - name: revision
+            value: main
+      workspaces:
+      - name: source
+        workspace: shared-data
+      params:
+      - name: IMAGE
+        value: $(params.image-reference)
