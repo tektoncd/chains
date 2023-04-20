@@ -61,7 +61,7 @@ func Invocation(source *v1beta1.ConfigSource, params []v1beta1.Param, paramSpecs
 	i := slsa.ProvenanceInvocation{
 		ConfigSource: convertConfigSource(source),
 	}
-	iParams := make(map[string]v1beta1.ArrayOrString)
+	iParams := make(map[string]v1beta1.ParamValue)
 
 	// get implicit parameters from defaults
 	for _, p := range paramSpecs {

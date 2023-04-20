@@ -725,9 +725,9 @@ func TestProvenanceMaterials(t *testing.T) {
 			commit := "my-git-commit"
 			url := "https://my-git-url"
 			params := []v1beta1.Param{{
-				Name: "CHAINS-GIT_COMMIT", Value: *v1beta1.NewArrayOrString(commit),
+				Name: "CHAINS-GIT_COMMIT", Value: *v1beta1.NewStructuredValues(commit),
 			}, {
-				Name: "CHAINS-GIT_URL", Value: *v1beta1.NewArrayOrString(url),
+				Name: "CHAINS-GIT_URL", Value: *v1beta1.NewStructuredValues(url),
 			}}
 			obj := test.getObjectWithParams(ns, params)
 

@@ -48,10 +48,10 @@ func kanikoPipelineRun(ns string) objects.TektonObject {
 				}},
 				Results: []v1beta1.PipelineResult{{
 					Name:  "IMAGE_URL",
-					Value: *v1beta1.NewArrayOrString("$(tasks.kaniko.results.IMAGE_URL)"),
+					Value: *v1beta1.NewStructuredValues("$(tasks.kaniko.results.IMAGE_URL)"),
 				}, {
 					Name:  "IMAGE_DIGEST",
-					Value: *v1beta1.NewArrayOrString("$(tasks.kaniko.results.IMAGE_DIGEST)"),
+					Value: *v1beta1.NewStructuredValues("$(tasks.kaniko.results.IMAGE_DIGEST)"),
 				}},
 			},
 		},
@@ -133,7 +133,7 @@ func kanikoTask(t *testing.T, namespace, destinationImage string) *v1beta1.Task 
 
 func verifyKanikoTaskRun(namespace, destinationImage, publicKey string) objects.TektonObject {
 	script := `#!/busybox/sh
-	
+
 # save the public key
 echo "%s" > cosign.pub
 

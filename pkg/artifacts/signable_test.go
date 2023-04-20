@@ -166,11 +166,11 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 						TaskRunResults: []v1beta1.TaskRunResult{
 							{
 								Name:  "IMAGE_URL",
-								Value: *v1beta1.NewArrayOrString("gcr.io/foo/bat"),
+								Value: *v1beta1.NewStructuredValues("gcr.io/foo/bat"),
 							},
 							{
 								Name:  "IMAGE_DIGEST",
-								Value: *v1beta1.NewArrayOrString("sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b4"),
+								Value: *v1beta1.NewStructuredValues("sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b4"),
 							},
 						},
 						TaskSpec: &v1beta1.TaskSpec{
@@ -211,11 +211,11 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 						TaskRunResults: []v1beta1.TaskRunResult{
 							{
 								Name:  "IMAGE_URL",
-								Value: *v1beta1.NewArrayOrString("foo"),
+								Value: *v1beta1.NewStructuredValues("foo"),
 							},
 							{
 								Name:  "gibberish",
-								Value: *v1beta1.NewArrayOrString("baz"),
+								Value: *v1beta1.NewStructuredValues("baz"),
 							},
 						},
 						ResourcesResult: []v1beta1.PipelineResourceResult{
@@ -264,7 +264,7 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 						TaskRunResults: []v1beta1.TaskRunResult{
 							{
 								Name:  "IMAGES",
-								Value: *v1beta1.NewArrayOrString(fmt.Sprintf("  \n \tgcr.io/foo/bar@%s\n,gcr.io/baz/bar@%s", digest1, digest2)),
+								Value: *v1beta1.NewStructuredValues(fmt.Sprintf("  \n \tgcr.io/foo/bar@%s\n,gcr.io/baz/bar@%s", digest1, digest2)),
 							},
 						},
 					},
@@ -282,7 +282,7 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 						TaskRunResults: []v1beta1.TaskRunResult{
 							{
 								Name:  "IMAGES",
-								Value: *v1beta1.NewArrayOrString(fmt.Sprintf("gcr.io/foo/bar@%s\ngcr.io/baz/bar@%s\n\n", digest1, digest2)),
+								Value: *v1beta1.NewStructuredValues(fmt.Sprintf("gcr.io/foo/bar@%s\ngcr.io/baz/bar@%s\n\n", digest1, digest2)),
 							},
 						},
 					},
@@ -316,16 +316,16 @@ func TestExtractOCIImagesFromResults(t *testing.T) {
 		Status: v1beta1.TaskRunStatus{
 			TaskRunStatusFields: v1beta1.TaskRunStatusFields{
 				TaskRunResults: []v1beta1.TaskRunResult{
-					{Name: "img1_IMAGE_URL", Value: *v1beta1.NewArrayOrString("img1")},
-					{Name: "img1_IMAGE_DIGEST", Value: *v1beta1.NewArrayOrString(digest1)},
-					{Name: "img2_IMAGE_URL", Value: *v1beta1.NewArrayOrString("img2")},
-					{Name: "img2_IMAGE_DIGEST", Value: *v1beta1.NewArrayOrString(digest2)},
-					{Name: "IMAGE_URL", Value: *v1beta1.NewArrayOrString("img3")},
-					{Name: "IMAGE_DIGEST", Value: *v1beta1.NewArrayOrString(digest1)},
-					{Name: "img4_IMAGE_URL", Value: *v1beta1.NewArrayOrString("img4")},
-					{Name: "img5_IMAGE_DIGEST", Value: *v1beta1.NewArrayOrString("sha123:abc")},
-					{Name: "empty_str_IMAGE_DIGEST", Value: *v1beta1.NewArrayOrString("")},
-					{Name: "empty_str_IMAGE_URL", Value: *v1beta1.NewArrayOrString("")},
+					{Name: "img1_IMAGE_URL", Value: *v1beta1.NewStructuredValues("img1")},
+					{Name: "img1_IMAGE_DIGEST", Value: *v1beta1.NewStructuredValues(digest1)},
+					{Name: "img2_IMAGE_URL", Value: *v1beta1.NewStructuredValues("img2")},
+					{Name: "img2_IMAGE_DIGEST", Value: *v1beta1.NewStructuredValues(digest2)},
+					{Name: "IMAGE_URL", Value: *v1beta1.NewStructuredValues("img3")},
+					{Name: "IMAGE_DIGEST", Value: *v1beta1.NewStructuredValues(digest1)},
+					{Name: "img4_IMAGE_URL", Value: *v1beta1.NewStructuredValues("img4")},
+					{Name: "img5_IMAGE_DIGEST", Value: *v1beta1.NewStructuredValues("sha123:abc")},
+					{Name: "empty_str_IMAGE_DIGEST", Value: *v1beta1.NewStructuredValues("")},
+					{Name: "empty_str_IMAGE_URL", Value: *v1beta1.NewStructuredValues("")},
 				},
 			},
 		},
@@ -353,19 +353,19 @@ func TestExtractSignableTargetFromResults(t *testing.T) {
 		Status: v1beta1.TaskRunStatus{
 			TaskRunStatusFields: v1beta1.TaskRunStatusFields{
 				TaskRunResults: []v1beta1.TaskRunResult{
-					{Name: "mvn1_ARTIFACT_URI", Value: *v1beta1.NewArrayOrString("projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/com.google.guava:guava:31.0-jre")},
-					{Name: "mvn1_ARTIFACT_DIGEST", Value: *v1beta1.NewArrayOrString(digest1)},
-					{Name: "mvn1_pom_ARTIFACT_URI", Value: *v1beta1.NewArrayOrString("com.google.guava:guava:31.0-jre.pom")},
-					{Name: "mvn1_pom_ARTIFACT_DIGEST", Value: *v1beta1.NewArrayOrString(digest2)},
-					{Name: "mvn1_src_ARTIFACT_URI", Value: *v1beta1.NewArrayOrString("com.google.guava:guava:31.0-jre-sources.jar")},
-					{Name: "mvn1_src_ARTIFACT_DIGEST", Value: *v1beta1.NewArrayOrString(digest3)},
-					{Name: "mvn2_ARTIFACT_URI", Value: *v1beta1.NewArrayOrString("projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/a.b.c:d:1.0-jre")},
-					{Name: "mvn2_ARTIFACT_DIGEST", Value: *v1beta1.NewArrayOrString(digest4)},
-					{Name: "ARTIFACT_URI", Value: *v1beta1.NewArrayOrString("projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/empty_prefix")},
-					{Name: "ARTIFACT_DIGEST", Value: *v1beta1.NewArrayOrString(digest1)},
-					{Name: "miss_target_name_ARTIFACT_DIGEST", Value: *v1beta1.NewArrayOrString(digest1)},
-					{Name: "wrong_digest_format_ARTIFACT_URI", Value: *v1beta1.NewArrayOrString("projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/wrong_digest_format")},
-					{Name: "wrong_digest_format_ARTIFACT_DIGEST", Value: *v1beta1.NewArrayOrString("abc")},
+					{Name: "mvn1_ARTIFACT_URI", Value: *v1beta1.NewStructuredValues("projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/com.google.guava:guava:31.0-jre")},
+					{Name: "mvn1_ARTIFACT_DIGEST", Value: *v1beta1.NewStructuredValues(digest1)},
+					{Name: "mvn1_pom_ARTIFACT_URI", Value: *v1beta1.NewStructuredValues("com.google.guava:guava:31.0-jre.pom")},
+					{Name: "mvn1_pom_ARTIFACT_DIGEST", Value: *v1beta1.NewStructuredValues(digest2)},
+					{Name: "mvn1_src_ARTIFACT_URI", Value: *v1beta1.NewStructuredValues("com.google.guava:guava:31.0-jre-sources.jar")},
+					{Name: "mvn1_src_ARTIFACT_DIGEST", Value: *v1beta1.NewStructuredValues(digest3)},
+					{Name: "mvn2_ARTIFACT_URI", Value: *v1beta1.NewStructuredValues("projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/a.b.c:d:1.0-jre")},
+					{Name: "mvn2_ARTIFACT_DIGEST", Value: *v1beta1.NewStructuredValues(digest4)},
+					{Name: "ARTIFACT_URI", Value: *v1beta1.NewStructuredValues("projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/empty_prefix")},
+					{Name: "ARTIFACT_DIGEST", Value: *v1beta1.NewStructuredValues(digest1)},
+					{Name: "miss_target_name_ARTIFACT_DIGEST", Value: *v1beta1.NewStructuredValues(digest1)},
+					{Name: "wrong_digest_format_ARTIFACT_URI", Value: *v1beta1.NewStructuredValues("projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/wrong_digest_format")},
+					{Name: "wrong_digest_format_ARTIFACT_DIGEST", Value: *v1beta1.NewStructuredValues("abc")},
 				},
 			},
 		},
