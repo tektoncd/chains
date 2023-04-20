@@ -165,7 +165,7 @@ status:
 	}
 
 	expected := slsa.ProvenanceInvocation{
-		Parameters: map[string]v1beta1.ArrayOrString{
+		Parameters: map[string]v1beta1.ParamValue{
 			"my-param":                      {Type: "string", StringVal: "string-param"},
 			"my-array-param":                {Type: "array", ArrayVal: []string{"my", "array"}},
 			"my-default-param":              {Type: "string", StringVal: "string-default-param"},
@@ -221,39 +221,39 @@ func TestGetSubjectDigests(t *testing.T) {
 				TaskRunResults: []v1beta1.TaskRunResult{
 					{
 						Name:  "IMAGE_URL",
-						Value: *v1beta1.NewArrayOrString("registry/myimage"),
+						Value: *v1beta1.NewStructuredValues("registry/myimage"),
 					},
 					{
 						Name:  "IMAGE_DIGEST",
-						Value: *v1beta1.NewArrayOrString(digest1),
+						Value: *v1beta1.NewStructuredValues(digest1),
 					},
 					{
 						Name:  "mvn1_ARTIFACT_URI",
-						Value: *v1beta1.NewArrayOrString("maven-test-0.1.1.jar"),
+						Value: *v1beta1.NewStructuredValues("maven-test-0.1.1.jar"),
 					},
 					{
 						Name:  "mvn1_ARTIFACT_DIGEST",
-						Value: *v1beta1.NewArrayOrString(digest3),
+						Value: *v1beta1.NewStructuredValues(digest3),
 					},
 					{
 						Name:  "mvn1_pom_ARTIFACT_URI",
-						Value: *v1beta1.NewArrayOrString("maven-test-0.1.1.pom"),
+						Value: *v1beta1.NewStructuredValues("maven-test-0.1.1.pom"),
 					},
 					{
 						Name:  "mvn1_pom_ARTIFACT_DIGEST",
-						Value: *v1beta1.NewArrayOrString(digest4),
+						Value: *v1beta1.NewStructuredValues(digest4),
 					},
 					{
 						Name:  "mvn1_src_ARTIFACT_URI",
-						Value: *v1beta1.NewArrayOrString("maven-test-0.1.1-sources.jar"),
+						Value: *v1beta1.NewStructuredValues("maven-test-0.1.1-sources.jar"),
 					},
 					{
 						Name:  "mvn1_src_ARTIFACT_DIGEST",
-						Value: *v1beta1.NewArrayOrString(digest5),
+						Value: *v1beta1.NewStructuredValues(digest5),
 					},
 					{
 						Name:  "invalid_ARTIFACT_DIGEST",
-						Value: *v1beta1.NewArrayOrString(digest5),
+						Value: *v1beta1.NewStructuredValues(digest5),
 					},
 					{
 						Name: "mvn1_pkg" + "-" + artifacts.ArtifactsOutputsResultName,

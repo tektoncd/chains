@@ -50,7 +50,7 @@ func TestBackend_StorePayload(t *testing.T) {
 				Status: v1beta1.TaskRunStatus{
 					TaskRunStatusFields: v1beta1.TaskRunStatusFields{
 						TaskRunResults: []v1beta1.TaskRunResult{
-							{Name: "IMAGE_URL", Value: *v1beta1.NewArrayOrString("mockImage")},
+							{Name: "IMAGE_URL", Value: *v1beta1.NewStructuredValues("mockImage")},
 						},
 					},
 				},
@@ -70,7 +70,7 @@ func TestBackend_StorePayload(t *testing.T) {
 				Status: v1beta1.PipelineRunStatus{
 					PipelineRunStatusFields: v1beta1.PipelineRunStatusFields{
 						PipelineResults: []v1beta1.PipelineRunResult{
-							{Name: "IMAGE_URL", Value: *v1beta1.NewArrayOrString("mockImage")},
+							{Name: "IMAGE_URL", Value: *v1beta1.NewStructuredValues("mockImage")},
 						},
 					},
 				},

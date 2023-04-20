@@ -70,7 +70,7 @@ func TestInvocation(t *testing.T) {
 			Digest:     map[string]string{"sha1": "28b123"},
 			EntryPoint: "pipeline.yaml",
 		},
-		Parameters: map[string]v1beta1.ArrayOrString{
+		Parameters: map[string]v1beta1.ParamValue{
 			"IMAGE": {Type: "string", StringVal: "test.io/test/image"},
 		},
 	}
@@ -110,7 +110,7 @@ func TestBuildConfig(t *testing.T) {
 						Digest:     common.DigestSet{"sha1": "x123"},
 						EntryPoint: "git-clone.yaml",
 					},
-					Parameters: map[string]v1beta1.ArrayOrString{
+					Parameters: map[string]v1beta1.ParamValue{
 						"CHAINS-GIT_COMMIT": {Type: "string", StringVal: "sha:taskdefault"},
 						"CHAINS-GIT_URL":    {Type: "string", StringVal: "https://git.test.com"},
 						"revision":          {Type: "string", StringVal: ""},
@@ -123,14 +123,14 @@ func TestBuildConfig(t *testing.T) {
 				Results: []v1beta1.TaskRunResult{
 					{
 						Name: "some-uri_DIGEST",
-						Value: v1beta1.ArrayOrString{
+						Value: v1beta1.ParamValue{
 							Type:      v1beta1.ParamTypeString,
 							StringVal: "sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6",
 						},
 					},
 					{
 						Name: "some-uri",
-						Value: v1beta1.ArrayOrString{
+						Value: v1beta1.ParamValue{
 							Type:      v1beta1.ParamTypeString,
 							StringVal: "pkg:deb/debian/curl@7.50.3-1",
 						},
@@ -182,7 +182,7 @@ func TestBuildConfig(t *testing.T) {
 						Digest:     map[string]string{"sha1": "ab123"},
 						EntryPoint: "build.yaml",
 					},
-					Parameters: map[string]v1beta1.ArrayOrString{
+					Parameters: map[string]v1beta1.ParamValue{
 						"CHAINS-GIT_COMMIT": {Type: "string", StringVal: "sha:taskrun"},
 						"CHAINS-GIT_URL":    {Type: "string", StringVal: "https://git.test.com"},
 						"IMAGE":             {Type: "string", StringVal: "test.io/test/image"},
@@ -194,14 +194,14 @@ func TestBuildConfig(t *testing.T) {
 				Results: []v1beta1.TaskRunResult{
 					{
 						Name: "IMAGE_DIGEST",
-						Value: v1beta1.ArrayOrString{
+						Value: v1beta1.ParamValue{
 							Type:      v1beta1.ParamTypeString,
 							StringVal: "sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7",
 						},
 					},
 					{
 						Name: "IMAGE_URL",
-						Value: v1beta1.ArrayOrString{
+						Value: v1beta1.ParamValue{
 							Type:      v1beta1.ParamTypeString,
 							StringVal: "gcr.io/my/image",
 						},
@@ -230,11 +230,11 @@ func TestBuildConfigTaskOrder(t *testing.T) {
 			params: []v1beta1.Param{
 				{
 					Name:  "CHAINS-GIT_COMMIT",
-					Value: v1beta1.ArrayOrString{Type: "string", StringVal: "$(tasks.git-clone.results.commit)"},
+					Value: v1beta1.ParamValue{Type: "string", StringVal: "$(tasks.git-clone.results.commit)"},
 				},
 				{
 					Name:  "CHAINS-GIT_URL",
-					Value: v1beta1.ArrayOrString{Type: "string", StringVal: "$(tasks.git-clone.results.url)"},
+					Value: v1beta1.ParamValue{Type: "string", StringVal: "$(tasks.git-clone.results.url)"},
 				},
 			},
 			whenExpressions: nil,
@@ -301,7 +301,7 @@ func TestBuildConfigTaskOrder(t *testing.T) {
 								Digest:     common.DigestSet{"sha1": "x123"},
 								EntryPoint: "git-clone.yaml",
 							},
-							Parameters: map[string]v1beta1.ArrayOrString{
+							Parameters: map[string]v1beta1.ParamValue{
 								"CHAINS-GIT_COMMIT": {Type: "string", StringVal: "sha:taskdefault"},
 								"CHAINS-GIT_URL":    {Type: "string", StringVal: "https://git.test.com"},
 								"url":               {Type: "string", StringVal: "https://git.test.com"},
@@ -316,14 +316,14 @@ func TestBuildConfigTaskOrder(t *testing.T) {
 						Results: []v1beta1.TaskRunResult{
 							{
 								Name: "some-uri_DIGEST",
-								Value: v1beta1.ArrayOrString{
+								Value: v1beta1.ParamValue{
 									Type:      v1beta1.ParamTypeString,
 									StringVal: "sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6",
 								},
 							},
 							{
 								Name: "some-uri",
-								Value: v1beta1.ArrayOrString{
+								Value: v1beta1.ParamValue{
 									Type:      v1beta1.ParamTypeString,
 									StringVal: "pkg:deb/debian/curl@7.50.3-1",
 								},
@@ -375,7 +375,7 @@ func TestBuildConfigTaskOrder(t *testing.T) {
 								Digest:     map[string]string{"sha1": "ab123"},
 								EntryPoint: "build.yaml",
 							},
-							Parameters: map[string]v1beta1.ArrayOrString{
+							Parameters: map[string]v1beta1.ParamValue{
 								// TODO: Is this right?
 								// "CHAINS-GIT_COMMIT": {Type: "string", StringVal: "abcd"},
 								"CHAINS-GIT_COMMIT": {Type: "string", StringVal: "sha:taskrun"},
@@ -391,14 +391,14 @@ func TestBuildConfigTaskOrder(t *testing.T) {
 						Results: []v1beta1.TaskRunResult{
 							{
 								Name: "IMAGE_DIGEST",
-								Value: v1beta1.ArrayOrString{
+								Value: v1beta1.ParamValue{
 									Type:      v1beta1.ParamTypeString,
 									StringVal: "sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7",
 								},
 							},
 							{
 								Name: "IMAGE_URL",
-								Value: v1beta1.ArrayOrString{
+								Value: v1beta1.ParamValue{
 									Type:      v1beta1.ParamTypeString,
 									StringVal: "gcr.io/my/image",
 								},
