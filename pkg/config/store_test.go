@@ -88,7 +88,7 @@ var defaultSigners = SignerConfigs{
 	X509: X509Signer{
 		FulcioAddr:       "https://fulcio.sigstore.dev",
 		FulcioOIDCIssuer: "https://oauth2.sigstore.dev/auth",
-		TUFMirrorURL:     "https://sigstore-tuf-root.storage.googleapis.com",
+		TUFMirrorURL:     "https://tuf-repo-cdn.sigstore.dev",
 	},
 }
 
@@ -469,7 +469,7 @@ func TestParse(t *testing.T) {
 						FulcioEnabled:    true,
 						FulcioAddr:       "fulcio-address",
 						FulcioOIDCIssuer: "https://oauth2.sigstore.dev/auth",
-						TUFMirrorURL:     "https://sigstore-tuf-root.storage.googleapis.com",
+						TUFMirrorURL:     "https://tuf-repo-cdn.sigstore.dev",
 					},
 				},
 				Storage:      defaultStorage,
@@ -489,7 +489,7 @@ func TestParse(t *testing.T) {
 					X509: X509Signer{
 						FulcioAddr:       "https://fulcio.sigstore.dev",
 						FulcioOIDCIssuer: "https://oauth2.sigstore.dev/auth",
-						TUFMirrorURL:     "https://sigstore-tuf-root.storage.googleapis.com",
+						TUFMirrorURL:     "https://tuf-repo-cdn.sigstore.dev",
 					},
 				},
 				Storage: defaultStorage,
@@ -512,7 +512,7 @@ func TestParse(t *testing.T) {
 					X509: X509Signer{
 						FulcioAddr:       "https://fulcio.sigstore.dev",
 						FulcioOIDCIssuer: "https://oauth2.sigstore.dev/auth",
-						TUFMirrorURL:     "https://sigstore-tuf-root.storage.googleapis.com",
+						TUFMirrorURL:     "https://tuf-repo-cdn.sigstore.dev",
 					},
 				},
 				Storage: defaultStorage,
