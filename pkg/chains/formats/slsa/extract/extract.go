@@ -25,10 +25,10 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
+	"github.com/tektoncd/chains/internal/backport"
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	"github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
 	"knative.dev/pkg/logging"
 )
 
@@ -100,7 +100,7 @@ func SubjectDigests(ctx context.Context, obj objects.TektonObject) []intoto.Subj
 			continue
 		}
 		// similarly, we could do this for other pipeline resources or whatever thing replaces them
-		if output.PipelineResourceBinding.ResourceSpec.Type == v1alpha1.PipelineResourceTypeImage {
+		if output.PipelineResourceBinding.ResourceSpec.Type == backport.PipelineResourceTypeImage {
 			// get the url and digest, and save as a subject
 			var url, digest string
 			for _, s := range tr.Status.ResourcesResult {

@@ -23,11 +23,11 @@ import (
 	"strings"
 
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
+	"github.com/tektoncd/chains/internal/backport"
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/attest"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	"github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
 )
 
 const (
@@ -109,7 +109,7 @@ func Materials(ctx context.Context, tro *objects.TaskRunObject) ([]common.Proven
 	if tro.Spec.Resources != nil {
 		// check for a Git PipelineResource
 		for _, input := range tro.Spec.Resources.Inputs {
-			if input.ResourceSpec == nil || input.ResourceSpec.Type != v1alpha1.PipelineResourceTypeGit {
+			if input.ResourceSpec == nil || input.ResourceSpec.Type != backport.PipelineResourceTypeGit {
 				continue
 			}
 

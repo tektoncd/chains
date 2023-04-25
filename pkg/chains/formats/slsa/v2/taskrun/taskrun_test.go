@@ -28,6 +28,7 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/google/go-cmp/cmp"
 	"github.com/in-toto/in-toto-golang/in_toto"
+	"github.com/tektoncd/chains/internal/backport"
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
 	slsav1 "github.com/tektoncd/chains/pkg/chains/formats/slsa/v1/taskrun"
@@ -157,11 +158,10 @@ status:
   provenance:
     featureFlags:
       AwaitSidecarReadiness: true
-      CustomTaskVersion: v1beta1
       EnableAPIFields: stable
       EnableProvenanceInStatus: true
       MaxResultSize: 4096
-      ResourceVerificationMode: skip
+      VerificationNoMatchPolicy: skip
       ResultExtractionMethod: termination-message
       RunningInEnvWithInjectedSidecars: true
 `
@@ -173,7 +173,7 @@ status:
 
 	expected := slsa.ProvenanceInvocation{
 		Parameters: map[string]any{
-			"Params": []v1beta1.Param{
+			"Params": v1beta1.Params{
 				{
 					Name:  "my-param",
 					Value: v1beta1.ParamValue{Type: "string", StringVal: "string-param"},
@@ -206,11 +206,10 @@ status:
 				RunningInEnvWithInjectedSidecars: true,
 				EnableAPIFields:                  "stable",
 				AwaitSidecarReadiness:            true,
-				ResourceVerificationMode:         "skip",
+				VerificationNoMatchPolicy:        "skip",
 				EnableProvenanceInStatus:         true,
 				ResultExtractionMethod:           "termination-message",
 				MaxResultSize:                    4096,
-				CustomTaskVersion:                "v1beta1",
 			},
 		},
 	}
@@ -236,7 +235,7 @@ func TestGetSubjectDigests(t *testing.T) {
 						PipelineResourceBinding: v1beta1.PipelineResourceBinding{
 							Name: "built-image",
 							ResourceSpec: &v1alpha1.PipelineResourceSpec{
-								Type: v1alpha1.PipelineResourceTypeImage,
+								Type: backport.PipelineResourceTypeImage,
 							},
 						},
 					},
