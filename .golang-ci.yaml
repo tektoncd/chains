@@ -23,7 +23,16 @@ linters:
   - gosimple
   - govet
   - ireturn
+  - maintidx
+  - makezero
   - misspell
+  - musttag
+  - nakedret
+  - nilerr
+  - nilnil
+  - noctx
+  - nolintlint
+  - nosprintfhostport
   - revive
   - staticheck
   - thelper
@@ -71,5 +80,5 @@ run:
   - e2e
   skip-dirs:
   - vendor
-  timeout: 10m
+  timeout: 20m
   modules-download-mode: vendor
