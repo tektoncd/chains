@@ -27,6 +27,7 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	"github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"knative.dev/pkg/logging"
 )
@@ -162,7 +163,7 @@ func (oa *OCIArtifact) ExtractObjects(ctx context.Context, obj objects.TektonObj
 		imageResourceNames := map[string]*image{}
 		if tr.Status.TaskSpec != nil && tr.Status.TaskSpec.Resources != nil {
 			for _, output := range tr.Status.TaskSpec.Resources.Outputs {
-				if output.Type == v1beta1.PipelineResourceTypeImage {
+				if output.Type == v1alpha1.PipelineResourceTypeImage {
 					imageResourceNames[output.Name] = &image{}
 				}
 			}
