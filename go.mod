@@ -19,13 +19,13 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/secure-systems-lab/go-securesystemslib v0.5.0
 	github.com/sigstore/cosign/v2 v2.0.1-0.20230323140840-42c4b8d9016a
-	github.com/sigstore/rekor v1.0.1
+	github.com/sigstore/rekor v1.1.0
 	github.com/sigstore/sigstore v1.6.3
 	github.com/spiffe/go-spiffe/v2 v2.1.4
 	github.com/stretchr/testify v1.8.2
 	github.com/tektoncd/pipeline v0.47.0
 	github.com/tektoncd/plumbing v0.0.0-20221102182345-5dbcfda657d7
-	gocloud.dev v0.28.0
+	gocloud.dev v0.29.0
 	gocloud.dev/docstore/mongodocstore v0.28.0
 	gocloud.dev/pubsub/kafkapubsub v0.28.0
 	golang.org/x/crypto v0.8.0
@@ -33,7 +33,7 @@ require (
 	google.golang.org/protobuf v1.30.0
 	k8s.io/api v0.26.1
 	k8s.io/apimachinery v0.26.4
-	k8s.io/client-go v0.25.9
+	k8s.io/client-go v0.26.1
 	k8s.io/code-generator v0.25.9
 	knative.dev/pkg v0.0.0-20230412013349-d3d7625d8e1e
 )
@@ -57,7 +57,7 @@ require (
 	github.com/Azure/azure-sdk-for-go v68.0.0+incompatible // indirect
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
 	github.com/Azure/go-autorest/autorest v0.11.28 // indirect
-	github.com/Azure/go-autorest/autorest/adal v0.9.21 // indirect
+	github.com/Azure/go-autorest/autorest/adal v0.9.22 // indirect
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.12 // indirect
 	github.com/Azure/go-autorest/autorest/azure/cli v0.4.6 // indirect
 	github.com/Azure/go-autorest/autorest/date v0.3.0 // indirect
@@ -87,7 +87,7 @@ require (
 	github.com/alibabacloud-go/tea-xml v1.1.2 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
 	github.com/aliyun/credentials-go v1.2.3 // indirect
-	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
+	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/ashanbrown/forbidigo v1.5.1 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
 	github.com/aws/aws-sdk-go v1.44.248 // indirect
@@ -107,7 +107,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.18.9 // indirect
 	github.com/aws/smithy-go v1.13.5 // indirect
 	github.com/awslabs/amazon-ecr-credential-helper/ecr-login v0.0.0-20221004211355-a250ad2ca1e3 // indirect
-	github.com/benbjohnson/clock v1.1.0 // indirect
+	github.com/benbjohnson/clock v1.3.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bkielbasa/cyclop v1.2.0 // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
@@ -172,9 +172,9 @@ require (
 	github.com/go-openapi/loads v0.21.2 // indirect
 	github.com/go-openapi/runtime v0.25.0 // indirect
 	github.com/go-openapi/spec v0.20.8 // indirect
-	github.com/go-openapi/strfmt v0.21.5 // indirect
+	github.com/go-openapi/strfmt v0.21.7 // indirect
 	github.com/go-openapi/swag v0.22.3 // indirect
-	github.com/go-openapi/validate v0.22.0 // indirect
+	github.com/go-openapi/validate v0.22.1 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.12.0 // indirect
@@ -210,7 +210,7 @@ require (
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/licenseclassifier v0.0.0-20210722185704-3043a050f148 // indirect
 	github.com/google/s2a-go v0.1.2 // indirect
-	github.com/google/trillian v1.5.1-0.20220819043421-0a389c4bb8d9 // indirect
+	github.com/google/trillian v1.5.1 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/google/wire v0.5.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.2.3 // indirect
@@ -231,7 +231,7 @@ require (
 	github.com/hashicorp/go-sockaddr v1.0.2 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
 	github.com/hashicorp/go-version v1.6.0 // indirect
-	github.com/hashicorp/golang-lru v0.5.4 // indirect
+	github.com/hashicorp/golang-lru v0.6.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/hashicorp/vault/api v1.9.1 // indirect
 	github.com/hexops/gotextdiff v1.0.3 // indirect
@@ -320,7 +320,7 @@ require (
 	github.com/sanposhiho/wastedassign/v2 v2.0.7 // indirect
 	github.com/sashamelentyev/interfacebloat v1.1.0 // indirect
 	github.com/sashamelentyev/usestdlibvars v1.23.0 // indirect
-	github.com/sassoftware/relic v0.0.0-20210427151427-dfb082b79b74 // indirect
+	github.com/sassoftware/relic v7.2.1+incompatible // indirect
 	github.com/securego/gosec/v2 v2.15.0 // indirect
 	github.com/segmentio/ksuid v1.0.4 // indirect
 	github.com/sergi/go-diff v1.2.0 // indirect
@@ -378,7 +378,7 @@ require (
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/otel v1.14.0 // indirect
 	go.opentelemetry.io/otel/trace v1.14.0 // indirect
-	go.step.sm/crypto v0.27.0 // indirect
+	go.step.sm/crypto v0.28.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/automaxprocs v1.5.1 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
