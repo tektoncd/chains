@@ -162,7 +162,52 @@ func TestReconciler_handlePipelineRun(t *testing.T) {
 			shouldSign: false,
 		},
 		{
-			name: "taskruns completed",
+			name: "taskruns completed with full taskrun status",
+			pr: &v1beta1.PipelineRun{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "pipelinerun",
+					Namespace:   "default",
+					Annotations: map[string]string{},
+				},
+				Status: v1beta1.PipelineRunStatus{
+					Status: duckv1.Status{
+						Conditions: []apis.Condition{{Type: apis.ConditionSucceeded}},
+					},
+					PipelineRunStatusFields: v1beta1.PipelineRunStatusFields{
+						TaskRuns: map[string]*v1beta1.PipelineRunTaskRunStatus{
+							"taskrun1": {
+								PipelineTaskName: "task1",
+								Status: &v1beta1.TaskRunStatus{
+									TaskRunStatusFields: v1beta1.TaskRunStatusFields{
+										CompletionTime: &metav1.Time{},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			taskruns: []*v1beta1.TaskRun{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "taskrun1",
+						Namespace: "default",
+						Annotations: map[string]string{
+							"chains.tekton.dev/signed": "true",
+						},
+					},
+					Status: v1beta1.TaskRunStatus{
+						TaskRunStatusFields: v1beta1.TaskRunStatusFields{
+							CompletionTime: &v1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 24, time.UTC)},
+						},
+					},
+				},
+			},
+			shouldSign: true,
+			wantErr:    false,
+		},
+		{
+			name: "taskruns completed with child references",
 			pr: &v1beta1.PipelineRun{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "pipelinerun",
@@ -215,6 +260,43 @@ func TestReconciler_handlePipelineRun(t *testing.T) {
 						Conditions: []apis.Condition{{Type: apis.ConditionSucceeded}},
 					},
 					PipelineRunStatusFields: v1beta1.PipelineRunStatusFields{
+						TaskRuns: map[string]*v1beta1.PipelineRunTaskRunStatus{
+							"taskrun1": {
+								PipelineTaskName: "task1",
+								Status: &v1beta1.TaskRunStatus{
+									TaskRunStatusFields: v1beta1.TaskRunStatusFields{
+										CompletionTime: &metav1.Time{},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			taskruns: []*v1beta1.TaskRun{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "taskrun1",
+						Namespace: "default",
+					},
+				},
+			},
+			shouldSign: false,
+			wantErr:    true,
+		},
+		{
+			name: "taskruns not yet completed with child references",
+			pr: &v1beta1.PipelineRun{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "pipelinerun",
+					Namespace:   "default",
+					Annotations: map[string]string{},
+				},
+				Status: v1beta1.PipelineRunStatus{
+					Status: duckv1.Status{
+						Conditions: []apis.Condition{{Type: apis.ConditionSucceeded}},
+					},
+					PipelineRunStatusFields: v1beta1.PipelineRunStatusFields{
 						ChildReferences: []v1beta1.ChildStatusReference{
 							v1beta1.ChildStatusReference{
 								Name:             "taskrun1",
@@ -237,6 +319,35 @@ func TestReconciler_handlePipelineRun(t *testing.T) {
 		},
 		{
 			name: "missing taskrun",
+			pr: &v1beta1.PipelineRun{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "pipelinerun",
+					Namespace:   "default",
+					Annotations: map[string]string{},
+				},
+				Status: v1beta1.PipelineRunStatus{
+					Status: duckv1.Status{
+						Conditions: []apis.Condition{{Type: apis.ConditionSucceeded}},
+					},
+					PipelineRunStatusFields: v1beta1.PipelineRunStatusFields{
+						TaskRuns: map[string]*v1beta1.PipelineRunTaskRunStatus{
+							"taskrun1": {
+								PipelineTaskName: "task1",
+								Status: &v1beta1.TaskRunStatus{
+									TaskRunStatusFields: v1beta1.TaskRunStatusFields{
+										CompletionTime: &metav1.Time{},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			shouldSign: false,
+			wantErr:    false,
+		},
+		{
+			name: "missing taskrun with child references",
 			pr: &v1beta1.PipelineRun{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "pipelinerun",
