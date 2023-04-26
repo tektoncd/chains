@@ -25,6 +25,7 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/google/go-cmp/cmp"
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
+	"github.com/tektoncd/chains/internal/backport"
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -97,7 +98,7 @@ func TestMaterials(t *testing.T) {
 									Params: []v1alpha1.ResourceParam{
 										{Name: "url", Value: "https://github.com/GoogleContainerTools/distroless"},
 									},
-									Type: v1alpha1.PipelineResourceTypeGit,
+									Type: backport.PipelineResourceTypeGit,
 								},
 							},
 						},

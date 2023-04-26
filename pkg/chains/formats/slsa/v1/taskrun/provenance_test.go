@@ -28,6 +28,7 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/google/go-cmp/cmp"
 	"github.com/in-toto/in-toto-golang/in_toto"
+	"github.com/tektoncd/chains/internal/backport"
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
 	"github.com/tektoncd/chains/pkg/chains/objects"
@@ -209,7 +210,7 @@ func TestGetSubjectDigests(t *testing.T) {
 						PipelineResourceBinding: v1beta1.PipelineResourceBinding{
 							Name: "built-image",
 							ResourceSpec: &v1alpha1.PipelineResourceSpec{
-								Type: v1alpha1.PipelineResourceTypeImage,
+								Type: backport.PipelineResourceTypeImage,
 							},
 						},
 					},
