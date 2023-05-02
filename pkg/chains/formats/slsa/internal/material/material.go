@@ -66,7 +66,8 @@ func AddImageIDToMaterials(imageID string, mats *[]common.ProvenanceMaterial) er
 		if len(digest) == 2 {
 			// no point in partially populating the material
 			// do it if both conditions are valid.
-			m.URI = uriDigest[0]
+			uri := strings.TrimPrefix(uriDigest[0], "docker-pullable://")
+			m.URI = artifacts.OCIScheme + uri
 			m.Digest[digest[0]] = digest[1]
 			*mats = append(*mats, m)
 		} else {

@@ -40,6 +40,7 @@ import (
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature"
+	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/chains/provenance"
@@ -765,7 +766,7 @@ func TestProvenanceMaterials(t *testing.T) {
 			}
 			want := []provenance.ProvenanceMaterial{
 				{
-					URI: "git+" + url + ".git",
+					URI: artifacts.GitSchemePrefix + url + ".git",
 					Digest: provenance.DigestSet{
 						"sha1": commit,
 					},
@@ -781,7 +782,7 @@ func TestProvenanceMaterials(t *testing.T) {
 					}
 					for _, step := range taskRun.Status.Steps {
 						want = append(want, provenance.ProvenanceMaterial{
-							URI: strings.Split(step.ImageID, "@")[0],
+							URI: artifacts.OCIScheme + "" + strings.Split(step.ImageID, "@")[0],
 							Digest: provenance.DigestSet{
 								"sha256": strings.Split(step.ImageID, ":")[1],
 							},
@@ -792,7 +793,7 @@ func TestProvenanceMaterials(t *testing.T) {
 				tr := signedObj.GetObject().(*v1beta1.TaskRun)
 				for _, step := range tr.Status.Steps {
 					want = append(want, provenance.ProvenanceMaterial{
-						URI: strings.Split(step.ImageID, "@")[0],
+						URI: artifacts.OCIScheme + "" + strings.Split(step.ImageID, "@")[0],
 						Digest: provenance.DigestSet{
 							"sha256": strings.Split(step.ImageID, ":")[1],
 						},

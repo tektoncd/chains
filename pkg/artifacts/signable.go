@@ -35,6 +35,8 @@ import (
 const (
 	ArtifactsInputsResultName  = "ARTIFACT_INPUTS"
 	ArtifactsOutputsResultName = "ARTIFACT_OUTPUTS"
+	OCIScheme                  = "oci://"
+	GitSchemePrefix            = "git+"
 )
 
 var (

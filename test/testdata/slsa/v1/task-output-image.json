@@ -25,7 +25,7 @@
                     "arguments": null,
                     "environment": {
                         "container": "{{index .ContainerNames 0}}",
-                        "image": "{{index .StepImages 0}}"
+                        "image": "oci://{{index .StepImages 0}}"
                     },
                     "annotations": null
                 }

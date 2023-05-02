@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
+	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -50,7 +51,7 @@ func Step(step *v1beta1.Step, stepState *v1beta1.StepState) StepAttestation {
 	attestation.Arguments = step.Args
 
 	env := map[string]interface{}{}
-	env["image"] = stepState.ImageID
+	env["image"] = artifacts.OCIScheme + strings.TrimPrefix(stepState.ImageID, "docker-pullable://")
 	env["container"] = stepState.Name
 	attestation.Environment = env
 
@@ -118,9 +119,8 @@ func convertConfigSource(source *v1beta1.RefSource) slsa.ConfigSource {
 // ref: https://spdx.dev/spdx-specification-21-web-version/#h.49x2ik5
 // ref: https://github.com/in-toto/attestation/blob/849867bee97e33678f61cc6bd5da293097f84c25/spec/field_types.md
 func SPDXGit(url, revision string) string {
-	prefix := "git+"
 	if revision == "" {
-		return prefix + url + ".git"
+		return artifacts.GitSchemePrefix + url + ".git"
 	}
-	return prefix + url + fmt.Sprintf("@%s", revision)
+	return artifacts.GitSchemePrefix + url + fmt.Sprintf("@%s", revision)
 }

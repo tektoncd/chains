@@ -34,7 +34,7 @@ The following output was generated. Notice the following below:
 2. `Invocation.Parameters` contains `workspaces and podTemplate` from above spec correctly populated.
 3. `Invocation.Environment` contains `tekton-pipelines-feature-flags` to indicate which feature flags were enabled during the taskrun.
 4. `BuildConfig` contains the resolved `taskSpec`.
- 
+
 ```json
 {
   "_type": "https://in-toto.io/Statement/v0.1",
@@ -372,7 +372,7 @@ The following output was generated. Notice the following below:
     },
     "materials": [
       {
-        "uri": "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+        "uri": "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
         "digest": {
           "sha256": "28ff94e63e4058afc3f15b4c11c08cf3b54fa91faa646a4bbac90380cd7158df"
         }
