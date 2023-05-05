@@ -97,6 +97,7 @@ func TestMaterials(t *testing.T) {
 								ResourceSpec: &v1alpha1.PipelineResourceSpec{
 									Params: []v1alpha1.ResourceParam{
 										{Name: "url", Value: "https://github.com/GoogleContainerTools/distroless"},
+										{Name: "revision", Value: "my-revision"},
 									},
 									Type: backport.PipelineResourceTypeGit,
 								},
@@ -138,14 +139,14 @@ func TestMaterials(t *testing.T) {
 				},
 			},
 			{
-				URI: artifacts.GitSchemePrefix + "https://github.com/GoogleContainerTools/distroless.git",
+				URI: artifacts.GitSchemePrefix + "https://github.com/GoogleContainerTools/distroless@my-revision",
 				Digest: common.DigestSet{
 					"sha1": "50c56a48cfb3a5a80fa36ed91c739bdac8381cbe",
 				},
 			},
 		},
 	}, {
-		name: "materials from git results",
+		name: "materials from git results in task run spec",
 		taskRun: &v1beta1.TaskRun{
 			Spec: v1beta1.TaskRunSpec{
 				Params: []v1beta1.Param{{
@@ -165,6 +166,67 @@ func TestMaterials(t *testing.T) {
 				},
 			},
 		},
+	}, {
+		name: "materials from git results in task spec",
+		taskRun: &v1beta1.TaskRun{
+			Status: v1beta1.TaskRunStatus{
+				TaskRunStatusFields: v1beta1.TaskRunStatusFields{
+					TaskSpec: &v1beta1.TaskSpec{
+						Params: []v1beta1.ParamSpec{{
+							Name: "CHAINS-GIT_COMMIT",
+							Default: &v1beta1.ParamValue{
+								StringVal: "my-commit",
+							},
+						}, {
+							Name: "CHAINS-GIT_URL",
+							Default: &v1beta1.ParamValue{
+								StringVal: "github.com/something",
+							},
+						}},
+					},
+				},
+			},
+		},
+		want: []common.ProvenanceMaterial{
+			{
+				URI: artifacts.GitSchemePrefix + "github.com/something.git",
+				Digest: common.DigestSet{
+					"sha1": "my-commit",
+				},
+			},
+		},
+	}, {
+		name: "materials from git results in task spec and taskrun spec",
+		taskRun: &v1beta1.TaskRun{
+			Spec: v1beta1.TaskRunSpec{
+				Params: []v1beta1.Param{{
+					Name: "CHAINS-GIT_URL",
+					Value: v1beta1.ParamValue{
+						StringVal: "github.com/something",
+					},
+				}},
+			},
+			Status: v1beta1.TaskRunStatus{
+				TaskRunStatusFields: v1beta1.TaskRunStatusFields{
+					TaskSpec: &v1beta1.TaskSpec{
+						Params: []v1beta1.ParamSpec{{
+							Name: "CHAINS-GIT_URL",
+						}, {
+							Name: "CHAINS-GIT_COMMIT",
+							Default: &v1beta1.ParamValue{
+								StringVal: "my-commit",
+							},
+						}},
+					},
+				},
+			},
+		},
+		want: []common.ProvenanceMaterial{{
+			URI: "git+github.com/something.git",
+			Digest: common.DigestSet{
+				"sha1": "my-commit",
+			},
+		}},
 	}, {
 		name: "materials from step images",
 		taskRun: &v1beta1.TaskRun{
@@ -561,6 +623,125 @@ func TestRemoveDuplicates(t *testing.T) {
 			}
 			if diff := cmp.Diff(tc.want, mat); diff != "" {
 				t.Errorf("materials(): -want +got: %s", diff)
+			}
+		})
+	}
+}
+
+func TestAddMaterialsFromPipelineParamsAndResults(t *testing.T) {
+	tests := []struct {
+		name        string
+		pipelineRun *v1beta1.PipelineRun
+		want        []common.ProvenanceMaterial
+	}{{
+		name: "from results",
+		pipelineRun: &v1beta1.PipelineRun{
+			Status: v1beta1.PipelineRunStatus{
+				PipelineRunStatusFields: v1beta1.PipelineRunStatusFields{
+					PipelineResults: []v1beta1.PipelineRunResult{{
+						Name:  "CHAINS-GIT_COMMIT",
+						Value: *v1beta1.NewStructuredValues("my-commit"),
+					}, {
+						Name:  "CHAINS-GIT_URL",
+						Value: *v1beta1.NewStructuredValues("github.com/something"),
+					}},
+				},
+			},
+		},
+		want: []common.ProvenanceMaterial{{
+			URI: "git+github.com/something.git",
+			Digest: common.DigestSet{
+				"sha1": "my-commit",
+			},
+		}},
+	}, {
+		name: "from pipelinespec",
+		pipelineRun: &v1beta1.PipelineRun{
+			Status: v1beta1.PipelineRunStatus{
+				PipelineRunStatusFields: v1beta1.PipelineRunStatusFields{
+					PipelineSpec: &v1beta1.PipelineSpec{
+						Params: []v1beta1.ParamSpec{{
+							Name: "CHAINS-GIT_COMMIT",
+							Default: &v1beta1.ParamValue{
+								StringVal: "my-commit",
+							},
+						}, {
+							Name: "CHAINS-GIT_URL",
+							Default: &v1beta1.ParamValue{
+								StringVal: "github.com/something",
+							},
+						}},
+					},
+				},
+			},
+		},
+		want: []common.ProvenanceMaterial{{
+			URI: "git+github.com/something.git",
+			Digest: common.DigestSet{
+				"sha1": "my-commit",
+			},
+		}},
+	}, {
+		name: "from pipelineRunSpec",
+		pipelineRun: &v1beta1.PipelineRun{
+			Spec: v1beta1.PipelineRunSpec{
+				Params: []v1beta1.Param{{
+					Name: "CHAINS-GIT_COMMIT",
+					Value: v1beta1.ParamValue{
+						StringVal: "my-commit",
+					},
+				}, {
+					Name: "CHAINS-GIT_URL",
+					Value: v1beta1.ParamValue{
+						StringVal: "github.com/something",
+					},
+				}},
+			},
+		},
+		want: []common.ProvenanceMaterial{{
+			URI: "git+github.com/something.git",
+			Digest: common.DigestSet{
+				"sha1": "my-commit",
+			},
+		}},
+	}, {
+		name: "from completeChain",
+		pipelineRun: &v1beta1.PipelineRun{
+			Spec: v1beta1.PipelineRunSpec{
+				Params: []v1beta1.Param{{
+					Name: "CHAINS-GIT_URL",
+					Value: v1beta1.ParamValue{
+						StringVal: "github.com/something",
+					},
+				}},
+			},
+			Status: v1beta1.PipelineRunStatus{
+				PipelineRunStatusFields: v1beta1.PipelineRunStatusFields{
+					PipelineSpec: &v1beta1.PipelineSpec{
+						Params: []v1beta1.ParamSpec{{
+							Name: "CHAINS-GIT_URL",
+						}},
+					},
+					PipelineResults: []v1beta1.PipelineRunResult{{
+						Name:  "CHAINS-GIT_COMMIT",
+						Value: *v1beta1.NewStructuredValues("my-commit"),
+					}},
+				},
+			},
+		},
+		want: []common.ProvenanceMaterial{{
+			URI: "git+github.com/something.git",
+			Digest: common.DigestSet{
+				"sha1": "my-commit",
+			},
+		}},
+	}}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := logtesting.TestContextWithLogger(t)
+			got := AddMaterialsFromPipelineParamsAndResults(ctx, objects.NewPipelineRunObject(tc.pipelineRun), []common.ProvenanceMaterial{})
+			if diff := cmp.Diff(tc.want, got); diff != "" {
+				t.Errorf("AddMaterialsFromPipelineParamsAndResults(): -want +got: %s", diff)
 			}
 		})
 	}
