@@ -93,7 +93,7 @@
             ]
         },
         "provenance": {
-          "configSource": {
+          "refSource": {
             "uri": "github.com/catalog",
             "digest": {
               "sha1": "x123"

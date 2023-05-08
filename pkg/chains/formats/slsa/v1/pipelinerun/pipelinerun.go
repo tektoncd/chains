@@ -79,9 +79,9 @@ func invocation(pro *objects.PipelineRunObject) slsa.ProvenanceInvocation {
 	if ps := pro.Status.PipelineSpec; ps != nil {
 		paramSpecs = ps.Params
 	}
-	var source *v1beta1.ConfigSource
+	var source *v1beta1.RefSource
 	if p := pro.Status.Provenance; p != nil {
-		source = p.ConfigSource
+		source = p.RefSource
 	}
 	return attest.Invocation(source, pro.Spec.Params, paramSpecs, pro.GetObjectMeta())
 }
@@ -143,9 +143,9 @@ func buildConfig(ctx context.Context, pro *objects.PipelineRunObject) BuildConfi
 		}
 
 		// source information in taskrun status
-		var source *v1beta1.ConfigSource
+		var source *v1beta1.RefSource
 		if p := tr.Status.Provenance; p != nil {
-			source = p.ConfigSource
+			source = p.RefSource
 		}
 
 		task := TaskAttestation{
@@ -193,10 +193,10 @@ func metadata(pro *objects.PipelineRunObject) *slsa.ProvenanceMetadata {
 func materials(ctx context.Context, pro *objects.PipelineRunObject) ([]common.ProvenanceMaterial, error) {
 	logger := logging.FromContext(ctx)
 	var mats []common.ProvenanceMaterial
-	if p := pro.Status.Provenance; p != nil && p.ConfigSource != nil {
+	if p := pro.Status.Provenance; p != nil && p.RefSource != nil {
 		m := common.ProvenanceMaterial{
-			URI:    p.ConfigSource.URI,
-			Digest: p.ConfigSource.Digest,
+			URI:    p.RefSource.URI,
+			Digest: p.RefSource.Digest,
 		}
 		mats = append(mats, m)
 	}
@@ -222,10 +222,10 @@ func materials(ctx context.Context, pro *objects.PipelineRunObject) ([]common.Pr
 			}
 
 			// add remote task configsource information in materials
-			if tr.Status.Provenance != nil && tr.Status.Provenance.ConfigSource != nil {
+			if tr.Status.Provenance != nil && tr.Status.Provenance.RefSource != nil {
 				m := common.ProvenanceMaterial{
-					URI:    tr.Status.Provenance.ConfigSource.URI,
-					Digest: tr.Status.Provenance.ConfigSource.Digest,
+					URI:    tr.Status.Provenance.RefSource.URI,
+					Digest: tr.Status.Provenance.RefSource.Digest,
 				}
 				mats = append(mats, m)
 			}
