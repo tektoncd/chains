@@ -76,11 +76,11 @@ func metadata(tro *objects.TaskRunObject) *slsa.ProvenanceMetadata {
 // which material the Task definition came from
 func invocation(tro *objects.TaskRunObject) slsa.ProvenanceInvocation {
 	i := slsa.ProvenanceInvocation{}
-	if p := tro.Status.Provenance; p != nil && p.ConfigSource != nil {
+	if p := tro.Status.Provenance; p != nil && p.RefSource != nil {
 		i.ConfigSource = slsa.ConfigSource{
-			URI:        p.ConfigSource.URI,
-			Digest:     p.ConfigSource.Digest,
-			EntryPoint: p.ConfigSource.EntryPoint,
+			URI:        p.RefSource.URI,
+			Digest:     p.RefSource.Digest,
+			EntryPoint: p.RefSource.EntryPoint,
 		}
 	}
 	i.Parameters = invocationParams(tro)

@@ -57,7 +57,7 @@ func Step(step *v1beta1.Step, stepState *v1beta1.StepState) StepAttestation {
 	return attestation
 }
 
-func Invocation(source *v1beta1.ConfigSource, params []v1beta1.Param, paramSpecs []v1beta1.ParamSpec, meta metav1.Object) slsa.ProvenanceInvocation {
+func Invocation(source *v1beta1.RefSource, params []v1beta1.Param, paramSpecs []v1beta1.ParamSpec, meta metav1.Object) slsa.ProvenanceInvocation {
 	i := slsa.ProvenanceInvocation{
 		ConfigSource: convertConfigSource(source),
 	}
@@ -103,7 +103,7 @@ func Invocation(source *v1beta1.ConfigSource, params []v1beta1.Param, paramSpecs
 	return i
 }
 
-func convertConfigSource(source *v1beta1.ConfigSource) slsa.ConfigSource {
+func convertConfigSource(source *v1beta1.RefSource) slsa.ConfigSource {
 	if source == nil {
 		return slsa.ConfigSource{}
 	}

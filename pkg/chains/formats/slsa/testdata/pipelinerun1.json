@@ -294,7 +294,7 @@
             }
         },
         "provenance": {
-          "configSource": {
+          "refSource": {
             "uri": "github.com/test",
             "digest": {
               "sha1": "28b123"
