@@ -35,7 +35,7 @@
                             "arguments": null,
                             "environment": {
                                 "container": "create-dockerfile",
-                                "image": "distroless.dev/busybox@sha256:186312fcf3f381b5fc1dd80b1afc0d316f3ed39fb4add8ff900d1f0c7c49a92c"
+                                "image": "oci://distroless.dev/busybox@sha256:186312fcf3f381b5fc1dd80b1afc0d316f3ed39fb4add8ff900d1f0c7c49a92c"
                             },
                             "annotations": null
                         }

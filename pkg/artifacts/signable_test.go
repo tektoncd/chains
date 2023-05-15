@@ -503,21 +503,21 @@ func TestRetrieveMaterialsFromStructuredResults(t *testing.T) {
 					{
 						Name: "img1_input" + "_" + ArtifactsInputsResultName,
 						Value: *v1beta1.NewObject(map[string]string{
-							"uri":    "gcr.io/foo/bar",
+							"uri":    OCIScheme + "gcr.io/foo/bar",
 							"digest": "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b7",
 						}),
 					},
 					{
 						Name: "img2_input_no_digest" + "_" + ArtifactsInputsResultName,
 						Value: *v1beta1.NewObject(map[string]string{
-							"uri":    "gcr.io/foo/foo",
+							"uri":    OCIScheme + "gcr.io/foo/foo",
 							"digest": "",
 						}),
 					},
 					{
 						Name: "img2_input_invalid_digest" + "_" + ArtifactsInputsResultName,
 						Value: *v1beta1.NewObject(map[string]string{
-							"uri":    "gcr.io/foo/foo",
+							"uri":    OCIScheme + "gcr.io/foo/foo",
 							"digest": "sha:123",
 						}),
 					},
@@ -527,7 +527,7 @@ func TestRetrieveMaterialsFromStructuredResults(t *testing.T) {
 	}
 	wantMaterials := []common.ProvenanceMaterial{
 		{
-			URI:    "gcr.io/foo/bar",
+			URI:    OCIScheme + "gcr.io/foo/bar",
 			Digest: map[string]string{"sha256": "05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b7"},
 		},
 	}

@@ -59,7 +59,7 @@ status:
 
 	want := []common.ProvenanceMaterial{
 		{
-			URI: "git+https://github.com/GoogleContainerTools/distroless.git",
+			URI: artifacts.GitSchemePrefix + "https://github.com/GoogleContainerTools/distroless.git",
 			Digest: common.DigestSet{
 				"sha1": "50c56a48cfb3a5a80fa36ed91c739bdac8381cbe",
 			},
@@ -138,7 +138,7 @@ func TestMaterials(t *testing.T) {
 				},
 			},
 			{
-				URI: "git+https://github.com/GoogleContainerTools/distroless.git",
+				URI: artifacts.GitSchemePrefix + "https://github.com/GoogleContainerTools/distroless.git",
 				Digest: common.DigestSet{
 					"sha1": "50c56a48cfb3a5a80fa36ed91c739bdac8381cbe",
 				},
@@ -159,7 +159,7 @@ func TestMaterials(t *testing.T) {
 		},
 		want: []common.ProvenanceMaterial{
 			{
-				URI: "git+github.com/something.git",
+				URI: artifacts.GitSchemePrefix + "github.com/something.git",
 				Digest: common.DigestSet{
 					"sha1": "my-commit",
 				},
@@ -185,13 +185,13 @@ func TestMaterials(t *testing.T) {
 		},
 		want: []common.ProvenanceMaterial{
 			{
-				URI: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+				URI: artifacts.OCIScheme + "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
 			},
 			{
-				URI: "gcr.io/cloud-marketplace-containers/google/bazel",
+				URI: artifacts.OCIScheme + "gcr.io/cloud-marketplace-containers/google/bazel",
 				Digest: common.DigestSet{
 					"sha256": "010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
 				},
@@ -221,17 +221,17 @@ func TestMaterials(t *testing.T) {
 		},
 		want: []common.ProvenanceMaterial{
 			{
-				URI: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+				URI: artifacts.OCIScheme + "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
 			}, {
-				URI: "gcr.io/cloud-marketplace-containers/google/bazel",
+				URI: artifacts.OCIScheme + "gcr.io/cloud-marketplace-containers/google/bazel",
 				Digest: common.DigestSet{
 					"sha256": "010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
 				},
 			}, {
-				URI: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/sidecar-git-init",
+				URI: artifacts.OCIScheme + "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/sidecar-git-init",
 				Digest: common.DigestSet{
 					"sha256": "a1234f6e7a69617db57b685893256f978436277094c21d43b153994acd8a09567",
 				},
@@ -272,19 +272,19 @@ func TestAddStepImagesToMaterials(t *testing.T) {
 		}},
 		want: []common.ProvenanceMaterial{
 			{
-				URI: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+				URI: artifacts.OCIScheme + "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
 			},
 			{
-				URI: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+				URI: artifacts.OCIScheme + "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
 			},
 			{
-				URI: "gcr.io/cloud-marketplace-containers/google/bazel",
+				URI: artifacts.OCIScheme + "gcr.io/cloud-marketplace-containers/google/bazel",
 				Digest: common.DigestSet{
 					"sha256": "010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
 				},
@@ -342,19 +342,19 @@ func TestAddSidecarImagesToMaterials(t *testing.T) {
 		}},
 		want: []common.ProvenanceMaterial{
 			{
-				URI: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+				URI: artifacts.OCIScheme + "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
 			},
 			{
-				URI: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+				URI: artifacts.OCIScheme + "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
 			},
 			{
-				URI: "gcr.io/cloud-marketplace-containers/google/bazel",
+				URI: artifacts.OCIScheme + "gcr.io/cloud-marketplace-containers/google/bazel",
 				Digest: common.DigestSet{
 					"sha256": "010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
 				},
@@ -403,7 +403,7 @@ func TestAddImageIDToMaterials(t *testing.T) {
 		imageID: "gcr.io/cloud-marketplace-containers/google/bazel@sha256:010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
 		want: []common.ProvenanceMaterial{
 			{
-				URI: "gcr.io/cloud-marketplace-containers/google/bazel",
+				URI: artifacts.OCIScheme + "gcr.io/cloud-marketplace-containers/google/bazel",
 				Digest: common.DigestSet{
 					"sha256": "010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
 				},

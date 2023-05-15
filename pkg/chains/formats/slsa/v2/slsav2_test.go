@@ -20,6 +20,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/formats"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v2/taskrun"
 	"github.com/tektoncd/chains/pkg/chains/objects"
@@ -79,18 +80,18 @@ func TestTaskRunCreatePayload1(t *testing.T) {
 			},
 			Materials: []common.ProvenanceMaterial{
 				{
-					URI:    "docker-pullable://gcr.io/test1/test1",
+					URI:    artifacts.OCIScheme + "gcr.io/test1/test1",
 					Digest: common.DigestSet{"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"},
 				},
 				{
-					URI:    "docker-pullable://gcr.io/test2/test2",
+					URI:    artifacts.OCIScheme + "gcr.io/test2/test2",
 					Digest: common.DigestSet{"sha256": "4d6dd704ef58cb214dd826519929e92a978a57cdee43693006139c0080fd6fac"},
 				},
 				{
-					URI:    "docker-pullable://gcr.io/test3/test3",
+					URI:    artifacts.OCIScheme + "gcr.io/test3/test3",
 					Digest: common.DigestSet{"sha256": "f1a8b8549c179f41e27ff3db0fe1a1793e4b109da46586501a8343637b1d0478"},
 				},
-				{URI: "git+https://git.test.com.git", Digest: common.DigestSet{"sha1": "sha:taskrun"}},
+				{URI: artifacts.GitSchemePrefix + "https://git.test.com.git", Digest: common.DigestSet{"sha1": "sha:taskrun"}},
 			},
 			Invocation: slsa.ProvenanceInvocation{
 				ConfigSource: slsa.ConfigSource{
@@ -202,10 +203,10 @@ func TestTaskRunCreatePayload2(t *testing.T) {
 			},
 			Materials: []common.ProvenanceMaterial{
 				{
-					URI:    "docker-pullable://gcr.io/test1/test1",
+					URI:    artifacts.OCIScheme + "gcr.io/test1/test1",
 					Digest: common.DigestSet{"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"},
 				},
-				{URI: "git+https://git.test.com.git", Digest: common.DigestSet{"sha1": "sha:taskdefault"}},
+				{URI: artifacts.GitSchemePrefix + "https://git.test.com.git", Digest: common.DigestSet{"sha1": "sha:taskdefault"}},
 			},
 			Invocation: slsa.ProvenanceInvocation{
 				ConfigSource: slsa.ConfigSource{
@@ -315,7 +316,7 @@ func TestMultipleSubjects(t *testing.T) {
 			},
 			Materials: []common.ProvenanceMaterial{
 				{
-					URI:    "docker-pullable://gcr.io/test1/test1",
+					URI:    artifacts.OCIScheme + "gcr.io/test1/test1",
 					Digest: common.DigestSet{"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"},
 				},
 			},

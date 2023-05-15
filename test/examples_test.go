@@ -44,6 +44,7 @@ import (
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
 
 	"github.com/ghodss/yaml"
+	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/test/tekton"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -246,7 +247,7 @@ func expectedTaskRunProvenance(t *testing.T, example string, obj objects.TektonO
 		stepNames = append(stepNames, step.Name)
 		images = append(images, step.ImageID)
 		// append uri and digest that havent already been appended
-		uri := strings.Split(step.ImageID, "@")[0]
+		uri := artifacts.OCIScheme + strings.Split(step.ImageID, "@")[0]
 		digest := strings.Split(step.ImageID, ":")[1]
 		uriDigest := fmt.Sprintf("%s %s", uri, digest)
 		if _, ok := uriDigestSet[uriDigest]; !ok {
@@ -285,7 +286,7 @@ func expectedPipelineRunProvenance(t *testing.T, ctx context.Context, example st
 		buildFinishedTimes = append(buildFinishedTimes, taskRun.Status.CompletionTime.Time.UTC().Format(time.RFC3339))
 		for _, step := range taskRun.Status.Steps {
 			// append uri and digest that havent already been appended
-			uri := strings.Split(step.ImageID, "@")[0]
+			uri := artifacts.OCIScheme + strings.Split(step.ImageID, "@")[0]
 			digest := strings.Split(step.ImageID, ":")[1]
 			uriDigest := fmt.Sprintf("%s %s", uri, digest)
 			if _, ok := uriDigestSet[uriDigest]; !ok {
@@ -295,7 +296,7 @@ func expectedPipelineRunProvenance(t *testing.T, ctx context.Context, example st
 		}
 		for _, sidecar := range taskRun.Status.Sidecars {
 			// append uri and digest that havent already been appended
-			uri := strings.Split(sidecar.ImageID, "@")[0]
+			uri := artifacts.OCIScheme + strings.Split(sidecar.ImageID, "@")[0]
 			digest := strings.Split(sidecar.ImageID, ":")[1]
 			uriDigest := fmt.Sprintf("%s %s", uri, digest)
 			if _, ok := uriDigestSet[uriDigest]; !ok {
