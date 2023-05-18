@@ -3620,8 +3620,8 @@ k8s.io/utils v0.0.0-20211116205334-6203023598ed/go.mod h1:jPW/WVKK9YHAvNhRxK0md/
 k8s.io/utils v0.0.0-20220728103510-ee6ede2d64ed/go.mod h1:jPW/WVKK9YHAvNhRxK0md/EJ228hCsBRufyofKtW8HA=
 k8s.io/utils v0.0.0-20230209194617-a36077c30491 h1:r0BAOLElQnnFhE/ApUsg3iHdVYYPBjNSSOMowRZxxsY=
 k8s.io/utils v0.0.0-20230209194617-a36077c30491/go.mod h1:OLgZIPagt7ERELqWJFomSt595RzquPNLL48iOWgYOg0=
-knative.dev/pkg v0.0.0-20230412013349-d3d7625d8e1e h1:rSHf+Um80n41r0CyfxZqihV9Zd2oTl2/Lu7dDPS3HNc=
-knative.dev/pkg v0.0.0-20230412013349-d3d7625d8e1e/go.mod h1:Xa/jM3LpUnfQabS0kKR9sMTaDn4absCVvwkdNlwRwHc=
+knative.dev/pkg v0.0.0-20230518105712-dfb4bf04635d h1:jGvqcYwyh7O1V2PZfd0poheaOOvy6x0z+KQxHXOgskc=
+knative.dev/pkg v0.0.0-20230518105712-dfb4bf04635d/go.mod h1:WLTHHHc/dhrDmhx03nm5F8AeqpNx3RQGggMI2N0/oks=
 mvdan.cc/gofumpt v0.4.0 h1:JVf4NN1mIpHogBj7ABpgOyZc65/UUOkKQFkoURsz4MM=
 mvdan.cc/gofumpt v0.4.0/go.mod h1:PljLOHDeZqgS8opHRKLzp2It2VBuSdteAgqUfzMTxlQ=
 mvdan.cc/interfacer v0.0.0-20180901003855-c20040233aed h1:WX1yoOaKQfddO/mLzdV4wptyWgoH/6hwLs7QHTixo0I=
