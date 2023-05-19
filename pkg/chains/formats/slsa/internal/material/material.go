@@ -57,25 +57,21 @@ func AddSidecarImagesToMaterials(sidecars []v1beta1.SidecarState, mats *[]common
 
 // AddImageIDToMaterials converts an imageId with format <uri>@sha256:<digest> and then adds it to a provenance materials.
 func AddImageIDToMaterials(imageID string, mats *[]common.ProvenanceMaterial) error {
+	uriDigest := strings.Split(imageID, uriSeparator)
+	if len(uriDigest) != 2 {
+		return fmt.Errorf("expected imageID %s to be separable by @", imageID)
+	}
+	digest := strings.Split(uriDigest[1], digestSeparator)
+	if len(digest) != 2 {
+		return fmt.Errorf("expected imageID %s to be separable by @ and :", imageID)
+	}
+	uri := strings.TrimPrefix(uriDigest[0], "docker-pullable://")
 	m := common.ProvenanceMaterial{
 		Digest: common.DigestSet{},
 	}
-	uriDigest := strings.Split(imageID, uriSeparator)
-	if len(uriDigest) == 2 {
-		digest := strings.Split(uriDigest[1], digestSeparator)
-		if len(digest) == 2 {
-			// no point in partially populating the material
-			// do it if both conditions are valid.
-			uri := strings.TrimPrefix(uriDigest[0], "docker-pullable://")
-			m.URI = artifacts.OCIScheme + uri
-			m.Digest[digest[0]] = digest[1]
-			*mats = append(*mats, m)
-		} else {
-			return fmt.Errorf("expected imageID %s to be separable by @ and :", imageID)
-		}
-	} else {
-		return fmt.Errorf("expected imageID %s to be separable by @", imageID)
-	}
+	m.URI = artifacts.OCIScheme + uri
+	m.Digest[digest[0]] = digest[1]
+	*mats = append(*mats, m)
 	return nil
 }
 
@@ -85,32 +81,33 @@ func Materials(ctx context.Context, tro *objects.TaskRunObject) ([]common.Proven
 
 	// add step images
 	if err := AddStepImagesToMaterials(tro.Status.Steps, &mats); err != nil {
-		return mats, nil
+		return nil, err
 	}
 
 	// add sidecar images
 	if err := AddSidecarImagesToMaterials(tro.Status.Sidecars, &mats); err != nil {
-		return mats, nil
+		return nil, err
 	}
 
-	gitCommit, gitURL := gitInfo(tro)
+	mats = append(mats, AddMaterialsFromTaskParamsAndResults(ctx, tro)...)
 
-	// Store git rev as Materials and Recipe.Material
-	if gitCommit != "" && gitURL != "" {
-		mats = append(mats, common.ProvenanceMaterial{
-			URI:    gitURL,
-			Digest: map[string]string{"sha1": gitCommit},
-		})
-		return mats, nil
+	// add task resources
+	mats = AddTaskResourcesToMaterials(ctx, tro, mats)
+
+	// remove duplicate materials
+	mats, err := RemoveDuplicateMaterials(mats)
+	if err != nil {
+		return mats, err
 	}
+	return mats, nil
+}
 
-	sms := artifacts.RetrieveMaterialsFromStructuredResults(ctx, tro, artifacts.ArtifactsInputsResultName)
-	mats = append(mats, sms...)
-
-	if tro.Spec.Resources != nil {
+// AddTaskResourcesToMaterials adds materials from task resources.
+func AddTaskResourcesToMaterials(ctx context.Context, tro *objects.TaskRunObject, mats []common.ProvenanceMaterial) []common.ProvenanceMaterial {
+	if tro.Spec.Resources != nil { //nolint:all //incompatible with pipelines v0.45
 		// check for a Git PipelineResource
-		for _, input := range tro.Spec.Resources.Inputs {
-			if input.ResourceSpec == nil || input.ResourceSpec.Type != backport.PipelineResourceTypeGit {
+		for _, input := range tro.Spec.Resources.Inputs { //nolint:all //incompatible with pipelines v0.45
+			if input.ResourceSpec == nil || input.ResourceSpec.Type != backport.PipelineResourceTypeGit { //nolint:all //incompatible with pipelines v0.45
 				continue
 			}
 
@@ -143,18 +140,14 @@ func Materials(ctx context.Context, tro *objects.TaskRunObject) ([]common.Proven
 			mats = append(mats, m)
 		}
 	}
-
-	// remove duplicate materials
-	mats, err := RemoveDuplicateMaterials(mats)
-	if err != nil {
-		return mats, err
-	}
-	return mats, nil
+	return mats
 }
 
-// gitInfo scans over the input parameters and looks for parameters
-// with specified names.
-func gitInfo(tro *objects.TaskRunObject) (commit string, url string) {
+// AddMaterialsFromTaskParamsAndResults scans over the taskrun, taskspec params and taskrun results
+// and looks for unstructured type hinted names matching CHAINS-GIT_COMMIT and CHAINS-GIT_URL
+// to extract the commit and url value for input artifact materials.
+func AddMaterialsFromTaskParamsAndResults(ctx context.Context, tro *objects.TaskRunObject) []common.ProvenanceMaterial {
+	var commit, url string
 	// Scan for git params to use for materials
 	if tro.Status.TaskSpec != nil {
 		for _, p := range tro.Status.TaskSpec.Params {
@@ -191,7 +184,20 @@ func gitInfo(tro *objects.TaskRunObject) (commit string, url string) {
 	}
 
 	url = attest.SPDXGit(url, "")
-	return
+
+	var mats []common.ProvenanceMaterial
+	if commit != "" && url != "" {
+		mats = append(mats, common.ProvenanceMaterial{
+			URI: url,
+			// TODO. this could be sha256 as well. Fix in another PR.
+			Digest: map[string]string{"sha1": commit},
+		})
+	}
+
+	sms := artifacts.RetrieveMaterialsFromStructuredResults(ctx, tro, artifacts.ArtifactsInputsResultName)
+	mats = append(mats, sms...)
+
+	return mats
 }
 
 // RemoveDuplicateMaterials removes duplicate materials from the slice of materials.
@@ -214,4 +220,56 @@ func RemoveDuplicateMaterials(mats []common.ProvenanceMaterial) ([]common.Proven
 		out = append(out, mat)
 	}
 	return out, nil
+}
+
+// AddMaterialsFromPipelineParamsAndResults extracts type hinted params and results and adds the url and digest to materials.
+func AddMaterialsFromPipelineParamsAndResults(ctx context.Context, pro *objects.PipelineRunObject, mats []common.ProvenanceMaterial) []common.ProvenanceMaterial {
+	sms := artifacts.RetrieveMaterialsFromStructuredResults(ctx, pro, artifacts.ArtifactsInputsResultName)
+	mats = append(mats, sms...)
+
+	var commit, url string
+	// search status.PipelineSpec.params
+	if pro.Status.PipelineSpec != nil {
+		for _, p := range pro.Status.PipelineSpec.Params {
+			if p.Default == nil {
+				continue
+			}
+			if p.Name == attest.CommitParam {
+				commit = p.Default.StringVal
+				continue
+			}
+			if p.Name == attest.URLParam {
+				url = p.Default.StringVal
+			}
+		}
+	}
+
+	// search pipelineRunSpec.params
+	for _, p := range pro.Spec.Params {
+		if p.Name == attest.CommitParam {
+			commit = p.Value.StringVal
+			continue
+		}
+		if p.Name == attest.URLParam {
+			url = p.Value.StringVal
+		}
+	}
+
+	// search status.PipelineRunResults
+	for _, r := range pro.Status.PipelineResults {
+		if r.Name == attest.CommitParam {
+			commit = r.Value.StringVal
+		}
+		if r.Name == attest.URLParam {
+			url = r.Value.StringVal
+		}
+	}
+	if len(commit) > 0 && len(url) > 0 {
+		url = attest.SPDXGit(url, "")
+		mats = append(mats, common.ProvenanceMaterial{
+			URI:    url,
+			Digest: map[string]string{"sha1": commit},
+		})
+	}
+	return mats
 }

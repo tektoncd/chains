@@ -20,7 +20,6 @@ import (
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
-	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/attest"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/material"
@@ -231,53 +230,8 @@ func materials(ctx context.Context, pro *objects.PipelineRunObject) ([]common.Pr
 			}
 		}
 	}
-	var commit, url string
-	// search spec.params
-	for _, p := range pro.Spec.Params {
-		if p.Name == attest.CommitParam {
-			commit = p.Value.StringVal
-			continue
-		}
-		if p.Name == attest.URLParam {
-			url = p.Value.StringVal
-		}
-	}
 
-	sms := artifacts.RetrieveMaterialsFromStructuredResults(ctx, pro, artifacts.ArtifactsInputsResultName)
-	mats = append(mats, sms...)
-
-	// search status.PipelineSpec.params
-	if pro.Status.PipelineSpec != nil {
-		for _, p := range pro.Status.PipelineSpec.Params {
-			if p.Default == nil {
-				continue
-			}
-			if p.Name == attest.CommitParam {
-				commit = p.Default.StringVal
-				continue
-			}
-			if p.Name == attest.URLParam {
-				url = p.Default.StringVal
-			}
-		}
-	}
-
-	// search status.PipelineRunResults
-	for _, r := range pro.Status.PipelineResults {
-		if r.Name == attest.CommitParam {
-			commit = r.Value.StringVal
-		}
-		if r.Name == attest.URLParam {
-			url = r.Value.StringVal
-		}
-	}
-	if len(commit) > 0 && len(url) > 0 {
-		url = attest.SPDXGit(url, "")
-		mats = append(mats, common.ProvenanceMaterial{
-			URI:    url,
-			Digest: map[string]string{"sha1": commit},
-		})
-	}
+	mats = material.AddMaterialsFromPipelineParamsAndResults(ctx, pro, mats)
 
 	// remove duplicate materials
 	mats, err := material.RemoveDuplicateMaterials(mats)
