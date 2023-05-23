@@ -9,7 +9,7 @@ require (
 	github.com/golangci/golangci-lint v1.52.2
 	github.com/google/addlicense v1.1.1
 	github.com/google/go-cmp v0.5.9
-	github.com/google/go-containerregistry v0.14.0
+	github.com/google/go-containerregistry v0.14.1-0.20230409045903-ed5c185df419
 	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20221030203717-1711cefd7eec
 	github.com/google/go-licenses v1.6.0
 	github.com/grafeas/grafeas v0.2.2-0.20220620154915-0ec8596e37d3
@@ -18,13 +18,14 @@ require (
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/pkg/errors v0.9.1
 	github.com/secure-systems-lab/go-securesystemslib v0.5.0
-	github.com/sigstore/cosign/v2 v2.0.1-0.20230323140840-42c4b8d9016a
+	github.com/sigstore/cosign/v2 v2.0.2
 	github.com/sigstore/rekor v1.1.1
 	github.com/sigstore/sigstore v1.6.3
 	github.com/spiffe/go-spiffe/v2 v2.1.4
 	github.com/stretchr/testify v1.8.2
 	github.com/tektoncd/pipeline v0.47.0
 	github.com/tektoncd/plumbing v0.0.0-20221102182345-5dbcfda657d7
+	go.uber.org/zap v1.24.0
 	gocloud.dev v0.29.0
 	gocloud.dev/docstore/mongodocstore v0.28.0
 	gocloud.dev/pubsub/kafkapubsub v0.28.0
@@ -163,7 +164,7 @@ require (
 	github.com/go-jose/go-jose/v3 v3.0.0 // indirect
 	github.com/go-kit/log v0.2.1 // indirect
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
-	github.com/go-logr/logr v1.2.3 // indirect
+	github.com/go-logr/logr v1.2.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/analysis v0.21.4 // indirect
 	github.com/go-openapi/errors v0.20.3 // indirect
@@ -220,7 +221,7 @@ require (
 	github.com/gostaticanalysis/comment v1.4.2 // indirect
 	github.com/gostaticanalysis/forcetypeassert v0.1.0 // indirect
 	github.com/gostaticanalysis/nilerr v0.1.1 // indirect
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.15.0 // indirect
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.15.2 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-hclog v1.4.0 // indirect
@@ -326,7 +327,7 @@ require (
 	github.com/sergi/go-diff v1.2.0 // indirect
 	github.com/shazow/go-diff v0.0.0-20160112020656-b6b7b6733b8c // indirect
 	github.com/shibumi/go-pathspec v1.3.0 // indirect
-	github.com/sigstore/fulcio v1.1.0 // indirect
+	github.com/sigstore/fulcio v1.2.0 // indirect
 	github.com/sigstore/timestamp-authority v1.0.0 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/sivchari/containedctx v1.0.2 // indirect
@@ -363,7 +364,7 @@ require (
 	github.com/ultraware/whitespace v0.0.5 // indirect
 	github.com/uudashr/gocognit v1.0.6 // indirect
 	github.com/vbatts/tar-split v0.11.2 // indirect
-	github.com/xanzy/go-gitlab v0.81.0 // indirect
+	github.com/xanzy/go-gitlab v0.83.0 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.1 // indirect
@@ -381,7 +382,6 @@ require (
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/automaxprocs v1.5.1 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
-	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/exp v0.0.0-20230307190834-24139beb5833 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20230224173230-c95f2b4c22f2 // indirect
 	golang.org/x/mod v0.10.0 // indirect
