@@ -12,7 +12,7 @@ require (
 	github.com/google/go-containerregistry v0.14.1-0.20230409045903-ed5c185df419
 	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20221030203717-1711cefd7eec
 	github.com/google/go-licenses v1.6.0
-	github.com/grafeas/grafeas v0.2.2-0.20220620154915-0ec8596e37d3
+	github.com/grafeas/grafeas v0.2.2
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/in-toto/in-toto-golang v0.8.0
 	github.com/opencontainers/go-digest v1.0.0
