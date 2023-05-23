@@ -919,8 +919,8 @@ github.com/gostaticanalysis/forcetypeassert
 # github.com/gostaticanalysis/nilerr v0.1.1
 ## explicit; go 1.15
 github.com/gostaticanalysis/nilerr
-# github.com/grafeas/grafeas v0.2.2-0.20220620154915-0ec8596e37d3
-## explicit; go 1.18
+# github.com/grafeas/grafeas v0.2.2
+## explicit; go 1.20
 github.com/grafeas/grafeas/go/utils/intoto
 github.com/grafeas/grafeas/proto/v1/grafeas_go_proto
 # github.com/grpc-ecosystem/grpc-gateway/v2 v2.15.2

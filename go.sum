@@ -1618,8 +1618,8 @@ github.com/gostaticanalysis/testutil v0.4.0 h1:nhdCmubdmDF6VEatUNjgUZBJKWRqugoIS
 github.com/grafana/regexp v0.0.0-20220304095617-2e8d9baf4ac2/go.mod h1:M5qHK+eWfAv8VR/265dIuEpL3fNfeC21tXXp9itM24A=
 github.com/grafana/regexp v0.0.0-20221005093135-b4c2bcb0a4b6/go.mod h1:M5qHK+eWfAv8VR/265dIuEpL3fNfeC21tXXp9itM24A=
 github.com/grafana/regexp v0.0.0-20221122212121-6b5c0a4cb7fd/go.mod h1:M5qHK+eWfAv8VR/265dIuEpL3fNfeC21tXXp9itM24A=
-github.com/grafeas/grafeas v0.2.2-0.20220620154915-0ec8596e37d3 h1:BAQN5jp+hNV941v69nz7JUCwjFNLLKbnG360RBq7ejg=
-github.com/grafeas/grafeas v0.2.2-0.20220620154915-0ec8596e37d3/go.mod h1:OnUgIw2/IKCbHPCe5dSBzsA/sKaZaZtGd/aCNI3T0kw=
+github.com/grafeas/grafeas v0.2.2 h1:dhn3M/RkBVrEP+gCowny1qoG1Opfa09SwPL1BGT6k0U=
+github.com/grafeas/grafeas v0.2.2/go.mod h1:O+UvNYn4LhdKR59XrxRDWwr2bbheR1KRRNdD8mJpxs4=
 github.com/gregjones/httpcache v0.0.0-20180305231024-9cad4c3443a7/go.mod h1:FecbI9+v66THATjSRHfNgh1IVFe/9kFxbXtjV0ctIMA=
 github.com/grpc-ecosystem/go-grpc-middleware v1.0.0/go.mod h1:FiyG127CGDf3tlThmgyCl78X/SZQqEOJBCDaAfeWzPs=
 github.com/grpc-ecosystem/go-grpc-middleware v1.0.1-0.20190118093823-f849b5445de4/go.mod h1:FiyG127CGDf3tlThmgyCl78X/SZQqEOJBCDaAfeWzPs=
