@@ -1364,8 +1364,8 @@ github.com/sashamelentyev/usestdlibvars/pkg/analyzer/internal/mapping
 ## explicit
 github.com/sassoftware/relic/lib/pkcs7
 github.com/sassoftware/relic/lib/x509tools
-# github.com/secure-systems-lab/go-securesystemslib v0.5.0
-## explicit; go 1.17
+# github.com/secure-systems-lab/go-securesystemslib v0.6.0
+## explicit; go 1.20
 github.com/secure-systems-lab/go-securesystemslib/cjson
 github.com/secure-systems-lab/go-securesystemslib/dsse
 # github.com/securego/gosec/v2 v2.15.0
