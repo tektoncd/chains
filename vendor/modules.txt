@@ -139,7 +139,7 @@ github.com/ProtonMail/go-crypto/openpgp/internal/ecc
 github.com/ProtonMail/go-crypto/openpgp/internal/encoding
 github.com/ProtonMail/go-crypto/openpgp/packet
 github.com/ProtonMail/go-crypto/openpgp/s2k
-# github.com/Shopify/sarama v1.37.2
+# github.com/Shopify/sarama v1.38.1
 ## explicit; go 1.17
 github.com/Shopify/sarama
 # github.com/ThalesIgnite/crypto11 v1.2.5
@@ -511,8 +511,8 @@ github.com/docker/docker-credential-helpers/credentials
 # github.com/eapache/go-resiliency v1.3.0
 ## explicit; go 1.13
 github.com/eapache/go-resiliency/breaker
-# github.com/eapache/go-xerial-snappy v0.0.0-20180814174437-776d5712da21
-## explicit
+# github.com/eapache/go-xerial-snappy v0.0.0-20230111030713-bf00bc1b83b6
+## explicit; go 1.17
 github.com/eapache/go-xerial-snappy
 # github.com/eapache/queue v1.1.0
 ## explicit
@@ -1899,7 +1899,7 @@ gocloud.dev/pubsub/mempubsub
 # gocloud.dev/docstore/mongodocstore v0.29.0
 ## explicit; go 1.12
 gocloud.dev/docstore/mongodocstore
-# gocloud.dev/pubsub/kafkapubsub v0.28.0
+# gocloud.dev/pubsub/kafkapubsub v0.29.0
 ## explicit; go 1.12
 gocloud.dev/pubsub/kafkapubsub
 # golang.org/x/crypto v0.8.0

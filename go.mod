@@ -28,7 +28,7 @@ require (
 	go.uber.org/zap v1.24.0
 	gocloud.dev v0.29.0
 	gocloud.dev/docstore/mongodocstore v0.29.0
-	gocloud.dev/pubsub/kafkapubsub v0.28.0
+	gocloud.dev/pubsub/kafkapubsub v0.29.0
 	golang.org/x/crypto v0.8.0
 	google.golang.org/grpc v1.54.0
 	google.golang.org/protobuf v1.30.0
@@ -73,7 +73,7 @@ require (
 	github.com/Microsoft/go-winio v0.6.0 // indirect
 	github.com/OpenPeeDeeP/depguard v1.1.1 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20230217124315-7d5c6f04bbb8 // indirect
-	github.com/Shopify/sarama v1.37.2 // indirect
+	github.com/Shopify/sarama v1.38.1 // indirect
 	github.com/ThalesIgnite/crypto11 v1.2.5 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alibabacloud-go/alibabacloud-gateway-spi v0.0.4 // indirect
@@ -146,7 +146,7 @@ require (
 	github.com/docker/docker v23.0.3+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.7.0 // indirect
 	github.com/eapache/go-resiliency v1.3.0 // indirect
-	github.com/eapache/go-xerial-snappy v0.0.0-20180814174437-776d5712da21 // indirect
+	github.com/eapache/go-xerial-snappy v0.0.0-20230111030713-bf00bc1b83b6 // indirect
 	github.com/eapache/queue v1.1.0 // indirect
 	github.com/emicklei/go-restful/v3 v3.9.0 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
