@@ -830,8 +830,8 @@ github.com/google/go-containerregistry/pkg/v1/types
 # github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20221030203717-1711cefd7eec
 ## explicit; go 1.17
 github.com/google/go-containerregistry/pkg/authn/k8schain
-# github.com/google/go-containerregistry/pkg/authn/kubernetes v0.0.0-20221017135236-9b4fdd506cdd
-## explicit; go 1.17
+# github.com/google/go-containerregistry/pkg/authn/kubernetes v0.0.0-20230208142019-eb7d746c941e
+## explicit; go 1.18
 github.com/google/go-containerregistry/pkg/authn/kubernetes
 # github.com/google/go-github/v50 v50.2.0
 ## explicit; go 1.17
