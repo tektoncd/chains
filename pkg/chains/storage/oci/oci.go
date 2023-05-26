@@ -60,6 +60,7 @@ func NewStorageBackend(ctx context.Context, client kubernetes.Interface, cfg con
 					Namespace:          obj.GetNamespace(),
 					ServiceAccountName: obj.GetServiceAccountName(),
 					ImagePullSecrets:   obj.GetPullSecrets(),
+					UseMountSecrets:    true,
 				})
 			if err != nil {
 				return nil, err
