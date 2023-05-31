@@ -16,7 +16,7 @@ This doc will cover how to set this up!
 
 ## Authenticating to an OCI Registry
 
-To push to an OCI registry, the Chains controller will look for credentials in two places. The first place is in the pod executing your Task and the second place is in the service account configured to run your Task. 
+To push to an OCI registry, the Chains controller will look for credentials in two places. The first place is in the pod executing your Task and the second place is in the service account configured to run your Task.
 
 ### First we'll cover creating the credentials.
 
@@ -101,10 +101,14 @@ Finally, give the service account access to the secret above:
 
 ```shell
 kubectl patch serviceaccount $SERVICE_ACCOUNT_NAME \
-  -p "{\"imagePullSecrets\": [{\"name\": \"registry-credentials\"}]}" -n $NAMESPACE
+  -p "{\"secrets\": [{\"name\": \"registry-credentials\"}]}" -n $NAMESPACE
 ```
 
 Now, Chains has push permissions for any TaskRuns running under the service account `$SERVICE_ACCOUNT_NAME`.
+
+The secrets in the `imagePullSecrets` attribute of the ServiceAccount are also taken into account.
+However, other Tekton components may not do so. The `secrets` attribute is the
+[recommended](https://tekton.dev/docs/pipelines/auth/) approach.
 
 ## Authenticating to Fulcio for Keyless signing
 
@@ -171,7 +175,7 @@ Last but not least, thanks to [spiffe-csi](https://github.com/spiffe/spiffe-csi)
           - name: spiffe-workload-api
             mountPath: /spiffe-workload-api
             readOnly: true
-     
+
      ...
       volumes:
         - name: spiffe-workload-api
