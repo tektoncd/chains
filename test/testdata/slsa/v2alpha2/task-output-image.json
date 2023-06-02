@@ -1,0 +1,74 @@
+{
+    "_type": "https://in-toto.io/Statement/v0.1",
+    "predicateType": "https://slsa.dev/provenance/v1",
+    "subject": [
+        {
+            "name": "gcr.io/foo/bar",
+            "digest": {
+                "sha256": "05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5"
+            }
+        }
+    ],
+    "predicate": {
+	"buildDefinition": {
+            "buildType": "https://tekton.dev/chains/v2/slsa",
+	    "externalParameters": {
+                "runSpec": {
+                    "serviceAccountName": "default",
+                    "taskSpec": {
+                        "steps": [
+                            {
+                                "name": "create-image",
+                                "image": "busybox",
+                                "resources": {},
+                                "script": "#!/usr/bin/env sh\necho 'gcr.io/foo/bar' | tee $(results.IMAGE_URL.path)\necho 'sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5' | tee $(results.IMAGE_DIGEST.path)"
+                            }
+                        ],
+			"results": [
+                            {
+                                "name": "IMAGE_URL",
+                                "type": "string"
+                            },{
+                                "name": "IMAGE_DIGEST",
+                                "type": "string"
+                            }
+			]
+        	    },
+		    "timeout": "1h0m0s"
+		}
+	    },
+	    "resolvedDependencies": [
+	        {{range .URIDigest}}
+	        {
+	    	"uri": "{{.URI}}",
+	    	"digest": {
+	    	    "sha256": "{{.Digest}}"
+	    	}
+	        }
+	        {{end}}
+            ]
+	},
+        "runDetails": {
+	    "builder": {
+                "id": "https://tekton.dev/chains/v2"
+	    },
+	    "metadata": {
+                "invocationID": "{{.UID}}",
+                "startedOn": "{{index .BuildStartTimes 0}}",
+                "finishedOn": "{{index .BuildFinishedTimes 0}}"
+	    },
+	    "byproducts": [
+                {
+                    "name": "taskRunResults/IMAGE_DIGEST",
+		    "mediaType": "application/json",
+		    "content": "InNoYTI1NjowNWY5NWIyNmVkMTA2NjhiNzE4M2MxZTJkYTk4NjEwZTkxMzcyZmE5ZjUxMDA0NmQ0Y2U1ODEyYWRkYWQ4NmI1XG4i"
+                },
+                {
+                    "name": "taskRunResults/IMAGE_URL",
+		    "mediaType": "application/json",
+                    "content": "Imdjci5pby9mb28vYmFyXG4i"
+                }
+	    ]
+	}
+    }
+}

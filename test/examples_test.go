@@ -41,10 +41,10 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
+	slsa1 "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
 
 	"github.com/ghodss/yaml"
-	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/test/tekton"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -64,6 +64,7 @@ type TestExample struct {
 	payloadKey        string
 	signatureKey      string
 	outputLocation    string
+	predicate         string
 }
 
 // TestExamples copies the format in the tektoncd/pipelines repo
@@ -80,6 +81,19 @@ func TestExamples(t *testing.T) {
 			payloadKey:        "chains.tekton.dev/payload-taskrun-%s",
 			signatureKey:      "chains.tekton.dev/signature-taskrun-%s",
 			outputLocation:    "slsa/v1",
+			predicate:         "slsav0.1",
+		},
+		{
+			name: "pipelinerun-examples-slsa-v1",
+			cm: map[string]string{
+				"artifacts.pipelinerun.format":  "slsa/v1",
+				"artifacts.pipelinerun.storage": "tekton",
+			},
+			getExampleObjects: getPipelineRunExamples,
+			payloadKey:        "chains.tekton.dev/payload-pipelinerun-%s",
+			signatureKey:      "chains.tekton.dev/signature-pipelinerun-%s",
+			outputLocation:    "slsa/v1",
+			predicate:         "slsav0.1",
 		},
 		{
 			name: "taskrun-examples-slsa-v2",
@@ -91,17 +105,31 @@ func TestExamples(t *testing.T) {
 			payloadKey:        "chains.tekton.dev/payload-taskrun-%s",
 			signatureKey:      "chains.tekton.dev/signature-taskrun-%s",
 			outputLocation:    "slsa/v2",
+			predicate:         "slsav0.2",
 		},
 		{
-			name: "pipelinerun-examples",
+			name: "taskrun-examples-slsa-v2alpha2",
 			cm: map[string]string{
-				"artifacts.pipelinerun.format":  "slsa/v1",
-				"artifacts.pipelinerun.storage": "tekton",
+				"artifacts.taskrun.format": "slsa/v2alpha2",
+				"artifacts.oci.storage":    "tekton",
+			},
+			getExampleObjects: getTaskRunExamples,
+			payloadKey:        "chains.tekton.dev/payload-taskrun-%s",
+			signatureKey:      "chains.tekton.dev/signature-taskrun-%s",
+			outputLocation:    "slsa/v2alpha2",
+			predicate:         "slsav1.0",
+		},
+		{
+			name: "pipelinerun-examples-slsa-v2alpha2",
+			cm: map[string]string{
+				"artifacts.pipelinerun.format": "slsa/v2alpha2",
+				"artifacts.oci.storage":        "tekton",
 			},
 			getExampleObjects: getPipelineRunExamples,
 			payloadKey:        "chains.tekton.dev/payload-pipelinerun-%s",
 			signatureKey:      "chains.tekton.dev/signature-pipelinerun-%s",
-			outputLocation:    "slsa/v1",
+			outputLocation:    "slsa/v2alpha2",
+			predicate:         "slsav1.0",
 		},
 	}
 
@@ -141,22 +169,41 @@ func runInTotoFormatterTests(ctx context.Context, t *testing.T, ns string, c *cl
 			signature, _ := base64.StdEncoding.DecodeString(completed.GetAnnotations()[fmt.Sprintf(test.signatureKey, completed.GetUID())])
 			t.Logf("Got attestation: %s", string(payload))
 
-			// make sure provenance is correct
-			var gotProvenance intoto.ProvenanceStatement
-			if err := json.Unmarshal(payload, &gotProvenance); err != nil {
-				t.Fatal(err)
-			}
-			expected := expectedProvenance(t, ctx, path, completed, test.outputLocation, ns, c)
+			if test.predicate == "slsav1.0" {
+				// make sure provenance is correct
+				var gotProvenance intoto.ProvenanceStatementSLSA1
+				if err := json.Unmarshal(payload, &gotProvenance); err != nil {
+					t.Fatal(err)
+				}
+				expected := expectedProvenanceSLSA1(t, ctx, path, completed, test.outputLocation, ns, c)
 
-			opts := []cmp.Option{
-				// Annotations and labels may contain release specific information. Ignore
-				// those to avoid brittle tests.
-				cmpopts.IgnoreFields(slsa.ProvenanceInvocation{}, "Environment"),
-				cmpopts.IgnoreMapEntries(ignoreEnvironmentAnnotationsAndLabels),
-			}
+				opts := []cmp.Option{
+					// Annotations and labels may contain release specific information. Ignore
+					// those to avoid brittle tests.
+					cmpopts.IgnoreFields(slsa1.ProvenanceBuildDefinition{}, "InternalParameters"),
+					cmpopts.IgnoreMapEntries(ignoreEnvironmentAnnotationsAndLabels),
+				}
 
-			if diff := cmp.Diff(expected, gotProvenance, opts...); diff != "" {
-				t.Errorf("provenance dont match: -want +got: %s", diff)
+				if diff := cmp.Diff(expected, gotProvenance, opts...); diff != "" {
+					t.Errorf("provenance dont match: -want +got: %s", diff)
+				}
+			} else {
+				var gotProvenance intoto.ProvenanceStatement
+				if err := json.Unmarshal(payload, &gotProvenance); err != nil {
+					t.Fatal(err)
+				}
+				expected := expectedProvenance(t, ctx, path, completed, test.outputLocation, ns, c)
+
+				opts := []cmp.Option{
+					// Annotations and labels may contain release specific information. Ignore
+					// those to avoid brittle tests.
+					cmpopts.IgnoreFields(slsa.ProvenanceInvocation{}, "Environment"),
+					cmpopts.IgnoreMapEntries(ignoreEnvironmentAnnotationsAndLabels),
+				}
+
+				if diff := cmp.Diff(expected, gotProvenance, opts...); diff != "" {
+					t.Errorf("provenance dont match: -want +got: %s", diff)
+				}
 			}
 
 			// verify signature
@@ -203,12 +250,28 @@ func (v *verifier) Public() crypto.PublicKey {
 	return v.pub
 }
 
+func expectedProvenanceSLSA1(t *testing.T, ctx context.Context, example string, obj objects.TektonObject, outputLocation string, ns string, c *clients) intoto.ProvenanceStatementSLSA1 {
+	switch obj.(type) {
+	case *objects.TaskRunObject:
+		f := expectedTaskRunProvenanceFormat(t, example, obj, outputLocation)
+		return expectedAttestationSLSA1(t, example, f, outputLocation)
+	case *objects.PipelineRunObject:
+		f := expectedPipelineRunProvenanceFormat(t, ctx, example, obj, outputLocation, ns, c)
+		return expectedAttestationSLSA1(t, example, f, outputLocation)
+	default:
+		t.Error("Unexpected type trying to get provenance")
+	}
+	return intoto.ProvenanceStatementSLSA1{}
+}
+
 func expectedProvenance(t *testing.T, ctx context.Context, example string, obj objects.TektonObject, outputLocation string, ns string, c *clients) intoto.ProvenanceStatement {
 	switch obj.(type) {
 	case *objects.TaskRunObject:
-		return expectedTaskRunProvenance(t, example, obj, outputLocation)
+		f := expectedTaskRunProvenanceFormat(t, example, obj, outputLocation)
+		return expectedAttestation(t, example, f, outputLocation)
 	case *objects.PipelineRunObject:
-		return expectedPipelineRunProvenance(t, ctx, example, obj, outputLocation, ns, c)
+		f := expectedPipelineRunProvenanceFormat(t, ctx, example, obj, outputLocation, ns, c)
+		return expectedAttestation(t, example, f, outputLocation)
 	default:
 		t.Error("Unexpected type trying to get provenance")
 	}
@@ -224,6 +287,7 @@ type Format struct {
 	Entrypoint         string
 	PipelineStartedOn  string
 	PipelineFinishedOn string
+	UID                string
 	BuildStartTimes    []string
 	BuildFinishedTimes []string
 	ContainerNames     []string
@@ -231,7 +295,7 @@ type Format struct {
 	URIDigest          []URIDigestPair
 }
 
-func expectedTaskRunProvenance(t *testing.T, example string, obj objects.TektonObject, outputLocation string) intoto.ProvenanceStatement {
+func expectedTaskRunProvenanceFormat(t *testing.T, example string, obj objects.TektonObject, outputLocation string) Format {
 	tr := obj.GetObject().(*v1beta1.TaskRun)
 
 	name := tr.Name
@@ -247,7 +311,7 @@ func expectedTaskRunProvenance(t *testing.T, example string, obj objects.TektonO
 		stepNames = append(stepNames, step.Name)
 		images = append(images, step.ImageID)
 		// append uri and digest that havent already been appended
-		uri := artifacts.OCIScheme + strings.Split(step.ImageID, "@")[0]
+		uri := fmt.Sprintf("oci://%s", strings.Split(step.ImageID, "@")[0])
 		digest := strings.Split(step.ImageID, ":")[1]
 		uriDigest := fmt.Sprintf("%s %s", uri, digest)
 		if _, ok := uriDigestSet[uriDigest]; !ok {
@@ -256,8 +320,9 @@ func expectedTaskRunProvenance(t *testing.T, example string, obj objects.TektonO
 		}
 	}
 
-	f := Format{
+	return Format{
 		Entrypoint:         name,
+		UID:                string(tr.ObjectMeta.UID),
 		BuildStartTimes:    []string{tr.Status.StartTime.Time.UTC().Format(time.RFC3339)},
 		BuildFinishedTimes: []string{tr.Status.CompletionTime.Time.UTC().Format(time.RFC3339)},
 		ContainerNames:     stepNames,
@@ -265,10 +330,9 @@ func expectedTaskRunProvenance(t *testing.T, example string, obj objects.TektonO
 		URIDigest:          uridigest,
 	}
 
-	return readExpectedAttestation(t, example, f, outputLocation)
 }
 
-func expectedPipelineRunProvenance(t *testing.T, ctx context.Context, example string, obj objects.TektonObject, outputLocation string, ns string, c *clients) intoto.ProvenanceStatement {
+func expectedPipelineRunProvenanceFormat(t *testing.T, ctx context.Context, example string, obj objects.TektonObject, outputLocation string, ns string, c *clients) Format {
 	pr := obj.GetObject().(*v1beta1.PipelineRun)
 
 	buildStartTimes := []string{}
@@ -276,7 +340,6 @@ func expectedPipelineRunProvenance(t *testing.T, ctx context.Context, example st
 	var uridigest []URIDigestPair
 	uriDigestSet := make(map[string]bool)
 
-	// TODO: Load TaskRun data from ChildReferences.
 	for _, cr := range pr.Status.ChildReferences {
 		taskRun, err := c.PipelineClient.TektonV1beta1().TaskRuns(ns).Get(ctx, cr.Name, metav1.GetOptions{})
 		if err != nil {
@@ -286,7 +349,7 @@ func expectedPipelineRunProvenance(t *testing.T, ctx context.Context, example st
 		buildFinishedTimes = append(buildFinishedTimes, taskRun.Status.CompletionTime.Time.UTC().Format(time.RFC3339))
 		for _, step := range taskRun.Status.Steps {
 			// append uri and digest that havent already been appended
-			uri := artifacts.OCIScheme + strings.Split(step.ImageID, "@")[0]
+			uri := fmt.Sprintf("oci://%s", strings.Split(step.ImageID, "@")[0])
 			digest := strings.Split(step.ImageID, ":")[1]
 			uriDigest := fmt.Sprintf("%s %s", uri, digest)
 			if _, ok := uriDigestSet[uriDigest]; !ok {
@@ -296,7 +359,7 @@ func expectedPipelineRunProvenance(t *testing.T, ctx context.Context, example st
 		}
 		for _, sidecar := range taskRun.Status.Sidecars {
 			// append uri and digest that havent already been appended
-			uri := artifacts.OCIScheme + strings.Split(sidecar.ImageID, "@")[0]
+			uri := fmt.Sprintf("oci://%s", strings.Split(sidecar.ImageID, "@")[0])
 			digest := strings.Split(sidecar.ImageID, ":")[1]
 			uriDigest := fmt.Sprintf("%s %s", uri, digest)
 			if _, ok := uriDigestSet[uriDigest]; !ok {
@@ -306,18 +369,27 @@ func expectedPipelineRunProvenance(t *testing.T, ctx context.Context, example st
 		}
 	}
 
-	f := Format{
+	return Format{
+		UID:                string(pr.ObjectMeta.UID),
 		PipelineStartedOn:  pr.Status.StartTime.Time.UTC().Format(time.RFC3339),
 		PipelineFinishedOn: pr.Status.CompletionTime.Time.UTC().Format(time.RFC3339),
 		BuildStartTimes:    buildStartTimes,
 		BuildFinishedTimes: buildFinishedTimes,
 		URIDigest:          uridigest,
 	}
-
-	return readExpectedAttestation(t, example, f, outputLocation)
 }
 
-func readExpectedAttestation(t *testing.T, example string, f Format, outputLocation string) intoto.ProvenanceStatement {
+func expectedAttestationSLSA1(t *testing.T, example string, f Format, outputLocation string) intoto.ProvenanceStatementSLSA1 {
+	b := readExpectedAttestationBytes(t, example, f, outputLocation)
+	return readExpectedAttestationSLSA1(t, b)
+}
+
+func expectedAttestation(t *testing.T, example string, f Format, outputLocation string) intoto.ProvenanceStatement {
+	b := readExpectedAttestationBytes(t, example, f, outputLocation)
+	return readExpectedAttestation(t, b)
+}
+
+func readExpectedAttestationBytes(t *testing.T, example string, f Format, outputLocation string) *bytes.Buffer {
 	path := filepath.Join("testdata", outputLocation, strings.Replace(filepath.Base(example), ".yaml", ".json", 1))
 	t.Logf("Reading expected provenance from %s", path)
 	contents, err := ioutil.ReadFile(path)
@@ -334,6 +406,18 @@ func readExpectedAttestation(t *testing.T, example string, f Format, outputLocat
 		t.Fatal(err)
 	}
 	t.Logf("Expected attestation: %s", b.String())
+	return b
+}
+
+func readExpectedAttestationSLSA1(t *testing.T, b *bytes.Buffer) intoto.ProvenanceStatementSLSA1 {
+	var expected intoto.ProvenanceStatementSLSA1
+	if err := json.Unmarshal(b.Bytes(), &expected); err != nil {
+		t.Fatal(err)
+	}
+	return expected
+}
+
+func readExpectedAttestation(t *testing.T, b *bytes.Buffer) intoto.ProvenanceStatement {
 	var expected intoto.ProvenanceStatement
 	if err := json.Unmarshal(b.Bytes(), &expected); err != nil {
 		t.Fatal(err)
