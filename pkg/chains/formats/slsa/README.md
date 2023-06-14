@@ -13,3 +13,4 @@ Shown below is the mapping between Tekton chains proveance and SLSA predicate.
 |:------------------------------------------|---------------:|------:|
 |**slsa/v1**| **slsa v0.2**  | same as currently supported `in-toto` format|
 |**slsa/v2alpha1**| **slsa v0.2**  | contains complete build instructions as in [TEP0122](https://github.com/tektoncd/community/pull/820). This is still a WIP and currently only available for taskrun level provenance. |
+|**slsa/v2alpha2**| **slsa v1.0**  | contains SLSAv1.0 predicate. The parameters are complete. Support still needs to be added for surfacing builder version and builder dependencies information.|
