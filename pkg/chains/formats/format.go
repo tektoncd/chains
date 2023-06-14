@@ -37,8 +37,13 @@ const (
 )
 
 var (
-	IntotoAttestationSet = map[config.PayloadType]struct{}{PayloadTypeInTotoIte6: {}, PayloadTypeSlsav1: {}}
-	payloaderMap         = map[config.PayloadType]PayloaderInit{}
+	IntotoAttestationSet = map[config.PayloadType]struct{}{
+		PayloadTypeInTotoIte6:   {},
+		PayloadTypeSlsav1:       {},
+		PayloadTypeSlsav2:       {},
+		PayloadTypeSlsav2alpha2: {},
+	}
+	payloaderMap = map[config.PayloadType]PayloaderInit{}
 )
 
 // PayloaderInit initializes a new Payloader instance for the given config.
