@@ -14,24 +14,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v2
+package v2alpha1
 
 import (
 	"context"
 	"fmt"
 
 	"github.com/tektoncd/chains/pkg/chains/formats"
-	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v2/taskrun"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha1/taskrun"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
 )
 
 const (
-	PayloadTypeSlsav2 = formats.PayloadTypeSlsav2
+	PayloadTypeSlsav2alpha1 = formats.PayloadTypeSlsav2alpha1
 )
 
 func init() {
-	formats.RegisterPayloader(PayloadTypeSlsav2, NewFormatter)
+	formats.RegisterPayloader(PayloadTypeSlsav2alpha1, NewFormatter)
 }
 
 type Slsa struct {
@@ -58,5 +58,5 @@ func (s *Slsa) CreatePayload(ctx context.Context, obj interface{}) (interface{},
 }
 
 func (s *Slsa) Type() config.PayloadType {
-	return formats.PayloadTypeSlsav2
+	return formats.PayloadTypeSlsav2alpha1
 }
