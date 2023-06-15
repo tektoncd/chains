@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v2
+package v2alpha1
 
 import (
 	"testing"
@@ -22,7 +22,7 @@ import (
 
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/formats"
-	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v2/taskrun"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha1/taskrun"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/chains/pkg/internal/objectloader"
@@ -416,7 +416,7 @@ func TestCreatePayloadError(t *testing.T) {
 
 func TestCorrectPayloadType(t *testing.T) {
 	var i Slsa
-	if i.Type() != formats.PayloadTypeSlsav2 {
+	if i.Type() != formats.PayloadTypeSlsav2alpha1 {
 		t.Errorf("Invalid type returned: %s", i.Type())
 	}
 }
