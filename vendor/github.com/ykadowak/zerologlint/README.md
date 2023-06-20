@@ -1,8 +1,8 @@
 # zerologlint
 ![build](https://github.com/ykadowak/zerologlint/actions/workflows/testing.yaml/badge.svg)
 
-`zerologlint` is a linter for [zerolog](https://github.com/rs/zerolog) that can be run with `go vet`.
-It detects the wrong usage of `zerolog` that a user forgets to dispatch `zerolog.Event` with `Send` or `Msg` function, in which case nothing will be logged. For more detailed explanations of the cases it detects, see [Example](#Example).
+`zerologlint` is a linter for [zerolog](https://github.com/rs/zerolog) that can be run with `go vet` or through [golangci-lint](https://golangci-lint.run/) since `v1.53.0`.
+It detects the wrong usage of `zerolog` that a user forgets to dispatch `zerolog.Event` with `Send` or `Msg` like functions, in which case nothing will be logged. For more detailed explanations of the cases it detects, see [Examples](#Example).
 
 ## Install
 
@@ -15,7 +15,9 @@ go install github.com/ykadowak/zerologlint/cmd/zerologlint@latest
 go vet -vettool=`which zerologlint` ./...
 ```
 
-## Example
+or you can also use it with [golangci-lint](https://golangci-lint.run/) since `v1.53.0`.
+
+## Examples
 ```go
 package main
 
@@ -42,5 +44,8 @@ func main() {
         logger = log.Error() // "must be dispatched by Msg or Send method"
     }
     logger.Str("foo", "bar")
+
+    // 4. Deferred case
+    defer log.Info() // "must be dispatched by Msg or Send method"
 }
 ```
