@@ -20,14 +20,7 @@ import (
 	"golang.org/x/tools/go/ast/inspector"
 )
 
-const (
-	pwd = "./"
-)
-
-func init() {
-	//TODO allow build tags
-	build.Default.UseAllFiles = true
-}
+const pwd = "./"
 
 func NakedReturnAnalyzer(defaultLines uint) *analysis.Analyzer {
 	nakedRet := &NakedReturnRunner{}
@@ -149,7 +142,7 @@ func parseInput(args []string, fset *token.FileSet) ([]*ast.File, error) {
 				}
 			} else {
 
-				//TODO clean this up a bit
+				// TODO clean this up a bit
 				imPaths := importPaths([]string{arg})
 				for _, importPath := range imPaths {
 					pkg, err := build.Import(importPath, ".", 0)

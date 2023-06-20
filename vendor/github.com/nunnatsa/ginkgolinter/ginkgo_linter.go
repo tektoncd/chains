@@ -335,7 +335,7 @@ func checkAsyncAssertion(pass *analysis.Pass, config types.Config, expr *ast.Cal
 				t = pass.TypesInfo.TypeOf(fun)
 				switch t.(type) {
 				// allow functions that return function or channel.
-				case *gotypes.Signature, *gotypes.Chan:
+				case *gotypes.Signature, *gotypes.Chan, *gotypes.Pointer:
 				default:
 					actualExpr = handler.GetActualExpr(expr.Fun.(*ast.SelectorExpr))
 
