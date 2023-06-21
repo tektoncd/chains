@@ -1023,7 +1023,7 @@ github.com/jcmturner/dnsutils/v2
 ## explicit; go 1.7
 github.com/jcmturner/gofork/encoding/asn1
 github.com/jcmturner/gofork/x/crypto/pbkdf2
-# github.com/jcmturner/gokrb5/v8 v8.4.3
+# github.com/jcmturner/gokrb5/v8 v8.4.4
 ## explicit; go 1.16
 github.com/jcmturner/gokrb5/v8/asn1tools
 github.com/jcmturner/gokrb5/v8/client
@@ -1279,7 +1279,7 @@ github.com/pelletier/go-toml/v2/internal/characters
 github.com/pelletier/go-toml/v2/internal/danger
 github.com/pelletier/go-toml/v2/internal/tracker
 github.com/pelletier/go-toml/v2/unstable
-# github.com/pierrec/lz4/v4 v4.1.17
+# github.com/pierrec/lz4/v4 v4.1.18
 ## explicit; go 1.14
 github.com/pierrec/lz4/v4
 github.com/pierrec/lz4/v4/internal/lz4block
@@ -1925,7 +1925,7 @@ gocloud.dev/pubsub/mempubsub
 # gocloud.dev/docstore/mongodocstore v0.30.0
 ## explicit; go 1.12
 gocloud.dev/docstore/mongodocstore
-# gocloud.dev/pubsub/kafkapubsub v0.29.0
+# gocloud.dev/pubsub/kafkapubsub v0.30.0
 ## explicit; go 1.12
 gocloud.dev/pubsub/kafkapubsub
 # golang.org/x/crypto v0.10.0

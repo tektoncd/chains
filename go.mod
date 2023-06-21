@@ -28,7 +28,7 @@ require (
 	go.uber.org/zap v1.24.0
 	gocloud.dev v0.30.0
 	gocloud.dev/docstore/mongodocstore v0.30.0
-	gocloud.dev/pubsub/kafkapubsub v0.29.0
+	gocloud.dev/pubsub/kafkapubsub v0.30.0
 	golang.org/x/crypto v0.10.0
 	google.golang.org/grpc v1.56.0
 	google.golang.org/protobuf v1.30.0
@@ -245,7 +245,7 @@ require (
 	github.com/jcmturner/aescts/v2 v2.0.0 // indirect
 	github.com/jcmturner/dnsutils/v2 v2.0.0 // indirect
 	github.com/jcmturner/gofork v1.7.6 // indirect
-	github.com/jcmturner/gokrb5/v8 v8.4.3 // indirect
+	github.com/jcmturner/gokrb5/v8 v8.4.4 // indirect
 	github.com/jcmturner/rpc/v2 v2.0.3 // indirect
 	github.com/jedisct1/go-minisign v0.0.0-20211028175153-1c139d1cc84b // indirect
 	github.com/jellydator/ttlcache/v3 v3.0.1 // indirect
@@ -303,7 +303,7 @@ require (
 	github.com/openzipkin/zipkin-go v0.3.0 // indirect
 	github.com/pborman/uuid v1.2.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.6 // indirect
-	github.com/pierrec/lz4/v4 v4.1.17 // indirect
+	github.com/pierrec/lz4/v4 v4.1.18 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/polyfloyd/go-errorlint v1.4.2 // indirect
 	github.com/prometheus/client_golang v1.15.1 // indirect
