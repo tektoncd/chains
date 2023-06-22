@@ -87,38 +87,43 @@ spec:
     spec:
       serviceAccountName: tekton-chains-controller
       containers:
-      - name: tekton-chains-controller
-        image: ko://github.com/tektoncd/chains/cmd/controller
-        volumeMounts:
-        - name: signing-secrets
-          mountPath: /etc/signing-secrets
-        - name: oidc-info
-          mountPath: /var/run/sigstore/cosign
-        env:
-        - name: SYSTEM_NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
-        - name: METRICS_DOMAIN
-          value: tekton.dev/chains
-        securityContext:
-          allowPrivilegeEscalation: false
-          # User 65532 is the distroless nonroot user ID
-          runAsUser: 65532
-          runAsGroup: 65532
+        - name: tekton-chains-controller
+          image: ko://github.com/tektoncd/chains/cmd/controller
+          volumeMounts:
+            - name: signing-secrets
+              mountPath: /etc/signing-secrets
+            - name: oidc-info
+              mountPath: /var/run/sigstore/cosign
+          env:
+            - name: SYSTEM_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: METRICS_DOMAIN
+              value: tekton.dev/chains
+            - name: CONFIG_OBSERVABILITY_NAME
+              value: tekton-chains-config-observability
+          ports:
+            - name: metrics
+              containerPort: 9090
+          securityContext:
+            allowPrivilegeEscalation: false
+            # User 65532 is the distroless nonroot user ID
+            runAsUser: 65532
+            runAsGroup: 65532
       volumes:
-      - name: signing-secrets
-        secret:
-          secretName: signing-secrets
-      - name: oidc-info
-        projected:
-          sources:
-            # The "public good" instance supports tokens from EKS and GKE by default.
-            # The fulcio URL can also be redirected to an instance that has been
-            # configured to accept other issuers as well.  Removing this volume
-            # completely will direct chains to use alternate ambient credentials
-            # (e.g. GKE workload identity, SPIFFE)
-            - serviceAccountToken:
-                path: oidc-token
-                expirationSeconds: 600 # Use as short-lived as possible.
-                audience: sigstore
+        - name: signing-secrets
+          secret:
+            secretName: signing-secrets
+        - name: oidc-info
+          projected:
+            sources:
+              # The "public good" instance supports tokens from EKS and GKE by default.
+              # The fulcio URL can also be redirected to an instance that has been
+              # configured to accept other issuers as well.  Removing this volume
+              # completely will direct chains to use alternate ambient credentials
+              # (e.g. GKE workload identity, SPIFFE)
+              - serviceAccountToken:
+                  path: oidc-token
+                  expirationSeconds: 600 # Use as short-lived as possible.
+                  audience: sigstore
