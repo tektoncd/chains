@@ -27,8 +27,6 @@ import (
 
 const (
 	pipelineRunResults = "pipelineRunResults/%s"
-	// JsonMediaType is the media type of json encoded content used in resource descriptors
-	JsonMediaType = "application/json"
 )
 
 // GenerateAttestation generates a provenance statement with SLSA v1.0 predicate for a pipeline run.
@@ -109,7 +107,7 @@ func byproducts(pro *objects.PipelineRunObject) ([]slsa.ResourceDescriptor, erro
 		bp := slsa.ResourceDescriptor{
 			Name:      fmt.Sprintf(pipelineRunResults, key.Name),
 			Content:   content,
-			MediaType: JsonMediaType,
+			MediaType: resolveddependencies.JsonMediaType,
 		}
 		byProd = append(byProd, bp)
 	}

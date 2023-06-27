@@ -19,6 +19,7 @@ package resolveddependencies
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	v1 "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
@@ -39,6 +40,8 @@ const (
 	inputResultName = "inputs/result"
 	// pipelineResourceName is the name of the resolved dependency of pipeline resource.
 	pipelineResourceName = "pipelineResource"
+	// JsonMediaType is the media type of json encoded content used in resource descriptors
+	JsonMediaType = "application/json"
 )
 
 // TaskRun constructs `predicate.resolvedDependencies` section by collecting all the artifacts that influence a taskrun such as source code repo and step&sidecar base images.
@@ -81,6 +84,14 @@ func TaskRun(ctx context.Context, tro *objects.TaskRunObject) ([]v1.ResourceDesc
 	if err != nil {
 		return nil, err
 	}
+	// add on-cluster task
+	rd, err := getLocalTaskRunRef(tro)
+	if err != nil {
+		return nil, err
+	}
+	if rd.Content != nil {
+		resolvedDependencies = append(resolvedDependencies, rd)
+	}
 	return resolvedDependencies, nil
 }
 
@@ -115,6 +126,71 @@ func PipelineRun(ctx context.Context, pro *objects.PipelineRunObject) ([]v1.Reso
 	resolvedDependencies, err = removeDuplicateResolvedDependencies(resolvedDependencies)
 	if err != nil {
 		return nil, err
+	}
+
+	// add on-cluster pipeline and tasks
+	rd, err := getLocalPipelineRunRefs(pro)
+	if err != nil {
+		return nil, err
+	}
+	resolvedDependencies = append(resolvedDependencies, rd...)
+	return resolvedDependencies, nil
+}
+
+// getLocalTaskRunRef adds the spec of on-cluster referenced task used by the taskrun
+func getLocalTaskRunRef(tro *objects.TaskRunObject) (v1.ResourceDescriptor, error) {
+	// resolvedDependencies := []v1.ResourceDescriptor{}
+	tSpec := tro.Status.TaskSpec
+	if tSpec != nil && tro.Spec.TaskRef != nil && tro.Spec.TaskRef.Resolver == "" {
+		content, err := json.Marshal(tSpec)
+		if err != nil {
+			return v1.ResourceDescriptor{}, err
+		}
+		return v1.ResourceDescriptor{
+			Name:      fmt.Sprintf("%s/%s", taskConfigName, tro.Spec.TaskRef.Name),
+			Content:   content,
+			MediaType: JsonMediaType,
+		}, nil
+	}
+	return v1.ResourceDescriptor{}, nil
+}
+
+// getLocalPipelineRunRefs adds the spec of on-cluster referenced pipelines and pipeline tasks used by the pipeline run
+func getLocalPipelineRunRefs(pro *objects.PipelineRunObject) ([]v1.ResourceDescriptor, error) {
+	resolvedDependencies := []v1.ResourceDescriptor{}
+	pSpec := pro.Status.PipelineSpec
+	if pSpec != nil {
+		if pro.Spec.PipelineRef != nil && pro.Spec.PipelineRef.Resolver == "" {
+			content, err := json.Marshal(pSpec)
+			if err != nil {
+				return nil, err
+			}
+			rd := v1.ResourceDescriptor{
+				Name:      fmt.Sprintf("%s/%s", pipelineConfigName, pro.Spec.PipelineRef.Name),
+				Content:   content,
+				MediaType: JsonMediaType,
+			}
+			resolvedDependencies = append(resolvedDependencies, rd)
+		}
+		pipelineTasks := append(pSpec.Tasks, pSpec.Finally...)
+		for _, t := range pipelineTasks {
+			tr := pro.GetTaskRunFromTask(t.Name)
+			tSpec := tr.Status.TaskSpec
+			if tSpec != nil {
+				if tr.Spec.TaskRef != nil && tr.Spec.TaskRef.Resolver == "" {
+					content, err := json.Marshal(tSpec)
+					if err != nil {
+						return nil, err
+					}
+					rd := v1.ResourceDescriptor{
+						Name:      fmt.Sprintf("%s/%s", pipelineTaskConfigName, t.Name),
+						Content:   content,
+						MediaType: JsonMediaType,
+					}
+					resolvedDependencies = append(resolvedDependencies, rd)
+				}
+			}
+		}
 	}
 	return resolvedDependencies, nil
 }

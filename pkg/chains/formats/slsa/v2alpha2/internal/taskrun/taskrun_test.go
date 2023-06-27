@@ -25,8 +25,8 @@ import (
 	"github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
+	resolveddependencies "github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha2/internal/resolved_dependencies"
 
-	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha2/internal/pipelinerun"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/internal/objectloader"
 	"github.com/tektoncd/pipeline/pkg/apis/config"
@@ -188,7 +188,7 @@ func TestByProducts(t *testing.T) {
 		{
 			Name:      "taskRunResults/result-name",
 			Content:   resultBytes,
-			MediaType: pipelinerun.JsonMediaType,
+			MediaType: resolveddependencies.JsonMediaType,
 		},
 	}
 	got, err := byproducts(objects.NewTaskRunObject(tr))
@@ -204,6 +204,10 @@ func TestTaskRunGenerateAttestation(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
 
 	tr, err := objectloader.TaskRunFromFile("../../../testdata/v2alpha2/taskrun1.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tc, err := json.Marshal(tr.Status.TaskSpec)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -262,6 +266,11 @@ func TestTaskRunGenerateAttestation(t *testing.T) {
 						Digest: common.DigestSet{"sha256": "f1a8b8549c179f41e27ff3db0fe1a1793e4b109da46586501a8343637b1d0478"},
 					},
 					{Name: "inputs/result", URI: "git+https://git.test.com.git", Digest: common.DigestSet{"sha1": "taskrun"}},
+					{
+						Name:      "task/build",
+						MediaType: resolveddependencies.JsonMediaType,
+						Content:   tc,
+					},
 				},
 			},
 			RunDetails: slsa.ProvenanceRunDetails{
@@ -277,12 +286,12 @@ func TestTaskRunGenerateAttestation(t *testing.T) {
 					{
 						Name:      "taskRunResults/IMAGE_DIGEST",
 						Content:   resultBytesDigest,
-						MediaType: pipelinerun.JsonMediaType,
+						MediaType: resolveddependencies.JsonMediaType,
 					},
 					{
 						Name:      "taskRunResults/IMAGE_URL",
 						Content:   resultBytesUri,
-						MediaType: pipelinerun.JsonMediaType,
+						MediaType: resolveddependencies.JsonMediaType,
 					},
 				},
 			},

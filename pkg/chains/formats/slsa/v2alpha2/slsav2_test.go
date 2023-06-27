@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/tektoncd/chains/pkg/chains/formats"
-	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha2/internal/pipelinerun"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/chains/pkg/internal/objectloader"
@@ -31,6 +30,7 @@ import (
 	"github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
+	resolveddependencies "github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha2/internal/resolved_dependencies"
 	pipelineConfig "github.com/tektoncd/pipeline/pkg/apis/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	logtesting "knative.dev/pkg/logging/testing"
@@ -99,6 +99,10 @@ func TestTaskRunCreatePayload1(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	tc, err := json.Marshal(tr.Status.TaskSpec)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	resultValue := v1beta1.ParamValue{Type: "string", StringVal: "sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"}
 	resultBytesDigest, err := json.Marshal(resultValue)
@@ -157,6 +161,11 @@ func TestTaskRunCreatePayload1(t *testing.T) {
 						Digest: common.DigestSet{"sha256": "f1a8b8549c179f41e27ff3db0fe1a1793e4b109da46586501a8343637b1d0478"},
 					},
 					{Name: "inputs/result", URI: "git+https://git.test.com.git", Digest: common.DigestSet{"sha1": "taskrun"}},
+					{
+						Name:      "task/build",
+						MediaType: resolveddependencies.JsonMediaType,
+						Content:   tc,
+					},
 				},
 			},
 			RunDetails: slsa.ProvenanceRunDetails{
@@ -172,12 +181,12 @@ func TestTaskRunCreatePayload1(t *testing.T) {
 					{
 						Name:      "taskRunResults/IMAGE_DIGEST",
 						Content:   resultBytesDigest,
-						MediaType: pipelinerun.JsonMediaType,
+						MediaType: resolveddependencies.JsonMediaType,
 					},
 					{
 						Name:      "taskRunResults/IMAGE_URL",
 						Content:   resultBytesUri,
-						MediaType: pipelinerun.JsonMediaType,
+						MediaType: resolveddependencies.JsonMediaType,
 					},
 				},
 			},
@@ -199,6 +208,10 @@ func TestTaskRunCreatePayload1(t *testing.T) {
 func TestTaskRunCreatePayload2(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
 	tr, err := objectloader.TaskRunFromFile("../testdata/v2alpha2/taskrun2.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tc, err := json.Marshal(tr.Status.TaskSpec)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -243,6 +256,11 @@ func TestTaskRunCreatePayload2(t *testing.T) {
 						Digest: common.DigestSet{"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"},
 					},
 					{Name: "inputs/result", URI: "git+https://git.test.com.git", Digest: common.DigestSet{"sha1": "sha:taskdefault"}},
+					{
+						Name:      "task/git-clone",
+						MediaType: resolveddependencies.JsonMediaType,
+						Content:   tc,
+					},
 				},
 			},
 			RunDetails: slsa.ProvenanceRunDetails{
@@ -258,12 +276,12 @@ func TestTaskRunCreatePayload2(t *testing.T) {
 					{
 						Name:      "taskRunResults/some-uri_DIGEST",
 						Content:   resultBytesDigest,
-						MediaType: pipelinerun.JsonMediaType,
+						MediaType: resolveddependencies.JsonMediaType,
 					},
 					{
 						Name:      "taskRunResults/some-uri",
 						Content:   resultBytesUri,
-						MediaType: pipelinerun.JsonMediaType,
+						MediaType: resolveddependencies.JsonMediaType,
 					},
 				},
 			},
@@ -285,6 +303,10 @@ func TestMultipleSubjects(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
 
 	tr, err := objectloader.TaskRunFromFile("../testdata/v2alpha2/taskrun-multiple-subjects.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tc, err := json.Marshal(tr.Status.TaskSpec)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -332,6 +354,11 @@ func TestMultipleSubjects(t *testing.T) {
 						URI:    "oci://gcr.io/test1/test1",
 						Digest: common.DigestSet{"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"},
 					},
+					{
+						Name:      "task/test-task",
+						MediaType: resolveddependencies.JsonMediaType,
+						Content:   tc,
+					},
 				},
 			},
 			RunDetails: slsa.ProvenanceRunDetails{
@@ -343,7 +370,7 @@ func TestMultipleSubjects(t *testing.T) {
 					{
 						Name:      "taskRunResults/IMAGES",
 						Content:   resultBytes,
-						MediaType: pipelinerun.JsonMediaType,
+						MediaType: resolveddependencies.JsonMediaType,
 					},
 				},
 			},
@@ -360,29 +387,43 @@ func TestMultipleSubjects(t *testing.T) {
 	}
 }
 
-func createPro(path string) *objects.PipelineRunObject {
+func createPro(path string) (*objects.PipelineRunObject, []byte, []byte, []byte) {
 	pr, err := objectloader.PipelineRunFromFile(path)
 	if err != nil {
 		panic(err)
 	}
+	p := objects.NewPipelineRunObject(pr)
 	tr1, err := objectloader.TaskRunFromFile("../testdata/v2alpha2/taskrun1.json")
 	if err != nil {
 		panic(err)
 	}
+	taskBuildContent, err := json.Marshal(tr1.Status.TaskSpec)
+	if err != nil {
+		panic("error while encoding task build content")
+	}
+
 	tr2, err := objectloader.TaskRunFromFile("../testdata/v2alpha2/taskrun2.json")
 	if err != nil {
 		panic(err)
 	}
-	p := objects.NewPipelineRunObject(pr)
+	taskCloneContent, err := json.Marshal(tr2.Status.TaskSpec)
+	if err != nil {
+		panic("error while encoding git clone task content.")
+	}
 	p.AppendTaskRun(tr1)
 	p.AppendTaskRun(tr2)
-	return p
+
+	pipelineContent, err := json.Marshal(pr.Status.PipelineSpec)
+	if err != nil {
+		panic("error while encoding pipeline content.")
+	}
+	return p, pipelineContent, taskBuildContent, taskCloneContent
 }
 
 func TestPipelineRunCreatePayload1(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
 
-	pr := createPro("../testdata/v2alpha2/pipelinerun1.json")
+	pr, pipelineContent, taskBuildContent, taskCloneContent := createPro("../testdata/v2alpha2/pipelinerun1.json")
 
 	cfg := config.Config{
 		Builder: config.BuilderConfig{
@@ -443,6 +484,21 @@ func TestPipelineRunCreatePayload1(t *testing.T) {
 						Name:   "inputs/result",
 					},
 					{Name: "inputs/result", URI: "git+https://git.test.com.git", Digest: common.DigestSet{"sha1": "abcd"}},
+					{
+						Name:      "pipeline/test-pipeline",
+						MediaType: resolveddependencies.JsonMediaType,
+						Content:   pipelineContent,
+					},
+					{
+						Name:      "pipelineTask/git-clone",
+						MediaType: resolveddependencies.JsonMediaType,
+						Content:   taskCloneContent,
+					},
+					{
+						Name:      "pipelineTask/build",
+						MediaType: resolveddependencies.JsonMediaType,
+						Content:   taskBuildContent,
+					},
 				},
 			},
 			RunDetails: slsa.ProvenanceRunDetails{
@@ -458,31 +514,31 @@ func TestPipelineRunCreatePayload1(t *testing.T) {
 					{
 						Name:      "pipelineRunResults/CHAINS-GIT_COMMIT",
 						Content:   []uint8(`"abcd"`),
-						MediaType: pipelinerun.JsonMediaType,
+						MediaType: resolveddependencies.JsonMediaType,
 					}, {
 						Name:      "pipelineRunResults/CHAINS-GIT_URL",
 						Content:   []uint8(`"https://git.test.com"`),
-						MediaType: pipelinerun.JsonMediaType,
+						MediaType: resolveddependencies.JsonMediaType,
 					}, {
 						Name:      "pipelineRunResults/IMAGE_URL",
 						Content:   []uint8(`"test.io/test/image"`),
-						MediaType: pipelinerun.JsonMediaType,
+						MediaType: resolveddependencies.JsonMediaType,
 					}, {
 						Name:      "pipelineRunResults/IMAGE_DIGEST",
 						Content:   []uint8(`"sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"`),
-						MediaType: pipelinerun.JsonMediaType,
+						MediaType: resolveddependencies.JsonMediaType,
 					}, {
 						Name:      "pipelineRunResults/img-ARTIFACT_INPUTS",
 						Content:   []uint8(`{"digest":"sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7","uri":"abc"}`),
-						MediaType: pipelinerun.JsonMediaType,
+						MediaType: resolveddependencies.JsonMediaType,
 					}, {
 						Name:      "pipelineRunResults/img2-ARTIFACT_OUTPUTS",
 						Content:   []uint8(`{"digest":"sha256:","uri":"def"}`),
-						MediaType: pipelinerun.JsonMediaType,
+						MediaType: resolveddependencies.JsonMediaType,
 					}, {
 						Name:      "pipelineRunResults/img_no_uri-ARTIFACT_OUTPUTS",
 						Content:   []uint8(`{"digest":"sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"}`),
-						MediaType: pipelinerun.JsonMediaType,
+						MediaType: resolveddependencies.JsonMediaType,
 					},
 				},
 			},

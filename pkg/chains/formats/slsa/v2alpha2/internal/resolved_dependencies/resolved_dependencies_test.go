@@ -17,6 +17,7 @@ limitations under the License.
 package resolveddependencies
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -36,29 +37,35 @@ const digest = "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812ad
 
 var pro *objects.PipelineRunObject
 var proStructuredResults *objects.PipelineRunObject
+var taskBuild *v1beta1.TaskRun
+var taskClone *v1beta1.TaskRun
 
 func init() {
-	pro = createPro("../../../testdata/v2alpha2/pipelinerun1.json")
-	proStructuredResults = createPro("../../../testdata/v2alpha2/pipelinerun_structured_results.json")
+	var err error
+	taskBuild, err = objectloader.TaskRunFromFile("../../../testdata/v2alpha2/taskrun1.json")
+	if err != nil {
+		panic(err)
+	}
+
+	taskClone, err = objectloader.TaskRunFromFile("../../../testdata/v2alpha2/taskrun2.json")
+	if err != nil {
+		panic(err)
+	}
+
+	pro = createPro("../../../testdata/v2alpha2/pipelinerun1.json", taskBuild, taskClone)
+	proStructuredResults = createPro("../../../testdata/v2alpha2/pipelinerun_structured_results.json", taskBuild, taskClone)
+
 }
 
-func createPro(path string) *objects.PipelineRunObject {
+func createPro(path string, taskBuild *v1beta1.TaskRun, taskClone *v1beta1.TaskRun) *objects.PipelineRunObject {
 	var err error
 	pr, err := objectloader.PipelineRunFromFile(path)
 	if err != nil {
 		panic(err)
 	}
-	tr1, err := objectloader.TaskRunFromFile("../../../testdata/v2alpha2/taskrun1.json")
-	if err != nil {
-		panic(err)
-	}
-	tr2, err := objectloader.TaskRunFromFile("../../../testdata/v2alpha2/taskrun2.json")
-	if err != nil {
-		panic(err)
-	}
 	p := objects.NewPipelineRunObject(pr)
-	p.AppendTaskRun(tr1)
-	p.AppendTaskRun(tr2)
+	p.AppendTaskRun(taskBuild)
+	p.AppendTaskRun(taskClone)
 	return p
 }
 
@@ -483,6 +490,18 @@ func TestRemoveDuplicates(t *testing.T) {
 }
 
 func TestPipelineRun(t *testing.T) {
+	pc, err := json.Marshal(pro.Status.PipelineSpec)
+	if err != nil {
+		t.Fatalf("error while encoding wanted pipeline")
+	}
+	taskBuildContent, err := json.Marshal(taskBuild.Status.TaskSpec)
+	if err != nil {
+		t.Fatalf("error while encoding wanted pipeline")
+	}
+	taskCloneContent, err := json.Marshal(taskClone.Status.TaskSpec)
+	if err != nil {
+		t.Fatalf("error while encoding wanted pipeline")
+	}
 	expected := []v1.ResourceDescriptor{
 		{Name: "pipeline", URI: "git+https://github.com/test", Digest: common.DigestSet{"sha1": "28b123"}},
 		{Name: "pipelineTask", URI: "git+https://github.com/catalog", Digest: common.DigestSet{"sha1": "x123"}},
@@ -501,6 +520,21 @@ func TestPipelineRun(t *testing.T) {
 		},
 		{Name: "inputs/result", URI: "abc", Digest: common.DigestSet{"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"}},
 		{Name: "inputs/result", URI: "git+https://git.test.com.git", Digest: common.DigestSet{"sha1": "abcd"}},
+		{
+			Name:      "pipeline/test-pipeline",
+			MediaType: "application/json",
+			Content:   pc,
+		},
+		{
+			Name:      "pipelineTask/git-clone",
+			MediaType: "application/json",
+			Content:   taskCloneContent,
+		},
+		{
+			Name:      "pipelineTask/build",
+			MediaType: "application/json",
+			Content:   taskBuildContent,
+		},
 	}
 	ctx := logtesting.TestContextWithLogger(t)
 	got, err := PipelineRun(ctx, pro)
@@ -513,6 +547,18 @@ func TestPipelineRun(t *testing.T) {
 }
 
 func TestPipelineRunStructuredResult(t *testing.T) {
+	pc, err := json.Marshal(proStructuredResults.Status.PipelineSpec)
+	if err != nil {
+		t.Fatalf("error while encoding wanted pipeline")
+	}
+	taskBuildContent, err := json.Marshal(taskBuild.Status.TaskSpec)
+	if err != nil {
+		t.Fatalf("error while encoding wanted pipeline")
+	}
+	taskCloneContent, err := json.Marshal(taskClone.Status.TaskSpec)
+	if err != nil {
+		t.Fatalf("error while encoding wanted pipeline")
+	}
 	want := []v1.ResourceDescriptor{
 		{Name: "pipeline", URI: "git+https://github.com/test", Digest: common.DigestSet{"sha1": "28b123"}},
 		{Name: "pipelineTask", URI: "git+https://github.com/catalog", Digest: common.DigestSet{"sha1": "x123"}},
@@ -535,6 +581,21 @@ func TestPipelineRunStructuredResult(t *testing.T) {
 			Digest: common.DigestSet{
 				"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7",
 			},
+		},
+		{
+			Name:      "pipeline/test-pipeline",
+			MediaType: "application/json",
+			Content:   pc,
+		},
+		{
+			Name:      "pipelineTask/git-clone",
+			MediaType: "application/json",
+			Content:   taskCloneContent,
+		},
+		{
+			Name:      "pipelineTask/build",
+			MediaType: "application/json",
+			Content:   taskBuildContent,
 		},
 	}
 	ctx := logtesting.TestContextWithLogger(t)

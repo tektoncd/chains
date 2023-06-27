@@ -21,7 +21,6 @@ import (
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
-	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha2/internal/pipelinerun"
 	resolveddependencies "github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha2/internal/resolved_dependencies"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 )
@@ -106,7 +105,7 @@ func byproducts(tro *objects.TaskRunObject) ([]slsa.ResourceDescriptor, error) {
 		bp := slsa.ResourceDescriptor{
 			Name:      fmt.Sprintf(taskRunResults, key.Name),
 			Content:   content,
-			MediaType: pipelinerun.JsonMediaType,
+			MediaType: resolveddependencies.JsonMediaType,
 		}
 		byProd = append(byProd, bp)
 	}

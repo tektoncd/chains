@@ -25,6 +25,7 @@ import (
 	"github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
+	resolveddependencies "github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha2/internal/resolved_dependencies"
 
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/internal/objectloader"
@@ -187,7 +188,7 @@ func TestByProducts(t *testing.T) {
 		{
 			Name:      "pipelineRunResults/result-name",
 			Content:   resultBytes,
-			MediaType: JsonMediaType,
+			MediaType: resolveddependencies.JsonMediaType,
 		},
 	}
 	got, err := byproducts(objects.NewPipelineRunObject(pr))
@@ -199,29 +200,43 @@ func TestByProducts(t *testing.T) {
 	}
 }
 
-func createPro(path string) *objects.PipelineRunObject {
+func createPro(path string) (*objects.PipelineRunObject, []byte, []byte, []byte) {
 	pr, err := objectloader.PipelineRunFromFile(path)
 	if err != nil {
 		panic(err)
 	}
+	p := objects.NewPipelineRunObject(pr)
 	tr1, err := objectloader.TaskRunFromFile("../../../testdata/v2alpha2/taskrun1.json")
 	if err != nil {
 		panic(err)
 	}
+	taskBuildContent, err := json.Marshal(tr1.Status.TaskSpec)
+	if err != nil {
+		panic("error while encoding taskrun1 content")
+	}
+
 	tr2, err := objectloader.TaskRunFromFile("../../../testdata/v2alpha2/taskrun2.json")
 	if err != nil {
 		panic(err)
 	}
-	p := objects.NewPipelineRunObject(pr)
+	taskCloneContent, err := json.Marshal(tr2.Status.TaskSpec)
+	if err != nil {
+		panic("error while encoding taskrun2 content")
+	}
 	p.AppendTaskRun(tr1)
 	p.AppendTaskRun(tr2)
-	return p
+
+	pipelineContent, err := json.Marshal(pr.Status.PipelineSpec)
+	if err != nil {
+		panic("error while encoding wanted pipeline")
+	}
+	return p, pipelineContent, taskBuildContent, taskCloneContent
 }
 
 func TestGenerateAttestation(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
 
-	pr := createPro("../../../testdata/v2alpha2/pipelinerun1.json")
+	pr, pipelineContent, taskBuildContent, taskCloneContent := createPro("../../../testdata/v2alpha2/pipelinerun1.json")
 
 	e1BuildStart := time.Unix(1617011400, 0)
 	e1BuildFinished := time.Unix(1617011415, 0)
@@ -280,6 +295,21 @@ func TestGenerateAttestation(t *testing.T) {
 						Name:   "inputs/result",
 					},
 					{Name: "inputs/result", URI: "git+https://git.test.com.git", Digest: common.DigestSet{"sha1": "abcd"}},
+					{
+						Name:      "pipeline/test-pipeline",
+						MediaType: "application/json",
+						Content:   pipelineContent,
+					},
+					{
+						Name:      "pipelineTask/git-clone",
+						MediaType: "application/json",
+						Content:   taskCloneContent,
+					},
+					{
+						Name:      "pipelineTask/build",
+						MediaType: "application/json",
+						Content:   taskBuildContent,
+					},
 				},
 			},
 			RunDetails: slsa.ProvenanceRunDetails{
@@ -295,31 +325,31 @@ func TestGenerateAttestation(t *testing.T) {
 					{
 						Name:      "pipelineRunResults/CHAINS-GIT_COMMIT",
 						Content:   []uint8(`"abcd"`),
-						MediaType: JsonMediaType,
+						MediaType: resolveddependencies.JsonMediaType,
 					}, {
 						Name:      "pipelineRunResults/CHAINS-GIT_URL",
 						Content:   []uint8(`"https://git.test.com"`),
-						MediaType: JsonMediaType,
+						MediaType: resolveddependencies.JsonMediaType,
 					}, {
 						Name:      "pipelineRunResults/IMAGE_URL",
 						Content:   []uint8(`"test.io/test/image"`),
-						MediaType: JsonMediaType,
+						MediaType: resolveddependencies.JsonMediaType,
 					}, {
 						Name:      "pipelineRunResults/IMAGE_DIGEST",
 						Content:   []uint8(`"sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"`),
-						MediaType: JsonMediaType,
+						MediaType: resolveddependencies.JsonMediaType,
 					}, {
 						Name:      "pipelineRunResults/img-ARTIFACT_INPUTS",
 						Content:   []uint8(`{"digest":"sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7","uri":"abc"}`),
-						MediaType: JsonMediaType,
+						MediaType: resolveddependencies.JsonMediaType,
 					}, {
 						Name:      "pipelineRunResults/img2-ARTIFACT_OUTPUTS",
 						Content:   []uint8(`{"digest":"sha256:","uri":"def"}`),
-						MediaType: JsonMediaType,
+						MediaType: resolveddependencies.JsonMediaType,
 					}, {
 						Name:      "pipelineRunResults/img_no_uri-ARTIFACT_OUTPUTS",
 						Content:   []uint8(`{"digest":"sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"}`),
-						MediaType: JsonMediaType,
+						MediaType: resolveddependencies.JsonMediaType,
 					},
 				},
 			},
