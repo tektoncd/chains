@@ -123,10 +123,6 @@ github.com/Azure/go-autorest/autorest/azure/cli
 # github.com/Azure/go-autorest/autorest/date v0.3.0
 ## explicit; go 1.12
 github.com/Azure/go-autorest/autorest/date
-# github.com/Azure/go-autorest/autorest/to v0.4.0
-## explicit; go 1.12
-# github.com/Azure/go-autorest/autorest/validation v0.3.1
-## explicit; go 1.12
 # github.com/Azure/go-autorest/logger v0.2.1
 ## explicit; go 1.12
 github.com/Azure/go-autorest/logger
@@ -954,8 +950,6 @@ github.com/google/s2a-go/internal/v2/certverifier
 github.com/google/s2a-go/internal/v2/remotesigner
 github.com/google/s2a-go/internal/v2/tlsconfigstore
 github.com/google/s2a-go/stream
-# github.com/google/trillian v1.5.2
-## explicit; go 1.19
 # github.com/google/uuid v1.3.0
 ## explicit
 github.com/google/uuid
@@ -1506,8 +1500,6 @@ github.com/sigstore/cosign/v2/pkg/types
 # github.com/sigstore/fulcio v1.3.1
 ## explicit; go 1.20
 github.com/sigstore/fulcio/pkg/api
-# github.com/sigstore/protobuf-specs v0.1.0
-## explicit; go 1.18
 # github.com/sigstore/rekor v1.2.2-0.20230530122220-67cc9e58bd23
 ## explicit; go 1.19
 github.com/sigstore/rekor/pkg/client
@@ -2313,7 +2305,7 @@ google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
-# google.golang.org/protobuf v1.30.0
+# google.golang.org/protobuf v1.31.0
 ## explicit; go 1.11
 google.golang.org/protobuf/encoding/protojson
 google.golang.org/protobuf/encoding/prototext
