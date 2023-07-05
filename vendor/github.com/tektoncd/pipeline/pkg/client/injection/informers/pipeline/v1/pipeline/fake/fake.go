@@ -22,7 +22,7 @@ import (
 	context "context"
 
 	fake "github.com/tektoncd/pipeline/pkg/client/injection/informers/factory/fake"
-	pipeline "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/pipeline"
+	pipeline "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1/pipeline"
 	controller "knative.dev/pkg/controller"
 	injection "knative.dev/pkg/injection"
 )
@@ -35,6 +35,6 @@ func init() {
 
 func withInformer(ctx context.Context) (context.Context, controller.Informer) {
 	f := fake.Get(ctx)
-	inf := f.Tekton().V1beta1().Pipelines()
+	inf := f.Tekton().V1().Pipelines()
 	return context.WithValue(ctx, pipeline.Key{}, inf), inf.Informer()
 }
