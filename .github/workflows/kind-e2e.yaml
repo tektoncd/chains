@@ -19,6 +19,8 @@ jobs:
         k8s-version:
         - v1.24.x
         - v1.25.x
+        - v1.26.x
+        - v1.27.x
     uses: ./.github/workflows/reusable-e2e.yaml
     with:
       k8s-version: ${{ matrix.k8s-version }}

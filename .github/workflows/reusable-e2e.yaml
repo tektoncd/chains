@@ -27,7 +27,7 @@ jobs:
       GOFLAGS: -ldflags=-s -ldflags=-w
       KO_DOCKER_REPO: registry.local:5000/knative
       KOCACHE: ~/ko
-      SIGSTORE_SCAFFOLDING_RELEASE_VERSION: "v0.4.13"
+      SIGSTORE_SCAFFOLDING_RELEASE_VERSION: "v0.6.6"
       TEKTON_PIPELINES_RELEASE: "https://storage.googleapis.com/tekton-releases/pipeline/previous/${{ inputs.pipelines-release }}/release.yaml"
       # Note that we do not include the v prefix here so we can use it in all
       # the places this is used.
@@ -73,6 +73,7 @@ jobs:
       with:
         k8s-version: ${{ inputs.k8s-version }}
         version: ${{ env.SIGSTORE_SCAFFOLDING_RELEASE_VERSION }}
+        knative-version: 1.9.0
 
     - name: Install Tekton pipelines
       run: |
