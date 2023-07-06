@@ -98,12 +98,12 @@ github.com/Azure/azure-sdk-for-go/sdk/internal/log
 github.com/Azure/azure-sdk-for-go/sdk/internal/poller
 github.com/Azure/azure-sdk-for-go/sdk/internal/temporal
 github.com/Azure/azure-sdk-for-go/sdk/internal/uuid
-# github.com/Azure/azure-sdk-for-go/sdk/keyvault/azkeys v0.10.0
+# github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys v0.12.0
 ## explicit; go 1.18
-github.com/Azure/azure-sdk-for-go/sdk/keyvault/azkeys
-# github.com/Azure/azure-sdk-for-go/sdk/keyvault/internal v0.7.1
+github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys
+# github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/internal v0.8.0
 ## explicit; go 1.18
-github.com/Azure/azure-sdk-for-go/sdk/keyvault/internal
+github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/internal
 # github.com/Azure/go-autorest v14.2.0+incompatible
 ## explicit
 github.com/Azure/go-autorest
@@ -1543,7 +1543,7 @@ github.com/sigstore/sigstore/pkg/tuf
 # github.com/sigstore/sigstore/pkg/signature/kms/aws v1.7.0
 ## explicit; go 1.19
 github.com/sigstore/sigstore/pkg/signature/kms/aws
-# github.com/sigstore/sigstore/pkg/signature/kms/azure v1.7.0
+# github.com/sigstore/sigstore/pkg/signature/kms/azure v1.7.1
 ## explicit; go 1.19
 github.com/sigstore/sigstore/pkg/signature/kms/azure
 # github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.7.1
