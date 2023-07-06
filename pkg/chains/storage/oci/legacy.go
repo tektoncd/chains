@@ -118,16 +118,13 @@ func (b *Backend) uploadSignature(ctx context.Context, format simple.SimpleConta
 
 	imageName := format.ImageName()
 	logger.Infof("Uploading %s signature", imageName)
-	var opts []name.Option
-	if b.cfg.Storage.OCI.Insecure {
-		opts = append(opts, name.Insecure)
-	}
-	ref, err := name.NewDigest(imageName, opts...)
+
+	ref, err := newDigest(b.cfg, imageName)
 	if err != nil {
 		return errors.Wrap(err, "getting digest")
 	}
 
-	store, err := NewSimpleStorerFromConfig(b.cfg)
+	store, err := NewSimpleStorerFromConfig(WithTargetRepository(ref.Repository))
 	if err != nil {
 		return err
 	}
@@ -156,16 +153,13 @@ func (b *Backend) uploadAttestation(ctx context.Context, attestation in_toto.Sta
 	for _, subj := range attestation.Subject {
 		imageName := fmt.Sprintf("%s@sha256:%s", subj.Name, subj.Digest["sha256"])
 		logger.Infof("Starting attestation upload to OCI for %s...", imageName)
-		var opts []name.Option
-		if b.cfg.Storage.OCI.Insecure {
-			opts = append(opts, name.Insecure)
-		}
-		ref, err := name.NewDigest(imageName, opts...)
+
+		ref, err := newDigest(b.cfg, imageName)
 		if err != nil {
 			return errors.Wrapf(err, "getting digest for subj %s", imageName)
 		}
 
-		store, err := NewAttestationStorer(b.cfg)
+		store, err := NewAttestationStorer(WithTargetRepository(ref.Repository))
 		if err != nil {
 			return err
 		}
@@ -282,4 +276,18 @@ func (b *Backend) RetrieveArtifact(ctx context.Context, obj objects.TektonObject
 	}
 
 	return m, nil
+}
+
+func newDigest(cfg config.Config, imageName string) (name.Digest, error) {
+	// Override image name from config if set.
+	if r := cfg.Storage.OCI.Repository; r != "" {
+		imageName = r
+	}
+
+	var opts []name.Option
+	if cfg.Storage.OCI.Insecure {
+		opts = append(opts, name.Insecure)
+	}
+
+	return name.NewDigest(imageName, opts...)
 }

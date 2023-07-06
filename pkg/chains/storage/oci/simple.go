@@ -26,7 +26,6 @@ import (
 	"github.com/sigstore/cosign/v2/pkg/oci/static"
 	"github.com/tektoncd/chains/pkg/chains/formats/simple"
 	"github.com/tektoncd/chains/pkg/chains/storage/api"
-	"github.com/tektoncd/chains/pkg/config"
 	"knative.dev/pkg/logging"
 )
 
@@ -43,23 +42,14 @@ var (
 	_ api.Storer[name.Digest, simple.SimpleContainerImage] = &SimpleStorer{}
 )
 
-func NewSimpleStorerFromConfig(cfg config.Config) (*SimpleStorer, error) {
-	var repo *name.Repository
-	if r := cfg.Storage.OCI.Repository; r != "" {
-		var opts []name.Option
-		if cfg.Storage.OCI.Insecure {
-			opts = append(opts, name.Insecure)
+func NewSimpleStorerFromConfig(opts ...SimpleStorerOption) (*SimpleStorer, error) {
+	s := &SimpleStorer{}
+	for _, o := range opts {
+		if err := o.applySimpleStorer(s); err != nil {
+			return nil, err
 		}
-		resolved, err := name.NewRepository(r, opts...)
-		if err != nil {
-			return nil, errors.Wrapf(err, "%s is not a valid repository", r)
-		}
-		repo = &resolved
 	}
-
-	return &SimpleStorer{
-		repo: repo,
-	}, nil
+	return s, nil
 }
 
 func (s *SimpleStorer) Store(ctx context.Context, req *api.StoreRequest[name.Digest, simple.SimpleContainerImage]) (*api.StoreResponse, error) {

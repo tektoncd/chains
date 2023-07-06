@@ -26,7 +26,6 @@ import (
 	"github.com/sigstore/cosign/v2/pkg/oci/static"
 	"github.com/sigstore/cosign/v2/pkg/types"
 	"github.com/tektoncd/chains/pkg/chains/storage/api"
-	"github.com/tektoncd/chains/pkg/config"
 	"knative.dev/pkg/logging"
 )
 
@@ -43,23 +42,14 @@ type AttestationStorer struct {
 	remoteOpts []remote.Option
 }
 
-func NewAttestationStorer(cfg config.Config) (*AttestationStorer, error) {
-	var repo *name.Repository
-	if r := cfg.Storage.OCI.Repository; r != "" {
-		var opts []name.Option
-		if cfg.Storage.OCI.Insecure {
-			opts = append(opts, name.Insecure)
+func NewAttestationStorer(opts ...AttestationStorerOption) (*AttestationStorer, error) {
+	s := &AttestationStorer{}
+	for _, o := range opts {
+		if err := o.applyAttestationStorer(s); err != nil {
+			return nil, err
 		}
-		resolved, err := name.NewRepository(r, opts...)
-		if err != nil {
-			return nil, errors.Wrapf(err, "%s is not a valid repository", r)
-		}
-		repo = &resolved
 	}
-
-	return &AttestationStorer{
-		repo: repo,
-	}, nil
+	return s, nil
 }
 
 func (s *AttestationStorer) Store(ctx context.Context, req *api.StoreRequest[name.Digest, in_toto.Statement]) (*api.StoreResponse, error) {
