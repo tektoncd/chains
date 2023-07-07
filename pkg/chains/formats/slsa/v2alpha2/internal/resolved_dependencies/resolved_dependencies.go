@@ -59,20 +59,24 @@ func TaskRun(ctx context.Context, tro *objects.TaskRunObject) ([]v1.ResourceDesc
 	mats := []common.ProvenanceMaterial{}
 
 	// add step and sidecar images
-	if err := material.AddStepImagesToMaterials(tro.Status.Steps, &mats); err != nil {
+	stepMaterials, err := material.FromStepImages(tro.Status.Steps)
+	mats = append(mats, stepMaterials...)
+	if err != nil {
 		return nil, err
 	}
-	if err := material.AddSidecarImagesToMaterials(tro.Status.Sidecars, &mats); err != nil {
+	sidecarMaterials, err := material.FromSidecarImages(tro.Status.Sidecars)
+	if err != nil {
 		return nil, err
 	}
+	mats = append(mats, sidecarMaterials...)
 	resolvedDependencies = append(resolvedDependencies, convertMaterialsToResolvedDependencies(mats, "")...)
 
-	mats = material.AddMaterialsFromTaskParamsAndResults(ctx, tro)
+	mats = material.FromTaskParamsAndResults(ctx, tro)
 	// convert materials to resolved dependencies
 	resolvedDependencies = append(resolvedDependencies, convertMaterialsToResolvedDependencies(mats, inputResultName)...)
 
 	// add task resources
-	mats = material.AddTaskResourcesToMaterials(ctx, tro, []common.ProvenanceMaterial{})
+	mats = material.FromTaskResources(ctx, tro)
 	// convert materials to resolved dependencies
 	resolvedDependencies = append(resolvedDependencies, convertMaterialsToResolvedDependencies(mats, pipelineResourceName)...)
 
@@ -101,13 +105,14 @@ func PipelineRun(ctx context.Context, pro *objects.PipelineRunObject) ([]v1.Reso
 	}
 
 	// add resolved dependencies from pipeline tasks
-	resolvedDependencies, err = addPipelineTask(logger, pro, resolvedDependencies)
+	rds, err := fromPipelineTask(logger, pro)
 	if err != nil {
 		return nil, err
 	}
+	resolvedDependencies = append(resolvedDependencies, rds...)
 
 	// add resolved dependencies from pipeline results
-	mats := material.AddMaterialsFromPipelineParamsAndResults(ctx, pro, []common.ProvenanceMaterial{})
+	mats := material.FromPipelineParamsAndResults(ctx, pro)
 	// convert materials to resolved dependencies
 	resolvedDependencies = append(resolvedDependencies, convertMaterialsToResolvedDependencies(mats, inputResultName)...)
 
@@ -168,10 +173,11 @@ func removeDuplicateResolvedDependencies(resolvedDependencies []v1.ResourceDescr
 	return out, nil
 }
 
-// addPipelineTask adds the resolved dependencies from pipeline tasks
+// fromPipelineTask adds the resolved dependencies from pipeline tasks
 // such as pipeline task uri/digest for remote pipeline tasks and step and sidecar images.
-func addPipelineTask(logger *zap.SugaredLogger, pro *objects.PipelineRunObject, resolvedDependencies []v1.ResourceDescriptor) ([]v1.ResourceDescriptor, error) {
+func fromPipelineTask(logger *zap.SugaredLogger, pro *objects.PipelineRunObject) ([]v1.ResourceDescriptor, error) {
 	pSpec := pro.Status.PipelineSpec
+	resolvedDependencies := []v1.ResourceDescriptor{}
 	if pSpec != nil {
 		pipelineTasks := append(pSpec.Tasks, pSpec.Finally...)
 		for _, t := range pipelineTasks {
@@ -194,14 +200,18 @@ func addPipelineTask(logger *zap.SugaredLogger, pro *objects.PipelineRunObject, 
 			mats := []common.ProvenanceMaterial{}
 
 			// add step images
-			if err := material.AddStepImagesToMaterials(tr.Status.Steps, &mats); err != nil {
+			stepMaterials, err := material.FromStepImages(tr.Status.Steps)
+			if err != nil {
 				return nil, err
 			}
+			mats = append(mats, stepMaterials...)
 
 			// add sidecar images
-			if err := material.AddSidecarImagesToMaterials(tr.Status.Sidecars, &mats); err != nil {
+			sidecarMaterials, err := material.FromSidecarImages(tr.Status.Sidecars)
+			if err != nil {
 				return nil, err
 			}
+			mats = append(mats, sidecarMaterials...)
 
 			// convert materials to resolved dependencies
 			resolvedDependencies = append(resolvedDependencies, convertMaterialsToResolvedDependencies(mats, "")...)

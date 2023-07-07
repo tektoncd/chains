@@ -49,7 +49,7 @@ type TaskAttestation struct {
 func GenerateAttestation(ctx context.Context, builderID string, pro *objects.PipelineRunObject) (interface{}, error) {
 	subjects := extract.SubjectDigests(ctx, pro)
 
-	mat, err := materials(ctx, pro)
+	mat, err := material.PipelineMaterials(ctx, pro)
 	if err != nil {
 		return nil, err
 	}
@@ -186,59 +186,6 @@ func metadata(pro *objects.PipelineRunObject) *slsa.ProvenanceMetadata {
 		}
 	}
 	return m
-}
-
-// add any Git specification to materials
-func materials(ctx context.Context, pro *objects.PipelineRunObject) ([]common.ProvenanceMaterial, error) {
-	logger := logging.FromContext(ctx)
-	var mats []common.ProvenanceMaterial
-	if p := pro.Status.Provenance; p != nil && p.RefSource != nil {
-		m := common.ProvenanceMaterial{
-			URI:    p.RefSource.URI,
-			Digest: p.RefSource.Digest,
-		}
-		mats = append(mats, m)
-	}
-	pSpec := pro.Status.PipelineSpec
-	if pSpec != nil {
-		pipelineTasks := append(pSpec.Tasks, pSpec.Finally...)
-		for _, t := range pipelineTasks {
-			tr := pro.GetTaskRunFromTask(t.Name)
-			// Ignore Tasks that did not execute during the PipelineRun.
-			if tr == nil || tr.Status.CompletionTime == nil {
-				logger.Infof("taskrun status not found for task %s", t.Name)
-				continue
-			}
-
-			// add step images
-			if err := material.AddStepImagesToMaterials(tr.Status.Steps, &mats); err != nil {
-				return mats, nil
-			}
-
-			// add sidecar images
-			if err := material.AddSidecarImagesToMaterials(tr.Status.Sidecars, &mats); err != nil {
-				return mats, nil
-			}
-
-			// add remote task configsource information in materials
-			if tr.Status.Provenance != nil && tr.Status.Provenance.RefSource != nil {
-				m := common.ProvenanceMaterial{
-					URI:    tr.Status.Provenance.RefSource.URI,
-					Digest: tr.Status.Provenance.RefSource.Digest,
-				}
-				mats = append(mats, m)
-			}
-		}
-	}
-
-	mats = material.AddMaterialsFromPipelineParamsAndResults(ctx, pro, mats)
-
-	// remove duplicate materials
-	mats, err := material.RemoveDuplicateMaterials(mats)
-	if err != nil {
-		return mats, err
-	}
-	return mats, nil
 }
 
 // Following tkn cli's behavior
