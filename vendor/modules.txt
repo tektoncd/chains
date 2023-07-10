@@ -257,7 +257,7 @@ github.com/ashanbrown/forbidigo/forbidigo
 # github.com/ashanbrown/makezero v1.1.1
 ## explicit; go 1.12
 github.com/ashanbrown/makezero/makezero
-# github.com/aws/aws-sdk-go v1.44.284
+# github.com/aws/aws-sdk-go v1.44.288
 ## explicit; go 1.11
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/awserr
@@ -1540,7 +1540,7 @@ github.com/sigstore/sigstore/pkg/signature/kms
 github.com/sigstore/sigstore/pkg/signature/options
 github.com/sigstore/sigstore/pkg/signature/payload
 github.com/sigstore/sigstore/pkg/tuf
-# github.com/sigstore/sigstore/pkg/signature/kms/aws v1.7.0
+# github.com/sigstore/sigstore/pkg/signature/kms/aws v1.7.1
 ## explicit; go 1.19
 github.com/sigstore/sigstore/pkg/signature/kms/aws
 # github.com/sigstore/sigstore/pkg/signature/kms/azure v1.7.1
