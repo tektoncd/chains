@@ -94,6 +94,29 @@ func internalParameters(pro *objects.PipelineRunObject) map[string]any {
 // externalParameters adds the pipeline run spec
 func externalParameters(pro *objects.PipelineRunObject) map[string]any {
 	externalParams := make(map[string]any)
+
+	// add the origin of top level pipeline config
+	// isRemotePipeline checks if the pipeline was fetched using a remote resolver
+	isRemotePipeline := false
+	if pro.Spec.PipelineRef != nil {
+		if pro.Spec.PipelineRef.Resolver != "" && pro.Spec.PipelineRef.Resolver != "Cluster" {
+			isRemotePipeline = true
+		}
+	}
+
+	if p := pro.Status.Provenance; p != nil && p.RefSource != nil && isRemotePipeline {
+		ref := ""
+		for alg, hex := range p.RefSource.Digest {
+			ref = fmt.Sprintf("%s:%s", alg, hex)
+			break
+		}
+		buildConfigSource := map[string]string{
+			"ref":        ref,
+			"repository": p.RefSource.URI,
+			"path":       p.RefSource.EntryPoint,
+		}
+		externalParams["buildConfigSource"] = buildConfigSource
+	}
 	externalParams["runSpec"] = pro.Spec
 	return externalParams
 }
