@@ -28,12 +28,33 @@ import (
 	"github.com/tektoncd/chains/internal/backport"
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/objects"
+	"github.com/tektoncd/chains/pkg/internal/objectloader"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
 	logtesting "knative.dev/pkg/logging/testing"
 )
 
 const digest = "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b7"
+
+func createPro(path string) *objects.PipelineRunObject {
+	var err error
+	pr, err := objectloader.PipelineRunFromFile(path)
+	if err != nil {
+		panic(err)
+	}
+	tr1, err := objectloader.TaskRunFromFile("../../testdata/taskrun1.json")
+	if err != nil {
+		panic(err)
+	}
+	tr2, err := objectloader.TaskRunFromFile("../../testdata/taskrun2.json")
+	if err != nil {
+		panic(err)
+	}
+	p := objects.NewPipelineRunObject(pr)
+	p.AppendTaskRun(tr1)
+	p.AppendTaskRun(tr2)
+	return p
+}
 
 func TestMaterialsWithTaskRunResults(t *testing.T) {
 	// make sure this works with Git resources
@@ -67,7 +88,7 @@ status:
 	}
 
 	ctx := logtesting.TestContextWithLogger(t)
-	got, err := Materials(ctx, objects.NewTaskRunObject(taskRun))
+	got, err := TaskMaterials(ctx, objects.NewTaskRunObject(taskRun))
 	if err != nil {
 		t.Fatalf("Did not expect an error but got %v", err)
 	}
@@ -76,7 +97,7 @@ status:
 	}
 }
 
-func TestMaterials(t *testing.T) {
+func TestTaskMaterials(t *testing.T) {
 	tests := []struct {
 		name    string
 		taskRun *v1beta1.TaskRun
@@ -303,7 +324,7 @@ func TestMaterials(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := logtesting.TestContextWithLogger(t)
-			mat, err := Materials(ctx, objects.NewTaskRunObject(tc.taskRun))
+			mat, err := TaskMaterials(ctx, objects.NewTaskRunObject(tc.taskRun))
 			if err != nil {
 				t.Fatalf("Did not expect an error but got %v", err)
 			}
@@ -314,7 +335,71 @@ func TestMaterials(t *testing.T) {
 	}
 }
 
-func TestAddStepImagesToMaterials(t *testing.T) {
+func TestPipelineMaterials(t *testing.T) {
+	expected := []common.ProvenanceMaterial{
+		{URI: "github.com/test", Digest: common.DigestSet{"sha1": "28b123"}},
+		{
+			URI:    artifacts.OCIScheme + "gcr.io/test1/test1",
+			Digest: common.DigestSet{"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"},
+		},
+		{URI: "github.com/catalog", Digest: common.DigestSet{"sha1": "x123"}},
+		{
+			URI:    artifacts.OCIScheme + "gcr.io/test2/test2",
+			Digest: common.DigestSet{"sha256": "4d6dd704ef58cb214dd826519929e92a978a57cdee43693006139c0080fd6fac"},
+		},
+		{
+			URI:    artifacts.OCIScheme + "gcr.io/test3/test3",
+			Digest: common.DigestSet{"sha256": "f1a8b8549c179f41e27ff3db0fe1a1793e4b109da46586501a8343637b1d0478"},
+		},
+		{URI: "github.com/test", Digest: common.DigestSet{"sha1": "ab123"}},
+		{URI: "abc", Digest: common.DigestSet{"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"}},
+		{URI: artifacts.GitSchemePrefix + "https://git.test.com.git", Digest: common.DigestSet{"sha1": "abcd"}},
+	}
+	ctx := logtesting.TestContextWithLogger(t)
+	got, err := PipelineMaterials(ctx, createPro("../../testdata/pipelinerun1.json"))
+	if err != nil {
+		t.Error(err)
+	}
+	if diff := cmp.Diff(expected, got); diff != "" {
+		t.Errorf("Materials(): -want +got: %s", diff)
+	}
+}
+
+func TestStructuredResultPipelineMaterials(t *testing.T) {
+	want := []common.ProvenanceMaterial{
+		{URI: "github.com/test", Digest: common.DigestSet{"sha1": "28b123"}},
+		{
+			URI:    artifacts.OCIScheme + "gcr.io/test1/test1",
+			Digest: common.DigestSet{"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"},
+		},
+		{URI: "github.com/catalog", Digest: common.DigestSet{"sha1": "x123"}},
+		{
+			URI:    artifacts.OCIScheme + "gcr.io/test2/test2",
+			Digest: common.DigestSet{"sha256": "4d6dd704ef58cb214dd826519929e92a978a57cdee43693006139c0080fd6fac"},
+		},
+		{
+			URI:    artifacts.OCIScheme + "gcr.io/test3/test3",
+			Digest: common.DigestSet{"sha256": "f1a8b8549c179f41e27ff3db0fe1a1793e4b109da46586501a8343637b1d0478"},
+		},
+		{URI: "github.com/test", Digest: common.DigestSet{"sha1": "ab123"}},
+		{
+			URI: "abcd",
+			Digest: common.DigestSet{
+				"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7",
+			},
+		},
+	}
+	ctx := logtesting.TestContextWithLogger(t)
+	got, err := PipelineMaterials(ctx, createPro("../../testdata/pipelinerun_structured_results.json"))
+	if err != nil {
+		t.Errorf("error while extracting materials: %v", err)
+	}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("materials(): -want +got: %s", diff)
+	}
+}
+
+func TestFromStepImages(t *testing.T) {
 	tests := []struct {
 		name      string
 		steps     []v1beta1.StepState
@@ -370,8 +455,8 @@ func TestAddStepImagesToMaterials(t *testing.T) {
 		wantError: fmt.Errorf("expected imageID gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init@sha256-b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247 to be separable by @ and :"),
 	}}
 	for _, tc := range tests {
-		var mat []common.ProvenanceMaterial
-		if err := AddStepImagesToMaterials(tc.steps, &mat); err != nil {
+		mat, err := FromStepImages(tc.steps)
+		if err != nil {
 			if err.Error() != tc.wantError.Error() {
 				t.Fatalf("Expected error %v but got %v", tc.wantError, err)
 			}
@@ -384,7 +469,7 @@ func TestAddStepImagesToMaterials(t *testing.T) {
 	}
 }
 
-func TestAddSidecarImagesToMaterials(t *testing.T) {
+func TestFromSidecarImages(t *testing.T) {
 	tests := []struct {
 		name      string
 		sidecars  []v1beta1.SidecarState
@@ -440,8 +525,8 @@ func TestAddSidecarImagesToMaterials(t *testing.T) {
 		wantError: fmt.Errorf("expected imageID gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init@sha256-b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247 to be separable by @ and :"),
 	}}
 	for _, tc := range tests {
-		var mat []common.ProvenanceMaterial
-		if err := AddSidecarImagesToMaterials(tc.sidecars, &mat); err != nil {
+		mat, err := FromSidecarImages(tc.sidecars)
+		if err != nil {
 			if err.Error() != tc.wantError.Error() {
 				t.Fatalf("Expected error %v but got %v", tc.wantError, err)
 			}
@@ -454,32 +539,30 @@ func TestAddSidecarImagesToMaterials(t *testing.T) {
 	}
 }
 
-func TestAddImageIDToMaterials(t *testing.T) {
+func TestFromImageID(t *testing.T) {
 	tests := []struct {
 		name      string
 		imageID   string
-		want      []common.ProvenanceMaterial
+		want      common.ProvenanceMaterial
 		wantError error
 	}{{
 		name:    "proper ImageID",
 		imageID: "gcr.io/cloud-marketplace-containers/google/bazel@sha256:010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
-		want: []common.ProvenanceMaterial{
-			{
-				URI: artifacts.OCIScheme + "gcr.io/cloud-marketplace-containers/google/bazel",
-				Digest: common.DigestSet{
-					"sha256": "010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
-				},
+		want: common.ProvenanceMaterial{
+			URI: artifacts.OCIScheme + "gcr.io/cloud-marketplace-containers/google/bazel",
+			Digest: common.DigestSet{
+				"sha256": "010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
 			},
 		},
 	}, {
 		name:      "bad ImageID",
 		imageID:   "badImageId",
-		want:      []common.ProvenanceMaterial{},
+		want:      common.ProvenanceMaterial{},
 		wantError: fmt.Errorf("expected imageID badImageId to be separable by @"),
 	}}
 	for _, tc := range tests {
-		mat := []common.ProvenanceMaterial{}
-		if err := AddImageIDToMaterials(tc.imageID, &mat); err != nil {
+		mat, err := fromImageID(tc.imageID)
+		if err != nil {
 			if err.Error() != tc.wantError.Error() {
 				t.Fatalf("Expected error %v but got %v", tc.wantError, err)
 			}
@@ -617,7 +700,7 @@ func TestRemoveDuplicates(t *testing.T) {
 	}}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			mat, err := RemoveDuplicateMaterials(tc.mats)
+			mat, err := removeDuplicateMaterials(tc.mats)
 			if err != nil {
 				t.Fatalf("Did not expect an error but got %v", err)
 			}
@@ -628,7 +711,7 @@ func TestRemoveDuplicates(t *testing.T) {
 	}
 }
 
-func TestAddMaterialsFromPipelineParamsAndResults(t *testing.T) {
+func TestFromPipelineParamsAndResults(t *testing.T) {
 	tests := []struct {
 		name        string
 		pipelineRun *v1beta1.PipelineRun
@@ -739,9 +822,9 @@ func TestAddMaterialsFromPipelineParamsAndResults(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := logtesting.TestContextWithLogger(t)
-			got := AddMaterialsFromPipelineParamsAndResults(ctx, objects.NewPipelineRunObject(tc.pipelineRun), []common.ProvenanceMaterial{})
+			got := FromPipelineParamsAndResults(ctx, objects.NewPipelineRunObject(tc.pipelineRun))
 			if diff := cmp.Diff(tc.want, got); diff != "" {
-				t.Errorf("AddMaterialsFromPipelineParamsAndResults(): -want +got: %s", diff)
+				t.Errorf("FromPipelineParamsAndResults(): -want +got: %s", diff)
 			}
 		})
 	}

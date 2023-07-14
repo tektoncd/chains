@@ -29,7 +29,7 @@ import (
 func GenerateAttestation(ctx context.Context, builderID string, tro *objects.TaskRunObject) (interface{}, error) {
 	subjects := extract.SubjectDigests(ctx, tro)
 
-	mat, err := material.Materials(ctx, tro)
+	mat, err := material.TaskMaterials(ctx, tro)
 	if err != nil {
 		return nil, err
 	}

@@ -28,6 +28,7 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/attest"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	"knative.dev/pkg/logging"
 )
 
 const (
@@ -35,35 +36,127 @@ const (
 	digestSeparator = ":"
 )
 
-// AddStepImagesToMaterials adds step images to predicate.materials
-func AddStepImagesToMaterials(steps []v1beta1.StepState, mats *[]common.ProvenanceMaterial) error {
+// TaskMaterials constructs `predicate.materials` section by collecting all the artifacts that influence a taskrun such as source code repo and step&sidecar base images.
+func TaskMaterials(ctx context.Context, tro *objects.TaskRunObject) ([]common.ProvenanceMaterial, error) {
+	var mats []common.ProvenanceMaterial
+
+	// add step images
+	stepMaterials, err := FromStepImages(tro.Status.Steps)
+	if err != nil {
+		return nil, err
+	}
+	mats = append(mats, stepMaterials...)
+
+	// add sidecar images
+	sidecarMaterials, err := FromSidecarImages(tro.Status.Sidecars)
+	if err != nil {
+		return nil, err
+	}
+	mats = append(mats, sidecarMaterials...)
+
+	mats = append(mats, FromTaskParamsAndResults(ctx, tro)...)
+
+	// add task resources
+	mats = append(mats, FromTaskResources(ctx, tro)...)
+
+	// remove duplicate materials
+	mats, err = removeDuplicateMaterials(mats)
+	if err != nil {
+		return mats, err
+	}
+	return mats, nil
+}
+
+func PipelineMaterials(ctx context.Context, pro *objects.PipelineRunObject) ([]common.ProvenanceMaterial, error) {
+	logger := logging.FromContext(ctx)
+	var mats []common.ProvenanceMaterial
+	if p := pro.Status.Provenance; p != nil && p.RefSource != nil {
+		m := common.ProvenanceMaterial{
+			URI:    p.RefSource.URI,
+			Digest: p.RefSource.Digest,
+		}
+		mats = append(mats, m)
+	}
+	pSpec := pro.Status.PipelineSpec
+	if pSpec != nil {
+		pipelineTasks := append(pSpec.Tasks, pSpec.Finally...)
+		for _, t := range pipelineTasks {
+			tr := pro.GetTaskRunFromTask(t.Name)
+			// Ignore Tasks that did not execute during the PipelineRun.
+			if tr == nil || tr.Status.CompletionTime == nil {
+				logger.Infof("taskrun status not found for task %s", t.Name)
+				continue
+			}
+
+			stepMaterials, err := FromStepImages(tr.Status.Steps)
+			if err != nil {
+				return mats, err
+			}
+			mats = append(mats, stepMaterials...)
+
+			// add sidecar images
+			sidecarMaterials, err := FromSidecarImages(tr.Status.Sidecars)
+			if err != nil {
+				return nil, err
+			}
+			mats = append(mats, sidecarMaterials...)
+
+			// add remote task configsource information in materials
+			if tr.Status.Provenance != nil && tr.Status.Provenance.RefSource != nil {
+				m := common.ProvenanceMaterial{
+					URI:    tr.Status.Provenance.RefSource.URI,
+					Digest: tr.Status.Provenance.RefSource.Digest,
+				}
+				mats = append(mats, m)
+			}
+		}
+	}
+
+	mats = append(mats, FromPipelineParamsAndResults(ctx, pro)...)
+
+	// remove duplicate materials
+	mats, err := removeDuplicateMaterials(mats)
+	if err != nil {
+		return mats, err
+	}
+	return mats, nil
+}
+
+// FromStepImages gets predicate.materials from step images
+func FromStepImages(steps []v1beta1.StepState) ([]common.ProvenanceMaterial, error) {
+	mats := []common.ProvenanceMaterial{}
 	for _, stepState := range steps {
-		if err := AddImageIDToMaterials(stepState.ImageID, mats); err != nil {
-			return err
+		m, err := fromImageID(stepState.ImageID)
+		if err != nil {
+			return nil, err
 		}
+		mats = append(mats, m)
 	}
-	return nil
+	return mats, nil
 }
 
-// AddSidecarImagesToMaterials adds sidecar images to predicate.materials
-func AddSidecarImagesToMaterials(sidecars []v1beta1.SidecarState, mats *[]common.ProvenanceMaterial) error {
+// FromSidecarImages gets predicate.materials from sidecar images
+func FromSidecarImages(sidecars []v1beta1.SidecarState) ([]common.ProvenanceMaterial, error) {
+	mats := []common.ProvenanceMaterial{}
 	for _, sidecarState := range sidecars {
-		if err := AddImageIDToMaterials(sidecarState.ImageID, mats); err != nil {
-			return err
+		m, err := fromImageID(sidecarState.ImageID)
+		if err != nil {
+			return nil, err
 		}
+		mats = append(mats, m)
 	}
-	return nil
+	return mats, nil
 }
 
-// AddImageIDToMaterials converts an imageId with format <uri>@sha256:<digest> and then adds it to a provenance materials.
-func AddImageIDToMaterials(imageID string, mats *[]common.ProvenanceMaterial) error {
+// fromImageID converts an imageId with format <uri>@sha256:<digest> and generates a provenance materials.
+func fromImageID(imageID string) (common.ProvenanceMaterial, error) {
 	uriDigest := strings.Split(imageID, uriSeparator)
 	if len(uriDigest) != 2 {
-		return fmt.Errorf("expected imageID %s to be separable by @", imageID)
+		return common.ProvenanceMaterial{}, fmt.Errorf("expected imageID %s to be separable by @", imageID)
 	}
 	digest := strings.Split(uriDigest[1], digestSeparator)
 	if len(digest) != 2 {
-		return fmt.Errorf("expected imageID %s to be separable by @ and :", imageID)
+		return common.ProvenanceMaterial{}, fmt.Errorf("expected imageID %s to be separable by @ and :", imageID)
 	}
 	uri := strings.TrimPrefix(uriDigest[0], "docker-pullable://")
 	m := common.ProvenanceMaterial{
@@ -71,39 +164,12 @@ func AddImageIDToMaterials(imageID string, mats *[]common.ProvenanceMaterial) er
 	}
 	m.URI = artifacts.OCIScheme + uri
 	m.Digest[digest[0]] = digest[1]
-	*mats = append(*mats, m)
-	return nil
+	return m, nil
 }
 
-// Materials constructs `predicate.materials` section by collecting all the artifacts that influence a taskrun such as source code repo and step&sidecar base images.
-func Materials(ctx context.Context, tro *objects.TaskRunObject) ([]common.ProvenanceMaterial, error) {
-	var mats []common.ProvenanceMaterial
-
-	// add step images
-	if err := AddStepImagesToMaterials(tro.Status.Steps, &mats); err != nil {
-		return nil, err
-	}
-
-	// add sidecar images
-	if err := AddSidecarImagesToMaterials(tro.Status.Sidecars, &mats); err != nil {
-		return nil, err
-	}
-
-	mats = append(mats, AddMaterialsFromTaskParamsAndResults(ctx, tro)...)
-
-	// add task resources
-	mats = AddTaskResourcesToMaterials(ctx, tro, mats)
-
-	// remove duplicate materials
-	mats, err := RemoveDuplicateMaterials(mats)
-	if err != nil {
-		return mats, err
-	}
-	return mats, nil
-}
-
-// AddTaskResourcesToMaterials adds materials from task resources.
-func AddTaskResourcesToMaterials(ctx context.Context, tro *objects.TaskRunObject, mats []common.ProvenanceMaterial) []common.ProvenanceMaterial {
+// FromTaskResourcesToMaterials gets materials from task resources.
+func FromTaskResources(ctx context.Context, tro *objects.TaskRunObject) []common.ProvenanceMaterial {
+	mats := []common.ProvenanceMaterial{}
 	if tro.Spec.Resources != nil { //nolint:all //incompatible with pipelines v0.45
 		// check for a Git PipelineResource
 		for _, input := range tro.Spec.Resources.Inputs { //nolint:all //incompatible with pipelines v0.45
@@ -143,10 +209,10 @@ func AddTaskResourcesToMaterials(ctx context.Context, tro *objects.TaskRunObject
 	return mats
 }
 
-// AddMaterialsFromTaskParamsAndResults scans over the taskrun, taskspec params and taskrun results
+// FromTaskParamsAndResults scans over the taskrun, taskspec params and taskrun results
 // and looks for unstructured type hinted names matching CHAINS-GIT_COMMIT and CHAINS-GIT_URL
 // to extract the commit and url value for input artifact materials.
-func AddMaterialsFromTaskParamsAndResults(ctx context.Context, tro *objects.TaskRunObject) []common.ProvenanceMaterial {
+func FromTaskParamsAndResults(ctx context.Context, tro *objects.TaskRunObject) []common.ProvenanceMaterial {
 	var commit, url string
 	// Scan for git params to use for materials
 	if tro.Status.TaskSpec != nil {
@@ -200,9 +266,9 @@ func AddMaterialsFromTaskParamsAndResults(ctx context.Context, tro *objects.Task
 	return mats
 }
 
-// RemoveDuplicateMaterials removes duplicate materials from the slice of materials.
+// removeDuplicateMaterials removes duplicate materials from the slice of materials.
 // Original order of materials is retained.
-func RemoveDuplicateMaterials(mats []common.ProvenanceMaterial) ([]common.ProvenanceMaterial, error) {
+func removeDuplicateMaterials(mats []common.ProvenanceMaterial) ([]common.ProvenanceMaterial, error) {
 	out := make([]common.ProvenanceMaterial, 0, len(mats))
 
 	// make map to store seen materials
@@ -222,8 +288,9 @@ func RemoveDuplicateMaterials(mats []common.ProvenanceMaterial) ([]common.Proven
 	return out, nil
 }
 
-// AddMaterialsFromPipelineParamsAndResults extracts type hinted params and results and adds the url and digest to materials.
-func AddMaterialsFromPipelineParamsAndResults(ctx context.Context, pro *objects.PipelineRunObject, mats []common.ProvenanceMaterial) []common.ProvenanceMaterial {
+// FromPipelineParamsAndResults extracts type hinted params and results and adds the url and digest to materials.
+func FromPipelineParamsAndResults(ctx context.Context, pro *objects.PipelineRunObject) []common.ProvenanceMaterial {
+	mats := []common.ProvenanceMaterial{}
 	sms := artifacts.RetrieveMaterialsFromStructuredResults(ctx, pro, artifacts.ArtifactsInputsResultName)
 	mats = append(mats, sms...)
 
