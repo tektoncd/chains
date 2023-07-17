@@ -44,10 +44,10 @@ import (
 	slsa1 "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
 
-	"github.com/ghodss/yaml"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/test/tekton"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	"sigs.k8s.io/yaml"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -147,7 +147,6 @@ func TestExamples(t *testing.T) {
 }
 
 func runInTotoFormatterTests(ctx context.Context, t *testing.T, ns string, c *clients, test TestExample) {
-
 	// TODO: Commenting this out for now. Causes race condition where tests write and revert the chains-config
 	// and signing-secrets out of order
 	// t.Parallel()
@@ -329,7 +328,6 @@ func expectedTaskRunProvenanceFormat(t *testing.T, example string, obj objects.T
 		StepImages:         images,
 		URIDigest:          uridigest,
 	}
-
 }
 
 func expectedPipelineRunProvenanceFormat(t *testing.T, ctx context.Context, example string, obj objects.TektonObject, outputLocation string, ns string, c *clients) Format {
