@@ -116,10 +116,33 @@ func TestExternalParameters(t *testing.T) {
 					Value: v1beta1.ResultValue{Type: "array", ArrayVal: []string{}},
 				},
 			},
+			PipelineRef: &v1beta1.PipelineRef{
+				ResolverRef: v1beta1.ResolverRef{
+					Resolver: "git",
+				},
+			},
+		},
+		Status: v1beta1.PipelineRunStatus{
+			PipelineRunStatusFields: v1beta1.PipelineRunStatusFields{
+				Provenance: &v1beta1.Provenance{
+					RefSource: &v1beta1.RefSource{
+						URI: "hello",
+						Digest: map[string]string{
+							"sha1": "abc123",
+						},
+						EntryPoint: "pipeline.yaml",
+					},
+				},
+			},
 		},
 	}
 
 	want := map[string]any{
+		"buildConfigSource": map[string]string{
+			"path":       "pipeline.yaml",
+			"ref":        "sha1:abc123",
+			"repository": "hello",
+		},
 		"runSpec": pr.Spec,
 	}
 	got := externalParameters(objects.NewPipelineRunObject(pr))

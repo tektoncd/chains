@@ -91,6 +91,27 @@ func internalParameters(tro *objects.TaskRunObject) map[string]any {
 // externalParameters adds the task run spec
 func externalParameters(tro *objects.TaskRunObject) map[string]any {
 	externalParams := make(map[string]any)
+	// add origin of the top level task config
+	// isRemoteTask checks if the task was fetched using a remote resolver
+	isRemoteTask := false
+	if tro.Spec.TaskRef != nil {
+		if tro.Spec.TaskRef.Resolver != "" && tro.Spec.TaskRef.Resolver != "Cluster" {
+			isRemoteTask = true
+		}
+	}
+	if t := tro.Status.Provenance; t != nil && t.RefSource != nil && isRemoteTask {
+		ref := ""
+		for alg, hex := range t.RefSource.Digest {
+			ref = fmt.Sprintf("%s:%s", alg, hex)
+			break
+		}
+		buildConfigSource := map[string]string{
+			"ref":        ref,
+			"repository": t.RefSource.URI,
+			"path":       t.RefSource.EntryPoint,
+		}
+		externalParams["buildConfigSource"] = buildConfigSource
+	}
 	externalParams["runSpec"] = tro.Spec
 	return externalParams
 }

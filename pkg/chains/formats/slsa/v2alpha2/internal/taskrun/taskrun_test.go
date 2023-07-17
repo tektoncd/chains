@@ -117,11 +117,30 @@ func TestExternalParameters(t *testing.T) {
 					Value: v1beta1.ResultValue{Type: "array", ArrayVal: []string{}},
 				},
 			},
+			TaskRef: &v1beta1.TaskRef{
+				ResolverRef: v1beta1.ResolverRef{
+					Resolver: "git",
+				},
+			},
+		},
+		Status: v1beta1.TaskRunStatus{
+			TaskRunStatusFields: v1beta1.TaskRunStatusFields{
+				Provenance: &v1beta1.Provenance{
+					RefSource: &v1beta1.RefSource{
+						URI: "hello",
+						Digest: map[string]string{
+							"sha1": "abc123",
+						},
+						EntryPoint: "task.yaml",
+					},
+				},
+			},
 		},
 	}
 
 	want := map[string]any{
-		"runSpec": tr.Spec,
+		"buildConfigSource": map[string]string{"path": "task.yaml", "ref": "sha1:abc123", "repository": "hello"},
+		"runSpec":           tr.Spec,
 	}
 	got := externalParameters(objects.NewTaskRunObject(tr))
 	if d := cmp.Diff(want, got); d != "" {
