@@ -22,7 +22,6 @@ import (
 	"strings"
 	"testing"
 
-	"sigs.k8s.io/yaml"
 	"github.com/google/go-cmp/cmp"
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	"github.com/tektoncd/chains/internal/backport"
@@ -32,6 +31,7 @@ import (
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
 	logtesting "knative.dev/pkg/logging/testing"
+	"sigs.k8s.io/yaml"
 )
 
 const digest = "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b7"
