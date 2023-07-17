@@ -5,7 +5,6 @@ go 1.19
 require (
 	cloud.google.com/go/compute/metadata v0.2.3
 	cloud.google.com/go/storage v1.30.1
-	github.com/ghodss/yaml v1.0.0
 	github.com/golangci/golangci-lint v1.53.3
 	github.com/google/addlicense v1.1.1
 	github.com/google/go-cmp v0.5.9
@@ -41,6 +40,7 @@ require (
 	k8s.io/client-go v0.27.3
 	k8s.io/code-generator v0.25.9
 	knative.dev/pkg v0.0.0-20230518105712-dfb4bf04635d
+	sigs.k8s.io/yaml v1.3.0
 )
 
 require (
@@ -437,7 +437,6 @@ require (
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/release-utils v0.7.4 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
-	sigs.k8s.io/yaml v1.3.0 // indirect
 )
 
 // Replace glog to fix flag collision between klog and glog.
