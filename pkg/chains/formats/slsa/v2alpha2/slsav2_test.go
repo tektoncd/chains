@@ -292,7 +292,7 @@ func TestMultipleSubjects(t *testing.T) {
 
 	resultValue := v1beta1.ParamValue{
 		Type:      "string",
-		StringVal: "gcr.io/myimage@sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6,gcr.io/myimage@sha256:daa1a56e13c85cf164e7d9e595006649e3a04c47fe4a8261320e18a0bf3b0367",
+		StringVal: "gcr.io/myimage1@sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6,gcr.io/myimage2@sha256:daa1a56e13c85cf164e7d9e595006649e3a04c47fe4a8261320e18a0bf3b0367",
 	}
 	resultBytes, err := json.Marshal(resultValue)
 	if err != nil {
@@ -309,12 +309,12 @@ func TestMultipleSubjects(t *testing.T) {
 			PredicateType: slsa.PredicateSLSAProvenance,
 			Subject: []in_toto.Subject{
 				{
-					Name: "gcr.io/myimage",
+					Name: "gcr.io/myimage1",
 					Digest: common.DigestSet{
 						"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6",
 					},
 				}, {
-					Name: "gcr.io/myimage",
+					Name: "gcr.io/myimage2",
 					Digest: common.DigestSet{
 						"sha256": "daa1a56e13c85cf164e7d9e595006649e3a04c47fe4a8261320e18a0bf3b0367",
 					},

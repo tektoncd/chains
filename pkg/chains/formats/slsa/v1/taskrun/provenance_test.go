@@ -333,7 +333,7 @@ func TestGetSubjectDigests(t *testing.T) {
 	}
 	ctx := logtesting.TestContextWithLogger(t)
 	tro := objects.NewTaskRunObject(tr)
-	got := extract.SubjectDigests(ctx, tro)
+	got := extract.SubjectDigests(ctx, tro, nil)
 	if !reflect.DeepEqual(expected, got) {
 		if d := cmp.Diff(expected, got); d != "" {
 			t.Log(d)

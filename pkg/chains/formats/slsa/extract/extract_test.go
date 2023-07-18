@@ -19,13 +19,16 @@ package extract_test
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logtesting "knative.dev/pkg/logging/testing"
 )
 
@@ -102,21 +105,167 @@ func TestSubjectDigestsAndRetrieveAllArtifactURIs(t *testing.T) {
 			// test both taskrun object and pipelinerun object
 			runObjects := []objects.TektonObject{
 				createTaskRunObjectWithResults(tc.results),
-				createPipelineRunObjectWithResults(tc.results),
+				createProWithPipelineResults(tc.results),
 			}
-
 			for _, o := range runObjects {
-				gotSubjects := extract.SubjectDigests(ctx, o)
+				gotSubjects := extract.SubjectDigests(ctx, o, &slsaconfig.SlsaConfig{DeepInspectionEnabled: false})
 				if diff := cmp.Diff(tc.wantSubjects, gotSubjects, cmpopts.SortSlices(func(x, y intoto.Subject) bool { return x.Name < y.Name })); diff != "" {
-					t.Errorf("Wrong subjects extracted, diff=%s", diff)
+					t.Errorf("Wrong subjects extracted, diff=%s, %s", diff, gotSubjects)
 				}
 
-				gotURIs := extract.RetrieveAllArtifactURIs(ctx, o)
+				gotURIs := extract.RetrieveAllArtifactURIs(ctx, o, false)
 				if diff := cmp.Diff(tc.wantFullURLs, gotURIs, cmpopts.SortSlices(func(x, y string) bool { return x < y })); diff != "" {
 					t.Errorf("Wrong URIs extracted, diff=%s", diff)
 				}
 			}
 
+		})
+	}
+}
+
+func TestPipelineRunObserveModeForSubjects(t *testing.T) {
+	var tests = []struct {
+		name                  string
+		pro                   objects.TektonObject
+		deepInspectionEnabled bool
+		wantSubjects          []intoto.Subject
+		wantFullURLs          []string
+	}{
+		{
+			name:                  "deep inspection disabled",
+			pro:                   createProWithPipelineResults(map[string]string{artifactURL1: "sha256:" + artifactDigest1}),
+			deepInspectionEnabled: false,
+			wantSubjects: []intoto.Subject{
+				{
+					Name: artifactURL1,
+					Digest: map[string]string{
+						"sha256": artifactDigest1,
+					},
+				},
+			},
+			wantFullURLs: []string{fmt.Sprintf("%s@sha256:%s", artifactURL1, artifactDigest1)},
+		},
+		{
+			name:                  "deep inspection enabled: no duplication",
+			pro:                   createProWithTaskRunResults(nil, []artifact{{uri: artifactURL2, digest: "sha256:" + artifactDigest2}}),
+			deepInspectionEnabled: true,
+			wantSubjects: []intoto.Subject{
+				{
+					Name: artifactURL2,
+					Digest: map[string]string{
+						"sha256": artifactDigest2,
+					},
+				},
+			},
+			wantFullURLs: []string{fmt.Sprintf("%s@sha256:%s", artifactURL2, artifactDigest2)},
+		},
+		{
+			name: "deep inspection enabled: 2 tasks have same uri with different sha256 digests",
+			pro: createProWithTaskRunResults(nil, []artifact{
+				{uri: artifactURL2, digest: "sha256:" + artifactDigest1},
+				{uri: artifactURL2, digest: "sha256:" + artifactDigest2},
+			}),
+			deepInspectionEnabled: true,
+			wantSubjects: []intoto.Subject{
+				{
+					Name: artifactURL2,
+					Digest: map[string]string{
+						"sha256": artifactDigest2,
+					},
+				},
+				{
+					Name: artifactURL2,
+					Digest: map[string]string{
+						"sha256": artifactDigest1,
+					},
+				},
+			},
+			wantFullURLs: []string{
+				fmt.Sprintf("%s@sha256:%s", artifactURL2, artifactDigest1),
+				fmt.Sprintf("%s@sha256:%s", artifactURL2, artifactDigest2),
+			},
+		},
+		{
+			name: "deep inspection enabled: 2 taskruns have same uri with same sha256 digests",
+			pro: createProWithTaskRunResults(nil, []artifact{
+				{uri: artifactURL2, digest: "sha256:" + artifactDigest2},
+				{uri: artifactURL2, digest: "sha256:" + artifactDigest2},
+			}),
+			deepInspectionEnabled: true,
+			wantSubjects: []intoto.Subject{
+				{
+					Name: artifactURL2,
+					Digest: map[string]string{
+						"sha256": artifactDigest2,
+					},
+				},
+			},
+			wantFullURLs: []string{
+				fmt.Sprintf("%s@sha256:%s", artifactURL2, artifactDigest2),
+			},
+		},
+		{
+			name: "deep inspection enabled: pipelinerun and taskrun have duplicated results",
+			pro: createProWithTaskRunResults(
+				createProWithPipelineResults(map[string]string{artifactURL1: "sha256:" + artifactDigest1}).(*objects.PipelineRunObject),
+				[]artifact{
+					{uri: artifactURL1, digest: "sha256:" + artifactDigest1},
+				}),
+			deepInspectionEnabled: true,
+			wantSubjects: []intoto.Subject{
+				{
+					Name: artifactURL1,
+					Digest: map[string]string{
+						"sha256": artifactDigest1,
+					},
+				},
+			},
+			wantFullURLs: []string{
+				fmt.Sprintf("%s@sha256:%s", artifactURL1, artifactDigest1),
+			},
+		},
+		{
+			name: "deep inspection enabled: pipelinerun and taskrun have different results",
+			pro: createProWithTaskRunResults(
+				createProWithPipelineResults(map[string]string{artifactURL1: "sha256:" + artifactDigest1}).(*objects.PipelineRunObject),
+				[]artifact{
+					{uri: artifactURL2, digest: "sha256:" + artifactDigest2},
+				}),
+			deepInspectionEnabled: true,
+			wantSubjects: []intoto.Subject{
+				{
+					Name: artifactURL1,
+					Digest: map[string]string{
+						"sha256": artifactDigest1,
+					},
+				},
+				{
+					Name: artifactURL2,
+					Digest: map[string]string{
+						"sha256": artifactDigest2,
+					},
+				},
+			},
+			wantFullURLs: []string{
+				fmt.Sprintf("%s@sha256:%s", artifactURL1, artifactDigest1),
+				fmt.Sprintf("%s@sha256:%s", artifactURL2, artifactDigest2),
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := logtesting.TestContextWithLogger(t)
+
+			gotSubjects := extract.SubjectDigests(ctx, tc.pro, &slsaconfig.SlsaConfig{DeepInspectionEnabled: tc.deepInspectionEnabled})
+			if diff := cmp.Diff(tc.wantSubjects, gotSubjects, cmpopts.SortSlices(func(x, y intoto.Subject) bool { return x.Name < y.Name })); diff != "" {
+				t.Errorf("Wrong subjects extracted, diff=%s, %s", diff, gotSubjects)
+			}
+
+			gotURIs := extract.RetrieveAllArtifactURIs(ctx, tc.pro, tc.deepInspectionEnabled)
+			if diff := cmp.Diff(tc.wantFullURLs, gotURIs, cmpopts.SortSlices(func(x, y string) bool { return x < y })); diff != "" {
+				t.Errorf("Wrong URIs extracted, diff=%s", diff)
+			}
 		})
 	}
 }
@@ -143,7 +292,7 @@ func createTaskRunObjectWithResults(results map[string]string) objects.TektonObj
 	)
 }
 
-func createPipelineRunObjectWithResults(results map[string]string) objects.TektonObject {
+func createProWithPipelineResults(results map[string]string) objects.TektonObject {
 	prResults := []v1beta1.PipelineRunResult{}
 	prefix := 0
 	for url, digest := range results {
@@ -163,4 +312,53 @@ func createPipelineRunObjectWithResults(results map[string]string) objects.Tekto
 			},
 		},
 	)
+}
+
+type artifact struct {
+	uri    string
+	digest string
+}
+
+// create a child taskrun for each result
+//
+//nolint:all
+func createProWithTaskRunResults(pro *objects.PipelineRunObject, results []artifact) objects.TektonObject {
+	if pro == nil {
+		pro = objects.NewPipelineRunObject(&v1beta1.PipelineRun{
+			Status: v1beta1.PipelineRunStatus{
+				PipelineRunStatusFields: v1beta1.PipelineRunStatusFields{
+					PipelineSpec: &v1beta1.PipelineSpec{},
+				},
+			},
+		})
+	}
+
+	if pro.Status.PipelineSpec == nil {
+		pro.Status.PipelineSpec = &v1beta1.PipelineSpec{}
+	}
+
+	// create child taskruns with results and pipelinetask
+	prefix := 0
+	for _, r := range results {
+		// simulate child taskruns
+		pipelineTaskName := fmt.Sprintf("task-%d", prefix)
+		tr := &v1beta1.TaskRun{
+			ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{objects.PipelineTaskLabel: pipelineTaskName}},
+			Status: v1beta1.TaskRunStatus{
+				TaskRunStatusFields: v1beta1.TaskRunStatusFields{
+					CompletionTime: &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 24, time.UTC)},
+					TaskRunResults: []v1beta1.TaskRunResult{
+						{Name: fmt.Sprintf("%v_IMAGE_DIGEST", prefix), Value: *v1beta1.NewStructuredValues(r.digest)},
+						{Name: fmt.Sprintf("%v_IMAGE_URL", prefix), Value: *v1beta1.NewStructuredValues(r.uri)},
+					},
+				},
+			},
+		}
+
+		pro.AppendTaskRun(tr)
+		pro.Status.PipelineSpec.Tasks = append(pro.Status.PipelineSpec.Tasks, v1beta1.PipelineTask{Name: pipelineTaskName})
+		prefix++
+	}
+
+	return pro
 }

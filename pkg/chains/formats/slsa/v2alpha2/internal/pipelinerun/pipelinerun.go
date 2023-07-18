@@ -46,7 +46,7 @@ func GenerateAttestation(ctx context.Context, pro *objects.PipelineRunObject, sl
 		StatementHeader: intoto.StatementHeader{
 			Type:          intoto.StatementInTotoV01,
 			PredicateType: slsa.PredicateSLSAProvenance,
-			Subject:       extract.SubjectDigests(ctx, pro),
+			Subject:       extract.SubjectDigests(ctx, pro, slsaconfig),
 		},
 		Predicate: slsa.ProvenancePredicate{
 			BuildDefinition: slsa.ProvenanceBuildDefinition{

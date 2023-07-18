@@ -18,4 +18,6 @@ package slsaconfig
 type SlsaConfig struct {
 	// BuilderID is the URI of the trusted build platform.
 	BuilderID string
+	// DeepInspectionEnabled configures whether to dive into child taskruns in a pipelinerun
+	DeepInspectionEnabled bool
 }

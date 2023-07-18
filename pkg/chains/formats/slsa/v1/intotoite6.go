@@ -45,7 +45,8 @@ type InTotoIte6 struct {
 func NewFormatter(cfg config.Config) (formats.Payloader, error) {
 	return &InTotoIte6{
 		slsaConfig: &slsaconfig.SlsaConfig{
-			BuilderID: cfg.Builder.ID,
+			BuilderID:             cfg.Builder.ID,
+			DeepInspectionEnabled: cfg.Artifacts.PipelineRuns.DeepInspectionEnabled,
 		},
 	}, nil
 }

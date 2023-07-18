@@ -28,7 +28,7 @@ import (
 )
 
 func GenerateAttestation(ctx context.Context, tro *objects.TaskRunObject, slsaConfig *slsaconfig.SlsaConfig) (interface{}, error) {
-	subjects := extract.SubjectDigests(ctx, tro)
+	subjects := extract.SubjectDigests(ctx, tro, slsaConfig)
 
 	mat, err := material.TaskMaterials(ctx, tro)
 	if err != nil {
