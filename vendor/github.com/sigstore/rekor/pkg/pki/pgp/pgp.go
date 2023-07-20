@@ -34,7 +34,7 @@ import (
 	sigsig "github.com/sigstore/sigstore/pkg/signature"
 )
 
-// Signature Signature that follows the PGP standard; supports both armored & binary detached signatures
+// Signature that follows the PGP standard; supports both armored & binary detached signatures
 type Signature struct {
 	isArmored bool
 	signature []byte
@@ -134,7 +134,7 @@ func (s Signature) CanonicalValue() ([]byte, error) {
 }
 
 // Verify implements the pki.Signature interface
-func (s Signature) Verify(r io.Reader, k interface{}, opts ...sigsig.VerifyOption) error {
+func (s Signature) Verify(r io.Reader, k interface{}, _ ...sigsig.VerifyOption) error {
 	if len(s.signature) == 0 {
 		return fmt.Errorf("PGP signature has not been initialized")
 	}
@@ -302,4 +302,17 @@ func (k PublicKey) EmailAddresses() []string {
 // Subjects implements the pki.PublicKey interface
 func (k PublicKey) Subjects() []string {
 	return k.EmailAddresses()
+}
+
+// Identities implements the pki.PublicKey interface
+func (k PublicKey) Identities() ([]string, error) {
+	// returns the email addresses and armored public key
+	var identities []string
+	identities = append(identities, k.Subjects()...)
+	key, err := k.CanonicalValue()
+	if err != nil {
+		return nil, err
+	}
+	identities = append(identities, string(key))
+	return identities, nil
 }

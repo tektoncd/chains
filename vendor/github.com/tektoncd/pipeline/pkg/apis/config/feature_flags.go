@@ -59,7 +59,7 @@ const (
 	// DefaultEnableTektonOciBundles is the default value for "enable-tekton-oci-bundles".
 	DefaultEnableTektonOciBundles = false
 	// DefaultEnableAPIFields is the default value for "enable-api-fields".
-	DefaultEnableAPIFields = StableAPIFields
+	DefaultEnableAPIFields = BetaAPIFields
 	// DefaultSendCloudEventsForRuns is the default value for "send-cloudevents-for-runs".
 	DefaultSendCloudEventsForRuns = false
 	// EnforceNonfalsifiabilityWithSpire is the value used for  "enable-nonfalsifiability" when SPIRE is used to enable non-falsifiability.
@@ -71,11 +71,13 @@ const (
 	// DefaultNoMatchPolicyConfig is the default value for "trusted-resources-verification-no-match-policy".
 	DefaultNoMatchPolicyConfig = IgnoreNoMatchPolicy
 	// DefaultEnableProvenanceInStatus is the default value for "enable-provenance-status".
-	DefaultEnableProvenanceInStatus = false
+	DefaultEnableProvenanceInStatus = true
 	// DefaultResultExtractionMethod is the default value for ResultExtractionMethod
 	DefaultResultExtractionMethod = ResultExtractionMethodTerminationMessage
 	// DefaultMaxResultSize is the default value in bytes for the size of a result
 	DefaultMaxResultSize = 4096
+	// DefaultSetSecurityContext is the default value for "set-security-context"
+	DefaultSetSecurityContext = false
 
 	disableAffinityAssistantKey         = "disable-affinity-assistant"
 	disableCredsInitKey                 = "disable-creds-init"
@@ -90,7 +92,11 @@ const (
 	enableProvenanceInStatus            = "enable-provenance-in-status"
 	resultExtractionMethod              = "results-from"
 	maxResultSize                       = "max-result-size"
+	setSecurityContextKey               = "set-security-context"
 )
+
+// DefaultFeatureFlags holds all the default configurations for the feature flags configmap.
+var DefaultFeatureFlags, _ = NewFeatureFlagsFromMap(map[string]string{})
 
 // FeatureFlags holds the features configurations
 // +k8s:deepcopy-gen=true
@@ -116,6 +122,7 @@ type FeatureFlags struct {
 	EnableProvenanceInStatus  bool
 	ResultExtractionMethod    string
 	MaxResultSize             int
+	SetSecurityContext        bool
 }
 
 // GetFeatureFlagsConfigName returns the name of the configmap containing all
@@ -177,6 +184,9 @@ func NewFeatureFlagsFromMap(cfgMap map[string]string) (*FeatureFlags, error) {
 		return nil, err
 	}
 	if err := setEnforceNonFalsifiability(cfgMap, tc.EnableAPIFields, &tc.EnforceNonfalsifiability); err != nil {
+		return nil, err
+	}
+	if err := setFeature(setSecurityContextKey, DefaultSetSecurityContext, &tc.SetSecurityContext); err != nil {
 		return nil, err
 	}
 

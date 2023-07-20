@@ -56,39 +56,36 @@ import (
 // keys. You can't change these properties after the KMS key is created. HMAC KMS
 // keys are symmetric keys that never leave KMS unencrypted. You can use HMAC keys
 // to generate ( GenerateMac ) and verify ( VerifyMac ) HMAC codes for messages up
-// to 4096 bytes. HMAC KMS keys are not supported in all Amazon Web Services
-// Regions. If you try to create an HMAC KMS key in an Amazon Web Services Region
-// in which HMAC keys are not supported, the CreateKey operation returns an
-// UnsupportedOperationException . For a list of Regions in which HMAC KMS keys are
-// supported, see HMAC keys in KMS (https://docs.aws.amazon.com/kms/latest/developerguide/hmac.html)
-// in the Key Management Service Developer Guide. Multi-Region primary keys
-// Imported key material To create a multi-Region primary key in the local Amazon
-// Web Services Region, use the MultiRegion parameter with a value of True . To
-// create a multi-Region replica key, that is, a KMS key with the same key ID and
-// key material as a primary key, but in a different Amazon Web Services Region,
-// use the ReplicateKey operation. To change a replica key to a primary key, and
-// its primary key to a replica key, use the UpdatePrimaryRegion operation. You
-// can create multi-Region KMS keys for all supported KMS key types: symmetric
-// encryption KMS keys, HMAC KMS keys, asymmetric encryption KMS keys, and
-// asymmetric signing KMS keys. You can also create multi-Region keys with imported
-// key material. However, you can't create multi-Region keys in a custom key store.
-// This operation supports multi-Region keys, an KMS feature that lets you create
-// multiple interoperable KMS keys in different Amazon Web Services Regions.
-// Because these KMS keys have the same key ID, key material, and other metadata,
-// you can use them interchangeably to encrypt data in one Amazon Web Services
-// Region and decrypt it in a different Amazon Web Services Region without
-// re-encrypting the data or making a cross-Region call. For more information about
-// multi-Region keys, see Multi-Region keys in KMS (https://docs.aws.amazon.com/kms/latest/developerguide/multi-region-keys-overview.html)
+// to 4096 bytes. Multi-Region primary keys Imported key material To create a
+// multi-Region primary key in the local Amazon Web Services Region, use the
+// MultiRegion parameter with a value of True . To create a multi-Region replica
+// key, that is, a KMS key with the same key ID and key material as a primary key,
+// but in a different Amazon Web Services Region, use the ReplicateKey operation.
+// To change a replica key to a primary key, and its primary key to a replica key,
+// use the UpdatePrimaryRegion operation. You can create multi-Region KMS keys for
+// all supported KMS key types: symmetric encryption KMS keys, HMAC KMS keys,
+// asymmetric encryption KMS keys, and asymmetric signing KMS keys. You can also
+// create multi-Region keys with imported key material. However, you can't create
+// multi-Region keys in a custom key store. This operation supports multi-Region
+// keys, an KMS feature that lets you create multiple interoperable KMS keys in
+// different Amazon Web Services Regions. Because these KMS keys have the same key
+// ID, key material, and other metadata, you can use them interchangeably to
+// encrypt data in one Amazon Web Services Region and decrypt it in a different
+// Amazon Web Services Region without re-encrypting the data or making a
+// cross-Region call. For more information about multi-Region keys, see
+// Multi-Region keys in KMS (https://docs.aws.amazon.com/kms/latest/developerguide/multi-region-keys-overview.html)
 // in the Key Management Service Developer Guide. To import your own key material
-// into a KMS key, begin by creating a symmetric encryption KMS key with no key
-// material. To do this, use the Origin parameter of CreateKey with a value of
-// EXTERNAL . Next, use GetParametersForImport operation to get a public key and
-// import token, and use the public key to encrypt your key material. Then, use
-// ImportKeyMaterial with your import token to import the key material. For
-// step-by-step instructions, see Importing Key Material (https://docs.aws.amazon.com/kms/latest/developerguide/importing-keys.html)
-// in the Key Management Service Developer Guide . This feature supports only
-// symmetric encryption KMS keys, including multi-Region symmetric encryption KMS
-// keys. You cannot import key material into any other type of KMS key. To create a
+// into a KMS key, begin by creating a KMS key with no key material. To do this,
+// use the Origin parameter of CreateKey with a value of EXTERNAL . Next, use
+// GetParametersForImport operation to get a public key and import token. Use the
+// wrapping public key to encrypt your key material. Then, use ImportKeyMaterial
+// with your import token to import the key material. For step-by-step
+// instructions, see Importing Key Material (https://docs.aws.amazon.com/kms/latest/developerguide/importing-keys.html)
+// in the Key Management Service Developer Guide . You can import key material into
+// KMS keys of all supported KMS key types: symmetric encryption KMS keys, HMAC KMS
+// keys, asymmetric encryption KMS keys, and asymmetric signing KMS keys. You can
+// also create multi-Region keys with imported key material. However, you can't
+// import key material into a KMS key in a custom key store. To create a
 // multi-Region primary key with imported key material, use the Origin parameter
 // of CreateKey with a value of EXTERNAL and the MultiRegion parameter with a
 // value of True . To create replicas of the multi-Region primary key, use the
@@ -182,7 +179,9 @@ type CreateKeyInput struct {
 
 	// A description of the KMS key. Use a description that helps you decide whether
 	// the KMS key is appropriate for a task. The default value is an empty string (no
-	// description). To set or change the description after the key is created, use
+	// description). Do not include confidential or sensitive information in this
+	// field. This field may be displayed in plaintext in CloudTrail logs and other
+	// output. To set or change the description after the key is created, use
 	// UpdateKeyDescription .
 	Description *string
 
@@ -299,8 +298,10 @@ type CreateKeyInput struct {
 
 	// Assigns one or more tags to the KMS key. Use this parameter to tag the KMS key
 	// when it is created. To tag an existing KMS key, use the TagResource operation.
-	// Tagging or untagging a KMS key can allow or deny permission to the KMS key. For
-	// details, see ABAC for KMS (https://docs.aws.amazon.com/kms/latest/developerguide/abac.html)
+	// Do not include confidential or sensitive information in this field. This field
+	// may be displayed in plaintext in CloudTrail logs and other output. Tagging or
+	// untagging a KMS key can allow or deny permission to the KMS key. For details,
+	// see ABAC for KMS (https://docs.aws.amazon.com/kms/latest/developerguide/abac.html)
 	// in the Key Management Service Developer Guide. To use this parameter, you must
 	// have kms:TagResource (https://docs.aws.amazon.com/kms/latest/developerguide/kms-api-permissions-reference.html)
 	// permission in an IAM policy. Each tag consists of a tag key and a tag value.
@@ -399,6 +400,9 @@ func (c *Client) addOperationCreateKeyMiddlewares(stack *middleware.Stack, optio
 		return err
 	}
 	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opCreateKey(options.Region), middleware.Before); err != nil {
+		return err
+	}
+	if err = awsmiddleware.AddRecursionDetection(stack); err != nil {
 		return err
 	}
 	if err = addRequestIDRetrieverMiddleware(stack); err != nil {

@@ -90,7 +90,7 @@ func (s *ProtectedBranchesService) ListProtectedBranches(pid interface{}, opt *L
 		return nil, resp, err
 	}
 
-	return p, resp, err
+	return p, resp, nil
 }
 
 // GetProtectedBranch gets a single protected branch or wildcard protected branch.
@@ -115,7 +115,7 @@ func (s *ProtectedBranchesService) GetProtectedBranch(pid interface{}, branch st
 		return nil, resp, err
 	}
 
-	return p, resp, err
+	return p, resp, nil
 }
 
 // ProtectRepositoryBranchesOptions represents the available
@@ -140,10 +140,12 @@ type ProtectRepositoryBranchesOptions struct {
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/protected_branches.html#protect-repository-branches
 type BranchPermissionOptions struct {
+	ID          *int              `url:"id,omitempty" json:"id,omitempty"`
 	UserID      *int              `url:"user_id,omitempty" json:"user_id,omitempty"`
 	GroupID     *int              `url:"group_id,omitempty" json:"group_id,omitempty"`
 	DeployKeyID *int              `url:"deploy_key_id,omitempty" json:"deploy_key_id,omitempty"`
 	AccessLevel *AccessLevelValue `url:"access_level,omitempty" json:"access_level,omitempty"`
+	Destroy     *bool             `url:"_destroy,omitempty" json:"_destroy,omitempty"`
 }
 
 // ProtectRepositoryBranches protects a single repository branch or several
@@ -169,7 +171,7 @@ func (s *ProtectedBranchesService) ProtectRepositoryBranches(pid interface{}, op
 		return nil, resp, err
 	}
 
-	return p, resp, err
+	return p, resp, nil
 }
 
 // UnprotectRepositoryBranches unprotects the given protected branch or wildcard
@@ -228,7 +230,7 @@ func (s *ProtectedBranchesService) UpdateProtectedBranch(pid interface{}, branch
 		return nil, resp, err
 	}
 
-	return p, resp, err
+	return p, resp, nil
 }
 
 // RequireCodeOwnerApprovalsOptions represents the available

@@ -18,7 +18,10 @@ package github
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"os"
+	"time"
 
 	"github.com/sigstore/cosign/v2/pkg/cosign/env"
 	"github.com/sigstore/cosign/v2/pkg/providers"
@@ -40,7 +43,7 @@ type githubActions struct{}
 var _ providers.Interface = (*githubActions)(nil)
 
 // Enabled implements providers.Interface
-func (ga *githubActions) Enabled(ctx context.Context) bool {
+func (ga *githubActions) Enabled(_ context.Context) bool {
 	if env.Getenv(env.VariableGitHubRequestToken) == "" {
 		return false
 	}
@@ -51,7 +54,7 @@ func (ga *githubActions) Enabled(ctx context.Context) bool {
 }
 
 // Provide implements providers.Interface
-func (ga *githubActions) Provide(ctx context.Context, audience string) (string, error) {
+func (ga *githubActions) Provide(_ context.Context, audience string) (string, error) {
 	url := env.Getenv(env.VariableGitHubRequestURL) + "&audience=" + audience
 
 	req, err := http.NewRequest("GET", url, nil)
@@ -59,20 +62,27 @@ func (ga *githubActions) Provide(ctx context.Context, audience string) (string, 
 		return "", err
 	}
 
-	req.Header.Add("Authorization", "bearer "+env.Getenv(env.VariableGitHubRequestToken))
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
+	// Retry up to 3 times.
+	for i := 0; ; i++ {
+		req.Header.Add("Authorization", "bearer "+env.Getenv(env.VariableGitHubRequestToken))
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			if i == 2 {
+				return "", err
+			}
+			fmt.Fprintf(os.Stderr, "error fetching GitHub OIDC token (will retry): %v\n", err)
+			time.Sleep(time.Second)
+			continue
+		}
+		defer resp.Body.Close()
 
-	var payload struct {
-		Value string `json:"value"`
+		var payload struct {
+			Value string `json:"value"`
+		}
+		decoder := json.NewDecoder(resp.Body)
+		if err := decoder.Decode(&payload); err != nil {
+			return "", err
+		}
+		return payload.Value, nil
 	}
-
-	decoder := json.NewDecoder(resp.Body)
-	if err := decoder.Decode(&payload); err != nil {
-		return "", err
-	}
-	return payload.Value, nil
 }

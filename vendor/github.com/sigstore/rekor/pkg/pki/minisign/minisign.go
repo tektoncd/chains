@@ -114,7 +114,7 @@ func (s Signature) Verify(r io.Reader, k interface{}, opts ...sigsig.VerifyOptio
 		r = bytes.NewReader(h.Sum(nil))
 	}
 
-	return verifier.VerifySignature(bytes.NewReader(s.signature.Signature[:]), r)
+	return verifier.VerifySignature(bytes.NewReader(s.signature.Signature[:]), r, opts...)
 }
 
 // PublicKey Public Key that follows the minisign standard; supports signify and minisign public keys
@@ -181,4 +181,14 @@ func (k PublicKey) EmailAddresses() []string {
 // Subjects implements the pki.PublicKey interface
 func (k PublicKey) Subjects() []string {
 	return nil
+}
+
+// Identities implements the pki.PublicKey interface
+func (k PublicKey) Identities() ([]string, error) {
+	// returns base64-encoded key (sig alg, key ID, and public key)
+	key, err := k.CanonicalValue()
+	if err != nil {
+		return nil, err
+	}
+	return []string{string(key)}, nil
 }

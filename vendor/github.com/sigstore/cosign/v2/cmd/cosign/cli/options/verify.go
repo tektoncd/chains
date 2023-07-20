@@ -17,12 +17,15 @@ package options
 
 import (
 	"github.com/spf13/cobra"
+
+	"github.com/sigstore/cosign/v2/internal/pkg/cosign"
 )
 
 type CommonVerifyOptions struct {
 	Offline          bool // Force offline verification
 	TSACertChainPath string
 	IgnoreTlog       bool
+	MaxWorkers       int
 }
 
 func (o *CommonVerifyOptions) AddFlags(cmd *cobra.Command) {
@@ -36,6 +39,9 @@ func (o *CommonVerifyOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().BoolVar(&o.IgnoreTlog, "insecure-ignore-tlog", false,
 		"ignore transparency log verification, to be used when an artifact signature has not been uploaded to the transparency log. Artifacts "+
 			"cannot be publicly verified when not included in a log")
+
+	cmd.Flags().IntVar(&o.MaxWorkers, "max-workers", cosign.DefaultMaxWorkers,
+		"the amount of maximum workers for parallel executions")
 }
 
 // VerifyOptions is the top level wrapper for the `verify` command.
@@ -45,6 +51,7 @@ type VerifyOptions struct {
 	Attachment   string
 	Output       string
 	SignatureRef string
+	PayloadRef   string
 	LocalImage   bool
 
 	CommonVerifyOptions CommonVerifyOptions
@@ -84,6 +91,9 @@ func (o *VerifyOptions) AddFlags(cmd *cobra.Command) {
 
 	cmd.Flags().StringVar(&o.SignatureRef, "signature", "",
 		"signature content or path or remote URL")
+
+	cmd.Flags().StringVar(&o.PayloadRef, "payload", "",
+		"payload path or remote URL")
 
 	cmd.Flags().BoolVar(&o.LocalImage, "local-image", false,
 		"whether the specified image is a path to an image saved locally via 'cosign save'")
