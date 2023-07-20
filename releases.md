@@ -98,13 +98,12 @@ Deprecation notices will be included in
 [release notes](https://github.com/tektoncd/chains/releases). Any relevant
 deprecation window timers begin from when the release is published.
 
-## Releases
+## Current Releases
 
-### v0.14
+### v0.16 (LTS)
 
-- **Latest Release**: [v0.14.0][v0-14-0] (2022-12-20)
-- **Initial Release**: [v0.14.0][v0-14-0] (2022-12-20)
-- **End of Life**: 2023-03-20
+- **Latest Release**: [v0.16.0][v0-14-0] (2022-12-20)
+- **Initial Release**: [v0.16.0][v0-14-0] (2022-12-20)
 
 [v0-14-0]: https://github.com/tektoncd/chains/releases/tag/v0.14.0
 
@@ -112,22 +111,13 @@ deprecation window timers begin from when the release is published.
 
 - **Latest Release**: [v0.13.1][v0-13-1] (2022-12-20)
 - **Initial Release**: [v0.13.0][v0-13-0] (2022-11-08)
-- **End of Life**: 2023-11-08
 
 [v0-13-1]: https://github.com/tektoncd/chains/releases/tag/v0.13.1
 [v0-13-0]: https://github.com/tektoncd/chains/releases/tag/v0.13.0
 
-### v0.12
-
-- **Latest Release**: [v0.12.0][v0-12-0] (2022-08-31)
-- **Initial Release**: [v0.12.0][v0-12-0] (2022-08-31)
-- **End of Life**: 2022-12-30
-
-[v0-12-0]: https://github.com/tektoncd/chains/releases/tag/v0.12.0
-
 ## Older Releases
 
-Older releases are EOL and available on [GitHub][tekton-pipeline-releases].
+Older releases are EOL and available on [GitHub][tekton-chains-releases].
 
 [release-policy]: https://github.com/tektoncd/community/blob/main/releases.md
 [sigstore]: https://sigstore.dev
