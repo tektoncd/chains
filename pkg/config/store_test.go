@@ -209,6 +209,35 @@ func TestParse(t *testing.T) {
 			},
 		},
 		{
+			name:           "pipelineRun multi backend with docdb",
+			data:           map[string]string{pipelinerunStorageKey: "tekton,docdb"},
+			taskrunEnabled: true,
+			ociEnbaled:     true,
+			want: Config{
+				Builder: defaultBuilder,
+				Artifacts: ArtifactConfigs{
+					TaskRuns: Artifact{
+						Format:         "in-toto",
+						StorageBackend: sets.New[string]("tekton"),
+						Signer:         "x509",
+					},
+					PipelineRuns: Artifact{
+						Format:         "in-toto",
+						Signer:         "x509",
+						StorageBackend: sets.New[string]("tekton", "docdb"),
+					},
+					OCI: Artifact{
+						Format:         "simplesigning",
+						StorageBackend: sets.New[string]("oci"),
+						Signer:         "x509",
+					},
+				},
+				Signers:      defaultSigners,
+				Storage:      defaultStorage,
+				Transparency: defaultTransparency,
+			},
+		},
+		{
 			name:           "taskrun multi backend disabled",
 			data:           map[string]string{taskrunStorageKey: ""},
 			taskrunEnabled: false,
