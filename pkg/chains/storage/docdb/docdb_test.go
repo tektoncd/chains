@@ -23,7 +23,6 @@ import (
 	"gocloud.dev/docstore"
 	_ "gocloud.dev/docstore/memdocstore"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"knative.dev/pkg/logging"
 	logtesting "knative.dev/pkg/logging/testing"
 	rtesting "knative.dev/pkg/reconciler/testing"
@@ -32,7 +31,6 @@ import (
 func TestBackend_StorePayload(t *testing.T) {
 	ctx, _ := rtesting.SetupFakeContext(t)
 	type args struct {
-		tr         *v1beta1.TaskRun
 		rawPayload interface{}
 		signature  string
 		key        string
@@ -45,16 +43,17 @@ func TestBackend_StorePayload(t *testing.T) {
 		{
 			name: "no error",
 			args: args{
-				tr: &v1beta1.TaskRun{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "foo",
-						Name:      "bar",
-						UID:       types.UID("uid"),
-					},
-				},
 				rawPayload: &v1beta1.TaskRun{ObjectMeta: metav1.ObjectMeta{UID: "foo"}},
 				signature:  "signature",
 				key:        "foo",
+			},
+		},
+		{
+			name: "no error - PipelineRun",
+			args: args{
+				rawPayload: &v1beta1.PipelineRun{ObjectMeta: metav1.ObjectMeta{UID: "foo"}},
+				signature:  "signature",
+				key:        "moo",
 			},
 		},
 	}
@@ -80,8 +79,11 @@ func TestBackend_StorePayload(t *testing.T) {
 
 			// Store the document.
 			opts := config.StorageOpts{ShortKey: tt.args.key}
-			trObj := objects.NewTaskRunObject(tt.args.tr)
-			if err := b.StorePayload(ctx, trObj, sb, tt.args.signature, opts); (err != nil) != tt.wantErr {
+			tektonObj, err := objects.NewTektonObject(tt.args.rawPayload)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := b.StorePayload(ctx, tektonObj, sb, tt.args.signature, opts); (err != nil) != tt.wantErr {
 				t.Fatalf("Backend.StorePayload() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			obj := SignedDocument{
@@ -92,7 +94,7 @@ func TestBackend_StorePayload(t *testing.T) {
 			}
 
 			// Check the signature.
-			signatures, err := b.RetrieveSignatures(ctx, trObj, opts)
+			signatures, err := b.RetrieveSignatures(ctx, tektonObj, opts)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -105,7 +107,7 @@ func TestBackend_StorePayload(t *testing.T) {
 			}
 
 			// Check the payload.
-			payloads, err := b.RetrievePayloads(ctx, trObj, opts)
+			payloads, err := b.RetrievePayloads(ctx, tektonObj, opts)
 			if err != nil {
 				t.Fatal(err)
 			}
