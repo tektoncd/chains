@@ -28,7 +28,6 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/attest"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	"knative.dev/pkg/logging"
 )
 
 const (
@@ -68,7 +67,6 @@ func TaskMaterials(ctx context.Context, tro *objects.TaskRunObject) ([]common.Pr
 }
 
 func PipelineMaterials(ctx context.Context, pro *objects.PipelineRunObject) ([]common.ProvenanceMaterial, error) {
-	logger := logging.FromContext(ctx)
 	var mats []common.ProvenanceMaterial
 	if p := pro.Status.Provenance; p != nil && p.RefSource != nil {
 		m := common.ProvenanceMaterial{
@@ -77,38 +75,28 @@ func PipelineMaterials(ctx context.Context, pro *objects.PipelineRunObject) ([]c
 		}
 		mats = append(mats, m)
 	}
-	pSpec := pro.Status.PipelineSpec
-	if pSpec != nil {
-		pipelineTasks := append(pSpec.Tasks, pSpec.Finally...)
-		for _, t := range pipelineTasks {
-			tr := pro.GetTaskRunFromTask(t.Name)
-			// Ignore Tasks that did not execute during the PipelineRun.
-			if tr == nil || tr.Status.CompletionTime == nil {
-				logger.Infof("taskrun status not found for task %s", t.Name)
-				continue
-			}
 
-			stepMaterials, err := FromStepImages(tr.Status.Steps)
-			if err != nil {
-				return mats, err
-			}
-			mats = append(mats, stepMaterials...)
+	for _, tr := range pro.GetTaskRuns() {
+		stepMaterials, err := FromStepImages(tr.Status.Steps)
+		if err != nil {
+			return mats, err
+		}
+		mats = append(mats, stepMaterials...)
 
-			// add sidecar images
-			sidecarMaterials, err := FromSidecarImages(tr.Status.Sidecars)
-			if err != nil {
-				return nil, err
-			}
-			mats = append(mats, sidecarMaterials...)
+		// add sidecar images
+		sidecarMaterials, err := FromSidecarImages(tr.Status.Sidecars)
+		if err != nil {
+			return nil, err
+		}
+		mats = append(mats, sidecarMaterials...)
 
-			// add remote task configsource information in materials
-			if tr.Status.Provenance != nil && tr.Status.Provenance.RefSource != nil {
-				m := common.ProvenanceMaterial{
-					URI:    tr.Status.Provenance.RefSource.URI,
-					Digest: tr.Status.Provenance.RefSource.Digest,
-				}
-				mats = append(mats, m)
+		// add remote task configsource information in materials
+		if tr.Status.Provenance != nil && tr.Status.Provenance.RefSource != nil {
+			m := common.ProvenanceMaterial{
+				URI:    tr.Status.Provenance.RefSource.URI,
+				Digest: tr.Status.Provenance.RefSource.Digest,
 			}
+			mats = append(mats, m)
 		}
 	}
 

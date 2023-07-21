@@ -176,46 +176,37 @@ func removeDuplicateResolvedDependencies(resolvedDependencies []v1.ResourceDescr
 // fromPipelineTask adds the resolved dependencies from pipeline tasks
 // such as pipeline task uri/digest for remote pipeline tasks and step and sidecar images.
 func fromPipelineTask(logger *zap.SugaredLogger, pro *objects.PipelineRunObject) ([]v1.ResourceDescriptor, error) {
-	pSpec := pro.Status.PipelineSpec
 	resolvedDependencies := []v1.ResourceDescriptor{}
-	if pSpec != nil {
-		pipelineTasks := append(pSpec.Tasks, pSpec.Finally...)
-		for _, t := range pipelineTasks {
-			tr := pro.GetTaskRunFromTask(t.Name)
-			// Ignore Tasks that did not execute during the PipelineRun.
-			if tr == nil || tr.Status.CompletionTime == nil {
-				logger.Infof("taskrun status not found for task %s", t.Name)
-				continue
-			}
-			// add remote task configsource information in materials
-			if tr.Status.Provenance != nil && tr.Status.Provenance.RefSource != nil {
-				rd := v1.ResourceDescriptor{
-					Name:   pipelineTaskConfigName,
-					URI:    tr.Status.Provenance.RefSource.URI,
-					Digest: tr.Status.Provenance.RefSource.Digest,
-				}
-				resolvedDependencies = append(resolvedDependencies, rd)
-			}
 
-			mats := []common.ProvenanceMaterial{}
-
-			// add step images
-			stepMaterials, err := material.FromStepImages(tr.Status.Steps)
-			if err != nil {
-				return nil, err
+	for _, tr := range pro.GetTaskRuns() {
+		// add remote task configsource information in materials
+		if tr.Status.Provenance != nil && tr.Status.Provenance.RefSource != nil {
+			rd := v1.ResourceDescriptor{
+				Name:   pipelineTaskConfigName,
+				URI:    tr.Status.Provenance.RefSource.URI,
+				Digest: tr.Status.Provenance.RefSource.Digest,
 			}
-			mats = append(mats, stepMaterials...)
-
-			// add sidecar images
-			sidecarMaterials, err := material.FromSidecarImages(tr.Status.Sidecars)
-			if err != nil {
-				return nil, err
-			}
-			mats = append(mats, sidecarMaterials...)
-
-			// convert materials to resolved dependencies
-			resolvedDependencies = append(resolvedDependencies, convertMaterialsToResolvedDependencies(mats, "")...)
+			resolvedDependencies = append(resolvedDependencies, rd)
 		}
+
+		mats := []common.ProvenanceMaterial{}
+
+		// add step images
+		stepMaterials, err := material.FromStepImages(tr.Status.Steps)
+		if err != nil {
+			return nil, err
+		}
+		mats = append(mats, stepMaterials...)
+
+		// add sidecar images
+		sidecarMaterials, err := material.FromSidecarImages(tr.Status.Sidecars)
+		if err != nil {
+			return nil, err
+		}
+		mats = append(mats, sidecarMaterials...)
+
+		// convert materials to resolved dependencies
+		resolvedDependencies = append(resolvedDependencies, convertMaterialsToResolvedDependencies(mats, "")...)
 	}
 	return resolvedDependencies, nil
 }

@@ -197,6 +197,11 @@ func (pro *PipelineRunObject) AppendTaskRun(tr *v1beta1.TaskRun) {
 	pro.taskRuns = append(pro.taskRuns, tr)
 }
 
+// Get all child TaskRuns spawned from the PipelineRun
+func (pro *PipelineRunObject) GetTaskRuns() []*v1beta1.TaskRun {
+	return pro.taskRuns
+}
+
 // Get the associated TaskRun via the Task name
 func (pro *PipelineRunObject) GetTaskRunFromTask(taskName string) *v1beta1.TaskRun {
 	for _, tr := range pro.taskRuns {
