@@ -39,12 +39,6 @@
                 "message": "All Steps have completed executing"
             }
         ],
-	"provenance": {
-	    "featureFlags": {
-                "EnableAPIFields": "beta",
-                "ResultExtractionMethod": "termination-message"
-	    }
-	},
         "podName": "test-pod-name",
         "steps": [
             {
@@ -137,6 +131,10 @@
               "sha1": "ab123"
             },
             "entryPoint": "build.yaml"
+          },
+          "featureFlags": {
+            "EnableAPIFields": "beta",
+            "ResultExtractionMethod": "termination-message"
           }
         }
     }
