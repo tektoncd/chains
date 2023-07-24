@@ -6,3 +6,7 @@ updates:
       interval: "daily"
     labels:
     - "ok-to-test"
+    groups:
+      all:
+        patterns:
+          - "*""
