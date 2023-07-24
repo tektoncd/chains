@@ -62,6 +62,9 @@ type TektonObject interface {
 	GetPullSecrets() []string
 	IsDone() bool
 	IsSuccessful() bool
+	SupportsTaskRunArtifact() bool
+	SupportsPipelineRunArtifact() bool
+	SupportsOCIArtifact() bool
 }
 
 func NewTektonObject(i interface{}) (TektonObject, error) {
@@ -135,6 +138,18 @@ func (tro *TaskRunObject) GetServiceAccountName() string {
 // Get the imgPullSecrets from the pod template
 func (tro *TaskRunObject) GetPullSecrets() []string {
 	return getPodPullSecrets(tro.Spec.PodTemplate)
+}
+
+func (tro *TaskRunObject) SupportsTaskRunArtifact() bool {
+	return true
+}
+
+func (tro *TaskRunObject) SupportsPipelineRunArtifact() bool {
+	return false
+}
+
+func (tro *TaskRunObject) SupportsOCIArtifact() bool {
+	return true
 }
 
 // PipelineRunObject extends v1beta1.PipelineRun with additional functions.
@@ -221,6 +236,18 @@ func (pro *PipelineRunObject) GetTaskRunFromTask(taskName string) *v1beta1.TaskR
 // Get the imgPullSecrets from the pod template
 func (pro *PipelineRunObject) GetPullSecrets() []string {
 	return getPodPullSecrets(pro.Spec.PodTemplate)
+}
+
+func (pro *PipelineRunObject) SupportsTaskRunArtifact() bool {
+	return false
+}
+
+func (pro *PipelineRunObject) SupportsPipelineRunArtifact() bool {
+	return true
+}
+
+func (pro *PipelineRunObject) SupportsOCIArtifact() bool {
+	return false
 }
 
 // Get the imgPullSecrets from a pod template, if they exist
