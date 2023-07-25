@@ -26,6 +26,7 @@ import (
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
 
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha2/internal/pipelinerun"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/internal/objectloader"
@@ -221,7 +222,6 @@ func TestByProducts(t *testing.T) {
 
 func TestTaskRunGenerateAttestation(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
-
 	tr, err := objectloader.TaskRunFromFile("../../../testdata/v2alpha2/taskrun1.json")
 	if err != nil {
 		t.Fatal(err)
@@ -308,7 +308,9 @@ func TestTaskRunGenerateAttestation(t *testing.T) {
 		},
 	}
 
-	got, err := GenerateAttestation(ctx, "test_builder-1", objects.NewTaskRunObject(tr))
+	got, err := GenerateAttestation(ctx, objects.NewTaskRunObject(tr), &slsaconfig.SlsaConfig{
+		BuilderID: "test_builder-1",
+	})
 
 	if err != nil {
 		t.Errorf("unwant error: %s", err.Error())
