@@ -26,7 +26,7 @@ import (
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
 
-	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha2/internal/pipelinerun"
+	resourcedescriptor "github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha2/internal/resource_descriptor"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/internal/objectloader"
 	"github.com/tektoncd/pipeline/pkg/apis/config"
@@ -207,7 +207,7 @@ func TestByProducts(t *testing.T) {
 		{
 			Name:      "taskRunResults/result-name",
 			Content:   resultBytes,
-			MediaType: pipelinerun.JsonMediaType,
+			MediaType: string(resourcedescriptor.JsonMediaType),
 		},
 	}
 	got, err := byproducts(objects.NewTaskRunObject(tr))
@@ -296,12 +296,12 @@ func TestTaskRunGenerateAttestation(t *testing.T) {
 					{
 						Name:      "taskRunResults/IMAGE_DIGEST",
 						Content:   resultBytesDigest,
-						MediaType: pipelinerun.JsonMediaType,
+						MediaType: string(resourcedescriptor.JsonMediaType),
 					},
 					{
 						Name:      "taskRunResults/IMAGE_URL",
 						Content:   resultBytesUri,
-						MediaType: pipelinerun.JsonMediaType,
+						MediaType: string(resourcedescriptor.JsonMediaType),
 					},
 				},
 			},

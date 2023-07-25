@@ -23,22 +23,10 @@ import (
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	v1 "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/material"
+	rd "github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha2/internal/resource_descriptor"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"go.uber.org/zap"
 	"knative.dev/pkg/logging"
-)
-
-const (
-	// pipelineConfigName is the name of the resolved dependency of the pipelineRef.
-	pipelineConfigName = "pipeline"
-	// taskConfigName is the name of the resolved dependency of the top level taskRef.
-	taskConfigName = "task"
-	// pipelineTaskConfigName is the name of the resolved dependency of the pipeline task.
-	pipelineTaskConfigName = "pipelineTask"
-	// inputResultName is the name of the resolved dependency generated from Type hinted parameters or results.
-	inputResultName = "inputs/result"
-	// pipelineResourceName is the name of the resolved dependency of pipeline resource.
-	pipelineResourceName = "pipelineResource"
 )
 
 // TaskRun constructs `predicate.resolvedDependencies` section by collecting all the artifacts that influence a taskrun such as source code repo and step&sidecar base images.
@@ -49,7 +37,7 @@ func TaskRun(ctx context.Context, tro *objects.TaskRunObject) ([]v1.ResourceDesc
 	// add top level task config
 	if p := tro.Status.Provenance; p != nil && p.RefSource != nil {
 		rd := v1.ResourceDescriptor{
-			Name:   taskConfigName,
+			Name:   string(rd.TaskConfigName),
 			URI:    p.RefSource.URI,
 			Digest: p.RefSource.Digest,
 		}
@@ -73,12 +61,12 @@ func TaskRun(ctx context.Context, tro *objects.TaskRunObject) ([]v1.ResourceDesc
 
 	mats = material.FromTaskParamsAndResults(ctx, tro)
 	// convert materials to resolved dependencies
-	resolvedDependencies = append(resolvedDependencies, convertMaterialsToResolvedDependencies(mats, inputResultName)...)
+	resolvedDependencies = append(resolvedDependencies, convertMaterialsToResolvedDependencies(mats, rd.InputResultName)...)
 
 	// add task resources
 	mats = material.FromTaskResources(ctx, tro)
 	// convert materials to resolved dependencies
-	resolvedDependencies = append(resolvedDependencies, convertMaterialsToResolvedDependencies(mats, pipelineResourceName)...)
+	resolvedDependencies = append(resolvedDependencies, convertMaterialsToResolvedDependencies(mats, rd.PipelineResourceName)...)
 
 	// remove duplicate resolved dependencies
 	resolvedDependencies, err = removeDuplicateResolvedDependencies(resolvedDependencies)
@@ -97,7 +85,7 @@ func PipelineRun(ctx context.Context, pro *objects.PipelineRunObject) ([]v1.Reso
 	// add pipeline config to resolved dependencies
 	if p := pro.Status.Provenance; p != nil && p.RefSource != nil {
 		rd := v1.ResourceDescriptor{
-			Name:   pipelineConfigName,
+			Name:   string(rd.PipelineConfigName),
 			URI:    p.RefSource.URI,
 			Digest: p.RefSource.Digest,
 		}
@@ -114,7 +102,7 @@ func PipelineRun(ctx context.Context, pro *objects.PipelineRunObject) ([]v1.Reso
 	// add resolved dependencies from pipeline results
 	mats := material.FromPipelineParamsAndResults(ctx, pro)
 	// convert materials to resolved dependencies
-	resolvedDependencies = append(resolvedDependencies, convertMaterialsToResolvedDependencies(mats, inputResultName)...)
+	resolvedDependencies = append(resolvedDependencies, convertMaterialsToResolvedDependencies(mats, rd.InputResultName)...)
 
 	// remove duplicate resolved dependencies
 	resolvedDependencies, err = removeDuplicateResolvedDependencies(resolvedDependencies)
@@ -125,16 +113,16 @@ func PipelineRun(ctx context.Context, pro *objects.PipelineRunObject) ([]v1.Reso
 }
 
 // convertMaterialToResolvedDependency converts a SLSAv0.2 Material to a resolved dependency
-func convertMaterialsToResolvedDependencies(mats []common.ProvenanceMaterial, name string) []v1.ResourceDescriptor {
+func convertMaterialsToResolvedDependencies(mats []common.ProvenanceMaterial, name rd.Name) []v1.ResourceDescriptor {
 	rds := []v1.ResourceDescriptor{}
 	for _, mat := range mats {
-		rd := v1.ResourceDescriptor{}
-		rd.URI = mat.URI
-		rd.Digest = mat.Digest
+		temp := v1.ResourceDescriptor{}
+		temp.URI = mat.URI
+		temp.Digest = mat.Digest
 		if len(name) > 0 {
-			rd.Name = name
+			temp.Name = string(name)
 		}
-		rds = append(rds, rd)
+		rds = append(rds, temp)
 	}
 	return rds
 }
@@ -153,21 +141,21 @@ func removeDuplicateResolvedDependencies(resolvedDependencies []v1.ResourceDescr
 		rDep.URI = resolvedDependency.URI
 		rDep.Digest = resolvedDependency.Digest
 		// This allows us to ignore dependencies that have the same uri and digest.
-		rd, err := json.Marshal(rDep)
+		raw, err := json.Marshal(rDep)
 		if err != nil {
 			return nil, err
 		}
-		if seen[string(rd)] {
+		if seen[string(raw)] {
 			// We dont want to remove the top level pipeline/task config from the resolved dependencies
 			// because its critical to provide that information in the provenance. In SLSAv0.2 spec,
 			// we would put this in invocation.ConfigSource. In order to ensure that it is present in
 			// the resolved dependencies, we dont want to skip it if another resolved dependency from the same
 			// uri+digest pair was already included before.
-			if !(resolvedDependency.Name == taskConfigName || resolvedDependency.Name == pipelineConfigName) {
+			if !(resolvedDependency.Name == string(rd.TaskConfigName) || resolvedDependency.Name == string(rd.PipelineConfigName)) {
 				continue
 			}
 		}
-		seen[string(rd)] = true
+		seen[string(raw)] = true
 		out = append(out, resolvedDependency)
 	}
 	return out, nil
@@ -190,7 +178,7 @@ func fromPipelineTask(logger *zap.SugaredLogger, pro *objects.PipelineRunObject)
 			// add remote task configsource information in materials
 			if tr.Status.Provenance != nil && tr.Status.Provenance.RefSource != nil {
 				rd := v1.ResourceDescriptor{
-					Name:   pipelineTaskConfigName,
+					Name:   string(rd.PipelineTaskConfigName),
 					URI:    tr.Status.Provenance.RefSource.URI,
 					Digest: tr.Status.Provenance.RefSource.Digest,
 				}

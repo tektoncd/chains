@@ -22,7 +22,7 @@ import (
 	"time"
 
 	"github.com/tektoncd/chains/pkg/chains/formats"
-	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha2/internal/pipelinerun"
+	resourcedescriptor "github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha2/internal/resource_descriptor"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/chains/pkg/internal/objectloader"
@@ -172,12 +172,12 @@ func TestTaskRunCreatePayload1(t *testing.T) {
 					{
 						Name:      "taskRunResults/IMAGE_DIGEST",
 						Content:   resultBytesDigest,
-						MediaType: pipelinerun.JsonMediaType,
+						MediaType: string(resourcedescriptor.JsonMediaType),
 					},
 					{
 						Name:      "taskRunResults/IMAGE_URL",
 						Content:   resultBytesUri,
-						MediaType: pipelinerun.JsonMediaType,
+						MediaType: string(resourcedescriptor.JsonMediaType),
 					},
 				},
 			},
@@ -258,12 +258,12 @@ func TestTaskRunCreatePayload2(t *testing.T) {
 					{
 						Name:      "taskRunResults/some-uri_DIGEST",
 						Content:   resultBytesDigest,
-						MediaType: pipelinerun.JsonMediaType,
+						MediaType: string(resourcedescriptor.JsonMediaType),
 					},
 					{
 						Name:      "taskRunResults/some-uri",
 						Content:   resultBytesUri,
-						MediaType: pipelinerun.JsonMediaType,
+						MediaType: string(resourcedescriptor.JsonMediaType),
 					},
 				},
 			},
@@ -343,7 +343,7 @@ func TestMultipleSubjects(t *testing.T) {
 					{
 						Name:      "taskRunResults/IMAGES",
 						Content:   resultBytes,
-						MediaType: pipelinerun.JsonMediaType,
+						MediaType: string(resourcedescriptor.JsonMediaType),
 					},
 				},
 			},
@@ -458,31 +458,31 @@ func TestPipelineRunCreatePayload1(t *testing.T) {
 					{
 						Name:      "pipelineRunResults/CHAINS-GIT_COMMIT",
 						Content:   []uint8(`"abcd"`),
-						MediaType: pipelinerun.JsonMediaType,
+						MediaType: string(resourcedescriptor.JsonMediaType),
 					}, {
 						Name:      "pipelineRunResults/CHAINS-GIT_URL",
 						Content:   []uint8(`"https://git.test.com"`),
-						MediaType: pipelinerun.JsonMediaType,
+						MediaType: string(resourcedescriptor.JsonMediaType),
 					}, {
 						Name:      "pipelineRunResults/IMAGE_URL",
 						Content:   []uint8(`"test.io/test/image"`),
-						MediaType: pipelinerun.JsonMediaType,
+						MediaType: string(resourcedescriptor.JsonMediaType),
 					}, {
 						Name:      "pipelineRunResults/IMAGE_DIGEST",
 						Content:   []uint8(`"sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"`),
-						MediaType: pipelinerun.JsonMediaType,
+						MediaType: string(resourcedescriptor.JsonMediaType),
 					}, {
 						Name:      "pipelineRunResults/img-ARTIFACT_INPUTS",
 						Content:   []uint8(`{"digest":"sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7","uri":"abc"}`),
-						MediaType: pipelinerun.JsonMediaType,
+						MediaType: string(resourcedescriptor.JsonMediaType),
 					}, {
 						Name:      "pipelineRunResults/img2-ARTIFACT_OUTPUTS",
 						Content:   []uint8(`{"digest":"sha256:","uri":"def"}`),
-						MediaType: pipelinerun.JsonMediaType,
+						MediaType: string(resourcedescriptor.JsonMediaType),
 					}, {
 						Name:      "pipelineRunResults/img_no_uri-ARTIFACT_OUTPUTS",
 						Content:   []uint8(`{"digest":"sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"}`),
-						MediaType: pipelinerun.JsonMediaType,
+						MediaType: string(resourcedescriptor.JsonMediaType),
 					},
 				},
 			},

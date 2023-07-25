@@ -22,13 +22,8 @@ import (
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
 	resolveddependencies "github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha2/internal/resolved_dependencies"
+	rd "github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha2/internal/resource_descriptor"
 	"github.com/tektoncd/chains/pkg/chains/objects"
-)
-
-const (
-	pipelineRunResults = "pipelineRunResults/%s"
-	// JsonMediaType is the media type of json encoded content used in resource descriptors
-	JsonMediaType = "application/json"
 )
 
 // GenerateAttestation generates a provenance statement with SLSA v1.0 predicate for a pipeline run.
@@ -130,9 +125,9 @@ func byproducts(pro *objects.PipelineRunObject) ([]slsa.ResourceDescriptor, erro
 			return nil, err
 		}
 		bp := slsa.ResourceDescriptor{
-			Name:      fmt.Sprintf(pipelineRunResults, key.Name),
+			Name:      fmt.Sprintf(string(rd.PipelineRunResults), key.Name),
 			Content:   content,
-			MediaType: JsonMediaType,
+			MediaType: string(rd.JsonMediaType),
 		}
 		byProd = append(byProd, bp)
 	}
