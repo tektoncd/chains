@@ -42,6 +42,12 @@ func getTaskRun() *v1beta1.TaskRun {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "objects-test",
+			Labels: map[string]string{
+				PipelineTaskLabel: "foo-task",
+			},
+		},
+		Spec: v1beta1.TaskRunSpec{
+			ServiceAccountName: "taskrun-sa",
 		},
 		Status: v1beta1.TaskRunStatus{
 			TaskRunStatusFields: v1beta1.TaskRunStatusFields{
@@ -67,7 +73,9 @@ func getPipelineRun() *v1beta1.PipelineRun {
 			Name:      "foo",
 			Namespace: "objects-test",
 		},
-		Spec: v1beta1.PipelineRunSpec{},
+		Spec: v1beta1.PipelineRunSpec{
+			ServiceAccountName: "pipelinerun-sa",
+		},
 		Status: v1beta1.PipelineRunStatus{
 			PipelineRunStatusFields: v1beta1.PipelineRunStatusFields{
 				PipelineResults: []v1beta1.PipelineRunResult{
@@ -195,4 +203,54 @@ func TestTaskRun_GetResults(t *testing.T) {
 		})
 	})
 
+}
+
+func TestPipelineRun_GetGVK(t *testing.T) {
+	assert.Equal(t, "tekton.dev/v1beta1/PipelineRun", NewPipelineRunObject(getPipelineRun()).GetGVK())
+}
+
+func TestTaskRun_GetGVK(t *testing.T) {
+	assert.Equal(t, "tekton.dev/v1beta1/TaskRun", NewTaskRunObject(getTaskRun()).GetGVK())
+}
+
+func TestPipelineRun_GetKindName(t *testing.T) {
+	assert.Equal(t, "pipelinerun", NewPipelineRunObject(getPipelineRun()).GetKindName())
+}
+
+func TestTaskRun_GetKindName(t *testing.T) {
+	assert.Equal(t, "taskrun", NewTaskRunObject(getTaskRun()).GetKindName())
+}
+
+func TestPipelineRun_GetServiceAccountName(t *testing.T) {
+	assert.Equal(t, "pipelinerun-sa", NewPipelineRunObject(getPipelineRun()).GetServiceAccountName())
+}
+
+func TestTaskRun_GetServiceAccountName(t *testing.T) {
+	assert.Equal(t, "taskrun-sa", NewTaskRunObject(getTaskRun()).GetServiceAccountName())
+}
+
+func TestNewTektonObject(t *testing.T) {
+	tro, err := NewTektonObject(getTaskRun())
+	assert.NoError(t, err)
+	assert.IsType(t, &TaskRunObject{}, tro)
+
+	pro, err := NewTektonObject(getPipelineRun())
+	assert.NoError(t, err)
+	assert.IsType(t, &PipelineRunObject{}, pro)
+
+	unknown, err := NewTektonObject("someting-else")
+	assert.Nil(t, unknown)
+	assert.ErrorContains(t, err, "unrecognized type")
+}
+
+func TestPipelineRun_GetTaskRunFromTask(t *testing.T) {
+	pro := NewPipelineRunObject(getPipelineRun())
+
+	assert.Nil(t, pro.GetTaskRunFromTask("missing"))
+	assert.Nil(t, pro.GetTaskRunFromTask("foo-task"))
+
+	pro.AppendTaskRun(getTaskRun())
+	assert.Nil(t, pro.GetTaskRunFromTask("missing"))
+	tr := pro.GetTaskRunFromTask("foo-task")
+	assert.Equal(t, "foo", tr.Name)
 }
