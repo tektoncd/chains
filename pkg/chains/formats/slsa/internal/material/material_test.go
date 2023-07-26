@@ -26,6 +26,7 @@ import (
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	"github.com/tektoncd/chains/internal/backport"
 	"github.com/tektoncd/chains/pkg/artifacts"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/compare"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/internal/objectloader"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -360,7 +361,7 @@ func TestPipelineMaterials(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if diff := cmp.Diff(expected, got); diff != "" {
+	if diff := cmp.Diff(expected, got, compare.MaterialsCompareOption()); diff != "" {
 		t.Errorf("Materials(): -want +got: %s", diff)
 	}
 }
@@ -394,7 +395,7 @@ func TestStructuredResultPipelineMaterials(t *testing.T) {
 	if err != nil {
 		t.Errorf("error while extracting materials: %v", err)
 	}
-	if diff := cmp.Diff(want, got); diff != "" {
+	if diff := cmp.Diff(want, got, compare.MaterialsCompareOption()); diff != "" {
 		t.Errorf("materials(): -want +got: %s", diff)
 	}
 }

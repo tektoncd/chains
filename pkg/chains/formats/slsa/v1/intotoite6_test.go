@@ -23,6 +23,7 @@ import (
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/formats"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/attest"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/compare"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v1/pipelinerun"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v1/taskrun"
 	"github.com/tektoncd/chains/pkg/chains/objects"
@@ -365,7 +366,7 @@ func TestPipelineRunCreatePayload(t *testing.T) {
 		t.Errorf("unexpected error: %s", err.Error())
 	}
 	// Sort Materials since their order can vary and result in flakes
-	if diff := cmp.Diff(expected, got); diff != "" {
+	if diff := cmp.Diff(expected, got, compare.MaterialsCompareOption()); diff != "" {
 		t.Errorf("InTotoIte6.CreatePayload(): -want +got: %s", diff)
 	}
 }
@@ -582,7 +583,7 @@ func TestPipelineRunCreatePayloadChildRefs(t *testing.T) {
 		t.Errorf("unexpected error: %s", err.Error())
 	}
 	// Sort Materials since their order can vary and result in flakes
-	if diff := cmp.Diff(expected, got); diff != "" {
+	if diff := cmp.Diff(expected, got, compare.MaterialsCompareOption()); diff != "" {
 		t.Errorf("InTotoIte6.CreatePayload(): -want +got: %s", diff)
 	}
 }
