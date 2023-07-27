@@ -30,7 +30,7 @@ require (
 	github.com/tektoncd/plumbing v0.0.0-20221102182345-5dbcfda657d7
 	go.uber.org/zap v1.24.0
 	gocloud.dev v0.32.0
-	gocloud.dev/docstore/mongodocstore v0.30.0
+	gocloud.dev/docstore/mongodocstore v0.32.0
 	gocloud.dev/pubsub/kafkapubsub v0.32.0
 	golang.org/x/crypto v0.11.0
 	google.golang.org/grpc v1.56.2
@@ -388,7 +388,7 @@ require (
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a // indirect
 	github.com/zeebo/errs v1.3.0 // indirect
 	gitlab.com/bosi/decorder v0.2.3 // indirect
-	go.mongodb.org/mongo-driver v1.11.7 // indirect
+	go.mongodb.org/mongo-driver v1.12.0 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/otel v1.16.0 // indirect
 	go.opentelemetry.io/otel/metric v1.16.0 // indirect
