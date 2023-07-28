@@ -22,11 +22,12 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/attest"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/material"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 )
 
-func GenerateAttestation(ctx context.Context, builderID string, tro *objects.TaskRunObject) (interface{}, error) {
+func GenerateAttestation(ctx context.Context, tro *objects.TaskRunObject, slsaConfig *slsaconfig.SlsaConfig) (interface{}, error) {
 	subjects := extract.SubjectDigests(ctx, tro)
 
 	mat, err := material.TaskMaterials(ctx, tro)
@@ -41,7 +42,7 @@ func GenerateAttestation(ctx context.Context, builderID string, tro *objects.Tas
 		},
 		Predicate: slsa.ProvenancePredicate{
 			Builder: common.ProvenanceBuilder{
-				ID: builderID,
+				ID: slsaConfig.BuilderID,
 			},
 			BuildType:   tro.GetGVK(),
 			Invocation:  invocation(tro),

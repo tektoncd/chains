@@ -26,6 +26,7 @@ import (
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
 
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/internal/objectloader"
 	"github.com/tektoncd/pipeline/pkg/apis/config"
@@ -243,7 +244,6 @@ func createPro(path string) *objects.PipelineRunObject {
 
 func TestGenerateAttestation(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
-
 	pr := createPro("../../../testdata/v2alpha2/pipelinerun1.json")
 
 	e1BuildStart := time.Unix(1617011400, 0)
@@ -349,7 +349,9 @@ func TestGenerateAttestation(t *testing.T) {
 		},
 	}
 
-	got, err := GenerateAttestation(ctx, "test_builder-1", pr)
+	got, err := GenerateAttestation(ctx, pr, &slsaconfig.SlsaConfig{
+		BuilderID: "test_builder-1",
+	})
 
 	if err != nil {
 		t.Errorf("unwant error: %s", err.Error())

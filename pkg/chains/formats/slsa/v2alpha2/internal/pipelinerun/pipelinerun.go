@@ -21,6 +21,7 @@ import (
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	resolveddependencies "github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha2/internal/resolved_dependencies"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 )
@@ -32,7 +33,7 @@ const (
 )
 
 // GenerateAttestation generates a provenance statement with SLSA v1.0 predicate for a pipeline run.
-func GenerateAttestation(ctx context.Context, builderID string, pro *objects.PipelineRunObject) (interface{}, error) {
+func GenerateAttestation(ctx context.Context, pro *objects.PipelineRunObject, slsaconfig *slsaconfig.SlsaConfig) (interface{}, error) {
 	rd, err := resolveddependencies.PipelineRun(ctx, pro)
 	if err != nil {
 		return nil, err
@@ -56,7 +57,7 @@ func GenerateAttestation(ctx context.Context, builderID string, pro *objects.Pip
 			},
 			RunDetails: slsa.ProvenanceRunDetails{
 				Builder: slsa.Builder{
-					ID: builderID,
+					ID: slsaconfig.BuilderID,
 				},
 				BuildMetadata: metadata(pro),
 				Byproducts:    bp,

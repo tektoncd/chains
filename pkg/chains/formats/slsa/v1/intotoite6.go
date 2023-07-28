@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"github.com/tektoncd/chains/pkg/chains/formats"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v1/pipelinerun"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v1/taskrun"
 	"github.com/tektoncd/chains/pkg/chains/objects"
@@ -38,12 +39,14 @@ func init() {
 }
 
 type InTotoIte6 struct {
-	builderID string
+	slsaConfig *slsaconfig.SlsaConfig
 }
 
 func NewFormatter(cfg config.Config) (formats.Payloader, error) {
 	return &InTotoIte6{
-		builderID: cfg.Builder.ID,
+		slsaConfig: &slsaconfig.SlsaConfig{
+			BuilderID: cfg.Builder.ID,
+		},
 	}, nil
 }
 
@@ -54,9 +57,9 @@ func (i *InTotoIte6) Wrap() bool {
 func (i *InTotoIte6) CreatePayload(ctx context.Context, obj interface{}) (interface{}, error) {
 	switch v := obj.(type) {
 	case *objects.TaskRunObject:
-		return taskrun.GenerateAttestation(ctx, i.builderID, v)
+		return taskrun.GenerateAttestation(ctx, v, i.slsaConfig)
 	case *objects.PipelineRunObject:
-		return pipelinerun.GenerateAttestation(ctx, i.builderID, v)
+		return pipelinerun.GenerateAttestation(ctx, v, i.slsaConfig)
 	default:
 		return nil, fmt.Errorf("intoto does not support type: %s", v)
 	}
