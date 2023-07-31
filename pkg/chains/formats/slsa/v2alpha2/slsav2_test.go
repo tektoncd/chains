@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/tektoncd/chains/pkg/chains/formats"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/compare"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha2/internal/pipelinerun"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
@@ -496,7 +497,7 @@ func TestPipelineRunCreatePayload1(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %s", err.Error())
 	}
-	if diff := cmp.Diff(expected, got); diff != "" {
+	if diff := cmp.Diff(expected, got, compare.SLSAV1CompareOptions()...); diff != "" {
 		t.Errorf("Slsa.CreatePayload(): -want +got: %s", diff)
 	}
 }

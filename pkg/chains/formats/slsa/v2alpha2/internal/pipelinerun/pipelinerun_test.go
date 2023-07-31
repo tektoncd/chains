@@ -26,6 +26,7 @@ import (
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
 
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/compare"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/internal/objectloader"
@@ -356,7 +357,7 @@ func TestGenerateAttestation(t *testing.T) {
 	if err != nil {
 		t.Errorf("unwant error: %s", err.Error())
 	}
-	if diff := cmp.Diff(want, got); diff != "" {
+	if diff := cmp.Diff(want, got, compare.SLSAV1CompareOptions()...); diff != "" {
 		t.Errorf("GenerateAttestation(): -want +got: %s", diff)
 	}
 }
