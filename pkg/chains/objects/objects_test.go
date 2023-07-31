@@ -367,3 +367,68 @@ func TestPipelineRun_GetTaskRunFromTask(t *testing.T) {
 	tr := pro.GetTaskRunFromTask("foo-task")
 	assert.Equal(t, "foo", tr.Name)
 }
+
+func TestProvenanceExists(t *testing.T) {
+	pro := NewPipelineRunObject(getPipelineRun())
+	provenance := &v1beta1.Provenance{
+		RefSource: &v1beta1.RefSource{
+			URI: "tekton.com",
+		},
+	}
+	pro.Status.Provenance = &v1beta1.Provenance{
+		RefSource: &v1beta1.RefSource{
+			URI: "tekton.com",
+		},
+	}
+	assert.Equal(t, provenance, pro.GetProvenance())
+}
+
+func TestPipelineRunRemoteProvenance(t *testing.T) {
+	pro := NewPipelineRunObject(getPipelineRun())
+	provenance := &v1beta1.Provenance{
+		RefSource: &v1beta1.RefSource{
+			URI: "tekton.com",
+		},
+	}
+	pro.Status.Provenance = &v1beta1.Provenance{
+		RefSource: &v1beta1.RefSource{
+			URI: "tekton.com",
+		},
+	}
+	assert.Equal(t, provenance, pro.GetProvenance())
+}
+
+func TestTaskRunRemoteProvenance(t *testing.T) {
+	tro := NewTaskRunObject(getTaskRun())
+	provenance := &v1beta1.Provenance{
+		RefSource: &v1beta1.RefSource{
+			URI: "tekton.com",
+		},
+	}
+	tro.Status.Provenance = &v1beta1.Provenance{
+		RefSource: &v1beta1.RefSource{
+			URI: "tekton.com",
+		},
+	}
+	assert.Equal(t, provenance, tro.GetProvenance())
+}
+
+func TestPipelineRunIsRemote(t *testing.T) {
+	pro := NewPipelineRunObject(getPipelineRun())
+	pro.Spec.PipelineRef = &v1beta1.PipelineRef{
+		ResolverRef: v1beta1.ResolverRef{
+			Resolver: "Bundle",
+		},
+	}
+	assert.Equal(t, true, pro.IsRemote())
+}
+
+func TestTaskRunIsRemote(t *testing.T) {
+	tro := NewTaskRunObject(getTaskRun())
+	tro.Spec.TaskRef = &v1beta1.TaskRef{
+		ResolverRef: v1beta1.ResolverRef{
+			Resolver: "Bundle",
+		},
+	}
+	assert.Equal(t, true, tro.IsRemote())
+}

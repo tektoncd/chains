@@ -125,6 +125,10 @@ var defaultTransparency = TransparencyConfig{
 	URL: "https://rekor.sigstore.dev",
 }
 
+var defaultBuildDefinition = BuildDefinitionConfig{
+	BuildType: "https://tekton.dev/chains/v2/slsa",
+}
+
 func TestParse(t *testing.T) {
 	tests := []struct {
 		name           string
@@ -139,11 +143,12 @@ func TestParse(t *testing.T) {
 			taskrunEnabled: true,
 			ociEnbaled:     true,
 			want: Config{
-				Builder:      defaultBuilder,
-				Artifacts:    defaultArtifacts,
-				Signers:      defaultSigners,
-				Storage:      defaultStorage,
-				Transparency: defaultTransparency,
+				Builder:         defaultBuilder,
+				Artifacts:       defaultArtifacts,
+				Signers:         defaultSigners,
+				Storage:         defaultStorage,
+				Transparency:    defaultTransparency,
+				BuildDefinition: defaultBuildDefinition,
 			},
 		}, {
 			name: "builder configuration",
@@ -156,10 +161,11 @@ func TestParse(t *testing.T) {
 				Builder: BuilderConfig{
 					"builder-id-test",
 				},
-				Artifacts:    defaultArtifacts,
-				Signers:      defaultSigners,
-				Storage:      defaultStorage,
-				Transparency: defaultTransparency,
+				Artifacts:       defaultArtifacts,
+				Signers:         defaultSigners,
+				Storage:         defaultStorage,
+				Transparency:    defaultTransparency,
+				BuildDefinition: defaultBuildDefinition,
 			},
 		}, {
 			name: "storage configuration",
@@ -177,7 +183,8 @@ func TestParse(t *testing.T) {
 						NoteHint: "a test message",
 					},
 				},
-				Transparency: defaultTransparency,
+				Transparency:    defaultTransparency,
+				BuildDefinition: defaultBuildDefinition,
 			},
 		},
 		{
@@ -205,9 +212,10 @@ func TestParse(t *testing.T) {
 						Signer:         "x509",
 					},
 				},
-				Signers:      defaultSigners,
-				Storage:      defaultStorage,
-				Transparency: defaultTransparency,
+				Signers:         defaultSigners,
+				Storage:         defaultStorage,
+				Transparency:    defaultTransparency,
+				BuildDefinition: defaultBuildDefinition,
 			},
 		},
 		{
@@ -235,9 +243,10 @@ func TestParse(t *testing.T) {
 						Signer:         "x509",
 					},
 				},
-				Signers:      defaultSigners,
-				Storage:      defaultStorage,
-				Transparency: defaultTransparency,
+				Signers:         defaultSigners,
+				Storage:         defaultStorage,
+				Transparency:    defaultTransparency,
+				BuildDefinition: defaultBuildDefinition,
 			},
 		},
 		{
@@ -265,9 +274,10 @@ func TestParse(t *testing.T) {
 						Signer:         "x509",
 					},
 				},
-				Signers:      defaultSigners,
-				Storage:      defaultStorage,
-				Transparency: defaultTransparency,
+				Signers:         defaultSigners,
+				Storage:         defaultStorage,
+				Transparency:    defaultTransparency,
+				BuildDefinition: defaultBuildDefinition,
 			},
 		},
 		{
@@ -295,9 +305,10 @@ func TestParse(t *testing.T) {
 						Signer:         "x509",
 					},
 				},
-				Signers:      defaultSigners,
-				Storage:      defaultStorage,
-				Transparency: defaultTransparency,
+				Signers:         defaultSigners,
+				Storage:         defaultStorage,
+				Transparency:    defaultTransparency,
+				BuildDefinition: defaultBuildDefinition,
 			},
 		},
 		{
@@ -325,9 +336,10 @@ func TestParse(t *testing.T) {
 						Signer:         "x509",
 					},
 				},
-				Signers:      defaultSigners,
-				Storage:      defaultStorage,
-				Transparency: defaultTransparency,
+				Signers:         defaultSigners,
+				Storage:         defaultStorage,
+				Transparency:    defaultTransparency,
+				BuildDefinition: defaultBuildDefinition,
 			},
 		},
 		{
@@ -358,9 +370,10 @@ func TestParse(t *testing.T) {
 						Signer:         "x509",
 					},
 				},
-				Signers:      defaultSigners,
-				Storage:      defaultStorage,
-				Transparency: defaultTransparency,
+				Signers:         defaultSigners,
+				Storage:         defaultStorage,
+				Transparency:    defaultTransparency,
+				BuildDefinition: defaultBuildDefinition,
 			},
 		},
 		{
@@ -391,9 +404,10 @@ func TestParse(t *testing.T) {
 						Signer:         "x509",
 					},
 				},
-				Signers:      defaultSigners,
-				Storage:      defaultStorage,
-				Transparency: defaultTransparency,
+				Signers:         defaultSigners,
+				Storage:         defaultStorage,
+				Transparency:    defaultTransparency,
+				BuildDefinition: defaultBuildDefinition,
 			},
 		},
 		{
@@ -421,9 +435,10 @@ func TestParse(t *testing.T) {
 						Signer:         "x509",
 					},
 				},
-				Signers:      defaultSigners,
-				Storage:      defaultStorage,
-				Transparency: defaultTransparency,
+				Signers:         defaultSigners,
+				Storage:         defaultStorage,
+				Transparency:    defaultTransparency,
+				BuildDefinition: defaultBuildDefinition,
 			},
 		},
 		{
@@ -441,6 +456,7 @@ func TestParse(t *testing.T) {
 					VerifyAnnotation: true,
 					URL:              "https://rekor.sigstore.dev",
 				},
+				BuildDefinition: defaultBuildDefinition,
 			},
 		},
 		{
@@ -472,9 +488,10 @@ func TestParse(t *testing.T) {
 						Signer:         "x509",
 					},
 				},
-				Signers:      defaultSigners,
-				Storage:      defaultStorage,
-				Transparency: defaultTransparency,
+				Signers:         defaultSigners,
+				Storage:         defaultStorage,
+				Transparency:    defaultTransparency,
+				BuildDefinition: defaultBuildDefinition,
 			},
 		}, {
 			name: "fulcio",
@@ -513,8 +530,9 @@ func TestParse(t *testing.T) {
 						TUFMirrorURL:     "https://tuf-repo-cdn.sigstore.dev",
 					},
 				},
-				Storage:      defaultStorage,
-				Transparency: defaultTransparency,
+				Storage:         defaultStorage,
+				Transparency:    defaultTransparency,
+				BuildDefinition: defaultBuildDefinition,
 			},
 		}, {
 			name: "rekor - true",
@@ -538,6 +556,7 @@ func TestParse(t *testing.T) {
 					Enabled: true,
 					URL:     "https://rekor.sigstore.dev",
 				},
+				BuildDefinition: defaultBuildDefinition,
 			},
 		}, {
 			name: "rekor - manual",
@@ -561,6 +580,24 @@ func TestParse(t *testing.T) {
 					Enabled:          true,
 					VerifyAnnotation: true,
 					URL:              "https://rekor.sigstore.dev",
+				},
+				BuildDefinition: defaultBuildDefinition,
+			},
+		}, {
+			name: "buildDefinition - slsa-tekton",
+			data: map[string]string{
+				"builddefinition.buildtype": "https://tekton.dev/chains/v2/slsa-tekton",
+			},
+			taskrunEnabled: true,
+			ociEnbaled:     true,
+			want: Config{
+				Builder:      defaultBuilder,
+				Artifacts:    defaultArtifacts,
+				Signers:      defaultSigners,
+				Storage:      defaultStorage,
+				Transparency: defaultTransparency,
+				BuildDefinition: BuildDefinitionConfig{
+					BuildType: "https://tekton.dev/chains/v2/slsa-tekton",
 				},
 			},
 		},

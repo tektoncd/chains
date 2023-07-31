@@ -28,11 +28,12 @@ import (
 )
 
 type Config struct {
-	Artifacts    ArtifactConfigs
-	Storage      StorageConfigs
-	Signers      SignerConfigs
-	Builder      BuilderConfig
-	Transparency TransparencyConfig
+	Artifacts       ArtifactConfigs
+	Storage         StorageConfigs
+	Signers         SignerConfigs
+	Builder         BuilderConfig
+	Transparency    TransparencyConfig
+	BuildDefinition BuildDefinitionConfig
 }
 
 // ArtifactConfigs contains the configuration for how to sign/store/format the signatures for each artifact type
@@ -68,6 +69,10 @@ type SignerConfigs struct {
 
 type BuilderConfig struct {
 	ID string
+}
+
+type BuildDefinitionConfig struct {
+	BuildType string
 }
 
 type X509Signer struct {
@@ -200,6 +205,9 @@ const (
 	transparencyEnabledKey = "transparency.enabled"
 	transparencyURLKey     = "transparency.url"
 
+	// Build type
+	buildTypeKey = "builddefinition.buildtype"
+
 	ChainsConfig = "chains-config"
 )
 
@@ -244,6 +252,9 @@ func defaultConfig() *Config {
 		},
 		Builder: BuilderConfig{
 			ID: "https://tekton.dev/chains/v2",
+		},
+		BuildDefinition: BuildDefinitionConfig{
+			BuildType: "https://tekton.dev/chains/v2/slsa",
 		},
 	}
 }
@@ -308,6 +319,9 @@ func NewConfigFromMap(data map[string]string) (*Config, error) {
 
 		// Build config
 		asString(builderIDKey, &cfg.Builder.ID),
+
+		// Build type
+		asString(buildTypeKey, &cfg.BuildDefinition.BuildType, "https://tekton.dev/chains/v2/slsa", "https://tekton.dev/chains/v2/slsa-tekton"),
 	); err != nil {
 		return nil, fmt.Errorf("failed to parse data: %w", err)
 	}

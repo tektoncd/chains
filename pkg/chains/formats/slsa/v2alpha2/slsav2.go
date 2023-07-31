@@ -45,6 +45,7 @@ func NewFormatter(cfg config.Config) (formats.Payloader, error) {
 		slsaConfig: &slsaconfig.SlsaConfig{
 			BuilderID:             cfg.Builder.ID,
 			DeepInspectionEnabled: cfg.Artifacts.PipelineRuns.DeepInspectionEnabled,
+			BuildType:             cfg.BuildDefinition.BuildType,
 		},
 	}, nil
 }

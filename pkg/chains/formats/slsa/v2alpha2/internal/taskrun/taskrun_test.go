@@ -17,6 +17,7 @@ limitations under the License.
 package taskrun
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
 	"time"
@@ -26,8 +27,12 @@ import (
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
 
+	v1resourcedescriptor "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
+	externalparameters "github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha2/internal/external_parameters"
+	internalparameters "github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha2/internal/internal_parameters"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha2/internal/pipelinerun"
+	resolveddependencies "github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha2/internal/resolved_dependencies"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/internal/objectloader"
 	"github.com/tektoncd/pipeline/pkg/apis/config"
@@ -37,7 +42,7 @@ import (
 )
 
 func TestMetadata(t *testing.T) {
-	tr := &v1beta1.TaskRun{
+	tr := &v1beta1.TaskRun{ //nolint:staticcheck
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "my-taskrun",
 			Namespace: "my-namespace",
@@ -68,7 +73,7 @@ func TestMetadata(t *testing.T) {
 
 func TestMetadataInTimeZone(t *testing.T) {
 	tz := time.FixedZone("Test Time", int((12 * time.Hour).Seconds()))
-	tr := &v1beta1.TaskRun{
+	tr := &v1beta1.TaskRun{ //nolint:staticcheck
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "my-taskrun",
 			Namespace: "my-namespace",
@@ -97,97 +102,9 @@ func TestMetadataInTimeZone(t *testing.T) {
 	}
 }
 
-func TestExternalParameters(t *testing.T) {
-	tr := &v1beta1.TaskRun{
-		Spec: v1beta1.TaskRunSpec{
-			Params: v1beta1.Params{
-				{
-					Name:  "my-param",
-					Value: v1beta1.ResultValue{Type: "string", StringVal: "string-param"},
-				},
-				{
-					Name:  "my-array-param",
-					Value: v1beta1.ResultValue{Type: "array", ArrayVal: []string{"my", "array"}},
-				},
-				{
-					Name:  "my-empty-string-param",
-					Value: v1beta1.ResultValue{Type: "string"},
-				},
-				{
-					Name:  "my-empty-array-param",
-					Value: v1beta1.ResultValue{Type: "array", ArrayVal: []string{}},
-				},
-			},
-			TaskRef: &v1beta1.TaskRef{
-				ResolverRef: v1beta1.ResolverRef{
-					Resolver: "git",
-				},
-			},
-		},
-		Status: v1beta1.TaskRunStatus{
-			TaskRunStatusFields: v1beta1.TaskRunStatusFields{
-				Provenance: &v1beta1.Provenance{
-					RefSource: &v1beta1.RefSource{
-						URI: "hello",
-						Digest: map[string]string{
-							"sha1": "abc123",
-						},
-						EntryPoint: "task.yaml",
-					},
-				},
-			},
-		},
-	}
-
-	want := map[string]any{
-		"buildConfigSource": map[string]string{"path": "task.yaml", "ref": "sha1:abc123", "repository": "hello"},
-		"runSpec":           tr.Spec,
-	}
-	got := externalParameters(objects.NewTaskRunObject(tr))
-	if d := cmp.Diff(want, got); d != "" {
-		t.Fatalf("externalParameters (-want, +got):\n%s", d)
-	}
-}
-
-func TestInternalParameters(t *testing.T) {
-	tr := &v1beta1.TaskRun{
-		Status: v1beta1.TaskRunStatus{
-			TaskRunStatusFields: v1beta1.TaskRunStatusFields{
-				Provenance: &v1beta1.Provenance{
-					FeatureFlags: &config.FeatureFlags{
-						RunningInEnvWithInjectedSidecars: true,
-						EnableAPIFields:                  "stable",
-						AwaitSidecarReadiness:            true,
-						VerificationNoMatchPolicy:        "skip",
-						EnableProvenanceInStatus:         true,
-						ResultExtractionMethod:           "termination-message",
-						MaxResultSize:                    4096,
-					},
-				},
-			},
-		},
-	}
-
-	want := map[string]any{
-		"tekton-pipelines-feature-flags": config.FeatureFlags{
-			RunningInEnvWithInjectedSidecars: true,
-			EnableAPIFields:                  "stable",
-			AwaitSidecarReadiness:            true,
-			VerificationNoMatchPolicy:        "skip",
-			EnableProvenanceInStatus:         true,
-			ResultExtractionMethod:           "termination-message",
-			MaxResultSize:                    4096,
-		},
-	}
-	got := internalParameters(objects.NewTaskRunObject(tr))
-	if d := cmp.Diff(want, got); d != "" {
-		t.Fatalf("internalParameters (-want, +got):\n%s", d)
-	}
-}
-
 func TestByProducts(t *testing.T) {
 	resultValue := v1beta1.ResultValue{Type: "string", StringVal: "result-value"}
-	tr := &v1beta1.TaskRun{
+	tr := &v1beta1.TaskRun{ //nolint:staticcheck
 		Status: v1beta1.TaskRunStatus{
 			TaskRunStatusFields: v1beta1.TaskRunStatusFields{
 				TaskRunResults: []v1beta1.TaskRunResult{
@@ -310,6 +227,7 @@ func TestTaskRunGenerateAttestation(t *testing.T) {
 
 	got, err := GenerateAttestation(ctx, objects.NewTaskRunObject(tr), &slsaconfig.SlsaConfig{
 		BuilderID: "test_builder-1",
+		BuildType: "https://tekton.dev/chains/v2/slsa",
 	})
 
 	if err != nil {
@@ -317,5 +235,98 @@ func TestTaskRunGenerateAttestation(t *testing.T) {
 	}
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("GenerateAttestation(): -want +got: %s", diff)
+	}
+}
+
+func getResolvedDependencies(tro *objects.TaskRunObject) []v1resourcedescriptor.ResourceDescriptor {
+	rd, err := resolveddependencies.TaskRun(context.Background(), tro)
+	if err != nil {
+		return []v1resourcedescriptor.ResourceDescriptor{}
+	}
+	return rd
+}
+
+func TestGetBuildDefinition(t *testing.T) {
+	tr, err := objectloader.TaskRunFromFile("../../../testdata/v2alpha2/taskrun1.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tr.Annotations = map[string]string{
+		"annotation1": "annotation1",
+	}
+	tr.Labels = map[string]string{
+		"label1": "label1",
+	}
+
+	tro := objects.NewTaskRunObject(tr)
+	tests := []struct {
+		name      string
+		buildType string
+		want      slsa.ProvenanceBuildDefinition
+		err       error
+	}{
+		{
+			name:      "test slsa build type",
+			buildType: "https://tekton.dev/chains/v2/slsa",
+			want: slsa.ProvenanceBuildDefinition{
+				BuildType:            "https://tekton.dev/chains/v2/slsa",
+				ExternalParameters:   externalparameters.TaskRun(tro),
+				InternalParameters:   internalparameters.SLSAInternalParameters(tro),
+				ResolvedDependencies: getResolvedDependencies(tro),
+			},
+			err: nil,
+		},
+		{
+			name:      "test default build type",
+			buildType: "",
+			want: slsa.ProvenanceBuildDefinition{
+				BuildType:            "https://tekton.dev/chains/v2/slsa",
+				ExternalParameters:   externalparameters.TaskRun(tro),
+				InternalParameters:   internalparameters.SLSAInternalParameters(tro),
+				ResolvedDependencies: getResolvedDependencies(tro),
+			},
+			err: nil,
+		},
+		{
+			name:      "test tekton build type",
+			buildType: "https://tekton.dev/chains/v2/slsa-tekton",
+			want: slsa.ProvenanceBuildDefinition{
+				BuildType:            "https://tekton.dev/chains/v2/slsa-tekton",
+				ExternalParameters:   externalparameters.TaskRun(tro),
+				InternalParameters:   internalparameters.TektonInternalParameters(tro),
+				ResolvedDependencies: getResolvedDependencies(tro),
+			},
+			err: nil,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			bd, err := getBuildDefinition(context.Background(), tc.buildType, tro)
+			if err != nil {
+				t.Fatalf("Did not expect an error but got %v", err)
+			}
+
+			if diff := cmp.Diff(tc.want, bd); diff != "" {
+				t.Errorf("getBuildDefinition(): -want +got: %v", diff)
+			}
+
+		})
+	}
+}
+
+func TestUnsupportedBuildType(t *testing.T) {
+	tr, err := objectloader.TaskRunFromFile("../../../testdata/v2alpha2/taskrun1.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := getBuildDefinition(context.Background(), "bad-buildType", objects.NewTaskRunObject(tr))
+	if err == nil {
+		t.Error("getBuildDefinition(): expected error got nil")
+	}
+	if diff := cmp.Diff(slsa.ProvenanceBuildDefinition{}, got); diff != "" {
+		t.Errorf("getBuildDefinition(): -want +got: %s", diff)
 	}
 }
