@@ -26,6 +26,7 @@ import (
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/attest"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/compare"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/internal/objectloader"
@@ -482,7 +483,7 @@ func TestSubjectDigests(t *testing.T) {
 
 	ctx := logtesting.TestContextWithLogger(t)
 	gotSubjects := extract.SubjectDigests(ctx, pro, &slsaconfig.SlsaConfig{DeepInspectionEnabled: false})
-	opts := append(ignore, cmpopts.SortSlices(func(x, y intoto.Subject) bool { return x.Name < y.Name }))
+	opts := append(ignore, compare.SubjectCompareOption())
 	if diff := cmp.Diff(gotSubjects, wantSubjects, opts...); diff != "" {
 		t.Errorf("Differences in subjects: -want +got: %s", diff)
 	}

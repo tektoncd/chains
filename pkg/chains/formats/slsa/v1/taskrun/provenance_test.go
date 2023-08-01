@@ -30,6 +30,7 @@ import (
 	"github.com/tektoncd/chains/internal/backport"
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/compare"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
@@ -293,7 +294,7 @@ func TestGetSubjectDigests(t *testing.T) {
 		},
 	}
 
-	expected := []in_toto.Subject{
+	want := []in_toto.Subject{
 		{
 			Name: "com.google.guava:guava:1.0-jre.pom",
 			Digest: common.DigestSet{
@@ -334,10 +335,8 @@ func TestGetSubjectDigests(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
 	tro := objects.NewTaskRunObject(tr)
 	got := extract.SubjectDigests(ctx, tro, nil)
-	if !reflect.DeepEqual(expected, got) {
-		if d := cmp.Diff(expected, got); d != "" {
-			t.Log(d)
-		}
-		t.Fatalf("expected \n%v\n got \n%v\n", expected, got)
+
+	if d := cmp.Diff(want, got, compare.SubjectCompareOption()); d != "" {
+		t.Errorf("Wrong subjects extracted, diff=%s", d)
 	}
 }

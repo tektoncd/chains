@@ -19,7 +19,6 @@ package extract
 import (
 	"context"
 	"fmt"
-	"sort"
 	"strings"
 
 	"github.com/google/go-containerregistry/pkg/name"
@@ -51,10 +50,6 @@ func SubjectDigests(ctx context.Context, obj objects.TektonObject, slsaconfig *s
 	case *v1beta1.TaskRun:
 		subjects = subjectsFromTektonObject(ctx, obj)
 	}
-
-	sort.Slice(subjects, func(i, j int) bool {
-		return subjects[i].Name <= subjects[j].Name
-	})
 
 	return subjects
 }
