@@ -28,7 +28,7 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/tektoncd/pipeline v0.50.0
 	github.com/tektoncd/plumbing v0.0.0-20221102182345-5dbcfda657d7
-	go.uber.org/zap v1.24.0
+	go.uber.org/zap v1.25.0
 	gocloud.dev v0.32.0
 	gocloud.dev/docstore/mongodocstore v0.30.0
 	gocloud.dev/pubsub/kafkapubsub v0.32.0
