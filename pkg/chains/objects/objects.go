@@ -58,6 +58,7 @@ type TektonObject interface {
 	GetLatestAnnotations(ctx context.Context, clientSet versioned.Interface) (map[string]string, error)
 	Patch(ctx context.Context, clientSet versioned.Interface, patchBytes []byte) error
 	GetResults() []Result
+	GetProvenance() *v1beta1.Provenance
 	GetServiceAccountName() string
 	GetPullSecrets() []string
 	IsDone() bool
@@ -100,6 +101,10 @@ func (tro *TaskRunObject) GetKindName() string {
 	return strings.ToLower(tro.GetGroupVersionKind().Kind)
 }
 
+func (tro *TaskRunObject) GetProvenance() *v1beta1.Provenance {
+	return tro.Status.Provenance
+}
+
 // Get the latest annotations on the TaskRun
 func (tro *TaskRunObject) GetLatestAnnotations(ctx context.Context, clientSet versioned.Interface) (map[string]string, error) {
 	tr, err := clientSet.TektonV1beta1().TaskRuns(tro.Namespace).Get(ctx, tro.Name, metav1.GetOptions{})
@@ -128,6 +133,22 @@ func (tro *TaskRunObject) GetResults() []Result {
 		})
 	}
 	return res
+}
+
+func (tro *TaskRunObject) GetStepImages() []string {
+	images := []string{}
+	for _, stepState := range tro.Status.Steps {
+		images = append(images, stepState.ImageID)
+	}
+	return images
+}
+
+func (tro *TaskRunObject) GetSidecarImages() []string {
+	images := []string{}
+	for _, sidecarState := range tro.Status.Sidecars {
+		images = append(images, sidecarState.ImageID)
+	}
+	return images
 }
 
 // Get the ServiceAccount declared in the TaskRun
@@ -195,6 +216,10 @@ func (pro *PipelineRunObject) Patch(ctx context.Context, clientSet versioned.Int
 	return err
 }
 
+func (pro *PipelineRunObject) GetProvenance() *v1beta1.Provenance {
+	return pro.Status.Provenance
+}
+
 // Get the resolved Pipelinerun results
 func (pro *PipelineRunObject) GetResults() []Result {
 	res := []Result{}
@@ -223,11 +248,11 @@ func (pro *PipelineRunObject) AppendTaskRun(tr *v1beta1.TaskRun) {
 }
 
 // Get the associated TaskRun via the Task name
-func (pro *PipelineRunObject) GetTaskRunFromTask(taskName string) *v1beta1.TaskRun {
+func (pro *PipelineRunObject) GetTaskRunFromTask(taskName string) *TaskRunObject {
 	for _, tr := range pro.taskRuns {
 		val, ok := tr.Labels[PipelineTaskLabel]
 		if ok && val == taskName {
-			return tr
+			return NewTaskRunObject(tr)
 		}
 	}
 	return nil

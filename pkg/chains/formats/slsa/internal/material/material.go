@@ -28,7 +28,6 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/attest"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/objects"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"knative.dev/pkg/logging"
 )
 
@@ -42,14 +41,14 @@ func TaskMaterials(ctx context.Context, tro *objects.TaskRunObject) ([]common.Pr
 	var mats []common.ProvenanceMaterial
 
 	// add step images
-	stepMaterials, err := FromStepImages(tro.Status.Steps)
+	stepMaterials, err := FromStepImages(tro)
 	if err != nil {
 		return nil, err
 	}
 	mats = append(mats, stepMaterials...)
 
 	// add sidecar images
-	sidecarMaterials, err := FromSidecarImages(tro.Status.Sidecars)
+	sidecarMaterials, err := FromSidecarImages(tro)
 	if err != nil {
 		return nil, err
 	}
@@ -89,14 +88,14 @@ func PipelineMaterials(ctx context.Context, pro *objects.PipelineRunObject, slsa
 				continue
 			}
 
-			stepMaterials, err := FromStepImages(tr.Status.Steps)
+			stepMaterials, err := FromStepImages(tr)
 			if err != nil {
 				return mats, err
 			}
 			mats = append(mats, stepMaterials...)
 
 			// add sidecar images
-			sidecarMaterials, err := FromSidecarImages(tr.Status.Sidecars)
+			sidecarMaterials, err := FromSidecarImages(tr)
 			if err != nil {
 				return nil, err
 			}
@@ -124,10 +123,10 @@ func PipelineMaterials(ctx context.Context, pro *objects.PipelineRunObject, slsa
 }
 
 // FromStepImages gets predicate.materials from step images
-func FromStepImages(steps []v1beta1.StepState) ([]common.ProvenanceMaterial, error) {
+func FromStepImages(tro *objects.TaskRunObject) ([]common.ProvenanceMaterial, error) {
 	mats := []common.ProvenanceMaterial{}
-	for _, stepState := range steps {
-		m, err := fromImageID(stepState.ImageID)
+	for _, image := range tro.GetStepImages() {
+		m, err := fromImageID(image)
 		if err != nil {
 			return nil, err
 		}
@@ -137,10 +136,10 @@ func FromStepImages(steps []v1beta1.StepState) ([]common.ProvenanceMaterial, err
 }
 
 // FromSidecarImages gets predicate.materials from sidecar images
-func FromSidecarImages(sidecars []v1beta1.SidecarState) ([]common.ProvenanceMaterial, error) {
+func FromSidecarImages(tro *objects.TaskRunObject) ([]common.ProvenanceMaterial, error) {
 	mats := []common.ProvenanceMaterial{}
-	for _, sidecarState := range sidecars {
-		m, err := fromImageID(sidecarState.ImageID)
+	for _, image := range tro.GetSidecarImages() {
+		m, err := fromImageID(image)
 		if err != nil {
 			return nil, err
 		}
@@ -310,7 +309,7 @@ func FromPipelineParamsAndResults(ctx context.Context, pro *objects.PipelineRunO
 					logger.Infof("taskrun is not found or not completed for the task %s", t.Name)
 					continue
 				}
-				materialsFromTasks := FromTaskParamsAndResults(ctx, objects.NewTaskRunObject(tr))
+				materialsFromTasks := FromTaskParamsAndResults(ctx, tr)
 				mats = append(mats, materialsFromTasks...)
 			}
 		}

@@ -16,6 +16,7 @@ package objects
 import (
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/pod"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -48,9 +49,30 @@ func getTaskRun() *v1beta1.TaskRun {
 		},
 		Spec: v1beta1.TaskRunSpec{
 			ServiceAccountName: "taskrun-sa",
+			Params: []v1beta1.Param{
+				{
+					Name:  "runtime-param",
+					Value: *v1beta1.NewStructuredValues("runtime-value"),
+				},
+			},
 		},
 		Status: v1beta1.TaskRunStatus{
 			TaskRunStatusFields: v1beta1.TaskRunStatusFields{
+				Provenance: &v1beta1.Provenance{
+					RefSource: &v1beta1.RefSource{
+						URI:        "https://github.com/tektoncd/chains",
+						Digest:     map[string]string{"sha1": "abcdef"},
+						EntryPoint: "pkg/chains/objects.go",
+					},
+				},
+				TaskSpec: &v1beta1.TaskSpec{
+					Params: []v1beta1.ParamSpec{
+						{
+							Name:    "param1",
+							Default: v1beta1.NewStructuredValues("default-value"),
+						},
+					},
+				},
 				TaskRunResults: []v1beta1.TaskRunResult{
 					{
 						Name: "img1_input_ARTIFACT_INPUTS",
@@ -62,6 +84,12 @@ func getTaskRun() *v1beta1.TaskRun {
 					{Name: "mvn1_ARTIFACT_URI", Value: *v1beta1.NewStructuredValues("projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/com.google.guava:guava:31.0-jre")},
 					{Name: "mvn1_ARTIFACT_DIGEST", Value: *v1beta1.NewStructuredValues("sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5")},
 				},
+				Steps: []v1beta1.StepState{{
+					ImageID: "step-image",
+				}},
+				Sidecars: []v1beta1.SidecarState{{
+					ImageID: "sidecar-image",
+				}},
 			},
 		},
 	}
@@ -75,9 +103,30 @@ func getPipelineRun() *v1beta1.PipelineRun {
 		},
 		Spec: v1beta1.PipelineRunSpec{
 			ServiceAccountName: "pipelinerun-sa",
+			Params: []v1beta1.Param{
+				{
+					Name:  "runtime-param",
+					Value: *v1beta1.NewStructuredValues("runtime-value"),
+				},
+			},
 		},
 		Status: v1beta1.PipelineRunStatus{
 			PipelineRunStatusFields: v1beta1.PipelineRunStatusFields{
+				Provenance: &v1beta1.Provenance{
+					RefSource: &v1beta1.RefSource{
+						URI:        "https://github.com/tektoncd/chains",
+						Digest:     map[string]string{"sha1": "abcdef"},
+						EntryPoint: "pkg/chains/objects.go",
+					},
+				},
+				PipelineSpec: &v1beta1.PipelineSpec{
+					Params: []v1beta1.ParamSpec{
+						{
+							Name:    "param1",
+							Default: v1beta1.NewStructuredValues("default-value"),
+						},
+					},
+				},
 				PipelineResults: []v1beta1.PipelineRunResult{
 					{
 						Name: "img1_input_ARTIFACT_INPUTS",
@@ -165,6 +214,44 @@ func TestPipelineRun_ImagePullSecrets(t *testing.T) {
 	}
 }
 
+func TestPipelineRun_GetProvenance(t *testing.T) {
+
+	t.Run("TestPipelineRun_GetProvenance", func(t *testing.T) {
+		pr := NewPipelineRunObject(getPipelineRun())
+		got := pr.GetProvenance()
+		want := &v1beta1.Provenance{
+			RefSource: &v1beta1.RefSource{
+				URI:        "https://github.com/tektoncd/chains",
+				Digest:     map[string]string{"sha1": "abcdef"},
+				EntryPoint: "pkg/chains/objects.go",
+			},
+		}
+		if d := cmp.Diff(want, got); d != "" {
+			t.Fatalf("metadata (-want, +got):\n%s", d)
+		}
+	})
+
+}
+
+func TestTaskRun_GetProvenance(t *testing.T) {
+
+	t.Run("TestTaskRun_GetProvenance", func(t *testing.T) {
+		tr := NewTaskRunObject(getTaskRun())
+		got := tr.GetProvenance()
+		want := &v1beta1.Provenance{
+			RefSource: &v1beta1.RefSource{
+				URI:        "https://github.com/tektoncd/chains",
+				Digest:     map[string]string{"sha1": "abcdef"},
+				EntryPoint: "pkg/chains/objects.go",
+			},
+		}
+		if d := cmp.Diff(want, got); d != "" {
+			t.Fatalf("metadata (-want, +got):\n%s", d)
+		}
+	})
+
+}
+
 func TestPipelineRun_GetResults(t *testing.T) {
 
 	t.Run("TestPipelineRun_GetResults", func(t *testing.T) {
@@ -181,6 +268,32 @@ func TestPipelineRun_GetResults(t *testing.T) {
 			{Name: "mvn1_ARTIFACT_URI", Value: *v1beta1.NewStructuredValues("projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/com.google.guava:guava:31.0-jre")},
 			{Name: "mvn1_ARTIFACT_DIGEST", Value: *v1beta1.NewStructuredValues("sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5")},
 		})
+	})
+
+}
+
+func TestTaskRun_GetStepImages(t *testing.T) {
+
+	t.Run("TestTaskRun_GetStepImages", func(t *testing.T) {
+		tr := NewTaskRunObject(getTaskRun())
+		got := tr.GetStepImages()
+		want := []string{"step-image"}
+		if d := cmp.Diff(want, got); d != "" {
+			t.Fatalf("metadata (-want, +got):\n%s", d)
+		}
+	})
+
+}
+
+func TestTaskRun_GetSidecarImages(t *testing.T) {
+
+	t.Run("TestTaskRun_GetSidecarImages", func(t *testing.T) {
+		tr := NewTaskRunObject(getTaskRun())
+		got := tr.GetSidecarImages()
+		want := []string{"sidecar-image"}
+		if d := cmp.Diff(want, got); d != "" {
+			t.Fatalf("metadata (-want, +got):\n%s", d)
+		}
 	})
 
 }

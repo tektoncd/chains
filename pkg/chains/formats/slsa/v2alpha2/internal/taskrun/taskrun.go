@@ -82,8 +82,9 @@ func metadata(tro *objects.TaskRunObject) slsa.BuildMetadata {
 // for the taskrun.
 func internalParameters(tro *objects.TaskRunObject) map[string]any {
 	internalParams := make(map[string]any)
-	if tro.Status.Provenance != nil && tro.Status.Provenance.FeatureFlags != nil {
-		internalParams["tekton-pipelines-feature-flags"] = *tro.Status.Provenance.FeatureFlags
+	provenance := tro.GetProvenance()
+	if provenance != nil && provenance.FeatureFlags != nil {
+		internalParams["tekton-pipelines-feature-flags"] = *provenance.FeatureFlags
 	}
 	return internalParams
 }

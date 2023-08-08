@@ -79,11 +79,7 @@ func invocation(pro *objects.PipelineRunObject) slsa.ProvenanceInvocation {
 	if ps := pro.Status.PipelineSpec; ps != nil {
 		paramSpecs = ps.Params
 	}
-	var source *v1beta1.RefSource
-	if p := pro.Status.Provenance; p != nil {
-		source = p.RefSource
-	}
-	return attest.Invocation(source, pro.Spec.Params, paramSpecs, pro.GetObjectMeta())
+	return attest.Invocation(pro, pro.Spec.Params, paramSpecs)
 }
 
 func buildConfig(ctx context.Context, pro *objects.PipelineRunObject) BuildConfig {
@@ -134,18 +130,13 @@ func buildConfig(ctx context.Context, pro *objects.PipelineRunObject) BuildConfi
 		if len(after) == 0 && i >= len(pSpec.Tasks) && last != "" {
 			after = append(after, last)
 		}
+
 		params := tr.Spec.Params
 		var paramSpecs []v1beta1.ParamSpec
 		if tr.Status.TaskSpec != nil {
 			paramSpecs = tr.Status.TaskSpec.Params
 		} else {
 			paramSpecs = []v1beta1.ParamSpec{}
-		}
-
-		// source information in taskrun status
-		var source *v1beta1.RefSource
-		if p := tr.Status.Provenance; p != nil {
-			source = p.RefSource
 		}
 
 		task := TaskAttestation{
@@ -155,7 +146,7 @@ func buildConfig(ctx context.Context, pro *objects.PipelineRunObject) BuildConfi
 			FinishedOn: tr.Status.CompletionTime.Time.UTC(),
 			Status:     getStatus(tr.Status.Conditions),
 			Steps:      steps,
-			Invocation: attest.Invocation(source, params, paramSpecs, &tr.ObjectMeta),
+			Invocation: attest.Invocation(tr, params, paramSpecs),
 			Results:    tr.Status.TaskRunResults,
 		}
 

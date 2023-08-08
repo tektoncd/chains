@@ -86,8 +86,9 @@ func metadata(pro *objects.PipelineRunObject) slsa.BuildMetadata {
 // for the pipelinerun.
 func internalParameters(pro *objects.PipelineRunObject) map[string]any {
 	internalParams := make(map[string]any)
-	if pro.Status.Provenance != nil && pro.Status.Provenance.FeatureFlags != nil {
-		internalParams["tekton-pipelines-feature-flags"] = *pro.Status.Provenance.FeatureFlags
+	provenance := pro.GetProvenance()
+	if provenance != nil && provenance.FeatureFlags != nil {
+		internalParams["tekton-pipelines-feature-flags"] = *provenance.FeatureFlags
 	}
 	return internalParams
 }

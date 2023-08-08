@@ -22,9 +22,9 @@ import (
 
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/tektoncd/chains/pkg/artifacts"
+	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -58,10 +58,15 @@ func Step(step *v1beta1.Step, stepState *v1beta1.StepState) StepAttestation {
 	return attestation
 }
 
-func Invocation(source *v1beta1.RefSource, params []v1beta1.Param, paramSpecs []v1beta1.ParamSpec, meta metav1.Object) slsa.ProvenanceInvocation {
+func Invocation(obj objects.TektonObject, params []v1beta1.Param, paramSpecs []v1beta1.ParamSpec) slsa.ProvenanceInvocation {
+	var source *v1beta1.RefSource
+	if p := obj.GetProvenance(); p != nil {
+		source = p.RefSource
+	}
 	i := slsa.ProvenanceInvocation{
 		ConfigSource: convertConfigSource(source),
 	}
+
 	iParams := make(map[string]v1beta1.ParamValue)
 
 	// get implicit parameters from defaults
@@ -77,11 +82,10 @@ func Invocation(source *v1beta1.RefSource, params []v1beta1.Param, paramSpecs []
 	}
 
 	i.Parameters = iParams
-
 	environment := map[string]map[string]string{}
 
 	annotations := map[string]string{}
-	for name, value := range meta.GetAnnotations() {
+	for name, value := range obj.GetAnnotations() {
 		// Ignore annotations that are not relevant to provenance information
 		if name == corev1.LastAppliedConfigAnnotation || strings.HasPrefix(name, "chains.tekton.dev/") {
 			continue
@@ -92,7 +96,7 @@ func Invocation(source *v1beta1.RefSource, params []v1beta1.Param, paramSpecs []
 		environment["annotations"] = annotations
 	}
 
-	labels := meta.GetLabels()
+	labels := obj.GetLabels()
 	if len(labels) > 0 {
 		environment["labels"] = labels
 	}
