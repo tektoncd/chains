@@ -38,7 +38,7 @@ type BuildConfig struct {
 }
 
 func GenerateAttestation(ctx context.Context, builderID string, payloadType config.PayloadType, tro *objects.TaskRunObject) (interface{}, error) {
-	subjects := extract.SubjectDigests(ctx, tro)
+	subjects := extract.SubjectDigests(ctx, tro, nil)
 	mat, err := material.TaskMaterials(ctx, tro)
 	if err != nil {
 		return nil, err

@@ -22,7 +22,6 @@ import (
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
-	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha2/internal/pipelinerun"
 	resolveddependencies "github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha2/internal/resolved_dependencies"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 )
@@ -43,7 +42,7 @@ func GenerateAttestation(ctx context.Context, tro *objects.TaskRunObject, slsaCo
 		StatementHeader: intoto.StatementHeader{
 			Type:          intoto.StatementInTotoV01,
 			PredicateType: slsa.PredicateSLSAProvenance,
-			Subject:       extract.SubjectDigests(ctx, tro),
+			Subject:       extract.SubjectDigests(ctx, tro, slsaConfig),
 		},
 		Predicate: slsa.ProvenancePredicate{
 			BuildDefinition: slsa.ProvenanceBuildDefinition{
@@ -128,7 +127,7 @@ func byproducts(tro *objects.TaskRunObject) ([]slsa.ResourceDescriptor, error) {
 		bp := slsa.ResourceDescriptor{
 			Name:      fmt.Sprintf(taskRunResults, key.Name),
 			Content:   content,
-			MediaType: pipelinerun.JsonMediaType,
+			MediaType: "application/json",
 		}
 		byProd = append(byProd, bp)
 	}

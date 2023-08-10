@@ -349,6 +349,11 @@ func TestGrafeasBackend_StoreAndRetrieve(t *testing.T) {
 							NoteID:    NoteID,
 						},
 					},
+					Artifacts: config.ArtifactConfigs{
+						PipelineRuns: config.Artifact{
+							DeepInspectionEnabled: false,
+						},
+					},
 				},
 			}
 			// test if the attestation of the taskrun/oci artifact can be successfully stored into grafeas server
@@ -398,7 +403,7 @@ func testStoreAndRetrieveHelper(ctx context.Context, t *testing.T, test testConf
 		expectSignature[test.args.opts.FullKey] = []string{test.args.signature}
 	}
 	if _, ok := formats.IntotoAttestationSet[test.args.opts.PayloadFormat]; ok {
-		allURIs := extract.RetrieveAllArtifactURIs(ctx, test.args.runObject)
+		allURIs := extract.RetrieveAllArtifactURIs(ctx, test.args.runObject, false)
 		for _, u := range allURIs {
 			expectSignature[u] = []string{test.args.signature}
 		}
@@ -420,7 +425,7 @@ func testStoreAndRetrieveHelper(ctx context.Context, t *testing.T, test testConf
 		expectPayload[test.args.opts.FullKey] = string(test.args.payload)
 	}
 	if _, ok := formats.IntotoAttestationSet[test.args.opts.PayloadFormat]; ok {
-		allURIs := extract.RetrieveAllArtifactURIs(ctx, test.args.runObject)
+		allURIs := extract.RetrieveAllArtifactURIs(ctx, test.args.runObject, false)
 		for _, u := range allURIs {
 			expectPayload[u] = string(test.args.payload)
 		}

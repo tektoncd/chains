@@ -351,7 +351,8 @@ func TestGenerateAttestation(t *testing.T) {
 	}
 
 	got, err := GenerateAttestation(ctx, pr, &slsaconfig.SlsaConfig{
-		BuilderID: "test_builder-1",
+		BuilderID:             "test_builder-1",
+		DeepInspectionEnabled: false,
 	})
 
 	if err != nil {

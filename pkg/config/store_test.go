@@ -103,9 +103,10 @@ var defaultArtifacts = ArtifactConfigs{
 		Signer:         "x509",
 	},
 	PipelineRuns: Artifact{
-		Format:         "in-toto",
-		Signer:         "x509",
-		StorageBackend: sets.New[string]("tekton"),
+		Format:                "in-toto",
+		Signer:                "x509",
+		StorageBackend:        sets.New[string]("tekton"),
+		DeepInspectionEnabled: false,
 	},
 	OCI: Artifact{
 		Format:         "simplesigning",
@@ -193,9 +194,10 @@ func TestParse(t *testing.T) {
 						Signer:         "x509",
 					},
 					PipelineRuns: Artifact{
-						Format:         "in-toto",
-						Signer:         "x509",
-						StorageBackend: sets.New[string]("tekton"),
+						Format:                "in-toto",
+						Signer:                "x509",
+						StorageBackend:        sets.New[string]("tekton"),
+						DeepInspectionEnabled: false,
 					},
 					OCI: Artifact{
 						Format:         "simplesigning",
@@ -222,9 +224,10 @@ func TestParse(t *testing.T) {
 						Signer:         "x509",
 					},
 					PipelineRuns: Artifact{
-						Format:         "in-toto",
-						Signer:         "x509",
-						StorageBackend: sets.New[string]("tekton", "docdb"),
+						Format:                "in-toto",
+						Signer:                "x509",
+						StorageBackend:        sets.New[string]("tekton", "docdb"),
+						DeepInspectionEnabled: false,
 					},
 					OCI: Artifact{
 						Format:         "simplesigning",
@@ -251,9 +254,10 @@ func TestParse(t *testing.T) {
 						Signer:         "x509",
 					},
 					PipelineRuns: Artifact{
-						Format:         "in-toto",
-						Signer:         "x509",
-						StorageBackend: sets.New[string]("tekton"),
+						Format:                "in-toto",
+						Signer:                "x509",
+						StorageBackend:        sets.New[string]("tekton"),
+						DeepInspectionEnabled: false,
 					},
 					OCI: Artifact{
 						Format:         "simplesigning",
@@ -280,9 +284,10 @@ func TestParse(t *testing.T) {
 						Signer:         "x509",
 					},
 					PipelineRuns: Artifact{
-						Format:         "in-toto",
-						Signer:         "x509",
-						StorageBackend: sets.New[string]("tekton"),
+						Format:                "in-toto",
+						Signer:                "x509",
+						StorageBackend:        sets.New[string]("tekton"),
+						DeepInspectionEnabled: false,
 					},
 					OCI: Artifact{
 						Format:         "simplesigning",
@@ -309,9 +314,10 @@ func TestParse(t *testing.T) {
 						Signer:         "x509",
 					},
 					PipelineRuns: Artifact{
-						Format:         "in-toto",
-						Signer:         "x509",
-						StorageBackend: sets.New[string]("tekton"),
+						Format:                "in-toto",
+						Signer:                "x509",
+						StorageBackend:        sets.New[string]("tekton"),
+						DeepInspectionEnabled: false,
 					},
 					OCI: Artifact{
 						Format:         "simplesigning",
@@ -341,9 +347,10 @@ func TestParse(t *testing.T) {
 						Signer:         "x509",
 					},
 					PipelineRuns: Artifact{
-						Format:         "in-toto",
-						Signer:         "x509",
-						StorageBackend: sets.New[string]("tekton"),
+						Format:                "in-toto",
+						Signer:                "x509",
+						StorageBackend:        sets.New[string]("tekton"),
+						DeepInspectionEnabled: false,
 					},
 					OCI: Artifact{
 						Format:         "simplesigning",
@@ -373,9 +380,10 @@ func TestParse(t *testing.T) {
 						Signer:         "x509",
 					},
 					PipelineRuns: Artifact{
-						Format:         "in-toto",
-						Signer:         "x509",
-						StorageBackend: sets.New[string]("tekton"),
+						Format:                "in-toto",
+						Signer:                "x509",
+						StorageBackend:        sets.New[string]("tekton"),
+						DeepInspectionEnabled: false,
 					},
 					OCI: Artifact{
 						Format:         "simplesigning",
@@ -402,9 +410,10 @@ func TestParse(t *testing.T) {
 						StorageBackend: sets.New[string]("tekton"),
 					},
 					PipelineRuns: Artifact{
-						Format:         "in-toto",
-						Signer:         "x509",
-						StorageBackend: sets.New[string]("tekton"),
+						Format:                "in-toto",
+						Signer:                "x509",
+						StorageBackend:        sets.New[string]("tekton"),
+						DeepInspectionEnabled: false,
 					},
 					OCI: Artifact{
 						Format:         "simplesigning",
@@ -437,8 +446,9 @@ func TestParse(t *testing.T) {
 		{
 			name: "extra",
 			data: map[string]string{
-				taskrunSignerKey: "x509",
-				"other-key":      "foo",
+				taskrunSignerKey:                   "x509",
+				"other-key":                        "foo",
+				pipelinerunEnableDeepInspectionKey: "tr",
 			},
 			taskrunEnabled: true,
 			ociEnbaled:     true,
@@ -451,9 +461,10 @@ func TestParse(t *testing.T) {
 						StorageBackend: sets.New[string]("tekton"),
 					},
 					PipelineRuns: Artifact{
-						Format:         "in-toto",
-						Signer:         "x509",
-						StorageBackend: sets.New[string]("tekton"),
+						Format:                "in-toto",
+						Signer:                "x509",
+						StorageBackend:        sets.New[string]("tekton"),
+						DeepInspectionEnabled: false,
 					},
 					OCI: Artifact{
 						Format:         "simplesigning",
@@ -483,9 +494,10 @@ func TestParse(t *testing.T) {
 						StorageBackend: sets.New[string]("tekton"),
 					},
 					PipelineRuns: Artifact{
-						Format:         "in-toto",
-						Signer:         "x509",
-						StorageBackend: sets.New[string]("tekton"),
+						Format:                "in-toto",
+						Signer:                "x509",
+						StorageBackend:        sets.New[string]("tekton"),
+						DeepInspectionEnabled: false,
 					},
 					OCI: Artifact{
 						Format:         "simplesigning",

@@ -43,7 +43,8 @@ type Slsa struct {
 func NewFormatter(cfg config.Config) (formats.Payloader, error) {
 	return &Slsa{
 		slsaConfig: &slsaconfig.SlsaConfig{
-			BuilderID: cfg.Builder.ID,
+			BuilderID:             cfg.Builder.ID,
+			DeepInspectionEnabled: cfg.Artifacts.PipelineRuns.DeepInspectionEnabled,
 		},
 	}, nil
 }
