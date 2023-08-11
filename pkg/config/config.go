@@ -40,6 +40,7 @@ type ArtifactConfigs struct {
 	OCI          Artifact
 	PipelineRuns Artifact
 	TaskRuns     Artifact
+	SBOM         SBOMArtifact
 }
 
 // Artifact contains the configuration for how to sign/store/format the signatures for a single artifact
@@ -48,6 +49,12 @@ type Artifact struct {
 	StorageBackend        sets.Set[string]
 	Signer                string
 	DeepInspectionEnabled bool
+}
+
+// SBOMArtifact contains the configuration for how to sign/store/format SBOM artifacts
+type SBOMArtifact struct {
+	Artifact
+	MaxBytes int64
 }
 
 // StorageConfigs contains the configuration to instantiate different storage providers
@@ -160,6 +167,11 @@ const (
 	ociStorageKey = "artifacts.oci.storage"
 	ociSignerKey  = "artifacts.oci.signer"
 
+	sbomFormatKey   = "artifacts.sbom.format"
+	sbomStorageKey  = "artifacts.sbom.storage"
+	sbomSignerKey   = "artifacts.sbom.signer"
+	sbomMaxBytesKey = "artifacts.sbom.maxbytes"
+
 	gcsBucketKey             = "storage.gcs.bucket"
 	ociRepositoryKey         = "storage.oci.repository"
 	ociRepositoryInsecureKey = "storage.oci.repository.insecure"
@@ -207,6 +219,9 @@ func (artifact *Artifact) Enabled() bool {
 	return !(artifact.StorageBackend.Len() == 1 && artifact.StorageBackend.Has(""))
 }
 
+// 10 Megabytes
+const defaultSBOMMaxBytes = 10 * 1024 * 1024
+
 func defaultConfig() *Config {
 	return &Config{
 		Artifacts: ArtifactConfigs{
@@ -225,6 +240,14 @@ func defaultConfig() *Config {
 				Format:         "simplesigning",
 				StorageBackend: sets.New[string]("oci"),
 				Signer:         "x509",
+			},
+			SBOM: SBOMArtifact{
+				Artifact: Artifact{
+					Format:         "in-toto",
+					StorageBackend: sets.New[string]("oci"),
+					Signer:         "x509",
+				},
+				MaxBytes: defaultSBOMMaxBytes,
 			},
 		},
 		Transparency: TransparencyConfig{
@@ -269,6 +292,12 @@ func NewConfigFromMap(data map[string]string) (*Config, error) {
 		asString(ociFormatKey, &cfg.Artifacts.OCI.Format, "simplesigning"),
 		asStringSet(ociStorageKey, &cfg.Artifacts.OCI.StorageBackend, sets.New[string]("tekton", "oci", "gcs", "docdb", "grafeas", "kafka")),
 		asString(ociSignerKey, &cfg.Artifacts.OCI.Signer, "x509", "kms"),
+
+		// SBOM
+		asString(sbomFormatKey, &cfg.Artifacts.SBOM.Format, "in-toto"),
+		asStringSet(sbomStorageKey, &cfg.Artifacts.SBOM.StorageBackend, sets.New[string]("tekton", "oci", "gcs", "docdb", "grafeas", "kafka")),
+		asString(sbomSignerKey, &cfg.Artifacts.SBOM.Signer, "x509", "kms"),
+		asInt64(sbomMaxBytesKey, &cfg.Artifacts.SBOM.MaxBytes, defaultSBOMMaxBytes),
 
 		// PubSub - General
 		asString(pubsubProvider, &cfg.Storage.PubSub.Provider, "inmemory", "kafka"),
@@ -352,6 +381,22 @@ func asBool(key string, target *bool) cm.ParseFunc {
 			*target = val
 			return nil
 		}
+		return nil
+	}
+}
+
+func asInt64(key string, target *int64, defaultValue int64) cm.ParseFunc {
+	return func(data map[string]string) error {
+		*target = defaultValue
+		raw, ok := data[key]
+		if !ok {
+			return nil
+		}
+		val, err := strconv.ParseInt(raw, 10, 64)
+		if err != nil {
+			return nil
+		}
+		*target = val
 		return nil
 	}
 }

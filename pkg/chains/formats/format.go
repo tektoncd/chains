@@ -47,7 +47,7 @@ var (
 )
 
 // PayloaderInit initializes a new Payloader instance for the given config.
-type PayloaderInit func(config.Config) (Payloader, error)
+type PayloaderInit func(context.Context, config.Config) (Payloader, error)
 
 // RegisterPayloader registers the PayloaderInit func for the given type.
 // This is suitable to be calling during init() to register Payloader types.
@@ -57,10 +57,10 @@ func RegisterPayloader(key config.PayloadType, init PayloaderInit) {
 
 // GetPayloader returns a new Payloader of the given type.
 // If no Payloader is registered for the type, an error is returned.
-func GetPayloader(key config.PayloadType, cfg config.Config) (Payloader, error) {
+func GetPayloader(ctx context.Context, key config.PayloadType, cfg config.Config) (Payloader, error) {
 	fn, ok := payloaderMap[key]
 	if !ok {
 		return nil, fmt.Errorf("payloader %q not found", key)
 	}
-	return fn(cfg)
+	return fn(ctx, cfg)
 }

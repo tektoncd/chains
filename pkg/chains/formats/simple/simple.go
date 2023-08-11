@@ -39,7 +39,7 @@ type SimpleSigning struct{}
 type SimpleContainerImage payload.SimpleContainerImage
 
 // CreatePayload implements the Payloader interface.
-func (i *SimpleSigning) CreatePayload(ctx context.Context, obj interface{}) (interface{}, error) {
+func (i *SimpleSigning) CreatePayload(_ context.Context, obj interface{}) (interface{}, error) {
 	switch v := obj.(type) {
 	case name.Digest:
 		format := NewSimpleStruct(v)
@@ -53,7 +53,7 @@ func (i *SimpleSigning) Wrap() bool {
 	return false
 }
 
-func NewFormatter(config.Config) (formats.Payloader, error) {
+func NewFormatter(context.Context, config.Config) (formats.Payloader, error) {
 	return &SimpleSigning{}, nil
 }
 

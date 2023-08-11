@@ -113,6 +113,14 @@ var defaultArtifacts = ArtifactConfigs{
 		StorageBackend: sets.New[string]("oci"),
 		Signer:         "x509",
 	},
+	SBOM: SBOMArtifact{
+		Artifact: Artifact{
+			Format:         "in-toto",
+			StorageBackend: sets.New[string]("oci"),
+			Signer:         "x509",
+		},
+		MaxBytes: defaultSBOMMaxBytes,
+	},
 }
 
 var defaultStorage = StorageConfigs{
@@ -130,6 +138,7 @@ func TestParse(t *testing.T) {
 		name           string
 		data           map[string]string
 		taskrunEnabled bool
+		sbomEnabled    bool
 		ociEnbaled     bool
 		want           Config
 	}{
@@ -138,6 +147,7 @@ func TestParse(t *testing.T) {
 			data:           map[string]string{},
 			taskrunEnabled: true,
 			ociEnbaled:     true,
+			sbomEnabled:    true,
 			want: Config{
 				Builder:      defaultBuilder,
 				Artifacts:    defaultArtifacts,
@@ -152,6 +162,7 @@ func TestParse(t *testing.T) {
 			},
 			taskrunEnabled: true,
 			ociEnbaled:     true,
+			sbomEnabled:    true,
 			want: Config{
 				Builder: BuilderConfig{
 					"builder-id-test",
@@ -168,6 +179,7 @@ func TestParse(t *testing.T) {
 			},
 			taskrunEnabled: true,
 			ociEnbaled:     true,
+			sbomEnabled:    true,
 			want: Config{
 				Builder:   defaultBuilder,
 				Artifacts: defaultArtifacts,
@@ -185,6 +197,7 @@ func TestParse(t *testing.T) {
 			data:           map[string]string{taskrunStorageKey: "tekton,oci"},
 			taskrunEnabled: true,
 			ociEnbaled:     true,
+			sbomEnabled:    true,
 			want: Config{
 				Builder: defaultBuilder,
 				Artifacts: ArtifactConfigs{
@@ -204,6 +217,14 @@ func TestParse(t *testing.T) {
 						StorageBackend: sets.New[string]("oci"),
 						Signer:         "x509",
 					},
+					SBOM: SBOMArtifact{
+						Artifact: Artifact{
+							Format:         "in-toto",
+							StorageBackend: sets.New[string]("oci"),
+							Signer:         "x509",
+						},
+						MaxBytes: defaultSBOMMaxBytes,
+					},
 				},
 				Signers:      defaultSigners,
 				Storage:      defaultStorage,
@@ -215,6 +236,7 @@ func TestParse(t *testing.T) {
 			data:           map[string]string{pipelinerunStorageKey: "tekton,docdb"},
 			taskrunEnabled: true,
 			ociEnbaled:     true,
+			sbomEnabled:    true,
 			want: Config{
 				Builder: defaultBuilder,
 				Artifacts: ArtifactConfigs{
@@ -234,6 +256,14 @@ func TestParse(t *testing.T) {
 						StorageBackend: sets.New[string]("oci"),
 						Signer:         "x509",
 					},
+					SBOM: SBOMArtifact{
+						Artifact: Artifact{
+							Format:         "in-toto",
+							StorageBackend: sets.New[string]("oci"),
+							Signer:         "x509",
+						},
+						MaxBytes: defaultSBOMMaxBytes,
+					},
 				},
 				Signers:      defaultSigners,
 				Storage:      defaultStorage,
@@ -245,6 +275,7 @@ func TestParse(t *testing.T) {
 			data:           map[string]string{taskrunStorageKey: ""},
 			taskrunEnabled: false,
 			ociEnbaled:     true,
+			sbomEnabled:    true,
 			want: Config{
 				Builder: defaultBuilder,
 				Artifacts: ArtifactConfigs{
@@ -264,6 +295,14 @@ func TestParse(t *testing.T) {
 						StorageBackend: sets.New[string]("oci"),
 						Signer:         "x509",
 					},
+					SBOM: SBOMArtifact{
+						Artifact: Artifact{
+							Format:         "in-toto",
+							StorageBackend: sets.New[string]("oci"),
+							Signer:         "x509",
+						},
+						MaxBytes: defaultSBOMMaxBytes,
+					},
 				},
 				Signers:      defaultSigners,
 				Storage:      defaultStorage,
@@ -275,6 +314,7 @@ func TestParse(t *testing.T) {
 			data:           map[string]string{ociStorageKey: "oci,tekton"},
 			taskrunEnabled: true,
 			ociEnbaled:     true,
+			sbomEnabled:    true,
 			want: Config{
 				Builder: defaultBuilder,
 				Artifacts: ArtifactConfigs{
@@ -294,6 +334,14 @@ func TestParse(t *testing.T) {
 						StorageBackend: sets.New[string]("oci", "tekton"),
 						Signer:         "x509",
 					},
+					SBOM: SBOMArtifact{
+						Artifact: Artifact{
+							Format:         "in-toto",
+							StorageBackend: sets.New[string]("oci"),
+							Signer:         "x509",
+						},
+						MaxBytes: defaultSBOMMaxBytes,
+					},
 				},
 				Signers:      defaultSigners,
 				Storage:      defaultStorage,
@@ -305,6 +353,7 @@ func TestParse(t *testing.T) {
 			data:           map[string]string{ociStorageKey: ""},
 			taskrunEnabled: true,
 			ociEnbaled:     false,
+			sbomEnabled:    true,
 			want: Config{
 				Builder: defaultBuilder,
 				Artifacts: ArtifactConfigs{
@@ -324,6 +373,14 @@ func TestParse(t *testing.T) {
 						StorageBackend: sets.New[string](""),
 						Signer:         "x509",
 					},
+					SBOM: SBOMArtifact{
+						Artifact: Artifact{
+							Format:         "in-toto",
+							StorageBackend: sets.New[string]("oci"),
+							Signer:         "x509",
+						},
+						MaxBytes: defaultSBOMMaxBytes,
+					},
 				},
 				Signers:      defaultSigners,
 				Storage:      defaultStorage,
@@ -338,6 +395,7 @@ func TestParse(t *testing.T) {
 			},
 			taskrunEnabled: true,
 			ociEnbaled:     false,
+			sbomEnabled:    true,
 			want: Config{
 				Builder: defaultBuilder,
 				Artifacts: ArtifactConfigs{
@@ -357,6 +415,14 @@ func TestParse(t *testing.T) {
 						StorageBackend: sets.New[string](""),
 						Signer:         "x509",
 					},
+					SBOM: SBOMArtifact{
+						Artifact: Artifact{
+							Format:         "in-toto",
+							StorageBackend: sets.New[string]("oci"),
+							Signer:         "x509",
+						},
+						MaxBytes: defaultSBOMMaxBytes,
+					},
 				},
 				Signers:      defaultSigners,
 				Storage:      defaultStorage,
@@ -371,6 +437,7 @@ func TestParse(t *testing.T) {
 			},
 			taskrunEnabled: false,
 			ociEnbaled:     true,
+			sbomEnabled:    true,
 			want: Config{
 				Builder: defaultBuilder,
 				Artifacts: ArtifactConfigs{
@@ -390,6 +457,99 @@ func TestParse(t *testing.T) {
 						StorageBackend: sets.New[string]("oci", "tekton"),
 						Signer:         "x509",
 					},
+					SBOM: SBOMArtifact{
+						Artifact: Artifact{
+							Format:         "in-toto",
+							StorageBackend: sets.New[string]("oci"),
+							Signer:         "x509",
+						},
+						MaxBytes: defaultSBOMMaxBytes,
+					},
+				},
+				Signers:      defaultSigners,
+				Storage:      defaultStorage,
+				Transparency: defaultTransparency,
+			},
+		},
+		{
+			name: "sbom",
+			data: map[string]string{
+				sbomStorageKey: "oci,tekton",
+				sbomFormatKey:  "in-toto",
+				sbomSignerKey:  "kms",
+			},
+			taskrunEnabled: true,
+			ociEnbaled:     true,
+			sbomEnabled:    true,
+			want: Config{
+				Builder: defaultBuilder,
+				Artifacts: ArtifactConfigs{
+					TaskRuns: Artifact{
+						Format:         "in-toto",
+						StorageBackend: sets.New[string]("tekton"),
+						Signer:         "x509",
+					},
+					PipelineRuns: Artifact{
+						Format:         "in-toto",
+						Signer:         "x509",
+						StorageBackend: sets.New[string]("tekton"),
+					},
+					OCI: Artifact{
+						Format:         "simplesigning",
+						StorageBackend: sets.New[string]("oci"),
+						Signer:         "x509",
+					},
+					SBOM: SBOMArtifact{
+						Artifact: Artifact{
+							Format:         "in-toto",
+							StorageBackend: sets.New[string]("oci", "tekton"),
+							Signer:         "kms",
+						},
+						MaxBytes: defaultSBOMMaxBytes,
+					},
+				},
+				Signers:      defaultSigners,
+				Storage:      defaultStorage,
+				Transparency: defaultTransparency,
+			},
+		},
+		{
+			name: "sbom disabled",
+			data: map[string]string{
+				sbomStorageKey:  "",
+				sbomFormatKey:   "in-toto",
+				sbomSignerKey:   "kms",
+				sbomMaxBytesKey: "99",
+			},
+			taskrunEnabled: true,
+			ociEnbaled:     true,
+			sbomEnabled:    false,
+			want: Config{
+				Builder: defaultBuilder,
+				Artifacts: ArtifactConfigs{
+					TaskRuns: Artifact{
+						Format:         "in-toto",
+						StorageBackend: sets.New[string]("tekton"),
+						Signer:         "x509",
+					},
+					PipelineRuns: Artifact{
+						Format:         "in-toto",
+						Signer:         "x509",
+						StorageBackend: sets.New[string]("tekton"),
+					},
+					OCI: Artifact{
+						Format:         "simplesigning",
+						StorageBackend: sets.New[string]("oci"),
+						Signer:         "x509",
+					},
+					SBOM: SBOMArtifact{
+						Artifact: Artifact{
+							Format:         "in-toto",
+							StorageBackend: sets.New[string](""),
+							Signer:         "kms",
+						},
+						MaxBytes: 99,
+					},
 				},
 				Signers:      defaultSigners,
 				Storage:      defaultStorage,
@@ -401,6 +561,7 @@ func TestParse(t *testing.T) {
 			data:           map[string]string{taskrunSignerKey: "x509"},
 			taskrunEnabled: true,
 			ociEnbaled:     true,
+			sbomEnabled:    true,
 			want: Config{
 				Builder: defaultBuilder,
 				Artifacts: ArtifactConfigs{
@@ -420,6 +581,14 @@ func TestParse(t *testing.T) {
 						StorageBackend: sets.New[string]("oci"),
 						Signer:         "x509",
 					},
+					SBOM: SBOMArtifact{
+						Artifact: Artifact{
+							Format:         "in-toto",
+							StorageBackend: sets.New[string]("oci"),
+							Signer:         "x509",
+						},
+						MaxBytes: defaultSBOMMaxBytes,
+					},
 				},
 				Signers:      defaultSigners,
 				Storage:      defaultStorage,
@@ -431,6 +600,7 @@ func TestParse(t *testing.T) {
 			data:           map[string]string{transparencyEnabledKey: "manual"},
 			taskrunEnabled: true,
 			ociEnbaled:     true,
+			sbomEnabled:    true,
 			want: Config{
 				Builder:   defaultBuilder,
 				Artifacts: defaultArtifacts,
@@ -452,6 +622,7 @@ func TestParse(t *testing.T) {
 			},
 			taskrunEnabled: true,
 			ociEnbaled:     true,
+			sbomEnabled:    true,
 			want: Config{
 				Builder: defaultBuilder,
 				Artifacts: ArtifactConfigs{
@@ -470,6 +641,14 @@ func TestParse(t *testing.T) {
 						Format:         "simplesigning",
 						StorageBackend: sets.New[string]("oci"),
 						Signer:         "x509",
+					},
+					SBOM: SBOMArtifact{
+						Artifact: Artifact{
+							Format:         "in-toto",
+							StorageBackend: sets.New[string]("oci"),
+							Signer:         "x509",
+						},
+						MaxBytes: defaultSBOMMaxBytes,
 					},
 				},
 				Signers:      defaultSigners,
@@ -485,6 +664,7 @@ func TestParse(t *testing.T) {
 			},
 			taskrunEnabled: true,
 			ociEnbaled:     true,
+			sbomEnabled:    true,
 			want: Config{
 				Builder: defaultBuilder,
 				Artifacts: ArtifactConfigs{
@@ -503,6 +683,14 @@ func TestParse(t *testing.T) {
 						Format:         "simplesigning",
 						StorageBackend: sets.New[string]("oci"),
 						Signer:         "x509",
+					},
+					SBOM: SBOMArtifact{
+						Artifact: Artifact{
+							Format:         "in-toto",
+							StorageBackend: sets.New[string]("oci"),
+							Signer:         "x509",
+						},
+						MaxBytes: defaultSBOMMaxBytes,
 					},
 				},
 				Signers: SignerConfigs{
@@ -523,6 +711,7 @@ func TestParse(t *testing.T) {
 			},
 			taskrunEnabled: true,
 			ociEnbaled:     true,
+			sbomEnabled:    true,
 			want: Config{
 				Builder:   defaultBuilder,
 				Artifacts: defaultArtifacts,
@@ -546,6 +735,7 @@ func TestParse(t *testing.T) {
 			},
 			taskrunEnabled: true,
 			ociEnbaled:     true,
+			sbomEnabled:    true,
 			want: Config{
 				Builder:   defaultBuilder,
 				Artifacts: defaultArtifacts,
@@ -576,6 +766,9 @@ func TestParse(t *testing.T) {
 			}
 			if got.Artifacts.TaskRuns.Enabled() != tt.taskrunEnabled {
 				t.Errorf("Taskrun artifact enable mismatch")
+			}
+			if got.Artifacts.SBOM.Enabled() != tt.sbomEnabled {
+				t.Errorf("SBOM artifact enable mismatch")
 			}
 			if diff := cmp.Diff(*got, tt.want); diff != "" {
 				t.Errorf("parse() = %v", diff)

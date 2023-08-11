@@ -1,0 +1,70 @@
+# Copyright 2023 The Tekton Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: sbom
+spec:
+  params:
+  - name: IMAGE_URL
+    description: Reference to the image the SBOM will be generated for.
+  - name: IMAGE_DIGEST
+    description: Digest of the image the SBOM will be generated for.
+  - name: SBOM_REPO
+    description: OCI repo to temporarily push the SBOM blob to.
+  - name: HOMEDIR
+    type: string
+    description: Value for the HOME environment variable.
+    default: /tekton/home
+  results:
+  - name: IMAGE_URL
+    description: Reference to the image the SBOM will be generated for.
+  - name: IMAGE_DIGEST
+    description: Digest of the image the SBOM will be generated for.
+  - name: IMAGE_SBOM_URL
+    description: Reference, including digest, to the SBOM blob.
+  - name: IMAGE_SBOM_FORMAT
+    description: The SBOM format.
+    type: string
+  stepTemplate:
+    env:
+      - name: HOME
+        value: "$(params.HOMEDIR)"
+  steps:
+  - name: make-sbom
+    image: docker.io/anchore/syft:v0.86.1
+    args:
+      - $(params.IMAGE_URL)@$(params.IMAGE_DIGEST)
+      - --output
+      - cyclonedx-json
+      - --file
+      - $(params.HOMEDIR)/sbom.json
+  - name: emit-results
+    image: docker.io/busybox:1.36
+    script: |
+      sbom_digest="$(sha256sum $(params.HOMEDIR)/sbom.json | cut -d' ' -f1)"
+      echo -n "$(params.SBOM_REPO)@sha256:${sbom_digest}" | tee $(results.IMAGE_SBOM_URL.path)
+      echo -n 'https://cyclonedx.org/schema' | tee $(results.IMAGE_SBOM_FORMAT.path)
+      echo -n '$(params.IMAGE_URL)' | tee $(results.IMAGE_URL.path)
+      echo -n '$(params.IMAGE_DIGEST)' | tee $(results.IMAGE_DIGEST.path)
+  - name: store-sbom-blob
+    image: docker.io/bitnami/oras:latest
+    args:
+      - blob
+      - push
+      - --registry-config
+      - /tekton/creds/.docker/config.json
+      - $(params.SBOM_REPO)
+      - $(params.HOMEDIR)/sbom.json

@@ -40,7 +40,7 @@ type Slsa struct {
 	slsaConfig *slsaconfig.SlsaConfig
 }
 
-func NewFormatter(cfg config.Config) (formats.Payloader, error) {
+func NewFormatter(_ context.Context, cfg config.Config) (formats.Payloader, error) {
 	return &Slsa{
 		slsaConfig: &slsaconfig.SlsaConfig{
 			BuilderID:             cfg.Builder.ID,

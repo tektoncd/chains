@@ -1,0 +1,98 @@
+# Copyright 2023 The Tekton Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: simple-build
+spec:
+  params:
+  - description: Repository URL to clone from.
+    name: git-repo
+    type: string
+  - default: main
+    description: Revision to checkout. (branch, tag, sha, ref, etc...)
+    name: git-revision
+    type: string
+  - description: Reference of the image the pipeline will produce.
+    name: output-image
+    type: string
+  - description: OCI repo to temporarily store the SBOM blob.
+    name: sbom-repo
+    type: string
+  results:
+  - description: Reference of the image the pipeline will produce.
+    name: IMAGE_URL
+    value: $(tasks.build.results.IMAGE_URL)
+  - description: Digest of the image the pipeline will produce.
+    name: IMAGE_DIGEST
+    value: $(tasks.build.results.IMAGE_DIGEST)
+  - description: Repository URL used for buiding the image.
+    name: CHAINS-GIT_URL
+    value: $(tasks.clone.results.url)
+  - description: Repository commit used for building the image.
+    name: CHAINS-GIT_COMMIT
+    value: $(tasks.clone.results.commit)
+  tasks:
+  - name: clone
+    taskRef:
+      resolver: git
+      params:
+      - name: url
+        value: https://github.com/tektoncd/catalog.git
+      - name: revision
+        value: main
+      - name: pathInRepo
+        value: task/git-clone/0.9/git-clone.yaml
+    params:
+    - name: url
+      value: $(params.git-repo)
+    - name: revision
+      value: $(params.git-revision)
+    workspaces:
+    - name: output
+      workspace: shared
+  - name: build
+    runAfter:
+    - clone
+    taskRef:
+      resolver: git
+      params:
+      - name: url
+        value: https://github.com/tektoncd/catalog.git
+      - name: revision
+        value: main
+      - name: pathInRepo
+        value: task/buildah/0.5/buildah.yaml
+    params:
+    - name: IMAGE
+      value: $(params.output-image)
+    workspaces:
+    - name: source
+      workspace: shared
+  - name: sbom
+    runAfter:
+    - build
+    taskRef:
+      kind: Task
+      name: sbom
+    params:
+    - name: IMAGE_URL
+      value: $(params.output-image)
+    - name: IMAGE_DIGEST
+      value: $(tasks.build.results.IMAGE_DIGEST)
+    - name: SBOM_REPO
+      value: $(params.sbom-repo)
+  workspaces:
+  - name: shared

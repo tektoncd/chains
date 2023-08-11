@@ -17,6 +17,7 @@ limitations under the License.
 package v1
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -133,7 +134,7 @@ func TestTaskRunCreatePayload1(t *testing.T) {
 			},
 		},
 	}
-	i, _ := NewFormatter(cfg)
+	i, _ := NewFormatter(appContext(), cfg)
 
 	got, err := i.CreatePayload(ctx, objects.NewTaskRunObject(tr))
 
@@ -359,7 +360,7 @@ func TestPipelineRunCreatePayload(t *testing.T) {
 	pro.AppendTaskRun(tr1)
 	pro.AppendTaskRun(tr2)
 
-	i, _ := NewFormatter(cfg)
+	i, _ := NewFormatter(appContext(), cfg)
 
 	got, err := i.CreatePayload(ctx, pro)
 	if err != nil {
@@ -577,7 +578,7 @@ func TestPipelineRunCreatePayloadChildRefs(t *testing.T) {
 	pro.AppendTaskRun(tr1)
 	pro.AppendTaskRun(tr2)
 
-	i, _ := NewFormatter(cfg)
+	i, _ := NewFormatter(appContext(), cfg)
 	got, err := i.CreatePayload(ctx, pro)
 	if err != nil {
 		t.Errorf("unexpected error: %s", err.Error())
@@ -652,7 +653,7 @@ func TestTaskRunCreatePayload2(t *testing.T) {
 			},
 		},
 	}
-	i, _ := NewFormatter(cfg)
+	i, _ := NewFormatter(appContext(), cfg)
 	got, err := i.CreatePayload(ctx, objects.NewTaskRunObject(tr))
 
 	if err != nil {
@@ -723,7 +724,7 @@ func TestMultipleSubjects(t *testing.T) {
 		},
 	}
 
-	i, _ := NewFormatter(cfg)
+	i, _ := NewFormatter(appContext(), cfg)
 	got, err := i.CreatePayload(ctx, objects.NewTaskRunObject(tr))
 	if err != nil {
 		t.Errorf("unexpected error: %s", err.Error())
@@ -740,7 +741,7 @@ func TestNewFormatter(t *testing.T) {
 				ID: "testid",
 			},
 		}
-		f, err := NewFormatter(cfg)
+		f, err := NewFormatter(appContext(), cfg)
 		if f == nil {
 			t.Error("Failed to create formatter")
 		}
@@ -758,7 +759,7 @@ func TestCreatePayloadError(t *testing.T) {
 			ID: "testid",
 		},
 	}
-	f, _ := NewFormatter(cfg)
+	f, _ := NewFormatter(appContext(), cfg)
 
 	t.Run("Invalid type", func(t *testing.T) {
 		p, err := f.CreatePayload(ctx, "not a task ref")
@@ -782,4 +783,8 @@ func TestCorrectPayloadType(t *testing.T) {
 	if i.Type() != formats.PayloadTypeSlsav1 {
 		t.Errorf("Invalid type returned: %s", i.Type())
 	}
+}
+
+func appContext() context.Context {
+	return context.Background()
 }

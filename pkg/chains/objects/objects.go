@@ -19,12 +19,15 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/google/go-containerregistry/pkg/authn/k8schain"
+	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/pod"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 	"knative.dev/pkg/apis"
 )
 
@@ -65,6 +68,7 @@ type TektonObject interface {
 	SupportsTaskRunArtifact() bool
 	SupportsPipelineRunArtifact() bool
 	SupportsOCIArtifact() bool
+	SupportsSBOMArtifact() bool
 }
 
 func NewTektonObject(i interface{}) (TektonObject, error) {
@@ -149,6 +153,10 @@ func (tro *TaskRunObject) SupportsPipelineRunArtifact() bool {
 }
 
 func (tro *TaskRunObject) SupportsOCIArtifact() bool {
+	return true
+}
+
+func (tro *TaskRunObject) SupportsSBOMArtifact() bool {
 	return true
 }
 
@@ -250,6 +258,10 @@ func (pro *PipelineRunObject) SupportsOCIArtifact() bool {
 	return false
 }
 
+func (tro *PipelineRunObject) SupportsSBOMArtifact() bool {
+	return false
+}
+
 // Get the imgPullSecrets from a pod template, if they exist
 func getPodPullSecrets(podTemplate *pod.Template) []string {
 	imgPullSecrets := []string{}
@@ -259,4 +271,51 @@ func getPodPullSecrets(podTemplate *pod.Template) []string {
 		}
 	}
 	return imgPullSecrets
+}
+
+type SBOMObject struct {
+	sbomURL      string
+	sbomFormat   string
+	imageURL     string
+	imageDigest  string
+	tektonObject TektonObject
+}
+
+func NewSBOMObject(sbomURL, sbomFormat, imageURL, imageDigest string, tektonObject TektonObject) *SBOMObject {
+	return &SBOMObject{
+		sbomURL:      sbomURL,
+		sbomFormat:   sbomFormat,
+		imageURL:     imageURL,
+		imageDigest:  imageDigest,
+		tektonObject: tektonObject,
+	}
+}
+
+func (so *SBOMObject) GetSBOMURL() string {
+	return so.sbomURL
+}
+
+func (so *SBOMObject) GetSBOMFormat() string {
+	return so.sbomFormat
+}
+
+func (so *SBOMObject) GetImageURL() string {
+	return so.imageURL
+}
+
+func (so *SBOMObject) GetImageDigest() string {
+	return so.imageDigest
+}
+
+func (so *SBOMObject) OCIRemoteOption(ctx context.Context, client kubernetes.Interface) (remote.Option, error) {
+	keychain, err := k8schain.New(ctx, client,
+		k8schain.Options{
+			Namespace:          so.tektonObject.GetNamespace(),
+			ServiceAccountName: so.tektonObject.GetServiceAccountName(),
+			ImagePullSecrets:   so.tektonObject.GetPullSecrets(),
+		})
+	if err != nil {
+		return nil, err
+	}
+	return remote.WithAuthFromKeychain(keychain), nil
 }

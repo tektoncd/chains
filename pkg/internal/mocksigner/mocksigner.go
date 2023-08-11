@@ -30,3 +30,7 @@ func (m *Signer) Sign(ctx context.Context, obj objects.TektonObject) error {
 	m.Signed = true
 	return nil
 }
+
+func (m *Signer) AppContext() context.Context {
+	return nil
+}

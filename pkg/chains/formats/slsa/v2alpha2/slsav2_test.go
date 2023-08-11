@@ -17,6 +17,7 @@ limitations under the License.
 package v2alpha2
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
 	"time"
@@ -49,7 +50,7 @@ func TestNewFormatter(t *testing.T) {
 				ID: "testid",
 			},
 		}
-		f, err := NewFormatter(cfg)
+		f, err := NewFormatter(appContext(), cfg)
 		if err != nil {
 			t.Errorf("Error creating formatter: %s", err)
 		}
@@ -67,7 +68,7 @@ func TestCreatePayloadError(t *testing.T) {
 			ID: "testid",
 		},
 	}
-	f, _ := NewFormatter(cfg)
+	f, _ := NewFormatter(appContext(), cfg)
 
 	t.Run("Invalid type", func(t *testing.T) {
 		p, err := f.CreatePayload(ctx, "not a task ref")
@@ -185,7 +186,7 @@ func TestTaskRunCreatePayload1(t *testing.T) {
 		},
 	}
 
-	i, _ := NewFormatter(cfg)
+	i, _ := NewFormatter(appContext(), cfg)
 
 	got, err := i.CreatePayload(ctx, objects.NewTaskRunObject(tr))
 
@@ -271,7 +272,7 @@ func TestTaskRunCreatePayload2(t *testing.T) {
 		},
 	}
 
-	i, _ := NewFormatter(cfg)
+	i, _ := NewFormatter(appContext(), cfg)
 	got, err := i.CreatePayload(ctx, objects.NewTaskRunObject(tr))
 
 	if err != nil {
@@ -351,7 +352,7 @@ func TestMultipleSubjects(t *testing.T) {
 		},
 	}
 
-	i, _ := NewFormatter(cfg)
+	i, _ := NewFormatter(appContext(), cfg)
 	got, err := i.CreatePayload(ctx, objects.NewTaskRunObject(tr))
 	if err != nil {
 		t.Errorf("unexpected error: %s", err.Error())
@@ -490,7 +491,7 @@ func TestPipelineRunCreatePayload1(t *testing.T) {
 		},
 	}
 
-	i, _ := NewFormatter(cfg)
+	i, _ := NewFormatter(appContext(), cfg)
 
 	got, err := i.CreatePayload(ctx, pr)
 
@@ -500,4 +501,8 @@ func TestPipelineRunCreatePayload1(t *testing.T) {
 	if diff := cmp.Diff(expected, got, compare.SLSAV1CompareOptions()...); diff != "" {
 		t.Errorf("Slsa.CreatePayload(): -want +got: %s", diff)
 	}
+}
+
+func appContext() context.Context {
+	return context.Background()
 }

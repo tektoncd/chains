@@ -35,6 +35,7 @@ import (
 
 type Signer interface {
 	Sign(ctx context.Context, obj objects.TektonObject) error
+	AppContext() context.Context
 }
 
 type ObjectSigner struct {
@@ -44,6 +45,15 @@ type ObjectSigner struct {
 	Backends          map[string]storage.Backend
 	SecretPath        string
 	Pipelineclientset versioned.Interface
+	appContext        context.Context
+}
+
+func ObjectSignerWithContext(ctx context.Context) *ObjectSigner {
+	return &ObjectSigner{appContext: ctx}
+}
+
+func (o *ObjectSigner) AppContext() context.Context {
+	return o.appContext
 }
 
 func allSigners(ctx context.Context, sp string, cfg config.Config) map[string]signing.Signer {
@@ -98,6 +108,10 @@ func getSignableTypes(ctx context.Context, obj objects.TektonObject) ([]artifact
 		types = append(types, &artifacts.OCIArtifact{})
 	}
 
+	if obj.SupportsSBOMArtifact() {
+		types = append(types, &artifacts.SBOMArtifact{})
+	}
+
 	if len(types) == 0 {
 		return nil, fmt.Errorf("no signable artifacts found for %v", obj)
 	}
@@ -126,7 +140,7 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 		}
 		payloadFormat := signableType.PayloadFormat(cfg)
 		// Find the right payload format and format the object
-		payloader, err := formats.GetPayloader(payloadFormat, cfg)
+		payloader, err := formats.GetPayloader(o.AppContext(), payloadFormat, cfg)
 		if err != nil {
 			logger.Warnf("Format %s configured for %s: %v was not found", payloadFormat, tektonObj.GetGVK(), signableType.Type())
 			continue
@@ -138,7 +152,6 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 
 		// Go through each object one at a time.
 		for _, obj := range objects {
-
 			payload, err := payloader.CreatePayload(ctx, obj)
 			if err != nil {
 				logger.Error(err)

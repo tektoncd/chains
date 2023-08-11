@@ -20,7 +20,10 @@ import (
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/pod"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	fakekubeclient "knative.dev/pkg/client/injection/kube/client/fake"
+	rtesting "knative.dev/pkg/reconciler/testing"
 )
 
 func getPullSecretTemplate(pullSecret string) *pod.PodTemplate {
@@ -203,6 +206,36 @@ func TestTaskRun_GetResults(t *testing.T) {
 		})
 	})
 
+}
+
+func TestSBOMObject(t *testing.T) {
+	namespace := "test-namespace"
+	serviceaccount := "test-serviceaccount"
+
+	taskRun := getTaskRun()
+	taskRun.ObjectMeta.Namespace = namespace
+	taskRun.Spec.ServiceAccountName = serviceaccount
+	taskRunObject := NewTaskRunObject(taskRun)
+
+	sbomObject := NewSBOMObject("sbomURL", "sbomFormat", "imageURL", "imageDigest", taskRunObject)
+
+	assert.Equal(t, "sbomURL", sbomObject.GetSBOMURL())
+	assert.Equal(t, "sbomFormat", sbomObject.GetSBOMFormat())
+	assert.Equal(t, "imageURL", sbomObject.GetImageURL())
+	assert.Equal(t, "imageDigest", sbomObject.GetImageDigest())
+
+	ctx, _ := rtesting.SetupFakeContext(t)
+	kc := fakekubeclient.Get(ctx)
+	if _, err := kc.CoreV1().ServiceAccounts(namespace).Create(ctx, &v1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{Name: serviceaccount, Namespace: namespace},
+	}, metav1.CreateOptions{}); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := sbomObject.OCIRemoteOption(ctx, kc)
+	assert.NoError(t, err)
+	// TODO: Not sure how to compare the returned remote.Option
+	assert.NotNil(t, got)
 }
 
 func TestPipelineRun_GetGVK(t *testing.T) {

@@ -33,9 +33,19 @@ The list of images can be separated by commas or by newlines.
   value: img1@sha256:digest1, img2@sha256:digest2
 ```
 
-When processing a `TaskRun`, Chains will parse through the list, then sign and attest each image.
+Chains also suports signing SBOMs. If using the `IMAGE_URL` and `IMAGE_DIGEST` combination, the
+`TaskRun` can also emit the `IMAGE_SBOM_URL` and the `IMAGE_SBOM_FORMAT` results. The first contains
+a reference to an *unsigned* SBOM image. This reference must include the digest of the SBOM image.
+The second holds the desired predicate for the SBOM attestation. All four results must be included,
+otherwise SBOM signing is skipped. Alternatively, if using the `IMAGES` type hinting, use the
+`SBOMS` and the `SBOMS_FORMAT`.
+
+When processing a `TaskRun`, Chains will parse through the results, then sign and attest each image.
+Optionally, it may also create signed SBOM attestations if the expected results are present.
+
 When processing a `PipelineRun`, Chains will only attest each image. Thus, if both `TaskRun` and
 `PipelineRun` produce type hint results, each image will have one signature and two attestations.
+SBOM-releated results are ignored for `PipelineRuns`.
 
 For in-toto attestations, see [intoto.md](intoto.md) for description
 of in-toto specific type hinting.
@@ -77,6 +87,15 @@ Supported keys include:
 | `artifacts.oci.format` | The format to store `OCI` payloads in. | `simplesigning` | `simplesigning` |
 | `artifacts.oci.storage` | The storage backend to store `OCI` signatures in. Multiple backends can be specified with comma-separated list ("oci,tekton"). To disable the `OCI` artifact input an empty string ("").| `tekton`, `oci`, `gcs`, `docdb`, `grafeas` | `oci` |
 | `artifacts.oci.signer` | The signature backend to sign `OCI` payloads with. | `x509`, `kms` | `x509` |
+
+### SBOM Configuration
+
+| Key | Description | Supported Values | Default |
+| :--- | :--- | :--- | :--- |
+| `artifacts.sbom.format` | The statement format to store `SBOM` payloads in. | `in-toto` | `in-toto` |
+| `artifacts.sbom.storage` | The storage backend to store `SBOM` payloads in. Multiple backends can be specified with comma-separated list ("oci,tekton"). To disable the `OCI` artifact input an empty string ("").| `tekton`, `oci`, `gcs`, `docdb`, `grafeas` | `oci` |
+| `artifacts.sbom.signer` | The signature backend to sign `SBOM` payloads with. | `x509`, `kms` | `x509` |
+| `artifacts.sbom.maxbytes` | The maximum size, in bytes, allowed for SBOMs. | `integer` | `10485760`, 10 MB |
 
 ### KMS Configuration
 

@@ -41,10 +41,9 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	kubeClient := kubeclient.Get(ctx)
 	pipelineClient := pipelineclient.Get(ctx)
 
-	psSigner := &chains.ObjectSigner{
-		SecretPath:        SecretPath,
-		Pipelineclientset: pipelineClient,
-	}
+	psSigner := chains.ObjectSignerWithContext(ctx)
+	psSigner.SecretPath = SecretPath
+	psSigner.Pipelineclientset = pipelineClient
 
 	c := &Reconciler{
 		PipelineRunSigner: psSigner,
