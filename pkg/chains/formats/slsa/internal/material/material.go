@@ -26,6 +26,7 @@ import (
 	"github.com/tektoncd/chains/internal/backport"
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/attest"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"knative.dev/pkg/logging"
@@ -67,7 +68,7 @@ func TaskMaterials(ctx context.Context, tro *objects.TaskRunObject) ([]common.Pr
 	return mats, nil
 }
 
-func PipelineMaterials(ctx context.Context, pro *objects.PipelineRunObject) ([]common.ProvenanceMaterial, error) {
+func PipelineMaterials(ctx context.Context, pro *objects.PipelineRunObject, slsaconfig *slsaconfig.SlsaConfig) ([]common.ProvenanceMaterial, error) {
 	logger := logging.FromContext(ctx)
 	var mats []common.ProvenanceMaterial
 	if p := pro.Status.Provenance; p != nil && p.RefSource != nil {
@@ -112,7 +113,7 @@ func PipelineMaterials(ctx context.Context, pro *objects.PipelineRunObject) ([]c
 		}
 	}
 
-	mats = append(mats, FromPipelineParamsAndResults(ctx, pro)...)
+	mats = append(mats, FromPipelineParamsAndResults(ctx, pro, slsaconfig)...)
 
 	// remove duplicate materials
 	mats, err := removeDuplicateMaterials(mats)
@@ -289,15 +290,33 @@ func removeDuplicateMaterials(mats []common.ProvenanceMaterial) ([]common.Proven
 }
 
 // FromPipelineParamsAndResults extracts type hinted params and results and adds the url and digest to materials.
-func FromPipelineParamsAndResults(ctx context.Context, pro *objects.PipelineRunObject) []common.ProvenanceMaterial {
+func FromPipelineParamsAndResults(ctx context.Context, pro *objects.PipelineRunObject, slsaconfig *slsaconfig.SlsaConfig) []common.ProvenanceMaterial {
 	mats := []common.ProvenanceMaterial{}
 	sms := artifacts.RetrieveMaterialsFromStructuredResults(ctx, pro, artifacts.ArtifactsInputsResultName)
 	mats = append(mats, sms...)
 
 	var commit, url string
-	// search status.PipelineSpec.params
-	if pro.Status.PipelineSpec != nil {
-		for _, p := range pro.Status.PipelineSpec.Params {
+
+	pSpec := pro.Status.PipelineSpec
+	if pSpec != nil {
+		// search type hinting param/results from each individual taskruns
+		if slsaconfig.DeepInspectionEnabled {
+			logger := logging.FromContext(ctx)
+			pipelineTasks := append(pSpec.Tasks, pSpec.Finally...)
+			for _, t := range pipelineTasks {
+				tr := pro.GetTaskRunFromTask(t.Name)
+				// Ignore Tasks that did not execute during the PipelineRun.
+				if tr == nil || tr.Status.CompletionTime == nil {
+					logger.Infof("taskrun is not found or not completed for the task %s", t.Name)
+					continue
+				}
+				materialsFromTasks := FromTaskParamsAndResults(ctx, objects.NewTaskRunObject(tr))
+				mats = append(mats, materialsFromTasks...)
+			}
+		}
+
+		// search status.PipelineSpec.params
+		for _, p := range pSpec.Params {
 			if p.Default == nil {
 				continue
 			}

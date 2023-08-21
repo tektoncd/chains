@@ -34,7 +34,7 @@ const (
 
 // GenerateAttestation generates a provenance statement with SLSA v1.0 predicate for a pipeline run.
 func GenerateAttestation(ctx context.Context, pro *objects.PipelineRunObject, slsaconfig *slsaconfig.SlsaConfig) (interface{}, error) {
-	rd, err := resolveddependencies.PipelineRun(ctx, pro)
+	rd, err := resolveddependencies.PipelineRun(ctx, pro, slsaconfig)
 	if err != nil {
 		return nil, err
 	}

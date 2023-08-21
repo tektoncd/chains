@@ -21,16 +21,19 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	"github.com/tektoncd/chains/internal/backport"
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/compare"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/internal/objectloader"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logtesting "knative.dev/pkg/logging/testing"
 	"sigs.k8s.io/yaml"
 )
@@ -357,7 +360,7 @@ func TestPipelineMaterials(t *testing.T) {
 		{URI: artifacts.GitSchemePrefix + "https://git.test.com.git", Digest: common.DigestSet{"sha1": "abcd"}},
 	}
 	ctx := logtesting.TestContextWithLogger(t)
-	got, err := PipelineMaterials(ctx, createPro("../../testdata/pipelinerun1.json"))
+	got, err := PipelineMaterials(ctx, createPro("../../testdata/pipelinerun1.json"), &slsaconfig.SlsaConfig{DeepInspectionEnabled: false})
 	if err != nil {
 		t.Error(err)
 	}
@@ -391,7 +394,7 @@ func TestStructuredResultPipelineMaterials(t *testing.T) {
 		},
 	}
 	ctx := logtesting.TestContextWithLogger(t)
-	got, err := PipelineMaterials(ctx, createPro("../../testdata/pipelinerun_structured_results.json"))
+	got, err := PipelineMaterials(ctx, createPro("../../testdata/pipelinerun_structured_results.json"), &slsaconfig.SlsaConfig{DeepInspectionEnabled: false})
 	if err != nil {
 		t.Errorf("error while extracting materials: %v", err)
 	}
@@ -712,14 +715,16 @@ func TestRemoveDuplicates(t *testing.T) {
 	}
 }
 
+//nolint:all
 func TestFromPipelineParamsAndResults(t *testing.T) {
 	tests := []struct {
-		name        string
-		pipelineRun *v1beta1.PipelineRun
-		want        []common.ProvenanceMaterial
+		name                 string
+		pipelineRunObject    *objects.PipelineRunObject
+		enableDeepInspection bool
+		want                 []common.ProvenanceMaterial
 	}{{
 		name: "from results",
-		pipelineRun: &v1beta1.PipelineRun{
+		pipelineRunObject: objects.NewPipelineRunObject(&v1beta1.PipelineRun{
 			Status: v1beta1.PipelineRunStatus{
 				PipelineRunStatusFields: v1beta1.PipelineRunStatusFields{
 					PipelineResults: []v1beta1.PipelineRunResult{{
@@ -731,7 +736,7 @@ func TestFromPipelineParamsAndResults(t *testing.T) {
 					}},
 				},
 			},
-		},
+		}),
 		want: []common.ProvenanceMaterial{{
 			URI: "git+github.com/something.git",
 			Digest: common.DigestSet{
@@ -740,7 +745,7 @@ func TestFromPipelineParamsAndResults(t *testing.T) {
 		}},
 	}, {
 		name: "from pipelinespec",
-		pipelineRun: &v1beta1.PipelineRun{
+		pipelineRunObject: objects.NewPipelineRunObject(&v1beta1.PipelineRun{
 			Status: v1beta1.PipelineRunStatus{
 				PipelineRunStatusFields: v1beta1.PipelineRunStatusFields{
 					PipelineSpec: &v1beta1.PipelineSpec{
@@ -758,7 +763,7 @@ func TestFromPipelineParamsAndResults(t *testing.T) {
 					},
 				},
 			},
-		},
+		}),
 		want: []common.ProvenanceMaterial{{
 			URI: "git+github.com/something.git",
 			Digest: common.DigestSet{
@@ -767,7 +772,7 @@ func TestFromPipelineParamsAndResults(t *testing.T) {
 		}},
 	}, {
 		name: "from pipelineRunSpec",
-		pipelineRun: &v1beta1.PipelineRun{
+		pipelineRunObject: objects.NewPipelineRunObject(&v1beta1.PipelineRun{
 			Spec: v1beta1.PipelineRunSpec{
 				Params: []v1beta1.Param{{
 					Name: "CHAINS-GIT_COMMIT",
@@ -781,7 +786,7 @@ func TestFromPipelineParamsAndResults(t *testing.T) {
 					},
 				}},
 			},
-		},
+		}),
 		want: []common.ProvenanceMaterial{{
 			URI: "git+github.com/something.git",
 			Digest: common.DigestSet{
@@ -790,7 +795,7 @@ func TestFromPipelineParamsAndResults(t *testing.T) {
 		}},
 	}, {
 		name: "from completeChain",
-		pipelineRun: &v1beta1.PipelineRun{
+		pipelineRunObject: objects.NewPipelineRunObject(&v1beta1.PipelineRun{
 			Spec: v1beta1.PipelineRunSpec{
 				Params: []v1beta1.Param{{
 					Name: "CHAINS-GIT_URL",
@@ -812,21 +817,84 @@ func TestFromPipelineParamsAndResults(t *testing.T) {
 					}},
 				},
 			},
-		},
+		}),
 		want: []common.ProvenanceMaterial{{
 			URI: "git+github.com/something.git",
 			Digest: common.DigestSet{
 				"sha1": "my-commit",
 			},
 		}},
-	}}
+	}, {
+		name:                 "deep inspection: pipelinerun param and task result",
+		pipelineRunObject:    createProWithPipelineParamAndTaskResult(),
+		enableDeepInspection: true,
+		want: []common.ProvenanceMaterial{
+			{
+				URI: "git+github.com/pipelinerun-param.git",
+				Digest: common.DigestSet{
+					"sha1": "115734d92807a80158b4b7af605d768c647fdb3d",
+				},
+			}, {
+				URI: "github.com/childtask-result",
+				Digest: common.DigestSet{
+					"sha1": "225734d92807a80158b4b7af605d768c647fdb3d",
+				},
+			},
+		},
+	},
+	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := logtesting.TestContextWithLogger(t)
-			got := FromPipelineParamsAndResults(ctx, objects.NewPipelineRunObject(tc.pipelineRun))
-			if diff := cmp.Diff(tc.want, got); diff != "" {
+			got := FromPipelineParamsAndResults(ctx, tc.pipelineRunObject, &slsaconfig.SlsaConfig{DeepInspectionEnabled: tc.enableDeepInspection})
+			if diff := cmp.Diff(tc.want, got, compare.MaterialsCompareOption()); diff != "" {
 				t.Errorf("FromPipelineParamsAndResults(): -want +got: %s", diff)
 			}
 		})
 	}
+}
+
+//nolint:all
+func createProWithPipelineParamAndTaskResult() *objects.PipelineRunObject {
+	pro := objects.NewPipelineRunObject(&v1beta1.PipelineRun{
+		Status: v1beta1.PipelineRunStatus{
+			PipelineRunStatusFields: v1beta1.PipelineRunStatusFields{
+				PipelineSpec: &v1beta1.PipelineSpec{
+					Params: []v1beta1.ParamSpec{{
+						Name: "CHAINS-GIT_COMMIT",
+						Default: &v1beta1.ParamValue{
+							StringVal: "115734d92807a80158b4b7af605d768c647fdb3d",
+						},
+					}, {
+						Name: "CHAINS-GIT_URL",
+						Default: &v1beta1.ParamValue{
+							StringVal: "github.com/pipelinerun-param",
+						},
+					}},
+				},
+			},
+		},
+	})
+
+	pipelineTaskName := "my-clone-task"
+	tr := &v1beta1.TaskRun{
+		ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{objects.PipelineTaskLabel: pipelineTaskName}},
+		Status: v1beta1.TaskRunStatus{
+			TaskRunStatusFields: v1beta1.TaskRunStatusFields{
+				CompletionTime: &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 24, time.UTC)},
+				TaskRunResults: []v1beta1.TaskRunResult{
+					{
+						Name: "ARTIFACT_INPUTS",
+						Value: *v1beta1.NewObject(map[string]string{
+							"uri":    "github.com/childtask-result",
+							"digest": "sha1:225734d92807a80158b4b7af605d768c647fdb3d",
+						})},
+				},
+			},
+		},
+	}
+
+	pro.AppendTaskRun(tr)
+	pro.Status.PipelineSpec.Tasks = []v1beta1.PipelineTask{{Name: pipelineTaskName}}
+	return pro
 }

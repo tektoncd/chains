@@ -23,6 +23,7 @@ import (
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	v1 "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/material"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"go.uber.org/zap"
 	"knative.dev/pkg/logging"
@@ -89,7 +90,7 @@ func TaskRun(ctx context.Context, tro *objects.TaskRunObject) ([]v1.ResourceDesc
 }
 
 // PipelineRun constructs `predicate.resolvedDependencies` section by collecting all the artifacts that influence a pipeline run such as source code repo and step&sidecar base images.
-func PipelineRun(ctx context.Context, pro *objects.PipelineRunObject) ([]v1.ResourceDescriptor, error) {
+func PipelineRun(ctx context.Context, pro *objects.PipelineRunObject, slsaconfig *slsaconfig.SlsaConfig) ([]v1.ResourceDescriptor, error) {
 	var err error
 	var resolvedDependencies []v1.ResourceDescriptor
 	logger := logging.FromContext(ctx)
@@ -112,7 +113,7 @@ func PipelineRun(ctx context.Context, pro *objects.PipelineRunObject) ([]v1.Reso
 	resolvedDependencies = append(resolvedDependencies, rds...)
 
 	// add resolved dependencies from pipeline results
-	mats := material.FromPipelineParamsAndResults(ctx, pro)
+	mats := material.FromPipelineParamsAndResults(ctx, pro, slsaconfig)
 	// convert materials to resolved dependencies
 	resolvedDependencies = append(resolvedDependencies, convertMaterialsToResolvedDependencies(mats, inputResultName)...)
 
@@ -147,7 +148,7 @@ func removeDuplicateResolvedDependencies(resolvedDependencies []v1.ResourceDescr
 	// make map to store seen resolved dependencies
 	seen := map[string]bool{}
 	for _, resolvedDependency := range resolvedDependencies {
-		// Since resolvedDependencies contain names, we want to igmore those while checking for duplicates.
+		// Since resolvedDependencies contain names, we want to ignore those while checking for duplicates.
 		// Therefore, make a copy of the resolved dependency that only contains the uri and digest fields.
 		rDep := v1.ResourceDescriptor{}
 		rDep.URI = resolvedDependency.URI
