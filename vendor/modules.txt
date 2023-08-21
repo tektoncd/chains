@@ -58,10 +58,10 @@ github.com/Abirdcfly/dupword
 # github.com/AliyunContainerService/ack-ram-tool/pkg/credentials/alibabacloudsdkgo/helper v0.2.0
 ## explicit; go 1.17
 github.com/AliyunContainerService/ack-ram-tool/pkg/credentials/alibabacloudsdkgo/helper
-# github.com/Antonboom/errname v0.1.10
+# github.com/Antonboom/errname v0.1.12
 ## explicit; go 1.20
 github.com/Antonboom/errname/pkg/analyzer
-# github.com/Antonboom/nilnil v0.1.5
+# github.com/Antonboom/nilnil v0.1.7
 ## explicit; go 1.20
 github.com/Antonboom/nilnil/pkg/analyzer
 # github.com/Azure/azure-sdk-for-go v68.0.0+incompatible
@@ -462,6 +462,17 @@ github.com/butuzov/ireturn/analyzer/internal/types
 ## explicit; go 1.19
 github.com/butuzov/mirror
 github.com/butuzov/mirror/internal/checker
+# github.com/ccojocar/zxcvbn-go v1.0.1
+## explicit; go 1.20
+github.com/ccojocar/zxcvbn-go
+github.com/ccojocar/zxcvbn-go/adjacency
+github.com/ccojocar/zxcvbn-go/data
+github.com/ccojocar/zxcvbn-go/entropy
+github.com/ccojocar/zxcvbn-go/frequency
+github.com/ccojocar/zxcvbn-go/match
+github.com/ccojocar/zxcvbn-go/matching
+github.com/ccojocar/zxcvbn-go/scoring
+github.com/ccojocar/zxcvbn-go/utils/math
 # github.com/cenkalti/backoff/v3 v3.2.2
 ## explicit; go 1.12
 github.com/cenkalti/backoff/v3
@@ -800,7 +811,7 @@ github.com/golangci/gofmt/gofmt
 github.com/golangci/gofmt/gofmt/internal/diff
 github.com/golangci/gofmt/gofmt/internal/execabs
 github.com/golangci/gofmt/goimports
-# github.com/golangci/golangci-lint v1.54.1
+# github.com/golangci/golangci-lint v1.54.2
 ## explicit; go 1.20
 github.com/golangci/golangci-lint/cmd/golangci-lint
 github.com/golangci/golangci-lint/internal/cache
@@ -1281,17 +1292,6 @@ github.com/munnerz/goautoneg
 # github.com/nakabonne/nestif v0.3.1
 ## explicit; go 1.15
 github.com/nakabonne/nestif
-# github.com/nbutton23/zxcvbn-go v0.0.0-20210217022336-fa2cb2858354
-## explicit; go 1.14
-github.com/nbutton23/zxcvbn-go
-github.com/nbutton23/zxcvbn-go/adjacency
-github.com/nbutton23/zxcvbn-go/data
-github.com/nbutton23/zxcvbn-go/entropy
-github.com/nbutton23/zxcvbn-go/frequency
-github.com/nbutton23/zxcvbn-go/match
-github.com/nbutton23/zxcvbn-go/matching
-github.com/nbutton23/zxcvbn-go/scoring
-github.com/nbutton23/zxcvbn-go/utils/math
 # github.com/nishanths/exhaustive v0.11.0
 ## explicit; go 1.18
 github.com/nishanths/exhaustive
@@ -1301,7 +1301,7 @@ github.com/nishanths/predeclared/passes/predeclared
 # github.com/nozzle/throttler v0.0.0-20180817012639-2ea982251481
 ## explicit
 github.com/nozzle/throttler
-# github.com/nunnatsa/ginkgolinter v0.13.3
+# github.com/nunnatsa/ginkgolinter v0.13.5
 ## explicit; go 1.20
 github.com/nunnatsa/ginkgolinter
 github.com/nunnatsa/ginkgolinter/ginkgohandler
@@ -1356,7 +1356,7 @@ github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 ## explicit
 github.com/pmezard/go-difflib/difflib
-# github.com/polyfloyd/go-errorlint v1.4.3
+# github.com/polyfloyd/go-errorlint v1.4.4
 ## explicit; go 1.20
 github.com/polyfloyd/go-errorlint/errorlint
 # github.com/prometheus/client_golang v1.16.0
@@ -1431,8 +1431,8 @@ github.com/sanposhiho/wastedassign/v2
 # github.com/sashamelentyev/interfacebloat v1.1.0
 ## explicit; go 1.18
 github.com/sashamelentyev/interfacebloat/pkg/analyzer
-# github.com/sashamelentyev/usestdlibvars v1.23.0
-## explicit; go 1.19
+# github.com/sashamelentyev/usestdlibvars v1.24.0
+## explicit; go 1.20
 github.com/sashamelentyev/usestdlibvars/pkg/analyzer
 github.com/sashamelentyev/usestdlibvars/pkg/analyzer/internal/mapping
 # github.com/sassoftware/relic v7.2.1+incompatible
@@ -1444,8 +1444,8 @@ github.com/sassoftware/relic/lib/x509tools
 github.com/secure-systems-lab/go-securesystemslib/cjson
 github.com/secure-systems-lab/go-securesystemslib/dsse
 github.com/secure-systems-lab/go-securesystemslib/signerverifier
-# github.com/securego/gosec/v2 v2.16.0
-## explicit; go 1.19
+# github.com/securego/gosec/v2 v2.17.0
+## explicit; go 1.20
 github.com/securego/gosec/v2
 github.com/securego/gosec/v2/analyzers
 github.com/securego/gosec/v2/cwe
@@ -1765,8 +1765,8 @@ github.com/tektoncd/pipeline/test/diff
 ## explicit; go 1.13
 github.com/tektoncd/plumbing
 github.com/tektoncd/plumbing/scripts
-# github.com/tetafro/godot v1.4.11
-## explicit; go 1.16
+# github.com/tetafro/godot v1.4.14
+## explicit; go 1.20
 github.com/tetafro/godot
 # github.com/thales-e-security/pool v0.0.2
 ## explicit; go 1.12
@@ -1963,7 +1963,7 @@ go.step.sm/crypto/keyutil
 go.step.sm/crypto/pemutil
 go.step.sm/crypto/randutil
 go.step.sm/crypto/x25519
-# go.tmz.dev/musttag v0.7.1
+# go.tmz.dev/musttag v0.7.2
 ## explicit; go 1.19
 go.tmz.dev/musttag
 # go.uber.org/atomic v1.11.0
@@ -2139,6 +2139,7 @@ golang.org/x/tools/go/analysis/passes/copylock
 golang.org/x/tools/go/analysis/passes/ctrlflow
 golang.org/x/tools/go/analysis/passes/deepequalerrors
 golang.org/x/tools/go/analysis/passes/defers
+golang.org/x/tools/go/analysis/passes/directive
 golang.org/x/tools/go/analysis/passes/errorsas
 golang.org/x/tools/go/analysis/passes/fieldalignment
 golang.org/x/tools/go/analysis/passes/findcall
@@ -2157,6 +2158,7 @@ golang.org/x/tools/go/analysis/passes/reflectvaluecompare
 golang.org/x/tools/go/analysis/passes/shadow
 golang.org/x/tools/go/analysis/passes/shift
 golang.org/x/tools/go/analysis/passes/sigchanyzer
+golang.org/x/tools/go/analysis/passes/slog
 golang.org/x/tools/go/analysis/passes/sortslice
 golang.org/x/tools/go/analysis/passes/stdmethods
 golang.org/x/tools/go/analysis/passes/stringintconv
@@ -2433,7 +2435,7 @@ gopkg.in/yaml.v2
 # gopkg.in/yaml.v3 v3.0.1
 ## explicit
 gopkg.in/yaml.v3
-# honnef.co/go/tools v0.4.3
+# honnef.co/go/tools v0.4.5
 ## explicit; go 1.19
 honnef.co/go/tools/analysis/code
 honnef.co/go/tools/analysis/edit
