@@ -116,11 +116,17 @@ func convertConfigSource(source *v1beta1.RefSource) slsa.ConfigSource {
 }
 
 // supports the SPDX format which is recommended by in-toto
-// ref: https://spdx.dev/spdx-specification-21-web-version/#h.49x2ik5
+// ref: https://spdx.github.io/spdx-spec/v2-draft/package-information/#773-examples
 // ref: https://github.com/in-toto/attestation/blob/849867bee97e33678f61cc6bd5da293097f84c25/spec/field_types.md
 func SPDXGit(url, revision string) string {
-	if revision == "" {
-		return artifacts.GitSchemePrefix + url + ".git"
+	if !strings.HasPrefix(url, artifacts.GitSchemePrefix) {
+		url = artifacts.GitSchemePrefix + url
 	}
-	return artifacts.GitSchemePrefix + url + fmt.Sprintf("@%s", revision)
+	if !strings.HasSuffix(url, ".git") {
+		url = url + ".git"
+	}
+	if revision == "" {
+		return url
+	}
+	return url + fmt.Sprintf("@%s", revision)
 }

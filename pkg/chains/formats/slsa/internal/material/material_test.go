@@ -161,7 +161,7 @@ func TestTaskMaterials(t *testing.T) {
 				},
 			},
 			{
-				URI: artifacts.GitSchemePrefix + "https://github.com/GoogleContainerTools/distroless@my-revision",
+				URI: artifacts.GitSchemePrefix + "https://github.com/GoogleContainerTools/distroless.git@my-revision",
 				Digest: common.DigestSet{
 					"sha1": "50c56a48cfb3a5a80fa36ed91c739bdac8381cbe",
 				},
