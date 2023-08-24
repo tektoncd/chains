@@ -50,7 +50,7 @@ type TaskAttestation struct {
 func GenerateAttestation(ctx context.Context, pro *objects.PipelineRunObject, slsaConfig *slsaconfig.SlsaConfig) (interface{}, error) {
 	subjects := extract.SubjectDigests(ctx, pro, slsaConfig)
 
-	mat, err := material.PipelineMaterials(ctx, pro)
+	mat, err := material.PipelineMaterials(ctx, pro, slsaConfig)
 	if err != nil {
 		return nil, err
 	}

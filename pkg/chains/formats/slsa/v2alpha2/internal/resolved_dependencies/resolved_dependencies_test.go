@@ -26,6 +26,7 @@ import (
 	"github.com/tektoncd/chains/internal/backport"
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/compare"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/internal/objectloader"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -504,7 +505,7 @@ func TestPipelineRun(t *testing.T) {
 		{Name: "inputs/result", URI: "git+https://git.test.com.git", Digest: common.DigestSet{"sha1": "abcd"}},
 	}
 	ctx := logtesting.TestContextWithLogger(t)
-	got, err := PipelineRun(ctx, pro)
+	got, err := PipelineRun(ctx, pro, &slsaconfig.SlsaConfig{DeepInspectionEnabled: false})
 	if err != nil {
 		t.Error(err)
 	}
@@ -532,14 +533,21 @@ func TestPipelineRunStructuredResult(t *testing.T) {
 		},
 		{
 			Name: "inputs/result",
-			URI:  "abcd",
+			URI:  "abc",
 			Digest: common.DigestSet{
 				"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7",
 			},
 		},
+		{
+			Name: "inputs/result",
+			URI:  "git+https://git.test.com.git",
+			Digest: common.DigestSet{
+				"sha1": "abcd",
+			},
+		},
 	}
 	ctx := logtesting.TestContextWithLogger(t)
-	got, err := PipelineRun(ctx, proStructuredResults)
+	got, err := PipelineRun(ctx, pro, &slsaconfig.SlsaConfig{DeepInspectionEnabled: false})
 	if err != nil {
 		t.Errorf("error while extracting resolvedDependencies: %v", err)
 	}
