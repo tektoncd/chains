@@ -26,7 +26,7 @@ require (
 	github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.7.2
 	github.com/spiffe/go-spiffe/v2 v2.1.6
 	github.com/stretchr/testify v1.8.4
-	github.com/tektoncd/pipeline v0.50.1
+	github.com/tektoncd/pipeline v0.51.0
 	github.com/tektoncd/plumbing v0.0.0-20221102182345-5dbcfda657d7
 	go.uber.org/zap v1.25.0
 	gocloud.dev v0.33.0
@@ -38,8 +38,8 @@ require (
 	k8s.io/api v0.27.3
 	k8s.io/apimachinery v0.27.3
 	k8s.io/client-go v0.27.3
-	k8s.io/code-generator v0.25.9
-	knative.dev/pkg v0.0.0-20230518105712-dfb4bf04635d
+	k8s.io/code-generator v0.26.5
+	knative.dev/pkg v0.0.0-20230718152110-aef227e72ead
 	sigs.k8s.io/yaml v1.3.0
 )
 
@@ -81,7 +81,7 @@ require (
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/OpenPeeDeeP/depguard/v2 v2.1.0 // indirect
-	github.com/ProtonMail/go-crypto v0.0.0-20230518184743-7afd39499903 // indirect
+	github.com/ProtonMail/go-crypto v0.0.0-20230717121422-5aa5874ade95 // indirect
 	github.com/Shopify/sarama v1.38.1 // indirect
 	github.com/ThalesIgnite/crypto11 v1.2.5 // indirect
 	github.com/alexkohler/nakedret/v2 v2.0.2 // indirect
@@ -243,7 +243,7 @@ require (
 	github.com/hashicorp/go-sockaddr v1.0.2 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
 	github.com/hashicorp/go-version v1.6.0 // indirect
-	github.com/hashicorp/golang-lru v0.6.0 // indirect
+	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/hashicorp/vault/api v1.9.2 // indirect
 	github.com/hexops/gotextdiff v1.0.3 // indirect
@@ -425,7 +425,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	honnef.co/go/tools v0.4.5 // indirect
-	k8s.io/apiextensions-apiserver v0.25.4 // indirect
+	k8s.io/apiextensions-apiserver v0.26.5 // indirect
 	k8s.io/gengo v0.0.0-20221011193443-fad74ee6edd9 // indirect
 	k8s.io/klog/v2 v2.100.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20230515203736-54b630e78af5 // indirect

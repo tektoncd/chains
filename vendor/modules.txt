@@ -178,7 +178,7 @@ github.com/Microsoft/go-winio/pkg/guid
 ## explicit; go 1.20
 github.com/OpenPeeDeeP/depguard/v2
 github.com/OpenPeeDeeP/depguard/v2/internal/utils
-# github.com/ProtonMail/go-crypto v0.0.0-20230518184743-7afd39499903
+# github.com/ProtonMail/go-crypto v0.0.0-20230717121422-5aa5874ade95
 ## explicit; go 1.13
 github.com/ProtonMail/go-crypto/bitcurves
 github.com/ProtonMail/go-crypto/brainpool
@@ -1037,7 +1037,7 @@ github.com/hashicorp/go-uuid
 # github.com/hashicorp/go-version v1.6.0
 ## explicit
 github.com/hashicorp/go-version
-# github.com/hashicorp/golang-lru v0.6.0
+# github.com/hashicorp/golang-lru v1.0.2
 ## explicit; go 1.12
 github.com/hashicorp/golang-lru
 github.com/hashicorp/golang-lru/simplelru
@@ -1669,11 +1669,12 @@ github.com/t-yuki/gocover-cobertura
 # github.com/tdakkota/asciicheck v0.2.0
 ## explicit; go 1.18
 github.com/tdakkota/asciicheck
-# github.com/tektoncd/pipeline v0.50.1
+# github.com/tektoncd/pipeline v0.51.0
 ## explicit; go 1.19
 github.com/tektoncd/pipeline/pkg/apis/config
 github.com/tektoncd/pipeline/pkg/apis/config/resolver
 github.com/tektoncd/pipeline/pkg/apis/pipeline
+github.com/tektoncd/pipeline/pkg/apis/pipeline/internal/checksum
 github.com/tektoncd/pipeline/pkg/apis/pipeline/pod
 github.com/tektoncd/pipeline/pkg/apis/pipeline/v1
 github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1
@@ -2520,7 +2521,7 @@ k8s.io/api/scheduling/v1beta1
 k8s.io/api/storage/v1
 k8s.io/api/storage/v1alpha1
 k8s.io/api/storage/v1beta1
-# k8s.io/apiextensions-apiserver v0.25.4
+# k8s.io/apiextensions-apiserver v0.26.5
 ## explicit; go 1.19
 k8s.io/apiextensions-apiserver/pkg/apis/apiextensions
 k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1
@@ -2883,11 +2884,10 @@ k8s.io/client-go/util/homedir
 k8s.io/client-go/util/keyutil
 k8s.io/client-go/util/retry
 k8s.io/client-go/util/workqueue
-# k8s.io/code-generator v0.25.9
+# k8s.io/code-generator v0.26.5
 ## explicit; go 1.19
 k8s.io/code-generator/cmd/deepcopy-gen
 k8s.io/code-generator/cmd/deepcopy-gen/args
-k8s.io/code-generator/pkg/util
 # k8s.io/gengo v0.0.0-20221011193443-fad74ee6edd9
 ## explicit; go 1.13
 k8s.io/gengo/args
@@ -2930,7 +2930,7 @@ k8s.io/utils/net
 k8s.io/utils/pointer
 k8s.io/utils/strings/slices
 k8s.io/utils/trace
-# knative.dev/pkg v0.0.0-20230518105712-dfb4bf04635d
+# knative.dev/pkg v0.0.0-20230718152110-aef227e72ead
 ## explicit; go 1.18
 knative.dev/pkg/apis
 knative.dev/pkg/apis/duck
@@ -2957,7 +2957,6 @@ knative.dev/pkg/depcheck
 knative.dev/pkg/environment
 knative.dev/pkg/hash
 knative.dev/pkg/injection
-knative.dev/pkg/injection/clients/dynamicclient
 knative.dev/pkg/injection/clients/namespacedkube/informers/factory
 knative.dev/pkg/injection/sharedmain
 knative.dev/pkg/kmap
