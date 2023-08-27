@@ -57,6 +57,7 @@ You'll need to make these changes to the Tekton Chains Config:
 
 * `artifacts.taskrun.format=slsa/v1`
 * `artifacts.taskrun.storage=oci`
+* `artifacts.oci.storage=oci`
 * `transparency.enabled=true`
 
 You can set these fields by running
@@ -64,6 +65,7 @@ You can set these fields by running
 ```shell
 kubectl patch configmap chains-config -n tekton-chains -p='{"data":{"artifacts.taskrun.format": "slsa/v1"}}'
 kubectl patch configmap chains-config -n tekton-chains -p='{"data":{"artifacts.taskrun.storage": "oci"}}'
+kubectl patch configmap chains-config -n tekton-chains -p='{"data":{"artifacts.oci.storage": "oci"}}'
 kubectl patch configmap chains-config -n tekton-chains -p='{"data":{"transparency.enabled": "true"}}'
 ```
 
@@ -124,7 +126,7 @@ You should see verification output for both!
 ## Finding Provenance in Rekor
 
 To find provenance for the image in Rekor, first get the digest of the `$REGISTRY/kaniko-chains` image you just built.
-You can look this up in the TaskRun, or pull the image to get the digest. 
+You can look this up in the TaskRun, or pull the image to get the digest.
 
 You can then search rekor to find all entries that match the sha256 digest of the image you just built with the [rekor-cli](https://github.com/sigstore/rekor/releases/) tool:
 
