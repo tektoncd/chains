@@ -38,17 +38,22 @@ func SLSAV1CompareOptions() []cmp.Option {
 		return lessDigestSet(x.Digest, y.Digest)
 	}
 
+	return []cmp.Option{
+		cmpopts.SortSlices(resourceDescriptorSort),
+		SubjectCompareOption(),
+	}
+}
+
+// SubjectCompareOption returns the comparison option to sort and compare a
+// list of Subjects.
+func SubjectCompareOption() cmp.Option {
 	subjectSort := func(x, y in_toto.Subject) bool {
 		if x.Name != y.Name {
 			return x.Name < y.Name
 		}
 		return lessDigestSet(x.Digest, y.Digest)
 	}
-
-	return []cmp.Option{
-		cmpopts.SortSlices(resourceDescriptorSort),
-		cmpopts.SortSlices(subjectSort),
-	}
+	return cmpopts.SortSlices(subjectSort)
 }
 
 // MaterialsCompareOption returns the comparison option to sort and compare a

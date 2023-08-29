@@ -25,6 +25,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/compare"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -109,8 +110,8 @@ func TestSubjectDigestsAndRetrieveAllArtifactURIs(t *testing.T) {
 			}
 			for _, o := range runObjects {
 				gotSubjects := extract.SubjectDigests(ctx, o, &slsaconfig.SlsaConfig{DeepInspectionEnabled: false})
-				if diff := cmp.Diff(tc.wantSubjects, gotSubjects, cmpopts.SortSlices(func(x, y intoto.Subject) bool { return x.Name < y.Name })); diff != "" {
-					t.Errorf("Wrong subjects extracted, diff=%s, %s", diff, gotSubjects)
+				if diff := cmp.Diff(tc.wantSubjects, gotSubjects, compare.SubjectCompareOption()); diff != "" {
+					t.Errorf("Wrong subjects extracted, diff=%s", diff)
 				}
 
 				gotURIs := extract.RetrieveAllArtifactURIs(ctx, o, false)
@@ -258,7 +259,7 @@ func TestPipelineRunObserveModeForSubjects(t *testing.T) {
 			ctx := logtesting.TestContextWithLogger(t)
 
 			gotSubjects := extract.SubjectDigests(ctx, tc.pro, &slsaconfig.SlsaConfig{DeepInspectionEnabled: tc.deepInspectionEnabled})
-			if diff := cmp.Diff(tc.wantSubjects, gotSubjects, cmpopts.SortSlices(func(x, y intoto.Subject) bool { return x.Name < y.Name })); diff != "" {
+			if diff := cmp.Diff(tc.wantSubjects, gotSubjects, compare.SubjectCompareOption()); diff != "" {
 				t.Errorf("Wrong subjects extracted, diff=%s, %s", diff, gotSubjects)
 			}
 
