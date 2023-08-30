@@ -37,8 +37,11 @@ import (
 	"github.com/tektoncd/chains/pkg/test/tekton"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	pipelineclientset "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes"
 )
 
 func getTr(ctx context.Context, t *testing.T, c pipelineclientset.Interface, name, ns string) (tr *v1beta1.TaskRun) {
@@ -191,7 +194,10 @@ func setConfigMap(ctx context.Context, t *testing.T, c *clients, data map[string
 	if err != nil {
 		t.Fatal(err)
 	}
-	time.Sleep(30 * time.Second) // https://github.com/tektoncd/chains/issues/664
+	err = restartChainsControllerPod(ctx, c.KubeClient, 300*time.Second)
+	if err != nil {
+		t.Fatalf("Failed to restart the pod: %v", err)
+	}
 
 	return func() {
 		for k := range data {
@@ -280,4 +286,34 @@ func verifySignature(ctx context.Context, t *testing.T, c *clients, obj objects.
 			}
 		}
 	}
+}
+
+// restartChainsControllerPod restarts the pod running Chains
+// it then waits for a given timeout for the pod to resume running state
+func restartChainsControllerPod(ctx context.Context, c kubernetes.Interface, timeout time.Duration) error {
+	pods, err := c.CoreV1().Pods("tekton-chains").List(ctx, metav1.ListOptions{LabelSelector: "app.kubernetes.io/component=controller"})
+	if err != nil {
+		return err
+	}
+	pod := pods.Items[0]
+	podUid := pod.UID
+	gracePeriodSeconds := int64(0)
+	err = c.CoreV1().Pods(pod.Namespace).Delete(ctx, pod.Name, metav1.DeleteOptions{GracePeriodSeconds: &gracePeriodSeconds})
+	if err != nil {
+		return err
+	}
+
+	return wait.PollUntilContextTimeout(ctx, 2*time.Second, timeout, true, func(context.Context) (done bool, err error) {
+		pods, err := c.CoreV1().Pods("tekton-chains").List(context.Background(), metav1.ListOptions{LabelSelector: "app.kubernetes.io/component=controller"})
+		if err != nil {
+			return false, err
+		}
+		if len(pods.Items) > 0 {
+			pod := pods.Items[0]
+			if pod.UID != podUid {
+				return pod.Status.Phase == corev1.PodRunning && pod.Status.ContainerStatuses[0].Ready, nil
+			}
+		}
+		return false, nil
+	})
 }

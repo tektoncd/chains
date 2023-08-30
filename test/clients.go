@@ -37,7 +37,6 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/sigstore/cosign/v2/pkg/cosign"
 	"github.com/sigstore/sigstore/pkg/signature"
@@ -248,7 +247,6 @@ func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface, opts
 	if _, err := c.CoreV1().Secrets(namespace).Update(ctx, &s, metav1.UpdateOptions{}); err != nil {
 		t.Fatal(err)
 	}
-	time.Sleep(time.Minute) // https://github.com/tektoncd/chains/issues/664
 
 	return secret{
 		cosignPriv: cosignPriv,
