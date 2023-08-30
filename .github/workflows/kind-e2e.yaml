@@ -24,18 +24,18 @@ jobs:
     uses: ./.github/workflows/reusable-e2e.yaml
     with:
       k8s-version: ${{ matrix.k8s-version }}
-      pipelines-release: v0.45.0
+      pipelines-release: v0.50.1
   pipelines-lts:
     strategy:
       fail-fast: false # Keep running if one leg fails.
       matrix:
         pipelines-release:
-        - v0.41.0  # LTS
-        - v0.44.0  # LTS
-        - v0.47.0  # LTS
-        - v0.48.0
-        - v0.49.0
+        - v0.41.3  # LTS
+        - v0.44.4  # LTS
+        - v0.47.3  # LTS
+        - v0.50.1  # LTS
+        - v0.51.0
     uses: ./.github/workflows/reusable-e2e.yaml
     with:
-      k8s-version: v1.25.x
+      k8s-version: v1.26.x
       pipelines-release: ${{ matrix.pipelines-release }}
