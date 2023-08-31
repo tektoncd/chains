@@ -138,7 +138,6 @@ func TestExamples(t *testing.T) {
 			ctx := context.Background()
 			c, ns, cleanup := setup(ctx, t, setupOpts{})
 			t.Cleanup(cleanup)
-
 			cleanUpInTotoFormatter := setConfigMap(ctx, t, c, test.cm)
 			runInTotoFormatterTests(ctx, t, ns, c, test)
 			cleanUpInTotoFormatter()
