@@ -37,8 +37,7 @@ Chains also suports signing SBOMs. If using the `IMAGE_URL` and `IMAGE_DIGEST` c
 `TaskRun` can also emit the `IMAGE_SBOM_URL` and the `IMAGE_SBOM_FORMAT` results. The first contains
 a reference to an *unsigned* SBOM image. This reference must include the digest of the SBOM image.
 The second holds the desired predicate for the SBOM attestation. All four results must be included,
-otherwise SBOM signing is skipped. Alternatively, if using the `IMAGES` type hinting, use the
-`SBOMS` and the `SBOMS_FORMAT`.
+otherwise SBOM signing is skipped.
 
 When processing a `TaskRun`, Chains will parse through the results, then sign and attest each image.
 Optionally, it may also create signed SBOM attestations if the expected results are present.
@@ -74,9 +73,9 @@ Supported keys include:
 | `artifacts.pipelinerun.format` | The format to store `PipelineRun` payloads in. | `in-toto`, `slsa/v1`| `in-toto` |
 | `artifacts.pipelinerun.storage` | The storage backend to store `PipelineRun` signatures in. Multiple backends can be specified with comma-separated list ("tekton,oci"). To disable the `PipelineRun` artifact input an empty string ("").  | `tekton`, `oci`, `gcs`, `docdb`, `grafeas` | `tekton` |
 | `artifacts.pipelinerun.signer` | The signature backend to sign `PipelineRun` payloads with. | `x509`, `kms` | `x509` |
-| `artifacts.pipelinerun.enable-deep-inspection` | This boolean option will configure whether Chains should inspect child taskruns in order to capture inputs/outputs within a pipelinerun. `"false"` means that Chains only checks pipeline level results, whereas `"true"` means Chains inspects both pipeline level and task level results. | `"true"`, `"false"` | `"false"` | 
+| `artifacts.pipelinerun.enable-deep-inspection` | This boolean option will configure whether Chains should inspect child taskruns in order to capture inputs/outputs within a pipelinerun. `"false"` means that Chains only checks pipeline level results, whereas `"true"` means Chains inspects both pipeline level and task level results. | `"true"`, `"false"` | `"false"` |
 
-> NOTE: 
+> NOTE:
 > - For grafeas storage backend, currently we only support Container Analysis. We will make grafeas server address configurabe within a short time.
 > - `slsa/v1` is an alias of `in-toto` for backwards compatibility.
 

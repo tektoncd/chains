@@ -15,7 +15,6 @@ package artifacts
 
 import (
 	"context"
-	"strings"
 
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/tektoncd/chains/pkg/chains/objects"
@@ -77,6 +76,7 @@ func extractSBOMFromResults(ctx context.Context, tektonObject objects.TektonObje
 		sbomFormatSuffix: "IMAGE_SBOM_FORMAT",
 		isValid:          hasSBOMRequirements,
 	}
+
 	for _, s := range sse.extract(ctx, tektonObject) {
 		if _, err := name.NewDigest(s.SBOMURI); err != nil {
 			logger.Errorf("error getting digest for SBOM image %s: %v", s.SBOMURI, err)
@@ -85,64 +85,5 @@ func extractSBOMFromResults(ctx context.Context, tektonObject objects.TektonObje
 		objs = append(objs, s)
 	}
 
-	var images []name.Digest
-	var sboms []string
-	var sbomsFormat string
-	// look for a comma separated list of images and their SBOMs
-	for _, key := range tektonObject.GetResults() {
-		switch key.Name {
-		case "IMAGES":
-			for _, img := range strings.FieldsFunc(key.Value.StringVal, split) {
-				trimmed := strings.TrimSpace(img)
-				if trimmed == "" {
-					continue
-				}
-
-				dgst, err := name.NewDigest(trimmed)
-				if err != nil {
-					logger.Errorf("error getting digest for img %s: %v", trimmed, err)
-					continue
-				}
-				images = append(images, dgst)
-			}
-		case "SBOMS":
-			for _, img := range strings.FieldsFunc(key.Value.StringVal, split) {
-				trimmed := strings.TrimSpace(img)
-				if trimmed == "" {
-					continue
-				}
-				if _, err := name.NewDigest(trimmed); err != nil {
-					logger.Errorf("error getting digest for SBOM image %s: %v", trimmed, err)
-					continue
-				}
-				sboms = append(sboms, trimmed)
-			}
-		case "SBOMS_FORMAT":
-			f := strings.TrimSpace(key.Value.StringVal)
-			if f != "" {
-				sbomsFormat = f
-			}
-		}
-	}
-
-	if len(images) != len(sboms) {
-		logger.Warnf("IMAGES and SBOMS do not contain the same amount of entries")
-		return objs
-	}
-
-	if len(sboms) > 0 && sbomsFormat == "" {
-		logger.Warnf("SBOMS_FORMAT not specified")
-		return objs
-	}
-
-	for i, sbom := range sboms {
-		img := images[i]
-		objs = append(objs, StructuredSignable{
-			URI:        img.Name(),
-			Digest:     img.Identifier(),
-			SBOMURI:    sbom,
-			SBOMFormat: sbomsFormat,
-		})
-	}
 	return objs
 }
