@@ -52,7 +52,7 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, tr *v1beta1.TaskRun) pkg
 func (r *Reconciler) FinalizeKind(ctx context.Context, tr *v1beta1.TaskRun) pkgreconciler.Event {
 	// Check to make sure the TaskRun is finished.
 	if !tr.IsDone() {
-		logging.FromContext(ctx).Infof("taskrun %s/%s is still running", tr.Namespace, tr.Name)
+		logging.FromContext(ctx).Debugf("taskrun \"%s/%s\" is still running", tr.Namespace, tr.Name)
 		return nil
 	}
 
@@ -60,7 +60,7 @@ func (r *Reconciler) FinalizeKind(ctx context.Context, tr *v1beta1.TaskRun) pkgr
 
 	// Check to see if it has already been signed.
 	if signing.Reconciled(ctx, r.Pipelineclientset, obj) {
-		logging.FromContext(ctx).Infof("taskrun %s/%s has been reconciled", tr.Namespace, tr.Name)
+		logging.FromContext(ctx).Infof("taskrun \"%s/%s\" has been reconciled", tr.Namespace, tr.Name)
 		return nil
 	}
 
