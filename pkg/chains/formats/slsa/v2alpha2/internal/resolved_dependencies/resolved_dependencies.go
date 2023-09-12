@@ -60,12 +60,12 @@ func TaskRun(ctx context.Context, tro *objects.TaskRunObject) ([]v1.ResourceDesc
 	mats := []common.ProvenanceMaterial{}
 
 	// add step and sidecar images
-	stepMaterials, err := material.FromStepImages(tro.Status.Steps)
+	stepMaterials, err := material.FromStepImages(tro)
 	mats = append(mats, stepMaterials...)
 	if err != nil {
 		return nil, err
 	}
-	sidecarMaterials, err := material.FromSidecarImages(tro.Status.Sidecars)
+	sidecarMaterials, err := material.FromSidecarImages(tro)
 	if err != nil {
 		return nil, err
 	}
@@ -201,14 +201,14 @@ func fromPipelineTask(logger *zap.SugaredLogger, pro *objects.PipelineRunObject)
 			mats := []common.ProvenanceMaterial{}
 
 			// add step images
-			stepMaterials, err := material.FromStepImages(tr.Status.Steps)
+			stepMaterials, err := material.FromStepImages(tr)
 			if err != nil {
 				return nil, err
 			}
 			mats = append(mats, stepMaterials...)
 
 			// add sidecar images
-			sidecarMaterials, err := material.FromSidecarImages(tr.Status.Sidecars)
+			sidecarMaterials, err := material.FromSidecarImages(tr)
 			if err != nil {
 				return nil, err
 			}

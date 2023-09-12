@@ -62,11 +62,7 @@ func invocation(tro *objects.TaskRunObject) slsa.ProvenanceInvocation {
 	if ts := tro.Status.TaskSpec; ts != nil {
 		paramSpecs = ts.Params
 	}
-	var source *v1beta1.RefSource
-	if p := tro.Status.Provenance; p != nil {
-		source = p.RefSource
-	}
-	return attest.Invocation(source, tro.Spec.Params, paramSpecs, tro.GetObjectMeta())
+	return attest.Invocation(tro, tro.Spec.Params, paramSpecs)
 }
 
 // Metadata adds taskrun's start time, completion time and reproducibility labels

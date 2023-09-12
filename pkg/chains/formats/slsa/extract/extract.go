@@ -79,7 +79,7 @@ func subjectsFromPipelineRun(ctx context.Context, obj objects.TektonObject, slsa
 				continue
 			}
 
-			trSubjects := subjectsFromTektonObject(ctx, objects.NewTaskRunObject(tr))
+			trSubjects := subjectsFromTektonObject(ctx, tr)
 			for _, s := range trSubjects {
 				result = addSubject(result, s)
 			}
