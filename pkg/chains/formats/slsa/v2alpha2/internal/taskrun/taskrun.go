@@ -22,6 +22,9 @@ import (
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
+	buildtypes "github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha2/internal/build_types"
+	externalparameters "github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha2/internal/external_parameters"
+	internalparameters "github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha2/internal/internal_parameters"
 	resolveddependencies "github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha2/internal/resolved_dependencies"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 )
@@ -30,14 +33,16 @@ const taskRunResults = "taskRunResults/%s"
 
 // GenerateAttestation generates a provenance statement with SLSA v1.0 predicate for a task run.
 func GenerateAttestation(ctx context.Context, tro *objects.TaskRunObject, slsaConfig *slsaconfig.SlsaConfig) (interface{}, error) {
-	rd, err := resolveddependencies.TaskRun(ctx, tro)
-	if err != nil {
-		return nil, err
-	}
 	bp, err := byproducts(tro)
 	if err != nil {
 		return nil, err
 	}
+
+	bd, err := getBuildDefinition(ctx, slsaConfig.BuildType, tro)
+	if err != nil {
+		return nil, err
+	}
+
 	att := intoto.ProvenanceStatementSLSA1{
 		StatementHeader: intoto.StatementHeader{
 			Type:          intoto.StatementInTotoV01,
@@ -45,12 +50,7 @@ func GenerateAttestation(ctx context.Context, tro *objects.TaskRunObject, slsaCo
 			Subject:       extract.SubjectDigests(ctx, tro, slsaConfig),
 		},
 		Predicate: slsa.ProvenancePredicate{
-			BuildDefinition: slsa.ProvenanceBuildDefinition{
-				BuildType:            "https://tekton.dev/chains/v2/slsa",
-				ExternalParameters:   externalParameters(tro),
-				InternalParameters:   internalParameters(tro),
-				ResolvedDependencies: rd,
-			},
+			BuildDefinition: bd,
 			RunDetails: slsa.ProvenanceRunDetails{
 				Builder: slsa.Builder{
 					ID: slsaConfig.BuilderID,
@@ -78,45 +78,6 @@ func metadata(tro *objects.TaskRunObject) slsa.BuildMetadata {
 	return m
 }
 
-// internalParameters adds the tekton feature flags that were enabled
-// for the taskrun.
-func internalParameters(tro *objects.TaskRunObject) map[string]any {
-	internalParams := make(map[string]any)
-	provenance := tro.GetProvenance()
-	if provenance != nil && provenance.FeatureFlags != nil {
-		internalParams["tekton-pipelines-feature-flags"] = *provenance.FeatureFlags
-	}
-	return internalParams
-}
-
-// externalParameters adds the task run spec
-func externalParameters(tro *objects.TaskRunObject) map[string]any {
-	externalParams := make(map[string]any)
-	// add origin of the top level task config
-	// isRemoteTask checks if the task was fetched using a remote resolver
-	isRemoteTask := false
-	if tro.Spec.TaskRef != nil {
-		if tro.Spec.TaskRef.Resolver != "" && tro.Spec.TaskRef.Resolver != "Cluster" {
-			isRemoteTask = true
-		}
-	}
-	if t := tro.Status.Provenance; t != nil && t.RefSource != nil && isRemoteTask {
-		ref := ""
-		for alg, hex := range t.RefSource.Digest {
-			ref = fmt.Sprintf("%s:%s", alg, hex)
-			break
-		}
-		buildConfigSource := map[string]string{
-			"ref":        ref,
-			"repository": t.RefSource.URI,
-			"path":       t.RefSource.EntryPoint,
-		}
-		externalParams["buildConfigSource"] = buildConfigSource
-	}
-	externalParams["runSpec"] = tro.Spec
-	return externalParams
-}
-
 // byproducts contains the taskRunResults
 func byproducts(tro *objects.TaskRunObject) ([]slsa.ResourceDescriptor, error) {
 	byProd := []slsa.ResourceDescriptor{}
@@ -133,4 +94,40 @@ func byproducts(tro *objects.TaskRunObject) ([]slsa.ResourceDescriptor, error) {
 		byProd = append(byProd, bp)
 	}
 	return byProd, nil
+}
+
+// getBuildDefinition get the buildDefinition based on the configured buildType. This will default to the slsa buildType
+func getBuildDefinition(ctx context.Context, buildType string, tro *objects.TaskRunObject) (slsa.ProvenanceBuildDefinition, error) {
+	// if buildType is not set in the chains-config, default to slsa build type
+	buildDefinitionType := buildType
+	if buildType == "" {
+		buildDefinitionType = buildtypes.SlsaBuildType
+	}
+
+	switch buildDefinitionType {
+	case buildtypes.SlsaBuildType:
+		rd, err := resolveddependencies.TaskRun(ctx, tro)
+		if err != nil {
+			return slsa.ProvenanceBuildDefinition{}, err
+		}
+		return slsa.ProvenanceBuildDefinition{
+			BuildType:            buildDefinitionType,
+			ExternalParameters:   externalparameters.TaskRun(tro),
+			InternalParameters:   internalparameters.SLSAInternalParameters(tro),
+			ResolvedDependencies: rd,
+		}, nil
+	case buildtypes.TektonBuildType:
+		rd, err := resolveddependencies.TaskRun(ctx, tro)
+		if err != nil {
+			return slsa.ProvenanceBuildDefinition{}, err
+		}
+		return slsa.ProvenanceBuildDefinition{
+			BuildType:            buildDefinitionType,
+			ExternalParameters:   externalparameters.TaskRun(tro),
+			InternalParameters:   internalparameters.TektonInternalParameters(tro),
+			ResolvedDependencies: rd,
+		}, nil
+	default:
+		return slsa.ProvenanceBuildDefinition{}, fmt.Errorf("unsupported buildType %v", buildType)
+	}
 }

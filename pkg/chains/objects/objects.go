@@ -66,6 +66,8 @@ type TektonObject interface {
 	SupportsTaskRunArtifact() bool
 	SupportsPipelineRunArtifact() bool
 	SupportsOCIArtifact() bool
+	GetRemoteProvenance() *v1beta1.Provenance
+	IsRemote() bool
 }
 
 func NewTektonObject(i interface{}) (TektonObject, error) {
@@ -173,6 +175,23 @@ func (tro *TaskRunObject) SupportsOCIArtifact() bool {
 	return true
 }
 
+func (tro *TaskRunObject) GetRemoteProvenance() *v1beta1.Provenance {
+	if t := tro.Status.Provenance; t != nil && t.RefSource != nil && tro.IsRemote() {
+		return tro.Status.Provenance
+	}
+	return nil
+}
+
+func (tro *TaskRunObject) IsRemote() bool {
+	isRemoteTask := false
+	if tro.Spec.TaskRef != nil {
+		if tro.Spec.TaskRef.Resolver != "" && tro.Spec.TaskRef.Resolver != "Cluster" {
+			isRemoteTask = true
+		}
+	}
+	return isRemoteTask
+}
+
 // PipelineRunObject extends v1beta1.PipelineRun with additional functions.
 type PipelineRunObject struct {
 	// The base PipelineRun
@@ -273,6 +292,23 @@ func (pro *PipelineRunObject) SupportsPipelineRunArtifact() bool {
 
 func (pro *PipelineRunObject) SupportsOCIArtifact() bool {
 	return false
+}
+
+func (pro *PipelineRunObject) GetRemoteProvenance() *v1beta1.Provenance {
+	if p := pro.Status.Provenance; p != nil && p.RefSource != nil && pro.IsRemote() {
+		return pro.Status.Provenance
+	}
+	return nil
+}
+
+func (pro *PipelineRunObject) IsRemote() bool {
+	isRemotePipeline := false
+	if pro.Spec.PipelineRef != nil {
+		if pro.Spec.PipelineRef.Resolver != "" && pro.Spec.PipelineRef.Resolver != "Cluster" {
+			isRemotePipeline = true
+		}
+	}
+	return isRemotePipeline
 }
 
 // Get the imgPullSecrets from a pod template, if they exist
