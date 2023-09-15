@@ -28,12 +28,12 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/tektoncd/pipeline v0.51.0
 	github.com/tektoncd/plumbing v0.0.0-20230907180608-5625252a2de1
-	go.uber.org/zap v1.25.0
+	go.uber.org/zap v1.26.0
 	gocloud.dev v0.34.0
 	gocloud.dev/docstore/mongodocstore v0.34.0
 	gocloud.dev/pubsub/kafkapubsub v0.34.0
 	golang.org/x/crypto v0.13.0
-	google.golang.org/grpc v1.58.0
+	google.golang.org/grpc v1.58.1
 	google.golang.org/protobuf v1.31.0
 	k8s.io/api v0.27.3
 	k8s.io/apimachinery v0.27.3
@@ -125,7 +125,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.21.5 // indirect
 	github.com/aws/smithy-go v1.14.2 // indirect
 	github.com/awslabs/amazon-ecr-credential-helper/ecr-login v0.0.0-20230510185313-f5e39e5f34c7 // indirect
-	github.com/benbjohnson/clock v1.3.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bkielbasa/cyclop v1.2.1 // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
