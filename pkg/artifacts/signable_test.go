@@ -370,7 +370,7 @@ func TestExtractSignableTargetFromResults(t *testing.T) {
 			},
 		},
 	}
-	want := []*StructuredSignable{
+	want := []StructuredSignable{
 		{URI: "projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/com.google.guava:guava:31.0-jre", Digest: digest1},
 		{URI: "com.google.guava:guava:31.0-jre.pom", Digest: digest2},
 		{URI: "com.google.guava:guava:31.0-jre-sources.jar", Digest: digest3},
