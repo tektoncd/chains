@@ -18,7 +18,6 @@ package material
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -26,6 +25,7 @@ import (
 	"github.com/tektoncd/chains/internal/backport"
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/attest"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/artifact"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"knative.dev/pkg/logging"
@@ -45,25 +45,20 @@ func TaskMaterials(ctx context.Context, tro *objects.TaskRunObject) ([]common.Pr
 	if err != nil {
 		return nil, err
 	}
-	mats = append(mats, stepMaterials...)
+	mats = artifact.AppendMaterials(mats, stepMaterials...)
 
 	// add sidecar images
 	sidecarMaterials, err := FromSidecarImages(tro)
 	if err != nil {
 		return nil, err
 	}
-	mats = append(mats, sidecarMaterials...)
+	mats = artifact.AppendMaterials(mats, sidecarMaterials...)
 
-	mats = append(mats, FromTaskParamsAndResults(ctx, tro)...)
+	mats = artifact.AppendMaterials(mats, FromTaskParamsAndResults(ctx, tro)...)
 
 	// add task resources
-	mats = append(mats, FromTaskResources(ctx, tro)...)
+	mats = artifact.AppendMaterials(mats, FromTaskResources(ctx, tro)...)
 
-	// remove duplicate materials
-	mats, err = removeDuplicateMaterials(mats)
-	if err != nil {
-		return mats, err
-	}
 	return mats, nil
 }
 
@@ -75,7 +70,7 @@ func PipelineMaterials(ctx context.Context, pro *objects.PipelineRunObject, slsa
 			URI:    p.RefSource.URI,
 			Digest: p.RefSource.Digest,
 		}
-		mats = append(mats, m)
+		mats = artifact.AppendMaterials(mats, m)
 	}
 	pSpec := pro.Status.PipelineSpec
 	if pSpec != nil {
@@ -92,14 +87,14 @@ func PipelineMaterials(ctx context.Context, pro *objects.PipelineRunObject, slsa
 			if err != nil {
 				return mats, err
 			}
-			mats = append(mats, stepMaterials...)
+			mats = artifact.AppendMaterials(mats, stepMaterials...)
 
 			// add sidecar images
 			sidecarMaterials, err := FromSidecarImages(tr)
 			if err != nil {
 				return nil, err
 			}
-			mats = append(mats, sidecarMaterials...)
+			mats = artifact.AppendMaterials(mats, sidecarMaterials...)
 
 			// add remote task configsource information in materials
 			if tr.Status.Provenance != nil && tr.Status.Provenance.RefSource != nil {
@@ -107,18 +102,13 @@ func PipelineMaterials(ctx context.Context, pro *objects.PipelineRunObject, slsa
 					URI:    tr.Status.Provenance.RefSource.URI,
 					Digest: tr.Status.Provenance.RefSource.Digest,
 				}
-				mats = append(mats, m)
+				mats = artifact.AppendMaterials(mats, m)
 			}
 		}
 	}
 
-	mats = append(mats, FromPipelineParamsAndResults(ctx, pro, slsaconfig)...)
+	mats = artifact.AppendMaterials(mats, FromPipelineParamsAndResults(ctx, pro, slsaconfig)...)
 
-	// remove duplicate materials
-	mats, err := removeDuplicateMaterials(mats)
-	if err != nil {
-		return mats, err
-	}
 	return mats, nil
 }
 
@@ -130,7 +120,7 @@ func FromStepImages(tro *objects.TaskRunObject) ([]common.ProvenanceMaterial, er
 		if err != nil {
 			return nil, err
 		}
-		mats = append(mats, m)
+		mats = artifact.AppendMaterials(mats, m)
 	}
 	return mats, nil
 }
@@ -143,7 +133,7 @@ func FromSidecarImages(tro *objects.TaskRunObject) ([]common.ProvenanceMaterial,
 		if err != nil {
 			return nil, err
 		}
-		mats = append(mats, m)
+		mats = artifact.AppendMaterials(mats, m)
 	}
 	return mats, nil
 }
@@ -203,7 +193,7 @@ func FromTaskResources(ctx context.Context, tro *objects.TaskRunObject) []common
 				}
 			}
 			m.URI = attest.SPDXGit(url, revision)
-			mats = append(mats, m)
+			mats = artifact.AppendMaterials(mats, m)
 		}
 	}
 	return mats
@@ -253,7 +243,7 @@ func FromTaskParamsAndResults(ctx context.Context, tro *objects.TaskRunObject) [
 
 	var mats []common.ProvenanceMaterial
 	if commit != "" && url != "" {
-		mats = append(mats, common.ProvenanceMaterial{
+		mats = artifact.AppendMaterials(mats, common.ProvenanceMaterial{
 			URI: url,
 			// TODO. this could be sha256 as well. Fix in another PR.
 			Digest: map[string]string{"sha1": commit},
@@ -261,38 +251,16 @@ func FromTaskParamsAndResults(ctx context.Context, tro *objects.TaskRunObject) [
 	}
 
 	sms := artifacts.RetrieveMaterialsFromStructuredResults(ctx, tro, artifacts.ArtifactsInputsResultName)
-	mats = append(mats, sms...)
+	mats = artifact.AppendMaterials(mats, sms...)
 
 	return mats
-}
-
-// removeDuplicateMaterials removes duplicate materials from the slice of materials.
-// Original order of materials is retained.
-func removeDuplicateMaterials(mats []common.ProvenanceMaterial) ([]common.ProvenanceMaterial, error) {
-	out := make([]common.ProvenanceMaterial, 0, len(mats))
-
-	// make map to store seen materials
-	seen := map[string]bool{}
-	for _, mat := range mats {
-		m, err := json.Marshal(mat)
-		if err != nil {
-			return nil, err
-		}
-		if seen[string(m)] {
-			continue
-		}
-
-		seen[string(m)] = true
-		out = append(out, mat)
-	}
-	return out, nil
 }
 
 // FromPipelineParamsAndResults extracts type hinted params and results and adds the url and digest to materials.
 func FromPipelineParamsAndResults(ctx context.Context, pro *objects.PipelineRunObject, slsaconfig *slsaconfig.SlsaConfig) []common.ProvenanceMaterial {
 	mats := []common.ProvenanceMaterial{}
 	sms := artifacts.RetrieveMaterialsFromStructuredResults(ctx, pro, artifacts.ArtifactsInputsResultName)
-	mats = append(mats, sms...)
+	mats = artifact.AppendMaterials(mats, sms...)
 
 	var commit, url string
 
@@ -310,7 +278,7 @@ func FromPipelineParamsAndResults(ctx context.Context, pro *objects.PipelineRunO
 					continue
 				}
 				materialsFromTasks := FromTaskParamsAndResults(ctx, tr)
-				mats = append(mats, materialsFromTasks...)
+				mats = artifact.AppendMaterials(mats, materialsFromTasks...)
 			}
 		}
 
@@ -351,7 +319,7 @@ func FromPipelineParamsAndResults(ctx context.Context, pro *objects.PipelineRunO
 	}
 	if len(commit) > 0 && len(url) > 0 {
 		url = attest.SPDXGit(url, "")
-		mats = append(mats, common.ProvenanceMaterial{
+		mats = artifact.AppendMaterials(mats, common.ProvenanceMaterial{
 			URI:    url,
 			Digest: map[string]string{"sha1": commit},
 		})
