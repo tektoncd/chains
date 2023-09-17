@@ -51,17 +51,19 @@ Supported keys include:
 
 | Key | Description | Supported Values | Default |
 | :--- | :--- | :--- | :--- |
-| `artifacts.taskrun.format` | The format to store `TaskRun` payloads in. | `in-toto`, `slsa/v1` | `in-toto` |
+| `artifacts.taskrun.format` | The format to store `TaskRun` payloads in. | `in-toto`, `slsa/v1`, `slsa/v2alpha2` | `in-toto` |
 | `artifacts.taskrun.storage` | The storage backend to store `TaskRun` signatures in. Multiple backends can be specified with comma-separated list ("tekton,oci"). To disable the `TaskRun` artifact input an empty string ("").  | `tekton`, `oci`, `gcs`, `docdb`, `grafeas` | `tekton` |
 | `artifacts.taskrun.signer` | The signature backend to sign `TaskRun` payloads with. | `x509`, `kms` | `x509` |
 
-> NOTE: `slsa/v1` is an alias of `in-toto` for backwards compatibility.
+> NOTE: 
+> * `slsa/v1` is an alias of `in-toto` for backwards compatibility.
+> * `slsa/v2alpha2` corresponds to the slsav1.0 spec.
 
 ### PipelineRun Configuration
 
 | Key | Description | Supported Values | Default |
 | :--- | :--- | :--- | :--- |
-| `artifacts.pipelinerun.format` | The format to store `PipelineRun` payloads in. | `in-toto`, `slsa/v1`| `in-toto` |
+| `artifacts.pipelinerun.format` | The format to store `PipelineRun` payloads in. | `in-toto`, `slsa/v1`, `slsa/v2alpha2`| `in-toto` |
 | `artifacts.pipelinerun.storage` | The storage backend to store `PipelineRun` signatures in. Multiple backends can be specified with comma-separated list ("tekton,oci"). To disable the `PipelineRun` artifact input an empty string ("").  | `tekton`, `oci`, `gcs`, `docdb`, `grafeas` | `tekton` |
 | `artifacts.pipelinerun.signer` | The signature backend to sign `PipelineRun` payloads with. | `x509`, `kms` | `x509` |
 | `artifacts.pipelinerun.enable-deep-inspection` | This boolean option will configure whether Chains should inspect child taskruns in order to capture inputs/outputs within a pipelinerun. `"false"` means that Chains only checks pipeline level results, whereas `"true"` means Chains inspects both pipeline level and task level results. | `"true"`, `"false"` | `"false"` | 
@@ -69,6 +71,7 @@ Supported keys include:
 > NOTE: 
 > - For grafeas storage backend, currently we only support Container Analysis. We will make grafeas server address configurabe within a short time.
 > - `slsa/v1` is an alias of `in-toto` for backwards compatibility.
+> - `slsa/v2alpha2` corresponds to the slsav1.0 spec.
 
 ### OCI Configuration
 
@@ -112,7 +115,14 @@ You can read more about Grafeas notes and occurrences [here](https://github.com/
 | Key | Description | Supported Values | Default |
 | :--- | :--- | :--- | :--- |
 | `builder.id` | The builder ID to set for in-toto attestations | | `https://tekton.dev/chains/v2`|
+| `builddefinition.buildtype` | The buildType for in-toto attestations | `https://tekton.dev/chains/v2/slsa`, `https://tekton.dev/chains/v2/slsa-tekton` | `https://tekton.dev/chains/v2/slsa`|
 
+> NOTE:
+> Considerations for the builddefinition.buildtype parameter:
+> * It is only valid for `slsa/v2alpha2` configurations (see TaskRun or PipelineRun configuration). 
+> * The parameter can take one of two values:
+>   * `https://tekton.dev/chains/v2/slsa`: This buildType strictly conforms to the slsav1.0 spec.
+>   * `https://tekton.dev/chains/v2/slsa-tekton`: This buildType also conforms to the slsav1.0 spec, but adds additional informaton specific to Tekton. This information includes the PipelinRun/TaskRun labels and annotations as internalParameters. It also includes capturing each pipeline task in a PipelinRun under resolvedDependencies.
 ### Sigstore Features Configuration
 
 #### Transparency Log
