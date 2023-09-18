@@ -17,6 +17,7 @@ limitations under the License.
 package externalparameters
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -26,26 +27,44 @@ import (
 )
 
 func TestBuildConfigSource(t *testing.T) {
+	digest := map[string]string{"alg1": "hex1", "alg2": "hex2"}
 	provenance := &v1beta1.Provenance{
 		RefSource: &v1beta1.RefSource{
-			Digest:     map[string]string{"alg1": "hex1", "alg2": "hex2"},
+			Digest:     digest,
 			URI:        "https://tekton.com",
 			EntryPoint: "/path/to/entry",
 		},
 	}
 
 	want := map[string]string{
-		"ref":        "alg1:hex1",
 		"repository": "https://tekton.com",
 		"path":       "/path/to/entry",
 	}
 
 	got := buildConfigSource(provenance)
 
-	if diff := cmp.Diff(want, got); diff != "" {
-		t.Errorf("buildConfigSource(): -want +got: %s", diff)
+	gotRef := strings.Split(got["ref"], ":")
+	if len(gotRef) != 2 {
+		t.Errorf("buildConfigSource() does not return the proper ref: want one of: %s got: %s", digest, got["ref"])
+	}
+	refValue, ok := digest[gotRef[0]]
+	if !ok {
+		t.Errorf("buildConfigSource() does not contain correct ref: want one of: %s got: %s:%s", digest, gotRef[0], gotRef[1])
+	}
+
+	if refValue != gotRef[1] {
+		t.Errorf("buildConfigSource() does not contain correct ref: want one of: %s got: %s:%s", digest, gotRef[0], gotRef[1])
+	}
+
+	if got["repository"] != want["repository"] {
+		t.Errorf("buildConfigSource() does not contain correct repository: want: %s got: %s", want["repository"], want["repository"])
+	}
+
+	if got["path"] != want["path"] {
+		t.Errorf("buildConfigSource() does not contain correct path: want: %s got: %s", want["path"], got["path"])
 	}
 }
+
 func createPro(path string) *objects.PipelineRunObject {
 	pr, err := objectloader.PipelineRunFromFile(path)
 	if err != nil {
