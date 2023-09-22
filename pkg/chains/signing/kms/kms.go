@@ -17,8 +17,9 @@ package kms
 import (
 	"context"
 	"crypto"
-
-	"github.com/tektoncd/chains/pkg/config"
+	"net"
+	"net/url"
+	"time"
 
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/kms"
@@ -27,6 +28,7 @@ import (
 	_ "github.com/sigstore/sigstore/pkg/signature/kms/gcp"
 	_ "github.com/sigstore/sigstore/pkg/signature/kms/hashivault"
 	"github.com/sigstore/sigstore/pkg/signature/options"
+	"github.com/tektoncd/chains/pkg/config"
 
 	"github.com/spiffe/go-spiffe/v2/svid/jwtsvid"
 	"github.com/spiffe/go-spiffe/v2/workloadapi"
@@ -41,6 +43,21 @@ type Signer struct {
 // NewSigner returns a configured Signer
 func NewSigner(ctx context.Context, cfg config.KMSSigner) (*Signer, error) {
 	kmsOpts := []signature.RPCOption{}
+
+	// Checks if the vault address provide by the user is a valid address or not
+	if cfg.Auth.Address != "" {
+		vaultAddress, err := url.Parse(cfg.Auth.Address)
+		if err != nil {
+			return nil, err
+		}
+
+		conn, err := net.DialTimeout("tcp", vaultAddress.Host, 5*time.Second)
+		if err != nil {
+			return nil, err
+		}
+		defer conn.Close()
+	}
+
 	// pass through configuration options to RPCAuth used by KMS in sigstore
 	rpcAuth := options.RPCAuth{
 		Address: cfg.Auth.Address,
