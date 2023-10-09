@@ -17,6 +17,7 @@ package kms
 import (
 	"context"
 	"crypto"
+	"fmt"
 	"net"
 	"net/url"
 	"time"
@@ -51,11 +52,44 @@ func NewSigner(ctx context.Context, cfg config.KMSSigner) (*Signer, error) {
 			return nil, err
 		}
 
-		conn, err := net.DialTimeout("tcp", vaultAddress.Host, 5*time.Second)
-		if err != nil {
-			return nil, err
+		var vaultUrl *url.URL
+		switch {
+		case vaultAddress.Port() != "":
+			vaultUrl = vaultAddress
+		case vaultAddress.Scheme == "http":
+			vaultUrl = &url.URL{
+				Scheme: vaultAddress.Scheme,
+				Host:   vaultAddress.Host + ":80",
+			}
+		case vaultAddress.Scheme == "https":
+			vaultUrl = &url.URL{
+				Scheme: vaultAddress.Scheme,
+				Host:   vaultAddress.Host + ":443",
+			}
+		case vaultAddress.Scheme == "":
+			vaultUrl = &url.URL{
+				Scheme: "http",
+				Host:   cfg.Auth.Address + ":80",
+			}
+		case vaultAddress.Scheme != "" && vaultAddress.Scheme != "http" && vaultAddress.Scheme != "https":
+			vaultUrl = &url.URL{
+				Scheme: "http",
+				Host:   cfg.Auth.Address,
+			}
+			if vaultUrl.Port() == "" {
+				vaultUrl.Host = cfg.Auth.Address + ":80"
+			}
 		}
-		defer conn.Close()
+
+		if vaultUrl != nil {
+			conn, err := net.DialTimeout("tcp", vaultUrl.Host, 5*time.Second)
+			if err != nil {
+				return nil, err
+			}
+			defer conn.Close()
+		} else {
+			return nil, fmt.Errorf("Error connecting to URL %s\n", cfg.Auth.Address)
+		}
 	}
 
 	// pass through configuration options to RPCAuth used by KMS in sigstore
