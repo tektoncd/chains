@@ -19,7 +19,7 @@ require (
 	github.com/secure-systems-lab/go-securesystemslib v0.7.0
 	github.com/sigstore/cosign/v2 v2.2.0
 	github.com/sigstore/rekor v1.3.0
-	github.com/sigstore/sigstore v1.7.3
+	github.com/sigstore/sigstore v1.7.4
 	github.com/sigstore/sigstore/pkg/signature/kms/aws v1.7.3
 	github.com/sigstore/sigstore/pkg/signature/kms/azure v1.7.3
 	github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.7.3
@@ -428,7 +428,7 @@ require (
 	golang.org/x/exp/typeparams v0.0.0-20230307190834-24139beb5833 // indirect
 	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/net v0.17.0 // indirect
-	golang.org/x/oauth2 v0.11.0 // indirect
+	golang.org/x/oauth2 v0.13.0 // indirect
 	golang.org/x/sync v0.3.0 // indirect
 	golang.org/x/sys v0.13.0 // indirect
 	golang.org/x/term v0.13.0 // indirect
