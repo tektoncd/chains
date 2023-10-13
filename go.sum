@@ -102,10 +102,10 @@ github.com/Antonboom/nilnil v0.1.7 h1:ofgL+BA7vlA1K2wNQOsHzLJ2Pw5B5DpWRLdDAVvvTo
 github.com/Antonboom/nilnil v0.1.7/go.mod h1:TP+ScQWVEq0eSIxqU8CbdT5DFWoHp0MbP+KMUO1BKYQ=
 github.com/Azure/azure-sdk-for-go v68.0.0+incompatible h1:fcYLmCpyNYRnvJbPerq7U0hS+6+I79yEDJBqVNcqUzU=
 github.com/Azure/azure-sdk-for-go v68.0.0+incompatible/go.mod h1:9XXNKU+eRnpl9moKnB4QOLf1HestfXbmab5FXxiDBjc=
-github.com/Azure/azure-sdk-for-go/sdk/azcore v1.7.1 h1:/iHxaJhsFr0+xVFfbMr5vxz848jyiWuIEDhYq3y5odY=
-github.com/Azure/azure-sdk-for-go/sdk/azcore v1.7.1/go.mod h1:bjGvMhVMb+EEm3VRNQawDMUyMMjo+S5ewNjflkep/0Q=
-github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.3.1 h1:LNHhpdK7hzUcx/k1LIcuh5k7k1LGIWLQfCjaneSj7Fc=
-github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.3.1/go.mod h1:uE9zaUfEQT/nbQjVi2IblCG9iaLtZsuYZ8ne+PuQ02M=
+github.com/Azure/azure-sdk-for-go/sdk/azcore v1.8.0 h1:9kDVnTz3vbfweTqAUmk/a/pH5pWFCHtvRpHYC0G/dcA=
+github.com/Azure/azure-sdk-for-go/sdk/azcore v1.8.0/go.mod h1:3Ug6Qzto9anB6mGlEdgYMDF5zHQ+wwhEaYR4s17PHMw=
+github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.4.0 h1:BMAjVKJM0U/CYF27gA0ZMmXGkOcvfFtD0oHVZ1TIPRI=
+github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.4.0/go.mod h1:1fXstnBMas5kzG+S3q8UoJcmyU6nUeunJcMDHcRYHhs=
 github.com/Azure/azure-sdk-for-go/sdk/internal v1.3.0 h1:sXr+ck84g/ZlZUOZiNELInmMgOsuGwdjjVkEIde0OtY=
 github.com/Azure/azure-sdk-for-go/sdk/internal v1.3.0/go.mod h1:okt5dMMTOFjX/aovMlrjvvXoPMBVSPzk9185BT0+eZM=
 github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys v1.0.1 h1:MyVTgWR8qd/Jw1Le0NZebGBUCLbtak3bJ3z1OlqZBpw=
@@ -758,8 +758,9 @@ github.com/google/trillian v1.5.2 h1:roGP6G8aaAch7vP08+oitPkvmZzxjTfIkguozqJ04Ok
 github.com/google/uuid v1.0.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/google/uuid v1.1.1/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/google/uuid v1.1.2/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
-github.com/google/uuid v1.3.0 h1:t6JiXgmwXMjEs8VusXIJk2BXHsn+wx8BZdTaoZ5fu7I=
 github.com/google/uuid v1.3.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
+github.com/google/uuid v1.3.1 h1:KjJaJ9iWZ3jOFZIf1Lqf4laDRCasjl0BCmnEGxkdLb4=
+github.com/google/uuid v1.3.1/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/google/wire v0.5.0 h1:I7ELFeVBr3yfPIcc8+MWvrjk+3VjbcSzoXm3JVa+jD8=
 github.com/google/wire v0.5.0/go.mod h1:ngWDr9Qvq3yZA10YrxfyGELY/AFWGVpy9c1LTRi1EoU=
 github.com/googleapis/enterprise-certificate-proxy v0.0.0-20220520183353-fd19c99a87aa/go.mod h1:17drOmN3MwGY7t0e+Ei9b45FFGA3fBs3x36SsCg1hq8=
@@ -1212,8 +1213,8 @@ github.com/sigstore/sigstore v1.7.3 h1:HVVTfrMezJeLyl2xhJ8edzkrEGBa4KxjQZB4FlQ4J
 github.com/sigstore/sigstore v1.7.3/go.mod h1:cl0c7Dtg3MM3c13L8pqqrfrmBa0eM3POcdtBepjylmw=
 github.com/sigstore/sigstore/pkg/signature/kms/aws v1.7.3 h1:HbtK8W1bl+BhUPPtpfh4bgkm5oXrtzqd6FTvFg+oor8=
 github.com/sigstore/sigstore/pkg/signature/kms/aws v1.7.3/go.mod h1:JPLKxAUNNsuUQZUy9G3TGhfZCrUaGWa18dxJUQb2E/s=
-github.com/sigstore/sigstore/pkg/signature/kms/azure v1.7.3 h1:dS0f3vtSfgJClJrIFKzfettFfSfygEWDd/yecLcH1uc=
-github.com/sigstore/sigstore/pkg/signature/kms/azure v1.7.3/go.mod h1:N2GlshxHUDP3V2irRTZNgXkExAXL9y32bEK2k7jDLKo=
+github.com/sigstore/sigstore/pkg/signature/kms/azure v1.7.4 h1:2xI6GX+tQMF0L+DlQq09U4fH8PlFhuz0wSYkiHY8fgo=
+github.com/sigstore/sigstore/pkg/signature/kms/azure v1.7.4/go.mod h1:+O0uMOHhBmaVtiuR6QjO+Firh3lNWDAdFC80EYZxvZs=
 github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.7.3 h1:zO5OlN1DZ/f6N2Gtl72NleHv2kLudSxa9evaz1VgIKQ=
 github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.7.3/go.mod h1:JVLf01VmZPBqkISIc7EDCFeTk4aFC0+uL/SXC57QhHQ=
 github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.7.3 h1:IVPaj3NCCc037V2gtFISnSeebmBq1vnkKoPpNjHL3yM=

@@ -21,7 +21,7 @@ require (
 	github.com/sigstore/rekor v1.3.0
 	github.com/sigstore/sigstore v1.7.3
 	github.com/sigstore/sigstore/pkg/signature/kms/aws v1.7.3
-	github.com/sigstore/sigstore/pkg/signature/kms/azure v1.7.3
+	github.com/sigstore/sigstore/pkg/signature/kms/azure v1.7.4
 	github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.7.3
 	github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.7.3
 	github.com/spiffe/go-spiffe/v2 v2.1.6
@@ -61,8 +61,8 @@ require (
 	github.com/Antonboom/errname v0.1.12 // indirect
 	github.com/Antonboom/nilnil v0.1.7 // indirect
 	github.com/Azure/azure-sdk-for-go v68.0.0+incompatible // indirect
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.7.1 // indirect
-	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.3.1 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.8.0 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.4.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.3.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys v1.0.1 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/internal v1.0.0 // indirect
@@ -236,7 +236,7 @@ require (
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/licenseclassifier v0.0.0-20210722185704-3043a050f148 // indirect
 	github.com/google/s2a-go v0.1.5 // indirect
-	github.com/google/uuid v1.3.0 // indirect
+	github.com/google/uuid v1.3.1 // indirect
 	github.com/google/wire v0.5.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.2.5 // indirect
 	github.com/googleapis/gax-go/v2 v2.12.0 // indirect

@@ -68,7 +68,7 @@ github.com/Antonboom/nilnil/pkg/analyzer
 ## explicit
 github.com/Azure/azure-sdk-for-go/services/preview/containerregistry/runtime/2019-08-15-preview/containerregistry
 github.com/Azure/azure-sdk-for-go/version
-# github.com/Azure/azure-sdk-for-go/sdk/azcore v1.7.1
+# github.com/Azure/azure-sdk-for-go/sdk/azcore v1.8.0
 ## explicit; go 1.18
 github.com/Azure/azure-sdk-for-go/sdk/azcore
 github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud
@@ -86,7 +86,7 @@ github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime
 github.com/Azure/azure-sdk-for-go/sdk/azcore/streaming
 github.com/Azure/azure-sdk-for-go/sdk/azcore/to
 github.com/Azure/azure-sdk-for-go/sdk/azcore/tracing
-# github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.3.1
+# github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.4.0
 ## explicit; go 1.18
 github.com/Azure/azure-sdk-for-go/sdk/azidentity
 # github.com/Azure/azure-sdk-for-go/sdk/internal v1.3.0
@@ -1033,7 +1033,7 @@ github.com/google/s2a-go/internal/v2/remotesigner
 github.com/google/s2a-go/internal/v2/tlsconfigstore
 github.com/google/s2a-go/retry
 github.com/google/s2a-go/stream
-# github.com/google/uuid v1.3.0
+# github.com/google/uuid v1.3.1
 ## explicit
 github.com/google/uuid
 # github.com/google/wire v0.5.0
@@ -1670,8 +1670,8 @@ github.com/sigstore/sigstore/pkg/tuf
 # github.com/sigstore/sigstore/pkg/signature/kms/aws v1.7.3
 ## explicit; go 1.19
 github.com/sigstore/sigstore/pkg/signature/kms/aws
-# github.com/sigstore/sigstore/pkg/signature/kms/azure v1.7.3
-## explicit; go 1.19
+# github.com/sigstore/sigstore/pkg/signature/kms/azure v1.7.4
+## explicit; go 1.20
 github.com/sigstore/sigstore/pkg/signature/kms/azure
 # github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.7.3
 ## explicit; go 1.19
