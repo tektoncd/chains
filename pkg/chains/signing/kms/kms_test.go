@@ -17,6 +17,9 @@ package kms
 
 import (
 	"context"
+	"net"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/tektoncd/chains/pkg/config"
@@ -26,7 +29,7 @@ func TestInValidVaultAddressTimeout(t *testing.T) {
 	cfg := config.KMSSigner{}
 	cfg.Auth.Address = "http://8.8.8.8:8200"
 
-	_, err := NewSigner(context.TODO(), cfg)
+	_, err := NewSigner(context.Background(), cfg)
 	expectedErrorMessage := "dial tcp 8.8.8.8:8200: i/o timeout"
 	if err.Error() != expectedErrorMessage {
 		t.Errorf("Expected error message '%s', but got '%s'", expectedErrorMessage, err.Error())
@@ -37,9 +40,89 @@ func TestInValidVaultAddressConnectionRefused(t *testing.T) {
 	cfg := config.KMSSigner{}
 	cfg.Auth.Address = "http://127.0.0.1:8200"
 
-	_, err := NewSigner(context.TODO(), cfg)
+	_, err := NewSigner(context.Background(), cfg)
 	expectedErrorMessage := "dial tcp 127.0.0.1:8200: connect: connection refused"
 	if err.Error() != expectedErrorMessage {
 		t.Errorf("Expected error message '%s', but got '%s'", expectedErrorMessage, err.Error())
 	}
+}
+
+func TestValidVaultAddressConnectionWithoutPortAndScheme(t *testing.T) {
+	cfg := config.KMSSigner{}
+	cfg.Auth.Address = "abc.com"
+
+	_, err := NewSigner(context.Background(), cfg)
+	expectedErrorMessage := "no kms provider found for key reference: "
+	if err.Error() != expectedErrorMessage {
+		t.Errorf("Expected error message '%s', but got '%s'", expectedErrorMessage, err.Error())
+	}
+}
+
+func TestValidVaultAddressConnectionWithoutScheme(t *testing.T) {
+	cfg := config.KMSSigner{}
+	cfg.Auth.Address = "abc.com:80"
+
+	_, err := NewSigner(context.Background(), cfg)
+	expectedErrorMessage := "no kms provider found for key reference: "
+	if err.Error() != expectedErrorMessage {
+		t.Errorf("Expected error message '%s', but got '%s'", expectedErrorMessage, err.Error())
+	}
+}
+
+func TestValidVaultAddressConnection(t *testing.T) {
+	t.Run("Validation for Vault Address with HTTP Url", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer server.Close()
+
+		cfg := config.KMSSigner{}
+		cfg.Auth.Address = server.URL
+
+		_, err := NewSigner(context.Background(), cfg)
+		expectedErrorMessage := "no kms provider found for key reference: "
+		if err.Error() != expectedErrorMessage {
+			t.Errorf("Expected error message '%s', but got '%s'", expectedErrorMessage, err.Error())
+		}
+	})
+
+	t.Run("Validation for Vault Address with HTTPS URL", func(t *testing.T) {
+		server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer server.Close()
+
+		cfg := config.KMSSigner{}
+		cfg.Auth.Address = server.URL
+
+		_, err := NewSigner(context.Background(), cfg)
+		expectedErrorMessage := "no kms provider found for key reference: "
+		if err.Error() != expectedErrorMessage {
+			t.Errorf("Expected error message '%s', but got '%s'", expectedErrorMessage, err.Error())
+		}
+	})
+
+	t.Run("Validation for Vault Address with Custom Port URL", func(t *testing.T) {
+		server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer server.Close()
+
+		listener, err := net.Listen("tcp", "127.0.0.1:41227")
+		if err != nil {
+			t.Fatalf("Failed to create listener: %v", err)
+		}
+
+		server.Listener = listener
+		server.Start()
+
+		cfg := config.KMSSigner{}
+		cfg.Auth.Address = "http://127.0.0.1:41227"
+
+		_, err = NewSigner(context.Background(), cfg)
+		expectedErrorMessage := "no kms provider found for key reference: "
+		if err.Error() != expectedErrorMessage {
+			t.Errorf("Expected error message '%s', but got '%s'", expectedErrorMessage, err.Error())
+		}
+	})
 }
