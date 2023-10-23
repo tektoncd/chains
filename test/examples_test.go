@@ -42,6 +42,7 @@ import (
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/ghodss/yaml"
 	"github.com/tektoncd/chains/pkg/chains/objects"
@@ -60,6 +61,7 @@ type TestExample struct {
 	getExampleObjects func(t *testing.T, ns string) map[string]objects.TektonObject
 	payloadKey        string
 	signatureKey      string
+	outputLocation    string
 }
 
 // TestExamples copies the format in the tektoncd/pipelines repo
@@ -75,6 +77,7 @@ func TestExamples(t *testing.T) {
 			getExampleObjects: getTaskRunExamples,
 			payloadKey:        "chains.tekton.dev/payload-taskrun-%s",
 			signatureKey:      "chains.tekton.dev/signature-taskrun-%s",
+			outputLocation:    "slsa/v1",
 		},
 		{
 			name: "pipelinerun-examples",
@@ -85,6 +88,7 @@ func TestExamples(t *testing.T) {
 			getExampleObjects: getPipelineRunExamples,
 			payloadKey:        "chains.tekton.dev/payload-pipelinerun-%s",
 			signatureKey:      "chains.tekton.dev/signature-pipelinerun-%s",
+			outputLocation:    "slsa/v1",
 		},
 	}
 
@@ -129,7 +133,7 @@ func runInTotoFormatterTests(ctx context.Context, t *testing.T, ns string, c *cl
 			if err := json.Unmarshal(payload, &gotProvenance); err != nil {
 				t.Fatal(err)
 			}
-			expected := expectedProvenance(t, path, completed)
+			expected := expectedProvenance(t, ctx, path, completed, test.outputLocation, ns, c)
 
 			opts := []cmp.Option{
 				// Annotations and labels may contain release specific information. Ignore
@@ -187,12 +191,12 @@ func (v *verifier) Public() crypto.PublicKey {
 	return v.pub
 }
 
-func expectedProvenance(t *testing.T, example string, obj objects.TektonObject) intoto.ProvenanceStatement {
+func expectedProvenance(t *testing.T, ctx context.Context, example string, obj objects.TektonObject, outputLocation string, ns string, c *clients) intoto.ProvenanceStatement {
 	switch obj.(type) {
 	case *objects.TaskRunObject:
-		return expectedTaskRunProvenance(t, example, obj)
+		return expectedTaskRunProvenance(t, example, obj, outputLocation)
 	case *objects.PipelineRunObject:
-		return expectedPipelineRunProvenance(t, example, obj)
+		return expectedPipelineRunProvenance(t, ctx, example, obj, outputLocation, ns, c)
 	default:
 		t.Error("Unexpected type trying to get provenance")
 	}
@@ -215,7 +219,7 @@ type Format struct {
 	URIDigest          []URIDigestPair
 }
 
-func expectedTaskRunProvenance(t *testing.T, example string, obj objects.TektonObject) intoto.ProvenanceStatement {
+func expectedTaskRunProvenance(t *testing.T, example string, obj objects.TektonObject, outputLocation string) intoto.ProvenanceStatement {
 	tr := obj.GetObject().(*v1beta1.TaskRun)
 
 	name := tr.Name
@@ -249,10 +253,10 @@ func expectedTaskRunProvenance(t *testing.T, example string, obj objects.TektonO
 		URIDigest:          uridigest,
 	}
 
-	return readExpectedAttestation(t, example, f)
+	return readExpectedAttestation(t, example, f, outputLocation)
 }
 
-func expectedPipelineRunProvenance(t *testing.T, example string, obj objects.TektonObject) intoto.ProvenanceStatement {
+func expectedPipelineRunProvenance(t *testing.T, ctx context.Context, example string, obj objects.TektonObject, outputLocation string, ns string, c *clients) intoto.ProvenanceStatement {
 	pr := obj.GetObject().(*v1beta1.PipelineRun)
 
 	buildStartTimes := []string{}
@@ -261,10 +265,14 @@ func expectedPipelineRunProvenance(t *testing.T, example string, obj objects.Tek
 	uriDigestSet := make(map[string]bool)
 
 	// TODO: Load TaskRun data from ChildReferences.
-	for _, trStatus := range pr.Status.TaskRuns {
-		buildStartTimes = append(buildStartTimes, trStatus.Status.StartTime.Time.UTC().Format(time.RFC3339))
-		buildFinishedTimes = append(buildFinishedTimes, trStatus.Status.CompletionTime.Time.UTC().Format(time.RFC3339))
-		for _, step := range trStatus.Status.Steps {
+	for _, cr := range pr.Status.ChildReferences {
+		taskRun, err := c.PipelineClient.TektonV1beta1().TaskRuns(ns).Get(ctx, cr.Name, metav1.GetOptions{})
+		if err != nil {
+			t.Errorf("Did not expect an error but got %v", err)
+		}
+		buildStartTimes = append(buildStartTimes, taskRun.Status.StartTime.Time.UTC().Format(time.RFC3339))
+		buildFinishedTimes = append(buildFinishedTimes, taskRun.Status.CompletionTime.Time.UTC().Format(time.RFC3339))
+		for _, step := range taskRun.Status.Steps {
 			// append uri and digest that havent already been appended
 			uri := strings.Split(step.ImageID, "@")[0]
 			digest := strings.Split(step.ImageID, ":")[1]
@@ -274,7 +282,7 @@ func expectedPipelineRunProvenance(t *testing.T, example string, obj objects.Tek
 				uriDigestSet[uriDigest] = true
 			}
 		}
-		for _, sidecar := range trStatus.Status.Sidecars {
+		for _, sidecar := range taskRun.Status.Sidecars {
 			// append uri and digest that havent already been appended
 			uri := strings.Split(sidecar.ImageID, "@")[0]
 			digest := strings.Split(sidecar.ImageID, ":")[1]
@@ -294,10 +302,10 @@ func expectedPipelineRunProvenance(t *testing.T, example string, obj objects.Tek
 		URIDigest:          uridigest,
 	}
 
-	return readExpectedAttestation(t, example, f)
+	return readExpectedAttestation(t, example, f, outputLocation)
 }
 
-func readExpectedAttestation(t *testing.T, example string, f Format) intoto.ProvenanceStatement {
+func readExpectedAttestation(t *testing.T, example string, f Format, outputLocation string) intoto.ProvenanceStatement {
 	path := filepath.Join("testdata/intoto", strings.Replace(filepath.Base(example), ".yaml", ".json", 1))
 	t.Logf("Reading expected provenance from %s", path)
 
