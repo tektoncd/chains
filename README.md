@@ -79,7 +79,7 @@ To finish setting up Chains, please complete the following steps:
 ### Vendor specific documentation
 
 Any additional documentation specific to particular cloud vendors can be found
-at [docs/vendor](/docs/vendor/).
+at [docs/vendor](https://github.com/tektoncd/chains/tree/main/docs/vendor).
 
 ## Tutorials
 
