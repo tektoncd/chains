@@ -893,7 +893,7 @@ github.com/golangci/go-misc/deadcode
 github.com/golangci/gofmt/gofmt
 github.com/golangci/gofmt/gofmt/internal/diff
 github.com/golangci/gofmt/goimports
-# github.com/golangci/golangci-lint v1.55.0
+# github.com/golangci/golangci-lint v1.55.1
 ## explicit; go 1.20
 github.com/golangci/golangci-lint/cmd/golangci-lint
 github.com/golangci/golangci-lint/internal/cache
@@ -929,7 +929,7 @@ github.com/golangci/maligned
 # github.com/golangci/misspell v0.4.1
 ## explicit; go 1.19
 github.com/golangci/misspell
-# github.com/golangci/revgrep v0.5.0
+# github.com/golangci/revgrep v0.5.2
 ## explicit; go 1.19
 github.com/golangci/revgrep
 # github.com/golangci/unconvert v0.0.0-20180507085042-28b1c447d1f4
@@ -1581,7 +1581,7 @@ github.com/secure-systems-lab/go-securesystemslib/cjson
 github.com/secure-systems-lab/go-securesystemslib/dsse
 github.com/secure-systems-lab/go-securesystemslib/encrypted
 github.com/secure-systems-lab/go-securesystemslib/signerverifier
-# github.com/securego/gosec/v2 v2.18.1
+# github.com/securego/gosec/v2 v2.18.2
 ## explicit; go 1.20
 github.com/securego/gosec/v2
 github.com/securego/gosec/v2/analyzers
@@ -3228,7 +3228,8 @@ sigs.k8s.io/structured-merge-diff/v4/merge
 sigs.k8s.io/structured-merge-diff/v4/schema
 sigs.k8s.io/structured-merge-diff/v4/typed
 sigs.k8s.io/structured-merge-diff/v4/value
-# sigs.k8s.io/yaml v1.3.0
+# sigs.k8s.io/yaml v1.4.0
 ## explicit; go 1.12
 sigs.k8s.io/yaml
+sigs.k8s.io/yaml/goyaml.v2
 # github.com/golang/glog => github.com/jdolitsky/glog v0.0.0-20220729172235-78744e90d087
