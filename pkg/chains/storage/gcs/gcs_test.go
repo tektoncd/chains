@@ -29,10 +29,11 @@ import (
 	rtesting "knative.dev/pkg/reconciler/testing"
 )
 
+//nolint:staticcheck
 func TestBackend_StorePayload(t *testing.T) {
-
 	type args struct {
 		tr        *v1beta1.TaskRun
+		pr        *v1beta1.PipelineRun
 		signed    []byte
 		signature string
 		opts      config.StorageOpts
@@ -52,6 +53,13 @@ func TestBackend_StorePayload(t *testing.T) {
 						UID:       types.UID("uid"),
 					},
 				},
+				pr: &v1beta1.PipelineRun{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "foo",
+						Name:      "bar",
+						UID:       types.UID("uid"),
+					},
+				},
 				signed:    []byte("signed"),
 				signature: "signature",
 				opts:      config.StorageOpts{ShortKey: "foo.uuid", PayloadFormat: formats.PayloadTypeSlsav1},
@@ -61,6 +69,13 @@ func TestBackend_StorePayload(t *testing.T) {
 			name: "no error, tekton",
 			args: args{
 				tr: &v1beta1.TaskRun{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "foo",
+						Name:      "bar",
+						UID:       types.UID("uid"),
+					},
+				},
+				pr: &v1beta1.PipelineRun{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "foo",
 						Name:      "bar",
@@ -88,8 +103,8 @@ func TestBackend_StorePayload(t *testing.T) {
 				t.Errorf("Backend.StorePayload() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
-			objectSig := sigName(tt.args.tr, tt.args.opts)
-			objectPayload := payloadName(tt.args.tr, tt.args.opts)
+			objectSig := taskRunSigName(tt.args.tr, tt.args.opts)
+			objectPayload := taskRunPayloadName(tt.args.tr, tt.args.opts)
 			got, err := b.RetrieveSignatures(ctx, trObj, tt.args.opts)
 			if err != nil {
 				t.Fatal(err)
@@ -99,6 +114,30 @@ func TestBackend_StorePayload(t *testing.T) {
 			}
 			var gotPayload map[string]string
 			gotPayload, err = b.RetrievePayloads(ctx, trObj, tt.args.opts)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if gotPayload[objectPayload] != string(tt.args.signed) {
+				t.Errorf("wrong signature, expected %s, got %s", tt.args.signed, gotPayload[objectPayload])
+			}
+
+			prObj := objects.NewPipelineRunObject(tt.args.pr)
+			if err := b.StorePayload(ctx, prObj, tt.args.signed, tt.args.signature, tt.args.opts); (err != nil) != tt.wantErr {
+				t.Errorf("Backend.StorePayload() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			objectSig = pipelineRunSigname(tt.args.pr, tt.args.opts)
+			objectPayload = pipelineRunPayloadName(tt.args.pr, tt.args.opts)
+			got, err = b.RetrieveSignatures(ctx, prObj, tt.args.opts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if got[objectSig][0] != tt.args.signature {
+				t.Errorf("wrong signature, expected %q, got %q", tt.args.signature, got[objectSig][0])
+			}
+
+			gotPayload, err = b.RetrievePayloads(ctx, prObj, tt.args.opts)
 			if err != nil {
 				t.Fatal(err)
 			}
