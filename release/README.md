@@ -110,25 +110,6 @@ text editor.
       CHAINS_PACKAGE=tektoncd/chains
       ```
 
-   1. Create a `PipelineResource` of type `git`
-
-      ```shell
-      cat <<EOF | kubectl --context dogfooding create -f -
-      apiVersion: tekton.dev/v1alpha1
-      kind: PipelineResource
-      metadata:
-        name: tekton-chains-$(echo $CHAINS_VERSION_TAG | tr '.' '-')
-        namespace: default
-      spec:
-        type: git
-        params:
-          - name: url
-            value: 'https://github.com/tektoncd/chains'
-          - name: revision
-            value: ${CHAINS_RELEASE_GIT_SHA}
-      EOF
-      ```
-
    1. Execute the Draft Release task.
 
       ```bash
