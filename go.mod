@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	cloud.google.com/go/compute/metadata v0.2.3
-	cloud.google.com/go/storage v1.33.0
+	cloud.google.com/go/storage v1.34.0
 	github.com/golangci/golangci-lint v1.55.1
 	github.com/google/addlicense v1.1.1
 	github.com/google/go-cmp v0.6.0

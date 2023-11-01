@@ -33,7 +33,7 @@ cloud.google.com/go/kms/internal
 # cloud.google.com/go/longrunning v0.5.1
 ## explicit; go 1.19
 cloud.google.com/go/longrunning/autogen/longrunningpb
-# cloud.google.com/go/storage v1.33.0
+# cloud.google.com/go/storage v1.34.0
 ## explicit; go 1.19
 cloud.google.com/go/storage
 cloud.google.com/go/storage/internal
