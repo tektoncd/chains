@@ -5,7 +5,7 @@ go 1.20
 require (
 	cloud.google.com/go/compute/metadata v0.2.3
 	cloud.google.com/go/storage v1.34.1
-	github.com/golangci/golangci-lint v1.55.1
+	github.com/golangci/golangci-lint v1.55.2
 	github.com/google/addlicense v1.1.1
 	github.com/google/go-cmp v0.6.0
 	github.com/google/go-containerregistry v0.16.1
@@ -140,7 +140,7 @@ require (
 	github.com/breml/errchkjson v0.3.6 // indirect
 	github.com/buildkite/agent/v3 v3.52.1 // indirect
 	github.com/buildkite/interpolate v0.0.0-20200526001904-07f35b4ae251 // indirect
-	github.com/butuzov/ireturn v0.2.1 // indirect
+	github.com/butuzov/ireturn v0.2.2 // indirect
 	github.com/butuzov/mirror v1.1.0 // indirect
 	github.com/catenacyber/perfsprint v0.2.0 // indirect
 	github.com/ccojocar/zxcvbn-go v1.0.1 // indirect
@@ -329,7 +329,7 @@ require (
 	github.com/nishanths/exhaustive v0.11.0 // indirect
 	github.com/nishanths/predeclared v0.2.2 // indirect
 	github.com/nozzle/throttler v0.0.0-20180817012639-2ea982251481 // indirect
-	github.com/nunnatsa/ginkgolinter v0.14.0 // indirect
+	github.com/nunnatsa/ginkgolinter v0.14.1 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/oleiade/reflections v1.0.1 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
