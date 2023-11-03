@@ -506,7 +506,7 @@ github.com/buildkite/agent/v3/version
 # github.com/buildkite/interpolate v0.0.0-20200526001904-07f35b4ae251
 ## explicit
 github.com/buildkite/interpolate
-# github.com/butuzov/ireturn v0.2.1
+# github.com/butuzov/ireturn v0.2.2
 ## explicit; go 1.18
 github.com/butuzov/ireturn/analyzer
 github.com/butuzov/ireturn/analyzer/internal/config
@@ -896,7 +896,7 @@ github.com/golangci/go-misc/deadcode
 github.com/golangci/gofmt/gofmt
 github.com/golangci/gofmt/gofmt/internal/diff
 github.com/golangci/gofmt/goimports
-# github.com/golangci/golangci-lint v1.55.1
+# github.com/golangci/golangci-lint v1.55.2
 ## explicit; go 1.20
 github.com/golangci/golangci-lint/cmd/golangci-lint
 github.com/golangci/golangci-lint/internal/cache
@@ -1439,7 +1439,7 @@ github.com/nishanths/predeclared/passes/predeclared
 # github.com/nozzle/throttler v0.0.0-20180817012639-2ea982251481
 ## explicit
 github.com/nozzle/throttler
-# github.com/nunnatsa/ginkgolinter v0.14.0
+# github.com/nunnatsa/ginkgolinter v0.14.1
 ## explicit; go 1.20
 github.com/nunnatsa/ginkgolinter
 github.com/nunnatsa/ginkgolinter/ginkgohandler
