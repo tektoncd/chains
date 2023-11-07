@@ -5,7 +5,7 @@
 
 // Supported OS/Arch but unsupported Go version
 //           Supported OS        Supported Arch     Bad Go Version
-//go:build (linux || darwin) && (amd64 || arm64) && go1.21
+//go:build (linux || darwin || windows) && (amd64 || arm64) && go1.22
 
 package waf
 

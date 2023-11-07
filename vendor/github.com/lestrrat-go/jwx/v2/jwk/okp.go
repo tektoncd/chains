@@ -81,8 +81,14 @@ func (k *okpPublicKey) Raw(v interface{}) error {
 }
 
 func buildOKPPrivateKey(alg jwa.EllipticCurveAlgorithm, xbuf []byte, dbuf []byte) (interface{}, error) {
+	if len(dbuf) == 0 {
+		return nil, fmt.Errorf(`cannot use empty seed`)
+	}
 	switch alg {
 	case jwa.Ed25519:
+		if len(dbuf) != ed25519.SeedSize {
+			return nil, fmt.Errorf(`wrong private key size`)
+		}
 		ret := ed25519.NewKeyFromSeed(dbuf)
 		//nolint:forcetypeassert
 		if !bytes.Equal(xbuf, ret.Public().(ed25519.PublicKey)) {
@@ -180,4 +186,42 @@ func (k okpPrivateKey) Thumbprint(hash crypto.Hash) ([]byte, error) {
 		k.Crv().String(),
 		base64.EncodeToString(k.x),
 	), nil
+}
+
+func validateOKPKey(key interface {
+	Crv() jwa.EllipticCurveAlgorithm
+	X() []byte
+}) error {
+	if key.Crv() == jwa.InvalidEllipticCurve {
+		return fmt.Errorf(`invalid curve algorithm`)
+	}
+
+	if len(key.X()) == 0 {
+		return fmt.Errorf(`missing "x" field`)
+	}
+
+	if priv, ok := key.(interface{ D() []byte }); ok {
+		if len(priv.D()) == 0 {
+			return fmt.Errorf(`missing "d" field`)
+		}
+	}
+	return nil
+}
+
+func (k *okpPublicKey) Validate() error {
+	k.mu.RLock()
+	defer k.mu.RUnlock()
+	if err := validateOKPKey(k); err != nil {
+		return NewKeyValidationError(fmt.Errorf(`jwk.OKPPublicKey: %w`, err))
+	}
+	return nil
+}
+
+func (k *okpPrivateKey) Validate() error {
+	k.mu.RLock()
+	defer k.mu.RUnlock()
+	if err := validateOKPKey(k); err != nil {
+		return NewKeyValidationError(fmt.Errorf(`jwk.OKPPrivateKey: %w`, err))
+	}
+	return nil
 }

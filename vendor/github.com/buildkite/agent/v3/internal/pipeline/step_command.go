@@ -6,10 +6,14 @@ import (
 	"strings"
 
 	"github.com/buildkite/agent/v3/internal/ordered"
-	"github.com/buildkite/interpolate"
+	"gopkg.in/yaml.v3"
 )
 
-var _ SignedFielder = (*CommandStep)(nil)
+var _ interface {
+	json.Marshaler
+	json.Unmarshaler
+	ordered.Unmarshaler
+} = (*CommandStep)(nil)
 
 // CommandStep models a command step.
 //
@@ -19,7 +23,7 @@ type CommandStep struct {
 	Plugins   Plugins           `yaml:"plugins,omitempty"`
 	Env       map[string]string `yaml:"env,omitempty"`
 	Signature *Signature        `yaml:"signature,omitempty"`
-	Matrix    any               `yaml:"matrix,omitempty"`
+	Matrix    *Matrix           `yaml:"matrix,omitempty"`
 
 	// RemainingFields stores any other top-level mapping items so they at least
 	// survive an unmarshal-marshal round-trip.
@@ -30,6 +34,17 @@ type CommandStep struct {
 // yaml.v3 has "inline" but encoding/json has no concept of it.
 func (c *CommandStep) MarshalJSON() ([]byte, error) {
 	return inlineFriendlyMarshalJSON(c)
+}
+
+// UnmarshalJSON is used when unmarshalling an individual step directly, e.g.
+// from the Agent API Accept Job.
+func (c *CommandStep) UnmarshalJSON(b []byte) error {
+	// JSON is just a specific kind of YAML.
+	var n yaml.Node
+	if err := yaml.Unmarshal(b, &n); err != nil {
+		return err
+	}
+	return ordered.Unmarshal(&n, &c)
 }
 
 // UnmarshalOrdered unmarshals a command step from an ordered map.
@@ -58,112 +73,52 @@ func (c *CommandStep) UnmarshalOrdered(src any) error {
 	return nil
 }
 
-// SignedFields returns the default fields for signing.
-func (c *CommandStep) SignedFields() (map[string]string, error) {
-	plugins := ""
-	if len(c.Plugins) > 0 {
-		// TODO: Reconsider using JSON here - is it stable enough?
-		pj, err := json.Marshal(c.Plugins)
-		if err != nil {
-			return nil, err
-		}
-		plugins = string(pj)
+// InterpolateMatrixPermutation validates and then interpolates the choice of
+// matrix values into the step. This should only be used in order to validate
+// a job that's about to be run, and not used before pipeline upload.
+func (c *CommandStep) InterpolateMatrixPermutation(mp MatrixPermutation) error {
+	if err := c.Matrix.validatePermutation(mp); err != nil {
+		return err
 	}
-	out := map[string]string{
-		"command": c.Command,
-		"plugins": plugins,
+	if len(mp) == 0 {
+		return nil
 	}
-	// Steps can have their own env. These can be overridden by the pipeline!
-	for e, v := range c.Env {
-		out[EnvNamespacePrefix+e] = v
-	}
-	return out, nil
+	return c.interpolate(newMatrixInterpolator(mp))
 }
 
-// ValuesForFields returns the contents of fields to sign.
-func (c *CommandStep) ValuesForFields(fields []string) (map[string]string, error) {
-	// Make a set of required fields. As fields is processed, mark them off by
-	// deleting them.
-	required := map[string]struct{}{
-		"command": {},
-		"plugins": {},
-	}
-	// Env vars that the step has, but the pipeline doesn't have, are required.
-	// But we don't know what the pipeline has without passing it in, so treat
-	// all step env vars as required.
-	for e := range c.Env {
-		required[EnvNamespacePrefix+e] = struct{}{}
-	}
-
-	out := make(map[string]string, len(fields))
-	for _, f := range fields {
-		delete(required, f)
-
-		switch f {
-		case "command":
-			out["command"] = c.Command
-
-		case "plugins":
-			if len(c.Plugins) == 0 {
-				out["plugins"] = ""
-				break
-			}
-			// TODO: Reconsider using JSON here - is it stable enough?
-			val, err := json.Marshal(c.Plugins)
-			if err != nil {
-				return nil, err
-			}
-			out["plugins"] = string(val)
-
-		default:
-			if e, has := strings.CutPrefix(f, EnvNamespacePrefix); has {
-				// Env vars requested in `fields`, but are not in this step, are
-				// skipped.
-				if v, ok := c.Env[e]; ok {
-					out[f] = v
-				}
-				break
-			}
-
-			return nil, fmt.Errorf("unknown or unsupported field for signing %q", f)
-		}
-	}
-
-	if len(required) > 0 {
-		missing := make([]string, 0, len(required))
-		for k := range required {
-			missing = append(missing, k)
-		}
-		return nil, fmt.Errorf("one or more required fields are not present: %v", missing)
-	}
-	return out, nil
-}
-
-func (c *CommandStep) interpolate(env interpolate.Env) error {
-	cmd, err := interpolate.Interpolate(env, c.Command)
+func (c *CommandStep) interpolate(tf stringTransformer) error {
+	cmd, err := tf.Transform(c.Command)
 	if err != nil {
 		return err
 	}
+	c.Command = cmd
 
-	if err := interpolateSlice(env, c.Plugins); err != nil {
+	if err := interpolateSlice(tf, c.Plugins); err != nil {
 		return err
 	}
 
-	if err := interpolateMap(env, c.Env); err != nil {
-		return err
+	switch tf.(type) {
+	case envInterpolator:
+		if err := interpolateMap(tf, c.Env); err != nil {
+			return err
+		}
+		if c.Matrix, err = interpolateAny(tf, c.Matrix); err != nil {
+			return err
+		}
+
+	case matrixInterpolator:
+		// Matrix interpolation doesn't apply to env keys.
+		if err := interpolateMapValues(tf, c.Env); err != nil {
+			return err
+		}
 	}
 
 	// NB: Do not interpolate Signature.
 
-	if c.Matrix, err = interpolateAny(env, c.Matrix); err != nil {
+	if err := interpolateMap(tf, c.RemainingFields); err != nil {
 		return err
 	}
 
-	if err := interpolateMap(env, c.RemainingFields); err != nil {
-		return err
-	}
-
-	c.Command = cmd
 	return nil
 }
 

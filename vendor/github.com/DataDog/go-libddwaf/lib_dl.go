@@ -4,7 +4,7 @@
 // Copyright 2016-present Datadog, Inc.
 
 // Purego only works on linux/macOS with amd64 and arm64 from now
-//go:build (linux || darwin) && (amd64 || arm64) && !go1.21
+//go:build (linux || darwin) && (amd64 || arm64) && !go1.22
 
 package waf
 

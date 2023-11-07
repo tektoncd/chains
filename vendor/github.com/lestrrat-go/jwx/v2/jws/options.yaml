@@ -88,6 +88,27 @@ options:
       `jwk.Key` here unless you are 100% sure that all keys that you
       have provided are instances of `jwk.Key` (remember that the
       jwx API allows users to specify a raw key such as *rsa.PublicKey)
+  - ident: ValidateKey
+    interface: SignVerifyOption
+    argument_type: bool
+    comment: |
+      WithValidateKey specifies whether the key used for signing or verification
+      should be validated before using. Note that this means calling
+      `key.Validate()` on the key, which in turn means that your key
+      must be a `jwk.Key` instance, or a key that can be converted to
+      a `jwk.Key` by calling `jwk.FromRaw()`. This means that your
+      custom hardware-backed keys will probably not work.
+
+      You can directly call `key.Validate()` yourself if you need to
+      mix keys that cannot be converted to `jwk.Key`.
+
+      Please also note that use of this option will also result in
+      one extra conversion of raw keys to a `jwk.Key` instance. If you
+      care about shaving off as much as possible, consider using a
+      pre-validated key instead of using this option to validate
+      the key on-demand each time.
+
+      By default, the key is not validated.
   - ident: InferAlgorithmFromKey
     interface: WithKeySetSuboption
     argument_type: bool
@@ -95,9 +116,14 @@ options:
       WithInferAlgorithmFromKey specifies whether the JWS signing algorithm name
       should be inferred by looking at the provided key, in case the JWS
       message or the key does not have a proper `alg` header.
-      
+
+      When this option is set to true, a list of algorithm(s) that is compatible
+      with the key type will be enumerated, and _ALL_ of them will be tried
+      against the key/message pair. If any of them succeeds, the verification
+      will be considered successful.
+
       Compared to providing explicit `alg` from the key this is slower, and 
-      verification may fail to verify if some how our heuristics are wrong
+      verification may fail to verify if somehow our heuristics are wrong
       or outdated.
       
       Also, automatic detection of signature verification methods are always
