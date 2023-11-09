@@ -1,4 +1,5 @@
 <!--
+---
 linkTitle: "Chains Configuration"
 weight: 20
 ---
