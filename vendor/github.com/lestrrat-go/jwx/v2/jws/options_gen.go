@@ -139,6 +139,7 @@ type identPublicHeaders struct{}
 type identRequireKid struct{}
 type identSerialization struct{}
 type identUseDefault struct{}
+type identValidateKey struct{}
 
 func (identContext) String() string {
 	return "WithContext"
@@ -204,6 +205,10 @@ func (identUseDefault) String() string {
 	return "WithUseDefault"
 }
 
+func (identValidateKey) String() string {
+	return "WithValidateKey"
+}
+
 func WithContext(v context.Context) VerifyOption {
 	return &verifyOption{option.New(identContext{}, v)}
 }
@@ -235,8 +240,13 @@ func WithFS(v fs.FS) ReadFileOption {
 // should be inferred by looking at the provided key, in case the JWS
 // message or the key does not have a proper `alg` header.
 //
+// When this option is set to true, a list of algorithm(s) that is compatible
+// with the key type will be enumerated, and _ALL_ of them will be tried
+// against the key/message pair. If any of them succeeds, the verification
+// will be considered successful.
+//
 // Compared to providing explicit `alg` from the key this is slower, and
-// verification may fail to verify if some how our heuristics are wrong
+// verification may fail to verify if somehow our heuristics are wrong
 // or outdated.
 //
 // Also, automatic detection of signature verification methods are always
@@ -328,4 +338,25 @@ func WithCompact() SignOption {
 // (I think this should be removed)
 func WithUseDefault(v bool) WithKeySetSuboption {
 	return &withKeySetSuboption{option.New(identUseDefault{}, v)}
+}
+
+// WithValidateKey specifies whether the key used for signing or verification
+// should be validated before using. Note that this means calling
+// `key.Validate()` on the key, which in turn means that your key
+// must be a `jwk.Key` instance, or a key that can be converted to
+// a `jwk.Key` by calling `jwk.FromRaw()`. This means that your
+// custom hardware-backed keys will probably not work.
+//
+// You can directly call `key.Validate()` yourself if you need to
+// mix keys that cannot be converted to `jwk.Key`.
+//
+// Please also note that use of this option will also result in
+// one extra conversion of raw keys to a `jwk.Key` instance. If you
+// care about shaving off as much as possible, consider using a
+// pre-validated key instead of using this option to validate
+// the key on-demand each time.
+//
+// By default, the key is not validated.
+func WithValidateKey(v bool) SignVerifyOption {
+	return &signVerifyOption{option.New(identValidateKey{}, v)}
 }

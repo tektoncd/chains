@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/lestrrat-go/jwx/v2/internal/ecutil"
 	"github.com/lestrrat-go/jwx/v2/internal/keyconv"
 	"github.com/lestrrat-go/jwx/v2/internal/pool"
 	"github.com/lestrrat-go/jwx/v2/jwa"
@@ -64,6 +65,9 @@ func (es *ecdsaSigner) Sign(payload []byte, key interface{}) ([]byte, error) {
 
 	signer, ok := key.(crypto.Signer)
 	if ok {
+		if !isValidECDSAKey(key) {
+			return nil, fmt.Errorf(`cannot use key of type %T to generate ECDSA based signatures`, key)
+		}
 		switch key.(type) {
 		case ecdsa.PrivateKey, *ecdsa.PrivateKey:
 			// if it's a ecdsa.PrivateKey, it's more efficient to
@@ -133,6 +137,7 @@ func (es *ecdsaSigner) Sign(payload []byte, key interface{}) ([]byte, error) {
 	copy(sBytesPadded[keyBytes-len(sBytes):], sBytes)
 
 	out := append(rBytesPadded, sBytesPadded...)
+
 	return out, nil
 }
 
@@ -181,9 +186,13 @@ func (v *ecdsaVerifier) Verify(payload []byte, signature []byte, key interface{}
 	defer pool.ReleaseBigInt(r)
 	defer pool.ReleaseBigInt(s)
 
-	n := len(signature) / 2
-	r.SetBytes(signature[:n])
-	s.SetBytes(signature[n:])
+	keySize := ecutil.CalculateKeySize(pubkey.Curve)
+	if len(signature) != keySize*2 {
+		return fmt.Errorf(`invalid signature length for curve %q`, pubkey.Curve.Params().Name)
+	}
+
+	r.SetBytes(signature[:keySize])
+	s.SetBytes(signature[keySize:])
 
 	h := v.hash.New()
 	if _, err := h.Write(payload); err != nil {

@@ -83,12 +83,14 @@ func (p *Pipeline) Interpolate(envMap *env.Environment) error {
 		return err
 	}
 
+	tf := envInterpolator{envMap: envMap}
+
 	// Recursively go through the rest of the pipeline and perform environment
 	// variable interpolation on strings. Interpolation is performed in-place.
-	if err := interpolateSlice(envMap, p.Steps); err != nil {
+	if err := interpolateSlice(tf, p.Steps); err != nil {
 		return err
 	}
-	return interpolateMap(envMap, p.RemainingFields)
+	return interpolateMap(tf, p.RemainingFields)
 }
 
 // interpolateEnvBlock runs interpolate.Interpolate on each pair in p.Env,
@@ -124,6 +126,6 @@ func (p *Pipeline) interpolateEnvBlock(envMap *env.Environment) error {
 // plugin configurations and the pipeline "env". Parts of the pipeline are
 // mutated directly, so an error part-way through may leave some steps
 // un-signed.
-func (p *Pipeline) Sign(key jwk.Key) error {
-	return p.Steps.sign(p.Env.ToMap(), key)
+func (p *Pipeline) Sign(key jwk.Key, inv *PipelineInvariants) error {
+	return p.Steps.sign(key, p.Env.ToMap(), inv)
 }
