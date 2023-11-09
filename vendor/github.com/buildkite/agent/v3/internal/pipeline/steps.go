@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/buildkite/agent/v3/internal/ordered"
-	"github.com/buildkite/interpolate"
 	"github.com/lestrrat-go/jwx/v2/jwk"
 )
 
@@ -42,8 +41,8 @@ func (s *Steps) UnmarshalOrdered(o any) error {
 	return nil
 }
 
-func (s Steps) interpolate(env interpolate.Env) error {
-	return interpolateSlice(env, s)
+func (s Steps) interpolate(tf stringTransformer) error {
+	return interpolateSlice(tf, s)
 }
 
 // unmarshalStep unmarshals into the right kind of Step.
@@ -138,23 +137,23 @@ func stepByKeyInference(o *ordered.MapSA) (Step, error) {
 // sign adds signatures to each command step (and recursively to any command
 // steps that are within group steps. The steps are mutated directly, so an
 // error part-way through may leave some steps un-signed.
-func (s Steps) sign(env map[string]string, key jwk.Key) error {
+func (s Steps) sign(key jwk.Key, env map[string]string, pInv *PipelineInvariants) error {
 	for _, step := range s {
 		switch step := step.(type) {
 		case *CommandStep:
-			if step.Matrix != nil {
-				// Don't sign matrix steps... yet
-				continue
+			stepWithInvariants := &CommandStepWithPipelineInvariants{
+				CommandStep:        *step,
+				PipelineInvariants: *pInv,
 			}
 
-			sig, err := Sign(env, step, key)
+			sig, err := Sign(key, env, stepWithInvariants)
 			if err != nil {
 				return fmt.Errorf("signing step with command %q: %w", step.Command, err)
 			}
 			step.Signature = sig
 
 		case *GroupStep:
-			if err := step.Steps.sign(env, key); err != nil {
+			if err := step.Steps.sign(key, env, pInv); err != nil {
 				return fmt.Errorf("signing group step: %w", err)
 			}
 

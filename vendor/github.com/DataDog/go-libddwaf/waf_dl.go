@@ -3,7 +3,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2016-present Datadog, Inc.
 
-//go:build (linux || darwin) && (amd64 || arm64) && !go1.21
+//go:build (linux || darwin) && (amd64 || arm64) && !go1.22
 
 package waf
 
@@ -21,6 +21,7 @@ type wafDl struct {
 
 	Ddwaf_ruleset_info_free  uintptr `dlsym:"ddwaf_ruleset_info_free"`
 	Ddwaf_init               uintptr `dlsym:"ddwaf_init"`
+	Ddwaf_update             uintptr `dlsym:"ddwaf_update"`
 	Ddwaf_destroy            uintptr `dlsym:"ddwaf_destroy"`
 	Ddwaf_required_addresses uintptr `dlsym:"ddwaf_required_addresses"`
 	Ddwaf_get_version        uintptr `dlsym:"ddwaf_get_version"`
@@ -99,12 +100,19 @@ func (waf *wafDl) wafGetVersion() string {
 	return gostring(cast[byte](waf.syscall(waf.Ddwaf_get_version)))
 }
 
-func (waf *wafDl) wafInit(obj *wafObject, config *wafConfig, info *wafRulesetInfo) wafHandle {
-	handle := wafHandle(waf.syscall(waf.Ddwaf_init, ptrToUintptr(obj), ptrToUintptr(config), ptrToUintptr(info)))
-	keepAlive(obj)
+func (waf *wafDl) wafInit(ruleset *wafObject, config *wafConfig, info *wafRulesetInfo) wafHandle {
+	handle := wafHandle(waf.syscall(waf.Ddwaf_init, ptrToUintptr(ruleset), ptrToUintptr(config), ptrToUintptr(info)))
+	keepAlive(ruleset)
 	keepAlive(config)
 	keepAlive(info)
 	return handle
+}
+
+func (waf *wafDl) wafUpdate(handle wafHandle, ruleset *wafObject, info *wafRulesetInfo) wafHandle {
+	newHandle := wafHandle(waf.syscall(waf.Ddwaf_update, uintptr(handle), ptrToUintptr(ruleset), ptrToUintptr(info)))
+	keepAlive(ruleset)
+	keepAlive(info)
+	return newHandle
 }
 
 func (waf *wafDl) wafRulesetInfoFree(info *wafRulesetInfo) {

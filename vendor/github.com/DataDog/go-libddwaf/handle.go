@@ -103,6 +103,43 @@ func (handle *Handle) Addresses() []string {
 	return wafLib.wafRequiredAddresses(handle.cHandle)
 }
 
+// Update the ruleset of a WAF instance into a new handle on its own
+// the previous handle still needs to be closed manually
+func (handle *Handle) Update(newRules any) (*Handle, error) {
+
+	encoder := newMaxEncoder()
+	obj, err := encoder.Encode(newRules)
+	if err != nil {
+		return nil, fmt.Errorf("could not encode the WAF ruleset into a WAF object: %w", err)
+	}
+
+	cRulesetInfo := new(wafRulesetInfo)
+
+	cHandle := wafLib.wafUpdate(handle.cHandle, obj, cRulesetInfo)
+	keepAlive(encoder.cgoRefs)
+	if cHandle == 0 {
+		return nil, errors.New("could not update the WAF instance")
+	}
+
+	defer wafLib.wafRulesetInfoFree(cRulesetInfo)
+
+	errorsMap, err := decodeErrors(&cRulesetInfo.errors)
+	if err != nil { // Something is very wrong
+		return nil, fmt.Errorf("could not decode the WAF ruleset errors: %w", err)
+	}
+
+	return &Handle{
+		cHandle:    cHandle,
+		refCounter: atomic.NewInt32(1), // We count the handle itself in the counter
+		rulesetInfo: RulesetInfo{
+			Loaded:  cRulesetInfo.loaded,
+			Failed:  cRulesetInfo.failed,
+			Errors:  errorsMap,
+			Version: gostring(cast[byte](cRulesetInfo.version)),
+		},
+	}, nil
+}
+
 // closeContext calls ddwaf_context_destroy and eventually ddwaf_destroy on the handle
 func (handle *Handle) closeContext(context *Context) {
 	wafLib.wafContextDestroy(context.cContext)

@@ -1,10 +1,17 @@
 package pipeline
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/buildkite/agent/v3/internal/ordered"
+	"gopkg.in/yaml.v3"
 )
+
+var _ interface {
+	json.Unmarshaler
+	ordered.Unmarshaler
+} = (*Plugins)(nil)
 
 // Plugins is a sequence of plugins. It is useful for unmarshaling.
 type Plugins []*Plugin
@@ -22,15 +29,24 @@ func (p *Plugins) UnmarshalOrdered(o any) error {
 	// Parse each "key: value" as "name: config", then append in order.
 	unmarshalMap := func(m *ordered.MapSA) error {
 		return m.Range(func(k string, v any) error {
-			*p = append(*p, &Plugin{
-				Name:   k,
-				Config: v,
-			})
+			// ToMapRecursive demolishes any ordering within the plugin config.
+			// This is needed because the backend likes to reorder the keys,
+			// and for signing we need the JSON form to be stable.
+			plugin := &Plugin{
+				Source: k,
+				Config: ordered.ToMapRecursive(v),
+			}
+			*p = append(*p, plugin)
 			return nil
 		})
 	}
 
 	switch o := o.(type) {
+	case nil:
+		// Someone wrote `plugins: null` (possibly us).
+		*p = nil
+		return nil
+
 	case []any:
 		for _, c := range o {
 			switch ct := c.(type) {
@@ -51,7 +67,7 @@ func (p *Plugins) UnmarshalOrdered(o any) error {
 				//   - plugin#1.0.0
 				// (no config, only plugin)
 				*p = append(*p, &Plugin{
-					Name:   ct,
+					Source: ct,
 					Config: nil,
 				})
 
@@ -77,4 +93,14 @@ func (p *Plugins) UnmarshalOrdered(o any) error {
 
 	}
 	return nil
+}
+
+// UnmarshalJSON is used mainly to normalise the BUILDKITE_PLUGINS env var.
+func (p *Plugins) UnmarshalJSON(b []byte) error {
+	// JSON is just a specific kind of YAML.
+	var n yaml.Node
+	if err := yaml.Unmarshal(b, &n); err != nil {
+		return err
+	}
+	return ordered.Unmarshal(&n, &p)
 }

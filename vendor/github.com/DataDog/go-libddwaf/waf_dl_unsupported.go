@@ -4,7 +4,7 @@
 // Copyright 2016-present Datadog, Inc.
 
 // Build when the target OS or architecture are not supported
-//go:build (!linux && !darwin) || (!amd64 && !arm64) || go1.21
+//go:build (!linux && !darwin) || (!amd64 && !arm64) || go1.22
 
 package waf
 
@@ -19,6 +19,10 @@ func (waf *wafDl) wafGetVersion() string {
 }
 
 func (waf *wafDl) wafInit(obj *wafObject, config *wafConfig, info *wafRulesetInfo) wafHandle {
+	return 0
+}
+
+func (waf *wafDl) wafUpdate(handle wafHandle, ruleset *wafObject, info *wafRulesetInfo) wafHandle {
 	return 0
 }
 
