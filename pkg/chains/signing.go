@@ -46,6 +46,13 @@ type ObjectSigner struct {
 	Pipelineclientset versioned.Interface
 }
 
+func NewSignerFromConfig(ctx context.Context, sp string, cfg config.Config) (signing.Signer, error) {
+	if cfg.Signers.KMS.KMSRef != "" {
+		return kms.NewSigner(ctx, cfg.Signers.KMS)
+	}
+	return x509.NewSigner(ctx, sp, cfg)
+}
+
 func allSigners(ctx context.Context, sp string, cfg config.Config) map[string]signing.Signer {
 	l := logging.FromContext(ctx)
 	all := map[string]signing.Signer{}

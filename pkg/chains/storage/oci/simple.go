@@ -42,19 +42,20 @@ var (
 	_ api.Storer[name.Digest, simple.SimpleContainerImage] = &SimpleStorer{}
 )
 
-func NewSimpleStorerFromConfig(opts ...SimpleStorerOption) (*SimpleStorer, error) {
-	s := &SimpleStorer{}
-	for _, o := range opts {
-		if err := o.applySimpleStorer(s); err != nil {
-			return nil, err
-		}
+func NewSimpleStorer(opts ...Option) (*SimpleStorer, error) {
+	o := &ociOption{}
+	for _, f := range opts {
+		f(o)
 	}
-	return s, nil
+	return &SimpleStorer{
+		repo:       o.repo,
+		remoteOpts: o.remote,
+	}, nil
 }
 
 func (s *SimpleStorer) Store(ctx context.Context, req *api.StoreRequest[name.Digest, simple.SimpleContainerImage]) (*api.StoreResponse, error) {
 	logger := logging.FromContext(ctx).With("image", req.Artifact.String())
-	logger.Info("Uploading signature")
+	logger.Info("Uploading signature", req.Artifact)
 
 	se, err := ociremote.SignedEntity(req.Artifact, ociremote.WithRemoteOptions(s.remoteOpts...))
 	if err != nil {
@@ -76,6 +77,10 @@ func (s *SimpleStorer) Store(ctx context.Context, req *api.StoreRequest[name.Dig
 	if err != nil {
 		return nil, err
 	}
+
+	logger.Info("artifact: ", req.Artifact)
+	logger.Info("repo: ", req.Artifact.Repository)
+	logger.Info("cfg: ", s.repo != nil, s.repo)
 
 	repo := req.Artifact.Repository
 	if s.repo != nil {

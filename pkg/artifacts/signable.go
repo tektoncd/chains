@@ -60,6 +60,11 @@ type Signable interface {
 	Enabled(cfg config.Config) bool
 }
 
+// Extractor extracts a given type T from a Tekton object.
+type Extractor[T any] interface {
+	Extract(ctx context.Context, obj objects.TektonObject) ([]T, error)
+}
+
 type TaskRunArtifact struct{}
 
 var _ Signable = &TaskRunArtifact{}
@@ -150,7 +155,32 @@ type image struct {
 
 func (oa *OCIArtifact) ExtractObjects(ctx context.Context, obj objects.TektonObject) []interface{} {
 	log := logging.FromContext(ctx)
-	objs := []interface{}{}
+	digests, err := oa.Extract(ctx, obj)
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+
+	// Convert to interface
+	objs := []any{}
+	for _, d := range digests {
+		objs = append(objs, d)
+	}
+	return objs
+}
+
+var (
+	defaultOCI = OCIArtifact{}
+)
+
+func ExtractOCI(ctx context.Context, obj objects.TektonObject) ([]name.Digest, error) {
+	return defaultOCI.Extract(ctx, obj)
+}
+
+func (OCIArtifact) Extract(ctx context.Context, obj objects.TektonObject) ([]name.Digest, error) {
+	log := logging.FromContext(ctx)
+
+	var out []name.Digest
 
 	// TODO: Not applicable to PipelineRuns, should look into a better way to separate this out
 	if tr, ok := obj.GetObject().(*v1beta1.TaskRun); ok {
@@ -182,21 +212,25 @@ func (oa *OCIArtifact) ExtractObjects(ctx context.Context, obj objects.TektonObj
 				log.Error(err)
 				continue
 			}
-			objs = append(objs, dgst)
+			out = append(out, dgst)
 		}
 	}
 
 	// Now check TaskResults
-	resultImages := ExtractOCIImagesFromResults(ctx, obj)
-	objs = append(objs, resultImages...)
+	digests, err := extractOCIImagesFromResults(ctx, obj)
+	if err != nil {
+		log.Warnf("error extracting digests from results: %v", err)
+		return nil, err
+	}
+	out = append(out, digests...)
 
-	return objs
+	return out, nil
 }
 
-func ExtractOCIImagesFromResults(ctx context.Context, obj objects.TektonObject) []interface{} {
+func extractOCIImagesFromResults(ctx context.Context, obj objects.TektonObject) ([]name.Digest, error) {
 	logger := logging.FromContext(ctx)
-	objs := []interface{}{}
 
+	out := []name.Digest{}
 	extractor := structuredSignableExtractor{
 		uriSuffix:    "IMAGE_URL",
 		digestSuffix: "IMAGE_DIGEST",
@@ -209,7 +243,7 @@ func ExtractOCIImagesFromResults(ctx context.Context, obj objects.TektonObject) 
 			continue
 		}
 
-		objs = append(objs, dgst)
+		out = append(out, dgst)
 	}
 
 	// look for a comma separated list of images
@@ -229,11 +263,10 @@ func ExtractOCIImagesFromResults(ctx context.Context, obj objects.TektonObject) 
 				logger.Errorf("error getting digest for img %s: %v", trimmed, err)
 				continue
 			}
-			objs = append(objs, dgst)
+			out = append(out, dgst)
 		}
 	}
-
-	return objs
+	return out, nil
 }
 
 // ExtractSignableTargetFromResults extracts signable targets that aim to generate intoto provenance as materials within TaskRun results and store them as StructuredSignable.

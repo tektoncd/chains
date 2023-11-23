@@ -47,14 +47,14 @@ type TaskAttestation struct {
 	Results    []v1beta1.TaskRunResult   `json:"results,omitempty"`
 }
 
-func GenerateAttestation(ctx context.Context, pro *objects.PipelineRunObject, slsaConfig *slsaconfig.SlsaConfig) (interface{}, error) {
+func GenerateAttestation(ctx context.Context, pro *objects.PipelineRunObject, slsaConfig *slsaconfig.SlsaConfig) (*intoto.ProvenanceStatement, error) {
 	subjects := extract.SubjectDigests(ctx, pro, slsaConfig)
 
 	mat, err := material.PipelineMaterials(ctx, pro, slsaConfig)
 	if err != nil {
 		return nil, err
 	}
-	att := intoto.ProvenanceStatement{
+	att := &intoto.ProvenanceStatement{
 		StatementHeader: intoto.StatementHeader{
 			Type:          intoto.StatementInTotoV01,
 			PredicateType: slsa.PredicateSLSAProvenance,

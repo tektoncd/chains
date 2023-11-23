@@ -15,6 +15,7 @@ package simple
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/sigstore/sigstore/pkg/signature/payload"
@@ -66,6 +67,20 @@ func (i SimpleContainerImage) ImageName() string {
 	return fmt.Sprintf("%s@%s", i.Critical.Identity.DockerReference, i.Critical.Image.DockerManifestDigest)
 }
 
+func (i SimpleContainerImage) MarshalBinary() ([]byte, error) {
+	return json.Marshal(i)
+}
+
 func (i *SimpleSigning) Type() config.PayloadType {
 	return formats.PayloadTypeSimpleSigning
+}
+
+var (
+	_ formats.Formatter[name.Digest, SimpleContainerImage] = &SimpleSigningPayloader{}
+)
+
+type SimpleSigningPayloader SimpleSigning
+
+func (SimpleSigningPayloader) FormatPayload(_ context.Context, v name.Digest) (SimpleContainerImage, error) {
+	return NewSimpleStruct(v), nil
 }

@@ -27,14 +27,14 @@ import (
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 )
 
-func GenerateAttestation(ctx context.Context, tro *objects.TaskRunObject, slsaConfig *slsaconfig.SlsaConfig) (interface{}, error) {
+func GenerateAttestation(ctx context.Context, tro *objects.TaskRunObject, slsaConfig *slsaconfig.SlsaConfig) (*intoto.ProvenanceStatement, error) {
 	subjects := extract.SubjectDigests(ctx, tro, slsaConfig)
 
 	mat, err := material.TaskMaterials(ctx, tro)
 	if err != nil {
 		return nil, err
 	}
-	att := intoto.ProvenanceStatement{
+	att := &intoto.ProvenanceStatement{
 		StatementHeader: intoto.StatementHeader{
 			Type:          intoto.StatementInTotoV01,
 			PredicateType: slsa.PredicateSLSAProvenance,
