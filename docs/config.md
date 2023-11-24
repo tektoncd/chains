@@ -1,21 +1,25 @@
-<!--
+## <!--
+
+linkTitle: "Chains Configuration" weight: 20
+
 ---
-linkTitle: "Chains Configuration"
-weight: 20
----
+
 -->
 
 # Chains Configuration
 
-`Chains` works by observing `TaskRun` and `PipelineRun` executions, capturing relevant information, and storing it in a cryptographically-signed format.
+`Chains` works by observing `TaskRun` and `PipelineRun` executions, capturing
+relevant information, and storing it in a cryptographically-signed format.
 
-`TaskRuns` and `PipelineRuns` can indicate inputs and outputs which are then captured and surfaced in the `Chains` payload formats, where relevant.
-`Chains` uses the `Results` to _hint_ at the correct inputs and outputs. Check out [slsa-provenance.md](slsa-provenance.md) for more details.
+`TaskRuns` and `PipelineRuns` can indicate inputs and outputs which are then
+captured and surfaced in the `Chains` payload formats, where relevant. `Chains`
+uses the `Results` to _hint_ at the correct inputs and outputs. Check out
+[slsa-provenance.md](slsa-provenance.md) for more details.
 
 ## Chains Configuration
 
-Chains uses a `ConfigMap` called `chains-config` in the `tekton-chains` namespace for configuration.
-Supported keys include:
+Chains uses a `ConfigMap` called `chains-config` in the `tekton-chains`
+namespace for configuration. Supported keys include:
 
 ### TaskRun Configuration
 
@@ -41,7 +45,8 @@ Supported keys include:
 
 > NOTE:
 >
-> - For grafeas storage backend, currently we only support Container Analysis. We will make grafeas server address configurabe within a short time.
+> - For grafeas storage backend, currently we only support Container Analysis.
+>   We will make grafeas server address configurabe within a short time.
 > - `slsa/v1` is an alias of `in-toto` for backwards compatibility.
 > - `slsa/v2alpha2` corresponds to the slsav1.0 spec.
 
@@ -72,7 +77,9 @@ Supported keys include:
 
 #### docstore
 
-You can read about the go-cloud docstore URI format [here](https://gocloud.dev/howto/docstore/). Tekton Chains supports the following docstore services:
+You can read about the go-cloud docstore URI format
+[here](https://gocloud.dev/howto/docstore/). Tekton Chains supports the
+following docstore services:
 
 - `firestore`
 - `dynamodb`
@@ -80,26 +87,61 @@ You can read about the go-cloud docstore URI format [here](https://gocloud.dev/h
 
 #### MongoDB
 
-With MongoDB you will need to add a `MONGO_SERVER_URL` env var with the MongoDB connection URI to the `tekton-chains-controller`, the go-cloud URI is just to point at the db and collection
+With MongoDB you will need to add a `MONGO_SERVER_URL` env var with the MongoDB
+connection URI to the `tekton-chains-controller`, the go-cloud URI is just to
+point at the db and collection
 
 #### Grafeas
 
-You can read more about Grafeas notes and occurrences [here](https://github.com/grafeas/grafeas/blob/master/docs/grafeas_concepts.md). To create occurrences, we have to create notes first that are used to link occurrences. Two types of occurrences will be created: `ATTESTATION` Occurrence and `BUILD` Occrrence. The configurable `noteid` is used as the prefix of the note name. Under the hood, the suffix `-simplesigning` will be appended for the `ATTESTATION` note, and the suffix `-intoto` will be appended for the `BUILD` note. If the `noteid` field is not configured, `tekton-<NAMESPACE>` will be used as the prefix.
+You can read more about Grafeas notes and occurrences
+[here](https://github.com/grafeas/grafeas/blob/master/docs/grafeas_concepts.md).
+To create occurrences, we have to create notes first that are used to link
+occurrences. Two types of occurrences will be created: `ATTESTATION` Occurrence
+and `BUILD` Occrrence. The configurable `noteid` is used as the prefix of the
+note name. Under the hood, the suffix `-simplesigning` will be appended for the
+`ATTESTATION` note, and the suffix `-intoto` will be appended for the `BUILD`
+note. If the `noteid` field is not configured, `tekton-<NAMESPACE>` will be used
+as the prefix.
 
 ### In-toto Configuration
 
-| Key                         | Description                                    | Supported Values                                                                | Default                             |
-| :-------------------------- | :--------------------------------------------- | :------------------------------------------------------------------------------ | :---------------------------------- |
-| `builder.id`                | The builder ID to set for in-toto attestations |                                                                                 | `https://tekton.dev/chains/v2`      |
-| `builddefinition.buildtype` | The buildType for in-toto attestations         | `https://tekton.dev/chains/v2/slsa`, `https://tekton.dev/chains/v2/slsa-tekton` | `https://tekton.dev/chains/v2/slsa` |
+| Key                         | Description                                    | Supported Values                                                                | Default                              |
+| :-------------------------- | :--------------------------------------------- | :------------------------------------------------------------------------------ | :----------------------------------- |
+| `builder.id`                | The builder ID to set for in-toto attestations |                                                                                 | [Cluster's OIDC Issuer](#builder-id) |
+| `builddefinition.buildtype` | The buildType for in-toto attestations         | `https://tekton.dev/chains/v2/slsa`, `https://tekton.dev/chains/v2/slsa-tekton` | `https://tekton.dev/chains/v2/slsa`  |
 
-> NOTE:
-> Considerations for the builddefinition.buildtype parameter:
+> NOTE: Considerations for the builddefinition.buildtype parameter:
 >
-> - It is only valid for `slsa/v2alpha2` configurations (see TaskRun or PipelineRun configuration).
+> - It is only valid for `slsa/v2alpha2` configurations (see TaskRun or
+>   PipelineRun configuration).
 > - The parameter can take one of two values:
->   - `https://tekton.dev/chains/v2/slsa`: This buildType strictly conforms to the slsav1.0 spec.
->   - `https://tekton.dev/chains/v2/slsa-tekton`: This buildType also conforms to the slsav1.0 spec, but adds additional informaton specific to Tekton. This information includes the PipelinRun/TaskRun labels and annotations as internalParameters. It also includes capturing each pipeline task in a PipelinRun under resolvedDependencies.
+>   - `https://tekton.dev/chains/v2/slsa`: This buildType strictly conforms to
+>     the slsav1.0 spec.
+>   - `https://tekton.dev/chains/v2/slsa-tekton`: This buildType also conforms
+>     to the slsav1.0 spec, but adds additional informaton specific to Tekton.
+>     This information includes the PipelinRun/TaskRun labels and annotations as
+>     internalParameters. It also includes capturing each pipeline task in a
+>     PipelinRun under resolvedDependencies.
+
+#### Builder ID
+
+By default, Tekton Chains uses the Cluster OIDC issuer as the Builder ID to
+identify the cluster performing the build.
+
+This can vary depending on how the cluster is deployed - see
+https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/#serviceaccount-token-volume-projection
+for more details.
+
+Examples:
+
+- GKE:
+  `https://containers.googleapis.com/v1/projects/123456789012/locations/us-east1/clusters/cluster-1`
+- EKS:
+  `https://oidc.eks.us-east-1.amazonaws.com/id/12345678901234567890123456789012`
+- AKS:
+  `https://eastus.oic.prod-aks.azure.com/00000000-0000-0000-0000-000000000000/00000000-0000-0000-0000-000000000000/`
+- Kind/Local: `https://kubernetes.default.svc` (NOTE: this isn't a real URL and
+  won't give you much useful information)
 
 ### Sigstore Features Configuration
 
@@ -110,7 +152,9 @@ You can read more about Grafeas notes and occurrences [here](https://github.com/
 | `transparency.enabled` | Whether to enable automatic binary transparency uploads.           | `true`, `false`, `manual` | `false`                      |
 | `transparency.url`     | The URL to upload binary transparency attestations to, if enabled. |                           | `https://rekor.sigstore.dev` |
 
-**Note**: If `transparency.enabled` is set to `manual`, then only `TaskRuns` and `PipelineRuns` with the following annotation will be uploaded to the transparency log:
+**Note**: If `transparency.enabled` is set to `manual`, then only `TaskRuns` and
+`PipelineRuns` with the following annotation will be uploaded to the
+transparency log:
 
 ```yaml
 chains.tekton.dev/transparency-upload: "true"
