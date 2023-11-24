@@ -93,7 +93,7 @@ var defaultSigners = SignerConfigs{
 }
 
 var defaultBuilder = BuilderConfig{
-	ID: "https://tekton.dev/chains/v2",
+	ID: "",
 }
 
 var defaultArtifacts = ArtifactConfigs{

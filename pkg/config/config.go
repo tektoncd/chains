@@ -17,11 +17,13 @@ limitations under the License.
 package config
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/sigstore/sigstore/pkg/tuf"
+	"github.com/tektoncd/chains/pkg/internal/cluster"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	cm "knative.dev/pkg/configmap"
@@ -251,7 +253,9 @@ func defaultConfig() *Config {
 			},
 		},
 		Builder: BuilderConfig{
-			ID: "https://tekton.dev/chains/v2",
+			// TODO: Not sure if we should be setting here, or fetch it
+			// when it's used.
+			ID: cluster.ClusterID(context.TODO()),
 		},
 		BuildDefinition: BuildDefinitionConfig{
 			BuildType: "https://tekton.dev/chains/v2/slsa",
