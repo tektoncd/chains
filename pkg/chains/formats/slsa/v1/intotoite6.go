@@ -57,9 +57,9 @@ func (i *InTotoIte6) Wrap() bool {
 
 func (i *InTotoIte6) CreatePayload(ctx context.Context, obj interface{}) (interface{}, error) {
 	switch v := obj.(type) {
-	case *objects.TaskRunObject:
+	case *objects.TaskRunObjectV1:
 		return taskrun.GenerateAttestation(ctx, v, i.slsaConfig)
-	case *objects.PipelineRunObject:
+	case *objects.PipelineRunObjectV1:
 		return pipelinerun.GenerateAttestation(ctx, v, i.slsaConfig)
 	default:
 		return nil, fmt.Errorf("intoto does not support type: %s", v)

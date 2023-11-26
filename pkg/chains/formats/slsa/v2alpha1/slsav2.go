@@ -50,7 +50,7 @@ func (s *Slsa) Wrap() bool {
 
 func (s *Slsa) CreatePayload(ctx context.Context, obj interface{}) (interface{}, error) {
 	switch v := obj.(type) {
-	case *objects.TaskRunObject:
+	case *objects.TaskRunObjectV1:
 		return taskrun.GenerateAttestation(ctx, s.builderID, s.Type(), v)
 	default:
 		return nil, fmt.Errorf("intoto does not support type: %s", v)

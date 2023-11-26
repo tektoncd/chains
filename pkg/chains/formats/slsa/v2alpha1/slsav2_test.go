@@ -27,7 +27,6 @@ import (
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/chains/pkg/internal/objectloader"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/google/go-cmp/cmp"
@@ -35,7 +34,7 @@ import (
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/pod"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	logtesting "knative.dev/pkg/logging/testing"
 )
 
@@ -101,60 +100,59 @@ func TestTaskRunCreatePayload1(t *testing.T) {
 				},
 				Parameters: map[string]any{
 					"ComputeResources": (*corev1.ResourceRequirements)(nil),
-					"Debug":            (*v1beta1.TaskRunDebug)(nil),
-					"Params": v1beta1.Params{
+					"Debug":            (*v1.TaskRunDebug)(nil),
+					"Params": v1.Params{
 						{
 							Name:  "IMAGE",
-							Value: v1beta1.ParamValue{Type: "string", StringVal: "test.io/test/image"},
+							Value: v1.ParamValue{Type: "string", StringVal: "test.io/test/image"},
 						},
 						{
 							Name:  "CHAINS-GIT_COMMIT",
-							Value: v1beta1.ParamValue{Type: "string", StringVal: "sha:taskrun"},
+							Value: v1.ParamValue{Type: "string", StringVal: "sha:taskrun"},
 						},
 						{
 							Name:  "CHAINS-GIT_URL",
-							Value: v1beta1.ParamValue{Type: "string", StringVal: "https://git.test.com"},
+							Value: v1.ParamValue{Type: "string", StringVal: "https://git.test.com"},
 						},
 					},
 					"PodTemplate":        (*pod.Template)(nil),
-					"Resources":          (*v1beta1.TaskRunResources)(nil),
 					"Retries":            0,
 					"ServiceAccountName": "default",
-					"SidecarOverrides":   []v1beta1.TaskRunSidecarOverride(nil),
-					"Status":             v1beta1.TaskRunSpecStatus(""),
-					"StatusMessage":      v1beta1.TaskRunSpecStatusMessage(""),
-					"StepOverrides":      []v1beta1.TaskRunStepOverride(nil),
+					"SidecarSpecs":       []v1.TaskRunSidecarSpec(nil),
+					"Status":             v1.TaskRunSpecStatus(""),
+					"StatusMessage":      v1.TaskRunSpecStatusMessage(""),
+					"StepSpecs":          []v1.TaskRunStepSpec(nil),
 					"Timeout":            (*metav1.Duration)(nil),
-					"Workspaces":         []v1beta1.WorkspaceBinding(nil),
+					"Workspaces":         []v1.WorkspaceBinding(nil),
 				},
 			},
 			Builder: common.ProvenanceBuilder{
 				ID: "test_builder-1",
 			},
-			BuildType: "https://chains.tekton.dev/format/slsa/v2alpha1/type/tekton.dev/v1beta1/TaskRun",
+			BuildType: "https://chains.tekton.dev/format/slsa/v2alpha1/type/tekton.dev/v1/TaskRun",
 			BuildConfig: taskrun.BuildConfig{
-				TaskSpec: &v1beta1.TaskSpec{
-					Params: []v1beta1.ParamSpec{
+				TaskSpec: &v1.TaskSpec{
+					Params: []v1.ParamSpec{
 						{Name: "IMAGE", Type: "string"}, {Name: "filename", Type: "string"},
 						{Name: "DOCKERFILE", Type: "string"}, {Name: "CONTEXT", Type: "string"},
 						{Name: "EXTRA_ARGS", Type: "string"}, {Name: "BUILDER_IMAGE", Type: "string"},
-						{Name: "CHAINS-GIT_COMMIT", Type: "string", Default: &v1beta1.ParamValue{Type: "string", StringVal: "sha:task"}},
-						{Name: "CHAINS-GIT_URL", Type: "string", Default: &v1beta1.ParamValue{Type: "string", StringVal: "https://defaultgit.test.com"}},
+						{Name: "CHAINS-GIT_COMMIT", Type: "string", Default: &v1.ParamValue{Type: "string", StringVal: "sha:task"}},
+						{Name: "CHAINS-GIT_URL", Type: "string", Default: &v1.ParamValue{Type: "string", StringVal: "https://defaultgit.test.com"}},
 					},
-					Steps: []v1beta1.Step{{Name: "step1"}, {Name: "step2"}, {Name: "step3"}},
-					Results: []v1beta1.TaskResult{
+					Steps: []v1.Step{{Name: "step1"}, {Name: "step2"}, {Name: "step3"}},
+					Results: []v1.TaskResult{
 						{Name: "IMAGE_DIGEST", Description: "Digest of the image just built."},
 						{Name: "filename_DIGEST", Description: "Digest of the file just built."},
 					},
 				},
-				TaskRunResults: []v1beta1.TaskRunResult{
+				Results: []v1.TaskRunResult{
 					{
 						Name:  "IMAGE_DIGEST",
-						Value: v1beta1.ParamValue{Type: "string", StringVal: "sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"},
+						Value: v1.ParamValue{Type: "string", StringVal: "sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"},
 					},
 					{
 						Name:  "IMAGE_URL",
-						Value: v1beta1.ParamValue{Type: "string", StringVal: "gcr.io/my/image"},
+						Value: v1.ParamValue{Type: "string", StringVal: "gcr.io/my/image"},
 					},
 				},
 			},
@@ -162,7 +160,7 @@ func TestTaskRunCreatePayload1(t *testing.T) {
 	}
 	i, _ := NewFormatter(cfg)
 
-	got, err := i.CreatePayload(ctx, objects.NewTaskRunObject(tr))
+	got, err := i.CreatePayload(ctx, objects.NewTaskRunObjectV1(tr))
 
 	if err != nil {
 		t.Errorf("unexpected error: %s", err.Error())
@@ -216,54 +214,53 @@ func TestTaskRunCreatePayload2(t *testing.T) {
 				},
 				Parameters: map[string]any{
 					"ComputeResources": (*corev1.ResourceRequirements)(nil),
-					"Debug":            (*v1beta1.TaskRunDebug)(nil),
-					"Params": v1beta1.Params{
+					"Debug":            (*v1.TaskRunDebug)(nil),
+					"Params": v1.Params{
 						{
 							Name:  "url",
-							Value: v1beta1.ParamValue{Type: "string", StringVal: "https://git.test.com"},
+							Value: v1.ParamValue{Type: "string", StringVal: "https://git.test.com"},
 						},
-						{Name: "revision", Value: v1beta1.ParamValue{Type: "string"}},
+						{Name: "revision", Value: v1.ParamValue{Type: "string"}},
 					},
 					"PodTemplate":        (*pod.Template)(nil),
-					"Resources":          (*v1beta1.TaskRunResources)(nil),
 					"Retries":            0,
 					"ServiceAccountName": "default",
-					"SidecarOverrides":   []v1beta1.TaskRunSidecarOverride(nil),
-					"Status":             v1beta1.TaskRunSpecStatus(""),
-					"StatusMessage":      v1beta1.TaskRunSpecStatusMessage(""),
-					"StepOverrides":      []v1beta1.TaskRunStepOverride(nil),
+					"SidecarSpecs":       []v1.TaskRunSidecarSpec(nil),
+					"Status":             v1.TaskRunSpecStatus(""),
+					"StatusMessage":      v1.TaskRunSpecStatusMessage(""),
+					"StepSpecs":          []v1.TaskRunStepSpec(nil),
 					"Timeout":            (*metav1.Duration)(nil),
-					"Workspaces":         []v1beta1.WorkspaceBinding(nil),
+					"Workspaces":         []v1.WorkspaceBinding(nil),
 				},
 			},
-			BuildType: "https://chains.tekton.dev/format/slsa/v2alpha1/type/tekton.dev/v1beta1/TaskRun",
+			BuildType: "https://chains.tekton.dev/format/slsa/v2alpha1/type/tekton.dev/v1/TaskRun",
 			BuildConfig: taskrun.BuildConfig{
-				TaskSpec: &v1beta1.TaskSpec{
-					Params: []v1beta1.ParamSpec{
-						{Name: "CHAINS-GIT_COMMIT", Type: "string", Default: &v1beta1.ParamValue{Type: "string", StringVal: "sha:taskdefault"}},
-						{Name: "CHAINS-GIT_URL", Type: "string", Default: &v1beta1.ParamValue{Type: "string", StringVal: "https://git.test.com"}},
+				TaskSpec: &v1.TaskSpec{
+					Params: []v1.ParamSpec{
+						{Name: "CHAINS-GIT_COMMIT", Type: "string", Default: &v1.ParamValue{Type: "string", StringVal: "sha:taskdefault"}},
+						{Name: "CHAINS-GIT_URL", Type: "string", Default: &v1.ParamValue{Type: "string", StringVal: "https://git.test.com"}},
 					},
-					Steps: []v1beta1.Step{{Name: "step1", Env: []v1.EnvVar{{Name: "HOME", Value: "$(params.userHome)"}, {Name: "PARAM_URL", Value: "$(params.url)"}}, Script: "git clone"}},
-					Results: []v1beta1.TaskResult{
+					Steps: []v1.Step{{Name: "step1", Env: []corev1.EnvVar{{Name: "HOME", Value: "$(params.userHome)"}, {Name: "PARAM_URL", Value: "$(params.url)"}}, Script: "git clone"}},
+					Results: []v1.TaskResult{
 						{Name: "some-uri_DIGEST", Description: "Digest of a file to push."},
 						{Name: "some-uri", Description: "some calculated uri"},
 					},
 				},
-				TaskRunResults: []v1beta1.TaskRunResult{
+				Results: []v1.TaskRunResult{
 					{
 						Name:  "some-uri_DIGEST",
-						Value: v1beta1.ParamValue{Type: "string", StringVal: "sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"},
+						Value: v1.ParamValue{Type: "string", StringVal: "sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"},
 					},
 					{
 						Name:  "some-uri",
-						Value: v1beta1.ParamValue{Type: "string", StringVal: "pkg:deb/debian/curl@7.50.3-1"},
+						Value: v1.ParamValue{Type: "string", StringVal: "pkg:deb/debian/curl@7.50.3-1"},
 					},
 				},
 			},
 		},
 	}
 	i, _ := NewFormatter(cfg)
-	got, err := i.CreatePayload(ctx, objects.NewTaskRunObject(tr))
+	got, err := i.CreatePayload(ctx, objects.NewTaskRunObjectV1(tr))
 
 	if err != nil {
 		t.Errorf("unexpected error: %s", err.Error())
@@ -305,7 +302,7 @@ func TestMultipleSubjects(t *testing.T) {
 			},
 		},
 		Predicate: slsa.ProvenancePredicate{
-			BuildType: "https://chains.tekton.dev/format/slsa/v2alpha1/type/tekton.dev/v1beta1/TaskRun",
+			BuildType: "https://chains.tekton.dev/format/slsa/v2alpha1/type/tekton.dev/v1/TaskRun",
 			Metadata: &slsa.ProvenanceMetadata{
 				Completeness: slsa.ProvenanceComplete{
 					Parameters: true,
@@ -323,34 +320,33 @@ func TestMultipleSubjects(t *testing.T) {
 			Invocation: slsa.ProvenanceInvocation{
 				Parameters: map[string]any{
 					"ComputeResources":   (*corev1.ResourceRequirements)(nil),
-					"Debug":              (*v1beta1.TaskRunDebug)(nil),
-					"Params":             v1beta1.Params{},
+					"Debug":              (*v1.TaskRunDebug)(nil),
+					"Params":             v1.Params{},
 					"PodTemplate":        (*pod.Template)(nil),
-					"Resources":          (*v1beta1.TaskRunResources)(nil),
 					"Retries":            0,
 					"ServiceAccountName": "default",
-					"SidecarOverrides":   []v1beta1.TaskRunSidecarOverride(nil),
-					"Status":             v1beta1.TaskRunSpecStatus(""),
-					"StatusMessage":      v1beta1.TaskRunSpecStatusMessage(""),
-					"StepOverrides":      []v1beta1.TaskRunStepOverride(nil),
+					"SidecarSpecs":       []v1.TaskRunSidecarSpec(nil),
+					"Status":             v1.TaskRunSpecStatus(""),
+					"StatusMessage":      v1.TaskRunSpecStatusMessage(""),
+					"StepSpecs":          []v1.TaskRunStepSpec(nil),
 					"Timeout":            (*metav1.Duration)(nil),
-					"Workspaces":         []v1beta1.WorkspaceBinding(nil),
+					"Workspaces":         []v1.WorkspaceBinding(nil),
 				},
 			},
 			BuildConfig: taskrun.BuildConfig{
-				TaskSpec: &v1beta1.TaskSpec{
-					Params: []v1beta1.ParamSpec{},
-					Results: []v1beta1.TaskResult{
+				TaskSpec: &v1.TaskSpec{
+					Params: []v1.ParamSpec{},
+					Results: []v1.TaskResult{
 						{Name: "file1_DIGEST", Description: "Digest of a file to push."},
 						{Name: "file1", Description: "some assembled file"},
 						{Name: "file2_DIGEST", Description: "Digest of a file to push."},
 						{Name: "file2", Description: "some assembled file"},
 					},
 				},
-				TaskRunResults: []v1beta1.TaskRunResult{
+				Results: []v1.TaskRunResult{
 					{
 						Name: "IMAGES",
-						Value: v1beta1.ParamValue{
+						Value: v1.ParamValue{
 							Type:      "string",
 							StringVal: "gcr.io/myimage1@sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6,gcr.io/myimage2@sha256:daa1a56e13c85cf164e7d9e595006649e3a04c47fe4a8261320e18a0bf3b0367",
 						},
@@ -361,7 +357,7 @@ func TestMultipleSubjects(t *testing.T) {
 	}
 
 	i, _ := NewFormatter(cfg)
-	got, err := i.CreatePayload(ctx, objects.NewTaskRunObject(tr))
+	got, err := i.CreatePayload(ctx, objects.NewTaskRunObjectV1(tr))
 	if err != nil {
 		t.Errorf("unexpected error: %s", err.Error())
 	}

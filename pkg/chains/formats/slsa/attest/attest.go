@@ -23,7 +23,7 @@ import (
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/objects"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -40,7 +40,7 @@ type StepAttestation struct {
 	Annotations map[string]string `json:"annotations"`
 }
 
-func Step(step *v1beta1.Step, stepState *v1beta1.StepState) StepAttestation {
+func Step(step *v1.Step, stepState *v1.StepState) StepAttestation {
 	attestation := StepAttestation{}
 
 	entrypoint := strings.Join(step.Command, " ")
@@ -58,16 +58,20 @@ func Step(step *v1beta1.Step, stepState *v1beta1.StepState) StepAttestation {
 	return attestation
 }
 
-func Invocation(obj objects.TektonObject, params []v1beta1.Param, paramSpecs []v1beta1.ParamSpec) slsa.ProvenanceInvocation {
-	var source *v1beta1.RefSource
-	if p := obj.GetProvenance(); p != nil {
-		source = p.RefSource
-	}
+func Invocation(obj objects.TektonObject, params []v1.Param, paramSpecs []v1.ParamSpec) slsa.ProvenanceInvocation {
 	i := slsa.ProvenanceInvocation{
-		ConfigSource: convertConfigSource(source),
+		ConfigSource: slsa.ConfigSource{},
+	}
+	p := obj.GetProvenance()
+	if !p.IsNil() && !p.RefSourceIsNil() {
+		i.ConfigSource = slsa.ConfigSource{
+			URI:        p.GetRefSourceURI(),
+			Digest:     p.GetRefSourceDigest(),
+			EntryPoint: p.GetRefSourceEntrypoint(),
+		}
 	}
 
-	iParams := make(map[string]v1beta1.ParamValue)
+	iParams := make(map[string]v1.ParamValue)
 
 	// get implicit parameters from defaults
 	for _, p := range paramSpecs {
@@ -106,17 +110,6 @@ func Invocation(obj objects.TektonObject, params []v1beta1.Param, paramSpecs []v
 	}
 
 	return i
-}
-
-func convertConfigSource(source *v1beta1.RefSource) slsa.ConfigSource {
-	if source == nil {
-		return slsa.ConfigSource{}
-	}
-	return slsa.ConfigSource{
-		URI:        source.URI,
-		Digest:     source.Digest,
-		EntryPoint: source.EntryPoint,
-	}
 }
 
 // supports the SPDX format which is recommended by in-toto

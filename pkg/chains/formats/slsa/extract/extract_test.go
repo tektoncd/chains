@@ -28,7 +28,7 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/compare"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/objects"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logtesting "knative.dev/pkg/logging/testing"
 )
@@ -208,7 +208,7 @@ func TestPipelineRunObserveModeForSubjects(t *testing.T) {
 		{
 			name: "deep inspection enabled: pipelinerun and taskrun have duplicated results",
 			pro: createProWithTaskRunResults(
-				createProWithPipelineResults(map[string]string{artifactURL1: "sha256:" + artifactDigest1}).(*objects.PipelineRunObject),
+				createProWithPipelineResults(map[string]string{artifactURL1: "sha256:" + artifactDigest1}).(*objects.PipelineRunObjectV1),
 				[]artifact{
 					{uri: artifactURL1, digest: "sha256:" + artifactDigest1},
 				}),
@@ -228,7 +228,7 @@ func TestPipelineRunObserveModeForSubjects(t *testing.T) {
 		{
 			name: "deep inspection enabled: pipelinerun and taskrun have different results",
 			pro: createProWithTaskRunResults(
-				createProWithPipelineResults(map[string]string{artifactURL1: "sha256:" + artifactDigest1}).(*objects.PipelineRunObject),
+				createProWithPipelineResults(map[string]string{artifactURL1: "sha256:" + artifactDigest1}).(*objects.PipelineRunObjectV1),
 				[]artifact{
 					{uri: artifactURL2, digest: "sha256:" + artifactDigest2},
 				}),
@@ -272,21 +272,21 @@ func TestPipelineRunObserveModeForSubjects(t *testing.T) {
 }
 
 func createTaskRunObjectWithResults(results map[string]string) objects.TektonObject {
-	trResults := []v1beta1.TaskRunResult{}
+	trResults := []v1.TaskRunResult{}
 	prefix := 0
 	for url, digest := range results {
 		trResults = append(trResults,
-			v1beta1.TaskRunResult{Name: fmt.Sprintf("%v_IMAGE_DIGEST", prefix), Value: *v1beta1.NewStructuredValues(digest)},
-			v1beta1.TaskRunResult{Name: fmt.Sprintf("%v_IMAGE_URL", prefix), Value: *v1beta1.NewStructuredValues(url)},
+			v1.TaskRunResult{Name: fmt.Sprintf("%v_IMAGE_DIGEST", prefix), Value: *v1.NewStructuredValues(digest)},
+			v1.TaskRunResult{Name: fmt.Sprintf("%v_IMAGE_URL", prefix), Value: *v1.NewStructuredValues(url)},
 		)
 		prefix++
 	}
 
-	return objects.NewTaskRunObject(
-		&v1beta1.TaskRun{
-			Status: v1beta1.TaskRunStatus{
-				TaskRunStatusFields: v1beta1.TaskRunStatusFields{
-					TaskRunResults: trResults,
+	return objects.NewTaskRunObjectV1(
+		&v1.TaskRun{
+			Status: v1.TaskRunStatus{
+				TaskRunStatusFields: v1.TaskRunStatusFields{
+					Results: trResults,
 				},
 			},
 		},
@@ -294,21 +294,21 @@ func createTaskRunObjectWithResults(results map[string]string) objects.TektonObj
 }
 
 func createProWithPipelineResults(results map[string]string) objects.TektonObject {
-	prResults := []v1beta1.PipelineRunResult{}
+	prResults := []v1.PipelineRunResult{}
 	prefix := 0
 	for url, digest := range results {
 		prResults = append(prResults,
-			v1beta1.PipelineRunResult{Name: fmt.Sprintf("%v_IMAGE_DIGEST", prefix), Value: *v1beta1.NewStructuredValues(digest)},
-			v1beta1.PipelineRunResult{Name: fmt.Sprintf("%v_IMAGE_URL", prefix), Value: *v1beta1.NewStructuredValues(url)},
+			v1.PipelineRunResult{Name: fmt.Sprintf("%v_IMAGE_DIGEST", prefix), Value: *v1.NewStructuredValues(digest)},
+			v1.PipelineRunResult{Name: fmt.Sprintf("%v_IMAGE_URL", prefix), Value: *v1.NewStructuredValues(url)},
 		)
 		prefix++
 	}
 
-	return objects.NewPipelineRunObject(
-		&v1beta1.PipelineRun{
-			Status: v1beta1.PipelineRunStatus{
-				PipelineRunStatusFields: v1beta1.PipelineRunStatusFields{
-					PipelineResults: prResults,
+	return objects.NewPipelineRunObjectV1(
+		&v1.PipelineRun{
+			Status: v1.PipelineRunStatus{
+				PipelineRunStatusFields: v1.PipelineRunStatusFields{
+					Results: prResults,
 				},
 			},
 		},
@@ -323,19 +323,19 @@ type artifact struct {
 // create a child taskrun for each result
 //
 //nolint:all
-func createProWithTaskRunResults(pro *objects.PipelineRunObject, results []artifact) objects.TektonObject {
+func createProWithTaskRunResults(pro *objects.PipelineRunObjectV1, results []artifact) objects.TektonObject {
 	if pro == nil {
-		pro = objects.NewPipelineRunObject(&v1beta1.PipelineRun{
-			Status: v1beta1.PipelineRunStatus{
-				PipelineRunStatusFields: v1beta1.PipelineRunStatusFields{
-					PipelineSpec: &v1beta1.PipelineSpec{},
+		pro = objects.NewPipelineRunObjectV1(&v1.PipelineRun{
+			Status: v1.PipelineRunStatus{
+				PipelineRunStatusFields: v1.PipelineRunStatusFields{
+					PipelineSpec: &v1.PipelineSpec{},
 				},
 			},
 		})
 	}
 
 	if pro.Status.PipelineSpec == nil {
-		pro.Status.PipelineSpec = &v1beta1.PipelineSpec{}
+		pro.Status.PipelineSpec = &v1.PipelineSpec{}
 	}
 
 	// create child taskruns with results and pipelinetask
@@ -343,21 +343,21 @@ func createProWithTaskRunResults(pro *objects.PipelineRunObject, results []artif
 	for _, r := range results {
 		// simulate child taskruns
 		pipelineTaskName := fmt.Sprintf("task-%d", prefix)
-		tr := &v1beta1.TaskRun{
+		tr := &v1.TaskRun{
 			ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{objects.PipelineTaskLabel: pipelineTaskName}},
-			Status: v1beta1.TaskRunStatus{
-				TaskRunStatusFields: v1beta1.TaskRunStatusFields{
+			Status: v1.TaskRunStatus{
+				TaskRunStatusFields: v1.TaskRunStatusFields{
 					CompletionTime: &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 24, time.UTC)},
-					TaskRunResults: []v1beta1.TaskRunResult{
-						{Name: fmt.Sprintf("%v_IMAGE_DIGEST", prefix), Value: *v1beta1.NewStructuredValues(r.digest)},
-						{Name: fmt.Sprintf("%v_IMAGE_URL", prefix), Value: *v1beta1.NewStructuredValues(r.uri)},
+					Results: []v1.TaskRunResult{
+						{Name: fmt.Sprintf("%v_IMAGE_DIGEST", prefix), Value: *v1.NewStructuredValues(r.digest)},
+						{Name: fmt.Sprintf("%v_IMAGE_URL", prefix), Value: *v1.NewStructuredValues(r.uri)},
 					},
 				},
 			},
 		}
 
 		pro.AppendTaskRun(tr)
-		pro.Status.PipelineSpec.Tasks = append(pro.Status.PipelineSpec.Tasks, v1beta1.PipelineTask{Name: pipelineTaskName})
+		pro.Status.PipelineSpec.Tasks = append(pro.Status.PipelineSpec.Tasks, v1.PipelineTask{Name: pipelineTaskName})
 		prefix++
 	}
 

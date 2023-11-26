@@ -21,7 +21,7 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/chains/storage"
 	"github.com/tektoncd/chains/pkg/config"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	versioned "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes"
@@ -29,7 +29,7 @@ import (
 )
 
 type Verifier interface {
-	VerifyTaskRun(ctx context.Context, tr *v1beta1.TaskRun) error
+	VerifyTaskRun(ctx context.Context, tr *v1.TaskRun) error
 }
 
 type TaskRunVerifier struct {
@@ -38,7 +38,7 @@ type TaskRunVerifier struct {
 	SecretPath        string
 }
 
-func (tv *TaskRunVerifier) VerifyTaskRun(ctx context.Context, tr *v1beta1.TaskRun) error {
+func (tv *TaskRunVerifier) VerifyTaskRun(ctx context.Context, tr *v1.TaskRun) error {
 	// Get all the things we might need (storage backends, signers and formatters)
 	cfg := *config.FromContext(ctx)
 	logger := logging.FromContext(ctx)
@@ -50,7 +50,7 @@ func (tv *TaskRunVerifier) VerifyTaskRun(ctx context.Context, tr *v1beta1.TaskRu
 		&artifacts.OCIArtifact{},
 	}
 
-	trObj := objects.NewTaskRunObject(tr)
+	trObj := objects.NewTaskRunObjectV1(tr)
 
 	// Storage
 	allBackends, err := storage.InitializeBackends(ctx, tv.Pipelineclientset, tv.KubeClient, cfg)

@@ -36,14 +36,14 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/internal/objectloader"
 	"github.com/tektoncd/pipeline/pkg/apis/config"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logtesting "knative.dev/pkg/logging/testing"
 )
 
 func TestMetadata(t *testing.T) {
-	tr := &v1beta1.TaskRun{ //nolint:staticcheck
-		ObjectMeta: v1.ObjectMeta{
+	tr := &v1.TaskRun{ //nolint:staticcheck
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "my-taskrun",
 			Namespace: "my-namespace",
 			Annotations: map[string]string{
@@ -51,10 +51,10 @@ func TestMetadata(t *testing.T) {
 			},
 			UID: "abhhf-12354-asjsdbjs23-3435353n",
 		},
-		Status: v1beta1.TaskRunStatus{
-			TaskRunStatusFields: v1beta1.TaskRunStatusFields{
-				StartTime:      &v1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 12, time.UTC)},
-				CompletionTime: &v1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 24, time.UTC)},
+		Status: v1.TaskRunStatus{
+			TaskRunStatusFields: v1.TaskRunStatusFields{
+				StartTime:      &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 12, time.UTC)},
+				CompletionTime: &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 24, time.UTC)},
 			},
 		},
 	}
@@ -65,7 +65,7 @@ func TestMetadata(t *testing.T) {
 		StartedOn:    &start,
 		FinishedOn:   &end,
 	}
-	got := metadata(objects.NewTaskRunObject(tr))
+	got := metadata(objects.NewTaskRunObjectV1(tr))
 	if d := cmp.Diff(want, got); d != "" {
 		t.Fatalf("metadata (-want, +got):\n%s", d)
 	}
@@ -73,8 +73,8 @@ func TestMetadata(t *testing.T) {
 
 func TestMetadataInTimeZone(t *testing.T) {
 	tz := time.FixedZone("Test Time", int((12 * time.Hour).Seconds()))
-	tr := &v1beta1.TaskRun{ //nolint:staticcheck
-		ObjectMeta: v1.ObjectMeta{
+	tr := &v1.TaskRun{ //nolint:staticcheck
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "my-taskrun",
 			Namespace: "my-namespace",
 			Annotations: map[string]string{
@@ -82,10 +82,10 @@ func TestMetadataInTimeZone(t *testing.T) {
 			},
 			UID: "abhhf-12354-asjsdbjs23-3435353n",
 		},
-		Status: v1beta1.TaskRunStatus{
-			TaskRunStatusFields: v1beta1.TaskRunStatusFields{
-				StartTime:      &v1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 12, tz)},
-				CompletionTime: &v1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 24, tz)},
+		Status: v1.TaskRunStatus{
+			TaskRunStatusFields: v1.TaskRunStatusFields{
+				StartTime:      &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 12, tz)},
+				CompletionTime: &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 24, tz)},
 			},
 		},
 	}
@@ -96,18 +96,18 @@ func TestMetadataInTimeZone(t *testing.T) {
 		StartedOn:    &start,
 		FinishedOn:   &end,
 	}
-	got := metadata(objects.NewTaskRunObject(tr))
+	got := metadata(objects.NewTaskRunObjectV1(tr))
 	if d := cmp.Diff(want, got); d != "" {
 		t.Fatalf("metadata (-want, +got):\n%s", d)
 	}
 }
 
 func TestByProducts(t *testing.T) {
-	resultValue := v1beta1.ResultValue{Type: "string", StringVal: "result-value"}
-	tr := &v1beta1.TaskRun{ //nolint:staticcheck
-		Status: v1beta1.TaskRunStatus{
-			TaskRunStatusFields: v1beta1.TaskRunStatusFields{
-				TaskRunResults: []v1beta1.TaskRunResult{
+	resultValue := v1.ResultValue{Type: "string", StringVal: "result-value"}
+	tr := &v1.TaskRun{ //nolint:staticcheck
+		Status: v1.TaskRunStatus{
+			TaskRunStatusFields: v1.TaskRunStatusFields{
+				Results: []v1.TaskRunResult{
 					{
 						Name:  "result-name",
 						Value: resultValue,
@@ -128,7 +128,7 @@ func TestByProducts(t *testing.T) {
 			MediaType: pipelinerun.JsonMediaType,
 		},
 	}
-	got, err := byproducts(objects.NewTaskRunObject(tr))
+	got, err := byproducts(objects.NewTaskRunObjectV1(tr))
 	if err != nil {
 		t.Fatalf("Could not extract byproducts: %s", err)
 	}
@@ -146,12 +146,12 @@ func TestTaskRunGenerateAttestation(t *testing.T) {
 	e1BuildStart := time.Unix(1617011400, 0)
 	e1BuildFinished := time.Unix(1617011415, 0)
 
-	resultValue := v1beta1.ResultValue{Type: "string", StringVal: "sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"}
+	resultValue := v1.ResultValue{Type: "string", StringVal: "sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"}
 	resultBytesDigest, err := json.Marshal(resultValue)
 	if err != nil {
 		t.Fatalf("Could not marshal results: %s", err)
 	}
-	resultValue = v1beta1.ResultValue{Type: "string", StringVal: "gcr.io/my/image"}
+	resultValue = v1.ResultValue{Type: "string", StringVal: "gcr.io/my/image"}
 	resultBytesUri, err := json.Marshal(resultValue)
 	if err != nil {
 		t.Fatalf("Could not marshal results: %s", err)
@@ -225,7 +225,7 @@ func TestTaskRunGenerateAttestation(t *testing.T) {
 		},
 	}
 
-	got, err := GenerateAttestation(ctx, objects.NewTaskRunObject(tr), &slsaconfig.SlsaConfig{
+	got, err := GenerateAttestation(ctx, objects.NewTaskRunObjectV1(tr), &slsaconfig.SlsaConfig{
 		BuilderID: "test_builder-1",
 		BuildType: "https://tekton.dev/chains/v2/slsa",
 	})
@@ -238,7 +238,7 @@ func TestTaskRunGenerateAttestation(t *testing.T) {
 	}
 }
 
-func getResolvedDependencies(tro *objects.TaskRunObject) []v1resourcedescriptor.ResourceDescriptor {
+func getResolvedDependencies(tro *objects.TaskRunObjectV1) []v1resourcedescriptor.ResourceDescriptor {
 	rd, err := resolveddependencies.TaskRun(context.Background(), tro)
 	if err != nil {
 		return []v1resourcedescriptor.ResourceDescriptor{}
@@ -259,7 +259,7 @@ func TestGetBuildDefinition(t *testing.T) {
 		"label1": "label1",
 	}
 
-	tro := objects.NewTaskRunObject(tr)
+	tro := objects.NewTaskRunObjectV1(tr)
 	tests := []struct {
 		name      string
 		buildType string
@@ -322,7 +322,7 @@ func TestUnsupportedBuildType(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, err := getBuildDefinition(context.Background(), "bad-buildType", objects.NewTaskRunObject(tr))
+	got, err := getBuildDefinition(context.Background(), "bad-buildType", objects.NewTaskRunObjectV1(tr))
 	if err == nil {
 		t.Error("getBuildDefinition(): expected error got nil")
 	}

@@ -9,7 +9,9 @@
         "pipelineRef": {
             "name": "test-pipeline"
         },
-        "serviceAccountName": "pipeline"
+        "taskRunTemplate": {
+            "serviceAccountName": "pipeline"
+        }
     },
     "status": {
         "startTime": "2021-03-29T09:50:00Z",
@@ -23,7 +25,7 @@
                 "type": "Succeeded"
             }
         ],
-        "pipelineResults": [
+        "results": [
             {
                 "name": "CHAINS-GIT_COMMIT",
                 "value": "abcd"
@@ -113,13 +115,13 @@
         },
         "childReferences": [
             {
-                "apiVersion": "tekton.dev/v1beta1",
+                "apiVersion": "tekton.dev/v1",
                 "kind": "TaskRun",
                 "name": "git-clone",
                 "pipelineTaskName": "git-clone"
             },
             {
-                "apiVersion": "tekton.dev/v1beta1",
+                "apiVersion": "tekton.dev/v1",
                 "kind": "TaskRun",
                 "name": "taskrun-build",
                 "pipelineTaskName": "build"

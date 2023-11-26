@@ -24,10 +24,10 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/material"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/objects"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 )
 
-func GenerateAttestation(ctx context.Context, tro *objects.TaskRunObject, slsaConfig *slsaconfig.SlsaConfig) (interface{}, error) {
+func GenerateAttestation(ctx context.Context, tro *objects.TaskRunObjectV1, slsaConfig *slsaconfig.SlsaConfig) (interface{}, error) {
 	subjects := extract.SubjectDigests(ctx, tro, slsaConfig)
 
 	mat, err := material.TaskMaterials(ctx, tro)
@@ -57,8 +57,8 @@ func GenerateAttestation(ctx context.Context, tro *objects.TaskRunObject, slsaCo
 // invocation describes the event that kicked off the build
 // we currently don't set ConfigSource because we don't know
 // which material the Task definition came from
-func invocation(tro *objects.TaskRunObject) slsa.ProvenanceInvocation {
-	var paramSpecs []v1beta1.ParamSpec
+func invocation(tro *objects.TaskRunObjectV1) slsa.ProvenanceInvocation {
+	var paramSpecs []v1.ParamSpec
 	if ts := tro.Status.TaskSpec; ts != nil {
 		paramSpecs = ts.Params
 	}
@@ -67,7 +67,7 @@ func invocation(tro *objects.TaskRunObject) slsa.ProvenanceInvocation {
 
 // Metadata adds taskrun's start time, completion time and reproducibility labels
 // to the metadata section of the generated provenance.
-func Metadata(tro *objects.TaskRunObject) *slsa.ProvenanceMetadata {
+func Metadata(tro *objects.TaskRunObjectV1) *slsa.ProvenanceMetadata {
 	m := &slsa.ProvenanceMetadata{}
 	if tro.Status.StartTime != nil {
 		utc := tro.Status.StartTime.Time.UTC()

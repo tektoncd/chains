@@ -56,15 +56,15 @@ func (b *structuredSignableExtractor) extract(ctx context.Context, obj objects.T
 			if suffix == "" {
 				continue
 			}
-			if !strings.HasSuffix(res.Name, suffix) {
+			if !strings.HasSuffix(res.GetName(), suffix) {
 				continue
 			}
-			value := strings.TrimSpace(res.Value.StringVal)
+			value := strings.TrimSpace(res.GetStringValue())
 			if value == "" {
-				logger.Debugf("error getting string value for %s", res.Name)
+				logger.Debugf("error getting string value for %s", res.GetName())
 				continue
 			}
-			marker := strings.TrimSuffix(res.Name, suffix)
+			marker := strings.TrimSuffix(res.GetName(), suffix)
 			if _, ok := partials[marker]; !ok {
 				partials[marker] = StructuredSignable{}
 			}

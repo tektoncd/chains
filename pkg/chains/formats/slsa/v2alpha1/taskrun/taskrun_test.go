@@ -17,6 +17,7 @@ limitations under the License.
 package taskrun
 
 import (
+	"encoding/json"
 	"reflect"
 	"strings"
 	"testing"
@@ -35,11 +36,11 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/pod"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logtesting "knative.dev/pkg/logging/testing"
 	"sigs.k8s.io/yaml"
 )
@@ -53,18 +54,18 @@ const (
 )
 
 func TestMetadata(t *testing.T) {
-	tr := &v1beta1.TaskRun{
-		ObjectMeta: v1.ObjectMeta{
+	tr := &v1.TaskRun{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "my-taskrun",
 			Namespace: "my-namespace",
 			Annotations: map[string]string{
 				"chains.tekton.dev/reproducible": "true",
 			},
 		},
-		Status: v1beta1.TaskRunStatus{
-			TaskRunStatusFields: v1beta1.TaskRunStatusFields{
-				StartTime:      &v1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 12, time.UTC)},
-				CompletionTime: &v1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 24, time.UTC)},
+		Status: v1.TaskRunStatus{
+			TaskRunStatusFields: v1.TaskRunStatusFields{
+				StartTime:      &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 12, time.UTC)},
+				CompletionTime: &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 24, time.UTC)},
 			},
 		},
 	}
@@ -74,7 +75,7 @@ func TestMetadata(t *testing.T) {
 		BuildStartedOn:  &start,
 		BuildFinishedOn: &end,
 	}
-	got := slsav1.Metadata(objects.NewTaskRunObject(tr))
+	got := slsav1.Metadata(objects.NewTaskRunObjectV1(tr))
 	if !reflect.DeepEqual(expected, got) {
 		t.Fatalf("expected %v got %v", expected, got)
 	}
@@ -82,18 +83,18 @@ func TestMetadata(t *testing.T) {
 
 func TestMetadataInTimeZone(t *testing.T) {
 	tz := time.FixedZone("Test Time", int((12 * time.Hour).Seconds()))
-	tr := &v1beta1.TaskRun{
-		ObjectMeta: v1.ObjectMeta{
+	tr := &v1.TaskRun{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "my-taskrun",
 			Namespace: "my-namespace",
 			Annotations: map[string]string{
 				"chains.tekton.dev/reproducible": "true",
 			},
 		},
-		Status: v1beta1.TaskRunStatus{
-			TaskRunStatusFields: v1beta1.TaskRunStatusFields{
-				StartTime:      &v1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 12, tz)},
-				CompletionTime: &v1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 24, tz)},
+		Status: v1.TaskRunStatus{
+			TaskRunStatusFields: v1.TaskRunStatusFields{
+				StartTime:      &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 12, tz)},
+				CompletionTime: &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 24, tz)},
 			},
 		},
 	}
@@ -103,14 +104,14 @@ func TestMetadataInTimeZone(t *testing.T) {
 		BuildStartedOn:  &start,
 		BuildFinishedOn: &end,
 	}
-	got := slsav1.Metadata(objects.NewTaskRunObject(tr))
+	got := slsav1.Metadata(objects.NewTaskRunObjectV1(tr))
 	if !reflect.DeepEqual(expected, got) {
 		t.Fatalf("expected %v got %v", expected, got)
 	}
 }
 
 func TestInvocation(t *testing.T) {
-	taskrun := `apiVersion: tekton.dev/v1beta1
+	taskrun := `apiVersion: tekton.dev/v1
 kind: TaskRun
 metadata:
   uid: my-uid
@@ -167,40 +168,39 @@ status:
       RunningInEnvWithInjectedSidecars: true
 `
 
-	var taskRun *v1beta1.TaskRun
+	var taskRun *v1.TaskRun
 	if err := yaml.Unmarshal([]byte(taskrun), &taskRun); err != nil {
 		t.Fatal(err)
 	}
 
 	expected := slsa.ProvenanceInvocation{
 		Parameters: map[string]any{
-			"Params": v1beta1.Params{
+			"Params": v1.Params{
 				{
 					Name:  "my-param",
-					Value: v1beta1.ParamValue{Type: "string", StringVal: "string-param"},
+					Value: v1.ParamValue{Type: "string", StringVal: "string-param"},
 				},
 				{
 					Name:  "my-array-param",
-					Value: v1beta1.ParamValue{Type: "array", ArrayVal: []string{"my", "array"}},
+					Value: v1.ParamValue{Type: "array", ArrayVal: []string{"my", "array"}},
 				},
-				{Name: "my-empty-string-param", Value: v1beta1.ParamValue{Type: "string"}},
+				{Name: "my-empty-string-param", Value: v1.ParamValue{Type: "string"}},
 				{
 					Name:  "my-empty-array-param",
-					Value: v1beta1.ParamValue{Type: "array", ArrayVal: []string{}},
+					Value: v1.ParamValue{Type: "array", ArrayVal: []string{}},
 				},
 			},
 			"ComputeResources":   (*corev1.ResourceRequirements)(nil),
-			"Debug":              (*v1beta1.TaskRunDebug)(nil),
+			"Debug":              (*v1.TaskRunDebug)(nil),
 			"PodTemplate":        (*pod.Template)(nil),
-			"Resources":          (*v1beta1.TaskRunResources)(nil),
 			"Retries":            0,
 			"ServiceAccountName": "",
-			"SidecarOverrides":   []v1beta1.TaskRunSidecarOverride(nil),
-			"Status":             v1beta1.TaskRunSpecStatus(""),
-			"StatusMessage":      v1beta1.TaskRunSpecStatusMessage(""),
-			"StepOverrides":      []v1beta1.TaskRunStepOverride(nil),
+			"SidecarSpecs":       []v1.TaskRunSidecarSpec(nil),
+			"Status":             v1.TaskRunSpecStatus(""),
+			"StatusMessage":      v1.TaskRunSpecStatusMessage(""),
+			"StepSpecs":          []v1.TaskRunStepSpec(nil),
 			"Timeout":            (*metav1.Duration)(nil),
-			"Workspaces":         []v1beta1.WorkspaceBinding(nil),
+			"Workspaces":         []v1.WorkspaceBinding(nil),
 		},
 		Environment: map[string]any{
 			"tekton-pipelines-feature-flags": &config.FeatureFlags{
@@ -214,7 +214,7 @@ status:
 			},
 		},
 	}
-	got := invocation(objects.NewTaskRunObject(taskRun))
+	got := invocation(objects.NewTaskRunObjectV1(taskRun))
 	if !reflect.DeepEqual(expected, got) {
 		if d := cmp.Diff(expected, got); d != "" {
 			t.Log(d)
@@ -223,8 +223,8 @@ status:
 	}
 }
 
-func TestGetSubjectDigests(t *testing.T) {
-	tr := &v1beta1.TaskRun{
+func TestGetSubjectDigestsV1Beta1(t *testing.T) {
+	trV1Beta1 := &v1beta1.TaskRun{
 		Spec: v1beta1.TaskRunSpec{
 			Resources: &v1beta1.TaskRunResources{
 				Outputs: []v1beta1.TaskResourceBinding{
@@ -350,15 +350,136 @@ func TestGetSubjectDigests(t *testing.T) {
 			Digest: common.DigestSet{
 				"sha256": strings.TrimPrefix(digest1, "sha256:"),
 			},
-		}, {
+		},
+		{
 			Name: "registry/resource-image",
 			Digest: common.DigestSet{
 				"sha256": strings.TrimPrefix(digest2, "sha256:"),
 			},
 		},
 	}
-	tro := objects.NewTaskRunObject(tr)
 	ctx := logtesting.TestContextWithLogger(t)
+	trV1 := &v1.TaskRun{}
+	if err := trV1Beta1.ConvertTo(ctx, trV1); err == nil {
+		if trV1Beta1.Spec.Resources != nil {
+			jsonData, err := json.Marshal(trV1Beta1.Spec.Resources)
+			if err != nil {
+				t.Errorf("Error serializing to JSON: %v", err)
+			}
+			trV1.Annotations["tekton.dev/v1beta1-spec-resources"] = string(jsonData)
+		}
+	}
+
+	tro := objects.NewTaskRunObjectV1(trV1)
+	got := extract.SubjectDigests(ctx, tro, nil)
+
+	if d := cmp.Diff(want, got, compare.SubjectCompareOption()); d != "" {
+		t.Errorf("Wrong subjects extracted, diff=%s", d)
+	}
+}
+
+func TestGetSubjectDigestsV1(t *testing.T) {
+	tr := &v1.TaskRun{
+		Status: v1.TaskRunStatus{
+			TaskRunStatusFields: v1.TaskRunStatusFields{
+				Results: []v1.TaskRunResult{
+					{
+						Name:  "IMAGE_URL",
+						Value: *v1.NewStructuredValues("registry/myimage"),
+					},
+					{
+						Name:  "IMAGE_DIGEST",
+						Value: *v1.NewStructuredValues(digest1),
+					},
+					{
+						Name:  "mvn1_ARTIFACT_URI",
+						Value: *v1.NewStructuredValues("maven-test-0.1.1.jar"),
+					},
+					{
+						Name:  "mvn1_ARTIFACT_DIGEST",
+						Value: *v1.NewStructuredValues(digest3),
+					},
+					{
+						Name:  "mvn1_pom_ARTIFACT_URI",
+						Value: *v1.NewStructuredValues("maven-test-0.1.1.pom"),
+					},
+					{
+						Name:  "mvn1_pom_ARTIFACT_DIGEST",
+						Value: *v1.NewStructuredValues(digest4),
+					},
+					{
+						Name:  "mvn1_src_ARTIFACT_URI",
+						Value: *v1.NewStructuredValues("maven-test-0.1.1-sources.jar"),
+					},
+					{
+						Name:  "mvn1_src_ARTIFACT_DIGEST",
+						Value: *v1.NewStructuredValues(digest5),
+					},
+					{
+						Name:  "invalid_ARTIFACT_DIGEST",
+						Value: *v1.NewStructuredValues(digest5),
+					},
+					{
+						Name: "mvn1_pkg" + "-" + artifacts.ArtifactsOutputsResultName,
+						Value: *v1.NewObject(map[string]string{
+							"uri":    "projects/test-project-1/locations/us-west4/repositories/test-repo/mavenArtifacts/com.google.guava:guava:31.0-jre",
+							"digest": digest1,
+						}),
+					},
+					{
+						Name: "mvn1_pom_sha512" + "-" + artifacts.ArtifactsOutputsResultName,
+						Value: *v1.NewObject(map[string]string{
+							"uri":    "com.google.guava:guava:1.0-jre.pom",
+							"digest": digest2,
+						}),
+					},
+					{
+						Name: "img1_input" + "-" + artifacts.ArtifactsInputsResultName,
+						Value: *v1.NewObject(map[string]string{
+							"uri":    "gcr.io/foo/bar",
+							"digest": digest3,
+						}),
+					},
+				},
+			},
+		},
+	}
+
+	want := []in_toto.Subject{
+		{
+			Name: "com.google.guava:guava:1.0-jre.pom",
+			Digest: common.DigestSet{
+				"sha256": strings.TrimPrefix(digest2, "sha256:"),
+			},
+		}, {
+			Name: "index.docker.io/registry/myimage",
+			Digest: common.DigestSet{
+				"sha256": strings.TrimPrefix(digest1, "sha256:"),
+			},
+		}, {
+			Name: "maven-test-0.1.1-sources.jar",
+			Digest: common.DigestSet{
+				"sha256": strings.TrimPrefix(digest5, "sha256:"),
+			},
+		}, {
+			Name: "maven-test-0.1.1.jar",
+			Digest: common.DigestSet{
+				"sha256": strings.TrimPrefix(digest3, "sha256:"),
+			},
+		}, {
+			Name: "maven-test-0.1.1.pom",
+			Digest: common.DigestSet{
+				"sha256": strings.TrimPrefix(digest4, "sha256:"),
+			},
+		}, {
+			Name: "projects/test-project-1/locations/us-west4/repositories/test-repo/mavenArtifacts/com.google.guava:guava:31.0-jre",
+			Digest: common.DigestSet{
+				"sha256": strings.TrimPrefix(digest1, "sha256:"),
+			},
+		},
+	}
+	ctx := logtesting.TestContextWithLogger(t)
+	tro := objects.NewTaskRunObjectV1(tr)
 	got := extract.SubjectDigests(ctx, tro, nil)
 
 	if d := cmp.Diff(want, got, compare.SubjectCompareOption()); d != "" {

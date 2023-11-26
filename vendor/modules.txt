@@ -1899,9 +1899,9 @@ github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/clu
 github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/customrun
 github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/customrun/fake
 github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/pipelinerun
-github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/pipelinerun/fake
 github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/taskrun
-github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/taskrun/fake
+github.com/tektoncd/pipeline/pkg/client/injection/reconciler/pipeline/v1/pipelinerun
+github.com/tektoncd/pipeline/pkg/client/injection/reconciler/pipeline/v1/taskrun
 github.com/tektoncd/pipeline/pkg/client/injection/reconciler/pipeline/v1beta1/pipelinerun
 github.com/tektoncd/pipeline/pkg/client/injection/reconciler/pipeline/v1beta1/taskrun
 github.com/tektoncd/pipeline/pkg/client/listers/pipeline/v1

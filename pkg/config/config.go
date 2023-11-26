@@ -34,6 +34,7 @@ type Config struct {
 	Builder         BuilderConfig
 	Transparency    TransparencyConfig
 	BuildDefinition BuildDefinitionConfig
+	TektonAPI       TektonAPIConfig
 }
 
 // ArtifactConfigs contains the configuration for how to sign/store/format the signatures for each artifact type
@@ -87,6 +88,11 @@ type X509Signer struct {
 type KMSSigner struct {
 	KMSRef string
 	Auth   KMSAuth
+}
+
+// TODO(aaron-prindle) configure this value to be used correctly
+type TektonAPIConfig struct {
+	WatchForTektonV1Beta1APIInstead bool
 }
 
 // KMSAuth configures authentication to the KMS server
@@ -190,6 +196,9 @@ const (
 	kmsAuthOIDCRole      = "signers.kms.auth.oidc.role"
 	kmsAuthSpireSock     = "signers.kms.auth.spire.sock"
 	kmsAuthSpireAudience = "signers.kms.auth.spire.audience"
+
+	// Tekton API
+	tektonAPI = "tektonAPI.watchForTektonV1Beta1APIInstead"
 
 	// Fulcio
 	x509SignerFulcioEnabled     = "signers.x509.fulcio.enabled"
@@ -308,6 +317,9 @@ func NewConfigFromMap(data map[string]string) (*Config, error) {
 		asString(kmsAuthOIDCRole, &cfg.Signers.KMS.Auth.OIDC.Role),
 		asString(kmsAuthSpireSock, &cfg.Signers.KMS.Auth.Spire.Sock),
 		asString(kmsAuthSpireAudience, &cfg.Signers.KMS.Auth.Spire.Audience),
+
+		// Tekton API
+		asBool(tektonAPI, &cfg.TektonAPI.WatchForTektonV1Beta1APIInstead),
 
 		// Fulcio
 		asBool(x509SignerFulcioEnabled, &cfg.Signers.X509.FulcioEnabled),

@@ -26,7 +26,7 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/signing"
 	"github.com/tektoncd/chains/pkg/chains/storage/api"
 	"github.com/tektoncd/chains/pkg/config"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 )
 
 const (
@@ -68,13 +68,13 @@ func NewStorageBackend(ctx context.Context, cfg config.Config) (*Backend, error)
 func (b *Backend) StorePayload(ctx context.Context, obj objects.TektonObject, rawPayload []byte, signature string, opts config.StorageOpts) error {
 	logger := logging.FromContext(ctx)
 
-	if tr, isTaskRun := obj.GetObject().(*v1beta1.TaskRun); isTaskRun {
+	if tr, isTaskRun := obj.GetObject().(*v1.TaskRun); isTaskRun {
 		store := &TaskRunStorer{
 			writer: b.writer,
 			key:    opts.ShortKey,
 		}
-		// TODO(https://github.com/tektoncd/chains/issues/665) currently using deprecated v1beta1 APIs until we add full v1 support
-		if _, err := store.Store(ctx, &api.StoreRequest[*v1beta1.TaskRun, *in_toto.Statement]{
+		// TODO(https://github.com/tektoncd/chains/issues/665) currently using deprecated v1 APIs until we add full v1 support
+		if _, err := store.Store(ctx, &api.StoreRequest[*v1.TaskRun, *in_toto.Statement]{
 			Object:   obj,
 			Artifact: tr,
 			// We don't actually use payload - we store the raw bundle values directly.
@@ -89,13 +89,13 @@ func (b *Backend) StorePayload(ctx context.Context, obj objects.TektonObject, ra
 			logger.Errorf("error writing to GCS: %w", err)
 			return err
 		}
-	} else if pr, isPipelineRun := obj.GetObject().(*v1beta1.PipelineRun); isPipelineRun {
+	} else if pr, isPipelineRun := obj.GetObject().(*v1.PipelineRun); isPipelineRun {
 		store := &PipelineRunStorer{
 			writer: b.writer,
 			key:    opts.ShortKey,
 		}
-		// TODO(https://github.com/tektoncd/chains/issues/665) currently using deprecated v1beta1 APIs until we add full v1 support
-		if _, err := store.Store(ctx, &api.StoreRequest[*v1beta1.PipelineRun, *in_toto.Statement]{
+		// TODO(https://github.com/tektoncd/chains/issues/665) currently using deprecated v1 APIs until we add full v1 support
+		if _, err := store.Store(ctx, &api.StoreRequest[*v1.PipelineRun, *in_toto.Statement]{
 			Object:   obj,
 			Artifact: pr,
 			// We don't actually use payload - we store the raw bundle values directly.
@@ -111,7 +111,7 @@ func (b *Backend) StorePayload(ctx context.Context, obj objects.TektonObject, ra
 			return err
 		}
 	} else {
-		return fmt.Errorf("type %T not supported - supported types: [*v1beta1.TaskRun, *v1beta1.PipelineRun]", obj.GetObject())
+		return fmt.Errorf("type %T not supported - supported types: [*v1.TaskRun, *v1.PipelineRun]", obj.GetObject())
 	}
 	return nil
 }
@@ -151,9 +151,9 @@ func (b *Backend) RetrieveSignatures(ctx context.Context, obj objects.TektonObje
 	var object string
 
 	switch t := obj.GetObject().(type) {
-	case *v1beta1.TaskRun:
+	case *v1.TaskRun:
 		object = taskRunSigName(t, opts)
-	case *v1beta1.PipelineRun:
+	case *v1.PipelineRun:
 		object = pipelineRunSigname(t, opts)
 	default:
 		return nil, fmt.Errorf("unsupported TektonObject type: %T", t)
@@ -174,9 +174,9 @@ func (b *Backend) RetrievePayloads(ctx context.Context, obj objects.TektonObject
 	var object string
 
 	switch t := obj.GetObject().(type) {
-	case *v1beta1.TaskRun:
+	case *v1.TaskRun:
 		object = taskRunPayloadName(t, opts)
-	case *v1beta1.PipelineRun:
+	case *v1.PipelineRun:
 		object = pipelineRunPayloadName(t, opts)
 	default:
 		return nil, fmt.Errorf("unsupported TektonObject type: %T", t)
@@ -207,29 +207,29 @@ func (b *Backend) retrieveObject(ctx context.Context, object string) (string, er
 }
 
 //nolint:staticcheck
-func taskRunSigName(tr *v1beta1.TaskRun, opts config.StorageOpts) string {
+func taskRunSigName(tr *v1.TaskRun, opts config.StorageOpts) string {
 	return fmt.Sprintf(SignatureNameFormatTaskRun, tr.Namespace, tr.Name, opts.ShortKey)
 }
 
 //nolint:staticcheck
-func taskRunPayloadName(tr *v1beta1.TaskRun, opts config.StorageOpts) string {
+func taskRunPayloadName(tr *v1.TaskRun, opts config.StorageOpts) string {
 	return fmt.Sprintf(PayloadNameFormatTaskRun, tr.Namespace, tr.Name, opts.ShortKey)
 }
 
 //nolint:staticcheck
-func pipelineRunSigname(pr *v1beta1.PipelineRun, opts config.StorageOpts) string {
+func pipelineRunSigname(pr *v1.PipelineRun, opts config.StorageOpts) string {
 	return fmt.Sprintf(SignatureNameFormatPipelineRun, pr.Namespace, pr.Name, opts.ShortKey)
 }
 
 //nolint:staticcheck
-func pipelineRunPayloadName(pr *v1beta1.PipelineRun, opts config.StorageOpts) string {
+func pipelineRunPayloadName(pr *v1.PipelineRun, opts config.StorageOpts) string {
 	return fmt.Sprintf(PayloadNameFormatPipelineRun, pr.Namespace, pr.Name, opts.ShortKey)
 }
 
 //nolint:staticcheck
 var (
-	_ api.Storer[*v1beta1.TaskRun, *in_toto.Statement]     = &TaskRunStorer{}
-	_ api.Storer[*v1beta1.PipelineRun, *in_toto.Statement] = &PipelineRunStorer{}
+	_ api.Storer[*v1.TaskRun, *in_toto.Statement]     = &TaskRunStorer{}
+	_ api.Storer[*v1.PipelineRun, *in_toto.Statement] = &PipelineRunStorer{}
 )
 
 // TaskRunStorer stores TaskRuns in GCS.
@@ -244,7 +244,7 @@ type TaskRunStorer struct {
 // Store stores the TaskRun chains information in GCS
 //
 //nolint:staticcheck
-func (s *TaskRunStorer) Store(ctx context.Context, req *api.StoreRequest[*v1beta1.TaskRun, *in_toto.Statement]) (*api.StoreResponse, error) {
+func (s *TaskRunStorer) Store(ctx context.Context, req *api.StoreRequest[*v1.TaskRun, *in_toto.Statement]) (*api.StoreResponse, error) {
 	tr := req.Artifact
 	key := s.key
 	if key == "" {
@@ -268,7 +268,7 @@ type PipelineRunStorer struct {
 // Store stores the PipelineRun chains information in GCS
 //
 //nolint:staticcheck
-func (s *PipelineRunStorer) Store(ctx context.Context, req *api.StoreRequest[*v1beta1.PipelineRun, *in_toto.Statement]) (*api.StoreResponse, error) {
+func (s *PipelineRunStorer) Store(ctx context.Context, req *api.StoreRequest[*v1.PipelineRun, *in_toto.Statement]) (*api.StoreResponse, error) {
 	pr := req.Artifact
 	key := s.key
 	if key == "" {

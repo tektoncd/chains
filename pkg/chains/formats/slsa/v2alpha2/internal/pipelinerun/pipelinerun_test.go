@@ -34,14 +34,14 @@ import (
 	resolveddependencies "github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha2/internal/resolved_dependencies"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/internal/objectloader"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logtesting "knative.dev/pkg/logging/testing"
 )
 
 func TestMetadata(t *testing.T) {
-	pr := &v1beta1.PipelineRun{ //nolint:staticcheck
-		ObjectMeta: v1.ObjectMeta{
+	pr := &v1.PipelineRun{ //nolint:staticcheck
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "my-taskrun",
 			Namespace: "my-namespace",
 			Annotations: map[string]string{
@@ -49,10 +49,10 @@ func TestMetadata(t *testing.T) {
 			},
 			UID: "abhhf-12354-asjsdbjs23-3435353n",
 		},
-		Status: v1beta1.PipelineRunStatus{
-			PipelineRunStatusFields: v1beta1.PipelineRunStatusFields{
-				StartTime:      &v1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 12, time.UTC)},
-				CompletionTime: &v1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 24, time.UTC)},
+		Status: v1.PipelineRunStatus{
+			PipelineRunStatusFields: v1.PipelineRunStatusFields{
+				StartTime:      &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 12, time.UTC)},
+				CompletionTime: &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 24, time.UTC)},
 			},
 		},
 	}
@@ -63,7 +63,7 @@ func TestMetadata(t *testing.T) {
 		StartedOn:    &start,
 		FinishedOn:   &end,
 	}
-	got := metadata(objects.NewPipelineRunObject(pr))
+	got := metadata(objects.NewPipelineRunObjectV1(pr))
 	if d := cmp.Diff(want, got); d != "" {
 		t.Fatalf("metadata (-want, +got):\n%s", d)
 	}
@@ -71,8 +71,8 @@ func TestMetadata(t *testing.T) {
 
 func TestMetadataInTimeZone(t *testing.T) {
 	tz := time.FixedZone("Test Time", int((12 * time.Hour).Seconds()))
-	pr := &v1beta1.PipelineRun{ //nolint:staticcheck
-		ObjectMeta: v1.ObjectMeta{
+	pr := &v1.PipelineRun{ //nolint:staticcheck
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "my-taskrun",
 			Namespace: "my-namespace",
 			Annotations: map[string]string{
@@ -80,10 +80,10 @@ func TestMetadataInTimeZone(t *testing.T) {
 			},
 			UID: "abhhf-12354-asjsdbjs23-3435353n",
 		},
-		Status: v1beta1.PipelineRunStatus{
-			PipelineRunStatusFields: v1beta1.PipelineRunStatusFields{
-				StartTime:      &v1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 12, tz)},
-				CompletionTime: &v1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 24, tz)},
+		Status: v1.PipelineRunStatus{
+			PipelineRunStatusFields: v1.PipelineRunStatusFields{
+				StartTime:      &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 12, tz)},
+				CompletionTime: &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 24, tz)},
 			},
 		},
 	}
@@ -94,18 +94,18 @@ func TestMetadataInTimeZone(t *testing.T) {
 		StartedOn:    &start,
 		FinishedOn:   &end,
 	}
-	got := metadata(objects.NewPipelineRunObject(pr))
+	got := metadata(objects.NewPipelineRunObjectV1(pr))
 	if d := cmp.Diff(want, got); d != "" {
 		t.Fatalf("metadata (-want, +got):\n%s", d)
 	}
 }
 
 func TestByProducts(t *testing.T) {
-	resultValue := v1beta1.ResultValue{Type: "string", StringVal: "result-value"}
-	pr := &v1beta1.PipelineRun{ //nolint:staticcheck
-		Status: v1beta1.PipelineRunStatus{
-			PipelineRunStatusFields: v1beta1.PipelineRunStatusFields{
-				PipelineResults: []v1beta1.PipelineRunResult{
+	resultValue := v1.ResultValue{Type: "string", StringVal: "result-value"}
+	pr := &v1.PipelineRun{ //nolint:staticcheck
+		Status: v1.PipelineRunStatus{
+			PipelineRunStatusFields: v1.PipelineRunStatusFields{
+				Results: []v1.PipelineRunResult{
 					{
 						Name:  "result-name",
 						Value: resultValue,
@@ -126,7 +126,7 @@ func TestByProducts(t *testing.T) {
 			MediaType: JsonMediaType,
 		},
 	}
-	got, err := byproducts(objects.NewPipelineRunObject(pr))
+	got, err := byproducts(objects.NewPipelineRunObjectV1(pr))
 	if err != nil {
 		t.Fatalf("Could not extract byproducts: %s", err)
 	}
@@ -135,7 +135,7 @@ func TestByProducts(t *testing.T) {
 	}
 }
 
-func createPro(path string) *objects.PipelineRunObject {
+func createPro(path string) *objects.PipelineRunObjectV1 {
 	pr, err := objectloader.PipelineRunFromFile(path)
 	if err != nil {
 		panic(err)
@@ -148,7 +148,7 @@ func createPro(path string) *objects.PipelineRunObject {
 	if err != nil {
 		panic(err)
 	}
-	p := objects.NewPipelineRunObject(pr)
+	p := objects.NewPipelineRunObjectV1(pr)
 	p.AppendTaskRun(tr1)
 	p.AppendTaskRun(tr2)
 	return p
@@ -275,7 +275,7 @@ func TestGenerateAttestation(t *testing.T) {
 	}
 }
 
-func getResolvedDependencies(addTasks func(*objects.TaskRunObject) (*v1resourcedescriptor.ResourceDescriptor, error)) []v1resourcedescriptor.ResourceDescriptor { //nolint:staticcheck
+func getResolvedDependencies(addTasks func(*objects.TaskRunObjectV1) (*v1resourcedescriptor.ResourceDescriptor, error)) []v1resourcedescriptor.ResourceDescriptor { //nolint:staticcheck
 	pr := createPro("../../../testdata/v2alpha2/pipelinerun1.json")
 	rd, err := resolveddependencies.PipelineRun(context.Background(), pr, &slsaconfig.SlsaConfig{DeepInspectionEnabled: false}, addTasks)
 	if err != nil {
@@ -294,7 +294,7 @@ func TestGetBuildDefinition(t *testing.T) {
 	}
 	tests := []struct {
 		name        string
-		taskContent func(*objects.TaskRunObject) (*v1resourcedescriptor.ResourceDescriptor, error) //nolint:staticcheck
+		taskContent func(*objects.TaskRunObjectV1) (*v1resourcedescriptor.ResourceDescriptor, error) //nolint:staticcheck
 		config      *slsaconfig.SlsaConfig
 		want        slsa.ProvenanceBuildDefinition
 	}{

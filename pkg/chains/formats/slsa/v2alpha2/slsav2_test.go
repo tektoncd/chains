@@ -187,7 +187,7 @@ func TestTaskRunCreatePayload1(t *testing.T) {
 
 	i, _ := NewFormatter(cfg)
 
-	got, err := i.CreatePayload(ctx, objects.NewTaskRunObject(tr))
+	got, err := i.CreatePayload(ctx, objects.NewTaskRunObjectV1(tr))
 
 	if err != nil {
 		t.Errorf("unexpected error: %s", err.Error())
@@ -272,7 +272,7 @@ func TestTaskRunCreatePayload2(t *testing.T) {
 	}
 
 	i, _ := NewFormatter(cfg)
-	got, err := i.CreatePayload(ctx, objects.NewTaskRunObject(tr))
+	got, err := i.CreatePayload(ctx, objects.NewTaskRunObjectV1(tr))
 
 	if err != nil {
 		t.Errorf("unexpected error: %s", err.Error())
@@ -352,7 +352,7 @@ func TestMultipleSubjects(t *testing.T) {
 	}
 
 	i, _ := NewFormatter(cfg)
-	got, err := i.CreatePayload(ctx, objects.NewTaskRunObject(tr))
+	got, err := i.CreatePayload(ctx, objects.NewTaskRunObjectV1(tr))
 	if err != nil {
 		t.Errorf("unexpected error: %s", err.Error())
 	}
@@ -361,7 +361,7 @@ func TestMultipleSubjects(t *testing.T) {
 	}
 }
 
-func createPro(path string) *objects.PipelineRunObject {
+func createPro(path string) *objects.PipelineRunObjectV1 {
 	pr, err := objectloader.PipelineRunFromFile(path)
 	if err != nil {
 		panic(err)
@@ -374,7 +374,7 @@ func createPro(path string) *objects.PipelineRunObject {
 	if err != nil {
 		panic(err)
 	}
-	p := objects.NewPipelineRunObject(pr)
+	p := objects.NewPipelineRunObjectV1(pr)
 	p.AppendTaskRun(tr1)
 	p.AppendTaskRun(tr2)
 	return p

@@ -17,6 +17,7 @@ import (
 	"context"
 	_ "crypto/sha256" // Recommended by go-digest.
 	_ "crypto/sha512" // Recommended by go-digest.
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
@@ -24,9 +25,11 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	"github.com/opencontainers/go-digest"
+	"github.com/opentracing/opentracing-go/log"
 	"github.com/tektoncd/chains/internal/backport"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"knative.dev/pkg/logging"
@@ -65,12 +68,12 @@ type TaskRunArtifact struct{}
 var _ Signable = &TaskRunArtifact{}
 
 func (ta *TaskRunArtifact) ShortKey(obj interface{}) string {
-	tro := obj.(*objects.TaskRunObject)
+	tro := obj.(*objects.TaskRunObjectV1)
 	return "taskrun-" + string(tro.UID)
 }
 
 func (ta *TaskRunArtifact) FullKey(obj interface{}) string {
-	tro := obj.(*objects.TaskRunObject)
+	tro := obj.(*objects.TaskRunObjectV1)
 	gvk := tro.GetGroupVersionKind()
 	return fmt.Sprintf("%s-%s-%s-%s", gvk.Group, gvk.Version, gvk.Kind, tro.UID)
 }
@@ -104,12 +107,12 @@ type PipelineRunArtifact struct{}
 var _ Signable = &PipelineRunArtifact{}
 
 func (pa *PipelineRunArtifact) ShortKey(obj interface{}) string {
-	pro := obj.(*objects.PipelineRunObject)
+	pro := obj.(*objects.PipelineRunObjectV1)
 	return "pipelinerun-" + string(pro.UID)
 }
 
 func (pa *PipelineRunArtifact) FullKey(obj interface{}) string {
-	pro := obj.(*objects.PipelineRunObject)
+	pro := obj.(*objects.PipelineRunObjectV1)
 	gvk := pro.GetGroupVersionKind()
 	return fmt.Sprintf("%s-%s-%s-%s", gvk.Group, gvk.Version, gvk.Kind, pro.UID)
 }
@@ -149,40 +152,50 @@ type image struct {
 }
 
 func (oa *OCIArtifact) ExtractObjects(ctx context.Context, obj objects.TektonObject) []interface{} {
-	log := logging.FromContext(ctx)
 	objs := []interface{}{}
+	if trV1, ok := obj.GetObject().(*v1.TaskRun); ok {
+		serializedResources := trV1.Annotations["tekton.dev/v1beta1-status-taskrunstatusfields-taskspec-resources"]
+		var resources v1beta1.TaskResources
+		shouldReplace := false
+		if err := json.Unmarshal([]byte(serializedResources), &resources); err == nil {
+			shouldReplace = true
 
-	// TODO: Not applicable to PipelineRuns, should look into a better way to separate this out
-	if tr, ok := obj.GetObject().(*v1beta1.TaskRun); ok {
-		imageResourceNames := map[string]*image{}
-		if tr.Status.TaskSpec != nil && tr.Status.TaskSpec.Resources != nil {
-			for _, output := range tr.Status.TaskSpec.Resources.Outputs {
-				if output.Type == backport.PipelineResourceTypeImage {
-					imageResourceNames[output.Name] = &image{}
+		}
+		trV1Beta1 := &v1beta1.TaskRun{}
+		if err := trV1Beta1.ConvertFrom(ctx, trV1); err == nil {
+			if shouldReplace {
+				trV1Beta1.Status.TaskSpec.Resources = &resources
+			}
+			imageResourceNames := map[string]*image{}
+			if trV1Beta1.Status.TaskSpec != nil && trV1Beta1.Status.TaskSpec.Resources != nil {
+				for _, output := range trV1Beta1.Status.TaskSpec.Resources.Outputs {
+					if output.Type == backport.PipelineResourceTypeImage {
+						imageResourceNames[output.Name] = &image{}
+					}
 				}
 			}
-		}
 
-		for _, rr := range tr.Status.ResourcesResult {
-			img, ok := imageResourceNames[rr.ResourceName]
-			if !ok {
-				continue
+			for _, rr := range trV1Beta1.Status.ResourcesResult {
+				img, ok := imageResourceNames[rr.ResourceName]
+				if !ok {
+					continue
+				}
+				// We have a result for an image!
+				if rr.Key == "url" {
+					img.url = rr.Value
+				} else if rr.Key == "digest" {
+					img.digest = rr.Value
+				}
 			}
-			// We have a result for an image!
-			if rr.Key == "url" {
-				img.url = rr.Value
-			} else if rr.Key == "digest" {
-				img.digest = rr.Value
-			}
-		}
 
-		for _, image := range imageResourceNames {
-			dgst, err := name.NewDigest(fmt.Sprintf("%s@%s", image.url, image.digest))
-			if err != nil {
-				log.Error(err)
-				continue
+			for _, image := range imageResourceNames {
+				dgst, err := name.NewDigest(fmt.Sprintf("%s@%s", image.url, image.digest))
+				if err != nil {
+					log.Error(err)
+					continue
+				}
+				objs = append(objs, dgst)
 			}
-			objs = append(objs, dgst)
 		}
 	}
 
@@ -208,16 +221,15 @@ func ExtractOCIImagesFromResults(ctx context.Context, obj objects.TektonObject) 
 			logger.Errorf("error getting digest: %v", err)
 			continue
 		}
-
 		objs = append(objs, dgst)
 	}
 
 	// look for a comma separated list of images
 	for _, key := range obj.GetResults() {
-		if key.Name != "IMAGES" {
+		if key.GetName() != "IMAGES" {
 			continue
 		}
-		imgs := strings.FieldsFunc(key.Value.StringVal, split)
+		imgs := strings.FieldsFunc(key.GetStringValue(), split)
 
 		for _, img := range imgs {
 			trimmed := strings.TrimSpace(img)
@@ -291,43 +303,36 @@ func ExtractStructuredTargetFromResults(ctx context.Context, obj objects.TektonO
 	}
 
 	// TODO(#592): support structured results using Run
-	results := []objects.Result{}
 	for _, res := range obj.GetResults() {
-		results = append(results, objects.Result{
-			Name:  res.Name,
-			Value: res.Value,
-		})
-	}
-	for _, res := range results {
-		if strings.HasSuffix(res.Name, categoryMarker) {
+		if strings.HasSuffix(res.GetName(), categoryMarker) {
 			valid, err := isStructuredResult(res, categoryMarker)
 			if err != nil {
 				logger.Debugf("ExtractStructuredTargetFromResults: %v", err)
 			}
 			if valid {
-				logger.Debugf("Extracted Structured data from Result %s, %s", res.Value.ObjectVal["uri"], res.Value.ObjectVal["digest"])
-				objs = append(objs, &StructuredSignable{URI: res.Value.ObjectVal["uri"], Digest: res.Value.ObjectVal["digest"]})
+				logger.Debugf("Extracted Structured data from Result %v", res)
+				objs = append(objs, &StructuredSignable{URI: res.GetObjectValue("uri"), Digest: res.GetObjectValue("digest")})
 			}
 		}
 	}
 	return objs
 }
 
-func isStructuredResult(res objects.Result, categoryMarker string) (bool, error) {
-	if !strings.HasSuffix(res.Name, categoryMarker) {
+func isStructuredResult(res objects.GenericResult, categoryMarker string) (bool, error) {
+	if !strings.HasSuffix(res.GetName(), categoryMarker) {
 		return false, nil
 	}
-	if res.Value.ObjectVal == nil {
-		return false, fmt.Errorf("%s should be an object: %v", res.Name, res.Value.ObjectVal)
+	if res.ObjectValueIsNil() {
+		return false, fmt.Errorf("%s should be an object: %v", res.GetName(), res)
 	}
-	if res.Value.ObjectVal["uri"] == "" {
-		return false, fmt.Errorf("%s should have uri field: %v", res.Name, res.Value.ObjectVal)
+	if res.GetObjectValue("uri") == "" {
+		return false, fmt.Errorf("%s should have uri field: %v", res.GetName(), res)
 	}
-	if res.Value.ObjectVal["digest"] == "" {
-		return false, fmt.Errorf("%s should have digest field: %v", res.Name, res.Value.ObjectVal)
+	if res.GetObjectValue("digest") == "" {
+		return false, fmt.Errorf("%s should have digest field: %v", res.GetName(), res)
 	}
-	if _, _, err := ParseDigest(res.Value.ObjectVal["digest"]); err != nil {
-		return false, fmt.Errorf("error getting digest %s: %v", res.Value.ObjectVal["digest"], err)
+	if _, _, err := ParseDigest(res.GetObjectValue("digest")); err != nil {
+		return false, fmt.Errorf("error getting digest %s: %v", res.GetObjectValue("digest"), err)
 	}
 	return true, nil
 }

@@ -26,7 +26,7 @@ type Signer struct {
 	Signed bool
 }
 
-func (m *Signer) Sign(ctx context.Context, obj objects.TektonObject) error {
+func (m *Signer) Sign(ctx context.Context, obj ...objects.TektonObject) error {
 	m.Signed = true
 	return nil
 }

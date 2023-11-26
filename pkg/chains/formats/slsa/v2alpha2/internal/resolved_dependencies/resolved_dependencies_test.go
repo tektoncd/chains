@@ -23,7 +23,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
-	v1 "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
 	v1slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
 	"github.com/tektoncd/chains/internal/backport"
 	"github.com/tektoncd/chains/pkg/artifacts"
@@ -31,6 +30,7 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/internal/objectloader"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
 	logtesting "knative.dev/pkg/logging/testing"
@@ -38,15 +38,15 @@ import (
 
 const digest = "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b7"
 
-var pro *objects.PipelineRunObject
-var proStructuredResults *objects.PipelineRunObject
+var pro *objects.PipelineRunObjectV1
+var proStructuredResults *objects.PipelineRunObjectV1
 
 func init() {
 	pro = createPro("../../../testdata/v2alpha2/pipelinerun1.json")
 	proStructuredResults = createPro("../../../testdata/v2alpha2/pipelinerun_structured_results.json")
 }
 
-func createPro(path string) *objects.PipelineRunObject {
+func createPro(path string) *objects.PipelineRunObjectV1 {
 	var err error
 	pr, err := objectloader.PipelineRunFromFile(path)
 	if err != nil {
@@ -60,7 +60,7 @@ func createPro(path string) *objects.PipelineRunObject {
 	if err != nil {
 		panic(err)
 	}
-	p := objects.NewPipelineRunObject(pr)
+	p := objects.NewPipelineRunObjectV1(pr)
 	p.AppendTaskRun(tr1)
 	p.AppendTaskRun(tr2)
 	return p
@@ -95,11 +95,11 @@ func tektonTaskRuns() map[string][]byte {
 func TestRemoveDuplicates(t *testing.T) {
 	tests := []struct {
 		name string
-		rds  []v1.ResourceDescriptor
-		want []v1.ResourceDescriptor
+		rds  []v1slsa.ResourceDescriptor
+		want []v1slsa.ResourceDescriptor
 	}{{
 		name: "no duplicate resolvedDependencies",
-		rds: []v1.ResourceDescriptor{
+		rds: []v1slsa.ResourceDescriptor{
 			{
 				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
@@ -117,7 +117,7 @@ func TestRemoveDuplicates(t *testing.T) {
 				},
 			},
 		},
-		want: []v1.ResourceDescriptor{
+		want: []v1slsa.ResourceDescriptor{
 			{
 				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
@@ -137,7 +137,7 @@ func TestRemoveDuplicates(t *testing.T) {
 		},
 	}, {
 		name: "same uri and digest",
-		rds: []v1.ResourceDescriptor{
+		rds: []v1slsa.ResourceDescriptor{
 			{
 				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
@@ -150,7 +150,7 @@ func TestRemoveDuplicates(t *testing.T) {
 				},
 			},
 		},
-		want: []v1.ResourceDescriptor{
+		want: []v1slsa.ResourceDescriptor{
 			{
 				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
@@ -160,7 +160,7 @@ func TestRemoveDuplicates(t *testing.T) {
 		},
 	}, {
 		name: "same uri but different digest",
-		rds: []v1.ResourceDescriptor{
+		rds: []v1slsa.ResourceDescriptor{
 			{
 				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
@@ -173,7 +173,7 @@ func TestRemoveDuplicates(t *testing.T) {
 				},
 			},
 		},
-		want: []v1.ResourceDescriptor{
+		want: []v1slsa.ResourceDescriptor{
 			{
 				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
@@ -188,7 +188,7 @@ func TestRemoveDuplicates(t *testing.T) {
 		},
 	}, {
 		name: "same uri but different digest, swap order",
-		rds: []v1.ResourceDescriptor{
+		rds: []v1slsa.ResourceDescriptor{
 			{
 				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
@@ -201,7 +201,7 @@ func TestRemoveDuplicates(t *testing.T) {
 				},
 			},
 		},
-		want: []v1.ResourceDescriptor{
+		want: []v1slsa.ResourceDescriptor{
 			{
 				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
@@ -216,7 +216,7 @@ func TestRemoveDuplicates(t *testing.T) {
 		},
 	}, {
 		name: "task config must be present",
-		rds: []v1.ResourceDescriptor{
+		rds: []v1slsa.ResourceDescriptor{
 			{
 				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
@@ -235,7 +235,7 @@ func TestRemoveDuplicates(t *testing.T) {
 				},
 			},
 		},
-		want: []v1.ResourceDescriptor{
+		want: []v1slsa.ResourceDescriptor{
 			{
 				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
@@ -256,7 +256,7 @@ func TestRemoveDuplicates(t *testing.T) {
 		},
 	}, {
 		name: "pipeline config must be present",
-		rds: []v1.ResourceDescriptor{
+		rds: []v1slsa.ResourceDescriptor{
 			{
 				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
@@ -275,7 +275,7 @@ func TestRemoveDuplicates(t *testing.T) {
 				},
 			},
 		},
-		want: []v1.ResourceDescriptor{
+		want: []v1slsa.ResourceDescriptor{
 			{
 				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
@@ -310,198 +310,223 @@ func TestRemoveDuplicates(t *testing.T) {
 
 func TestTaskRun(t *testing.T) {
 	tests := []struct {
-		name    string
-		taskRun *v1beta1.TaskRun //nolint:staticcheck
-		want    []v1.ResourceDescriptor
-	}{{
-		name: "resolvedDependencies from pipeline resources",
-		taskRun: &v1beta1.TaskRun{ //nolint:staticcheck
-			Spec: v1beta1.TaskRunSpec{
-				Resources: &v1beta1.TaskRunResources{ //nolint:all //incompatible with pipelines v0.45
-					Inputs: []v1beta1.TaskResourceBinding{ //nolint:all //incompatible with pipelines v0.45
-						{
-							PipelineResourceBinding: v1beta1.PipelineResourceBinding{ //nolint:all //incompatible with pipelines v0.45
-								Name: "nil-resource-spec",
-							},
-						}, {
-							PipelineResourceBinding: v1beta1.PipelineResourceBinding{ //nolint:all //incompatible with pipelines v0.45
-								Name: "repo",
-								ResourceSpec: &v1alpha1.PipelineResourceSpec{ //nolint:all //incompatible with pipelines v0.45
-									Params: []v1alpha1.ResourceParam{ //nolint:all //incompatible with pipelines v0.45
-										{Name: "url", Value: "https://github.com/GoogleContainerTools/distroless"},
+		name string
+		obj  objects.TektonObject //nolint:staticcheck
+		want []v1slsa.ResourceDescriptor
+	}{
+		{
+			name: "resolvedDependencies from pipeline resources",
+			obj: objects.NewTaskRunObjectV1Beta1(&v1beta1.TaskRun{ //nolint:staticcheck
+				Spec: v1beta1.TaskRunSpec{
+					Resources: &v1beta1.TaskRunResources{ //nolint:all //incompatible with pipelines v0.45
+						Inputs: []v1beta1.TaskResourceBinding{ //nolint:all //incompatible with pipelines v0.45
+							{
+								PipelineResourceBinding: v1beta1.PipelineResourceBinding{ //nolint:all //incompatible with pipelines v0.45
+									Name: "nil-resource-spec",
+								},
+							}, {
+								PipelineResourceBinding: v1beta1.PipelineResourceBinding{ //nolint:all //incompatible with pipelines v0.45
+									Name: "repo",
+									ResourceSpec: &v1alpha1.PipelineResourceSpec{ //nolint:all //incompatible with pipelines v0.45
+										Params: []v1alpha1.ResourceParam{ //nolint:all //incompatible with pipelines v0.45
+											{Name: "url", Value: "https://github.com/GoogleContainerTools/distroless"},
+										},
+										Type: backport.PipelineResourceTypeGit,
 									},
-									Type: backport.PipelineResourceTypeGit,
 								},
 							},
 						},
 					},
 				},
-			},
-			Status: v1beta1.TaskRunStatus{
-				TaskRunStatusFields: v1beta1.TaskRunStatusFields{
-					TaskRunResults: []v1beta1.TaskRunResult{
-						{
-							Name: "img1_input" + "-" + artifacts.ArtifactsInputsResultName,
-							Value: *v1beta1.NewObject(map[string]string{
-								"uri":    "gcr.io/foo/bar",
-								"digest": digest,
-							}),
+				Status: v1beta1.TaskRunStatus{
+					TaskRunStatusFields: v1beta1.TaskRunStatusFields{
+						TaskRunResults: []v1beta1.TaskRunResult{
+							{
+								Name: "img1_input" + "-" + artifacts.ArtifactsInputsResultName,
+								Value: *v1beta1.NewObject(map[string]string{
+									"uri":    "gcr.io/foo/bar",
+									"digest": digest,
+								}),
+							},
 						},
-					},
-					ResourcesResult: []v1beta1.PipelineResourceResult{
-						{
-							ResourceName: "repo",
-							Key:          "commit",
-							Value:        "50c56a48cfb3a5a80fa36ed91c739bdac8381cbe",
-						}, {
-							ResourceName: "repo",
-							Key:          "url",
-							Value:        "https://github.com/GoogleContainerTools/distroless",
-						},
-					},
-				},
-			},
-		},
-		want: []v1.ResourceDescriptor{
-			{
-				Name: "inputs/result",
-				URI:  "gcr.io/foo/bar",
-				Digest: common.DigestSet{
-					"sha256": strings.TrimPrefix(digest, "sha256:"),
-				},
-			},
-			{
-				Name: "pipelineResource",
-				URI:  "git+https://github.com/GoogleContainerTools/distroless.git",
-				Digest: common.DigestSet{
-					"sha1": "50c56a48cfb3a5a80fa36ed91c739bdac8381cbe",
-				},
-			},
-		},
-	}, {
-		name: "resolvedDependencies from remote task",
-		taskRun: &v1beta1.TaskRun{ //nolint:staticcheck
-			Status: v1beta1.TaskRunStatus{
-				TaskRunStatusFields: v1beta1.TaskRunStatusFields{
-					Provenance: &v1beta1.Provenance{
-						RefSource: &v1beta1.RefSource{
-							URI: "git+github.com/something.git",
-							Digest: map[string]string{
-								"sha1": "abcd1234",
+						ResourcesResult: []v1beta1.PipelineResourceResult{
+							{
+								ResourceName: "repo",
+								Key:          "commit",
+								Value:        "50c56a48cfb3a5a80fa36ed91c739bdac8381cbe",
+							}, {
+								ResourceName: "repo",
+								Key:          "url",
+								Value:        "https://github.com/GoogleContainerTools/distroless",
 							},
 						},
 					},
 				},
-			},
-		},
-		want: []v1.ResourceDescriptor{
-			{
-				Name: "task",
-				URI:  "git+github.com/something.git",
-				Digest: common.DigestSet{
-					"sha1": "abcd1234",
+			}),
+			want: []v1slsa.ResourceDescriptor{
+				{
+					Name: "inputs/result",
+					URI:  "gcr.io/foo/bar",
+					Digest: common.DigestSet{
+						"sha256": strings.TrimPrefix(digest, "sha256:"),
+					},
+				},
+				{
+					Name: "pipelineResource",
+					URI:  "git+https://github.com/GoogleContainerTools/distroless.git",
+					Digest: common.DigestSet{
+						"sha1": "50c56a48cfb3a5a80fa36ed91c739bdac8381cbe",
+					},
 				},
 			},
 		},
-	}, {
-		name: "git resolvedDependencies from taskrun params",
-		taskRun: &v1beta1.TaskRun{ //nolint:staticcheck
-			Spec: v1beta1.TaskRunSpec{
-				Params: []v1beta1.Param{{
-					Name:  "CHAINS-GIT_COMMIT",
-					Value: *v1beta1.NewStructuredValues("my-commit"),
+		{
+			name: "resolvedDependencies from remote task",
+			obj: objects.NewTaskRunObjectV1(&v1.TaskRun{ //nolint:staticcheck
+				Status: v1.TaskRunStatus{
+					TaskRunStatusFields: v1.TaskRunStatusFields{
+						Provenance: &v1.Provenance{
+							RefSource: &v1.RefSource{
+								URI: "git+github.com/something.git",
+								Digest: map[string]string{
+									"sha1": "abcd1234",
+								},
+							},
+						},
+					},
+				},
+			}),
+			want: []v1slsa.ResourceDescriptor{
+				{
+					Name: "task",
+					URI:  "git+github.com/something.git",
+					Digest: common.DigestSet{
+						"sha1": "abcd1234",
+					},
+				},
+			},
+		},
+		{
+			name: "git resolvedDependencies from taskrun params",
+			obj: objects.NewTaskRunObjectV1(&v1.TaskRun{ //nolint:staticcheck
+				Spec: v1.TaskRunSpec{
+					Params: []v1.Param{{
+						Name:  "CHAINS-GIT_COMMIT",
+						Value: *v1.NewStructuredValues("my-commit"),
+					}, {
+						Name:  "CHAINS-GIT_URL",
+						Value: *v1.NewStructuredValues("github.com/something"),
+					}},
+				},
+			}),
+			want: []v1slsa.ResourceDescriptor{
+				{
+					Name: "inputs/result",
+					URI:  "git+github.com/something.git",
+					Digest: common.DigestSet{
+						"sha1": "my-commit",
+					},
+				},
+			},
+		},
+		{
+			name: "resolvedDependencies from step images",
+			obj: objects.NewTaskRunObjectV1(&v1.TaskRun{ //nolint:staticcheck
+				Status: v1.TaskRunStatus{
+					TaskRunStatusFields: v1.TaskRunStatusFields{
+						Steps: []v1.StepState{{
+							Name:    "git-source-repo-jwqcl",
+							ImageID: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init@sha256:b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
+						}, {
+							Name:    "git-source-repo-repeat-again-jwqcl",
+							ImageID: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init@sha256:b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
+						}, {
+							Name:    "build",
+							ImageID: "gcr.io/cloud-marketplace-containers/google/bazel@sha256:010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
+						}},
+					},
+				},
+			}),
+			want: []v1slsa.ResourceDescriptor{
+				{
+					URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+					Digest: common.DigestSet{
+						"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
+					},
+				},
+				{
+					URI: "oci://gcr.io/cloud-marketplace-containers/google/bazel",
+					Digest: common.DigestSet{
+						"sha256": "010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
+					},
+				},
+			},
+		},
+		{
+			name: "resolvedDependencies from step and sidecar images",
+			obj: objects.NewTaskRunObjectV1(&v1.TaskRun{ //nolint:staticcheck
+				Status: v1.TaskRunStatus{
+					TaskRunStatusFields: v1.TaskRunStatusFields{
+						Steps: []v1.StepState{{
+							Name:    "git-source-repo-jwqcl",
+							ImageID: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init@sha256:b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
+						}, {
+							Name:    "git-source-repo-repeat-again-jwqcl",
+							ImageID: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init@sha256:b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
+						}, {
+							Name:    "build",
+							ImageID: "gcr.io/cloud-marketplace-containers/google/bazel@sha256:010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
+						}},
+						Sidecars: []v1.SidecarState{{
+							Name:    "sidecar-jwqcl",
+							ImageID: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/sidecar-git-init@sha256:a1234f6e7a69617db57b685893256f978436277094c21d43b153994acd8a09567",
+						}},
+					},
+				},
+			}),
+			want: []v1slsa.ResourceDescriptor{
+				{
+					URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+					Digest: common.DigestSet{
+						"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
+					},
 				}, {
-					Name:  "CHAINS-GIT_URL",
-					Value: *v1beta1.NewStructuredValues("github.com/something"),
-				}},
-			},
-		},
-		want: []v1.ResourceDescriptor{
-			{
-				Name: "inputs/result",
-				URI:  "git+github.com/something.git",
-				Digest: common.DigestSet{
-					"sha1": "my-commit",
+					URI: "oci://gcr.io/cloud-marketplace-containers/google/bazel",
+					Digest: common.DigestSet{
+						"sha256": "010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
+					},
+				}, {
+					URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/sidecar-git-init",
+					Digest: common.DigestSet{
+						"sha256": "a1234f6e7a69617db57b685893256f978436277094c21d43b153994acd8a09567",
+					},
 				},
 			},
-		},
-	}, {
-		name: "resolvedDependencies from step images",
-		taskRun: &v1beta1.TaskRun{ //nolint:staticcheck
-			Status: v1beta1.TaskRunStatus{
-				TaskRunStatusFields: v1beta1.TaskRunStatusFields{
-					Steps: []v1beta1.StepState{{
-						Name:    "git-source-repo-jwqcl",
-						ImageID: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init@sha256:b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
-					}, {
-						Name:    "git-source-repo-repeat-again-jwqcl",
-						ImageID: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init@sha256:b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
-					}, {
-						Name:    "build",
-						ImageID: "gcr.io/cloud-marketplace-containers/google/bazel@sha256:010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
-					}},
-				},
-			},
-		},
-		want: []v1.ResourceDescriptor{
-			{
-				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
-				Digest: common.DigestSet{
-					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
-				},
-			},
-			{
-				URI: "oci://gcr.io/cloud-marketplace-containers/google/bazel",
-				Digest: common.DigestSet{
-					"sha256": "010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
-				},
-			},
-		},
-	}, {
-		name: "resolvedDependencies from step and sidecar images",
-		taskRun: &v1beta1.TaskRun{ //nolint:staticcheck
-			Status: v1beta1.TaskRunStatus{
-				TaskRunStatusFields: v1beta1.TaskRunStatusFields{
-					Steps: []v1beta1.StepState{{
-						Name:    "git-source-repo-jwqcl",
-						ImageID: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init@sha256:b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
-					}, {
-						Name:    "git-source-repo-repeat-again-jwqcl",
-						ImageID: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init@sha256:b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
-					}, {
-						Name:    "build",
-						ImageID: "gcr.io/cloud-marketplace-containers/google/bazel@sha256:010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
-					}},
-					Sidecars: []v1beta1.SidecarState{{
-						Name:    "sidecar-jwqcl",
-						ImageID: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/sidecar-git-init@sha256:a1234f6e7a69617db57b685893256f978436277094c21d43b153994acd8a09567",
-					}},
-				},
-			},
-		},
-		want: []v1.ResourceDescriptor{
-			{
-				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
-				Digest: common.DigestSet{
-					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
-				},
-			}, {
-				URI: "oci://gcr.io/cloud-marketplace-containers/google/bazel",
-				Digest: common.DigestSet{
-					"sha256": "010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
-				},
-			}, {
-				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/sidecar-git-init",
-				Digest: common.DigestSet{
-					"sha256": "a1234f6e7a69617db57b685893256f978436277094c21d43b153994acd8a09567",
-				},
-			},
-		},
-	}}
+		}}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := logtesting.TestContextWithLogger(t)
-			rd, err := TaskRun(ctx, objects.NewTaskRunObject(tc.taskRun))
+			var input *objects.TaskRunObjectV1
+			var err error
+			if obj, ok := tc.obj.(*objects.TaskRunObjectV1); ok {
+				input = obj
+			}
+
+			if trV1Beta1, ok := tc.obj.GetObject().(*v1beta1.TaskRun); ok {
+				trV1 := &v1.TaskRun{}
+				if err := trV1Beta1.ConvertTo(ctx, trV1); err == nil {
+					if trV1Beta1.Spec.Resources != nil {
+						jsonData, err := json.Marshal(trV1Beta1.Spec.Resources)
+						if err != nil {
+							t.Errorf("Error serializing to JSON: %v", err)
+						}
+						trV1.Annotations["tekton.dev/v1beta1-spec-resources"] = string(jsonData)
+					}
+					input = objects.NewTaskRunObjectV1(trV1)
+				}
+			}
+
+			rd, err := TaskRun(ctx, input)
 			if err != nil {
 				t.Fatalf("Did not expect an error but got %v", err)
 			}

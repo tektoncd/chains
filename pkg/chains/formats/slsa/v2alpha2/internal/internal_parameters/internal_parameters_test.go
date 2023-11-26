@@ -30,7 +30,7 @@ func TestTektonInternalParameters(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tro := objects.NewTaskRunObject(tr)
+	tro := objects.NewTaskRunObjectV1(tr)
 	got := TektonInternalParameters(tro)
 	want := map[string]any{
 		"labels":                         tro.GetLabels(),
@@ -48,7 +48,7 @@ func TestSLSAInternalParameters(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tro := objects.NewTaskRunObject(tr)
+	tro := objects.NewTaskRunObjectV1(tr)
 	got := SLSAInternalParameters(tro)
 	want := map[string]any{
 		"tekton-pipelines-feature-flags": config.FeatureFlags{EnableAPIFields: "beta", ResultExtractionMethod: "termination-message"},

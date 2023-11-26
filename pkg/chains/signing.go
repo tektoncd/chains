@@ -34,7 +34,8 @@ import (
 )
 
 type Signer interface {
-	Sign(ctx context.Context, obj objects.TektonObject) error
+	Sign(ctx context.Context, obj ...objects.TektonObject) error
+	// SignV1Beta1(ctx context.Context, obj objects.TektonObject, objv1beta1 objects.TektonObject) error
 }
 
 type ObjectSigner struct {
@@ -107,7 +108,9 @@ func getSignableTypes(ctx context.Context, obj objects.TektonObject) ([]artifact
 
 // Signs TaskRun and PipelineRun objects, as well as generates attesations for each
 // Follows process of extract payload, sign payload, store payload and signature
-func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject) error {
+func (o *ObjectSigner) Sign(ctx context.Context, tektonObjs ...objects.TektonObject) error {
+	tektonObj := tektonObjs[0]
+
 	cfg := *config.FromContext(ctx)
 	logger := logging.FromContext(ctx)
 
@@ -219,9 +222,25 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 		}
 	}
 
-	// Now mark the TektonObject as signed
-	if err := MarkSigned(ctx, tektonObj, o.Pipelineclientset, extraAnnotations); err != nil {
-		return err
+	if len(tektonObjs) == 1 {
+		// Now mark the TektonObject as signed
+		if err := MarkSigned(ctx, tektonObj, o.Pipelineclientset, extraAnnotations); err != nil {
+			return err
+		}
+	} else if len(tektonObjs) == 2 {
+		// Now mark the TektonObject as signed
+		if obj, ok := tektonObjs[1].(*objects.TaskRunObjectV1Beta1); ok {
+			if err := MarkSigned(ctx, obj, o.Pipelineclientset, extraAnnotations); err != nil {
+				return err
+			}
+		}
+		if obj, ok := tektonObjs[1].(*objects.PipelineRunObjectV1Beta1); ok {
+			if err := MarkSigned(ctx, obj, o.Pipelineclientset, extraAnnotations); err != nil {
+				return err
+			}
+		}
+	} else {
+		return fmt.Errorf("method Sign only supports 1-2 tektonObjs as arguments, received: %d", len(tektonObjs))
 	}
 
 	return nil

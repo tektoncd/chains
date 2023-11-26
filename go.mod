@@ -1,6 +1,6 @@
 module github.com/tektoncd/chains
 
-go 1.20
+go 1.21
 
 require (
 	cloud.google.com/go/compute/metadata v0.2.3
@@ -15,6 +15,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/in-toto/in-toto-golang v0.9.0
 	github.com/opencontainers/go-digest v1.0.0
+	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/secure-systems-lab/go-securesystemslib v0.7.0
 	github.com/sigstore/cosign/v2 v2.2.1
@@ -335,7 +336,6 @@ require (
 	github.com/oleiade/reflections v1.0.1 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/opencontainers/image-spec v1.1.0-rc5 // indirect
-	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/openzipkin/zipkin-go v0.3.0 // indirect
 	github.com/outcaste-io/ristretto v0.2.3 // indirect
 	github.com/pborman/uuid v1.2.1 // indirect
