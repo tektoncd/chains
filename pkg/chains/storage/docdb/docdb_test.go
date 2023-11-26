@@ -19,7 +19,7 @@ import (
 
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	"gocloud.dev/docstore"
 	_ "gocloud.dev/docstore/memdocstore"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,7 +43,7 @@ func TestBackend_StorePayload(t *testing.T) {
 		{
 			name: "no error",
 			args: args{
-				rawPayload: &v1beta1.TaskRun{ObjectMeta: metav1.ObjectMeta{UID: "foo"}},
+				rawPayload: &v1.TaskRun{ObjectMeta: metav1.ObjectMeta{UID: "foo"}},
 				signature:  "signature",
 				key:        "foo",
 			},
@@ -51,7 +51,7 @@ func TestBackend_StorePayload(t *testing.T) {
 		{
 			name: "no error - PipelineRun",
 			args: args{
-				rawPayload: &v1beta1.PipelineRun{ObjectMeta: metav1.ObjectMeta{UID: "foo"}},
+				rawPayload: &v1.PipelineRun{ObjectMeta: metav1.ObjectMeta{UID: "foo"}},
 				signature:  "signature",
 				key:        "moo",
 			},

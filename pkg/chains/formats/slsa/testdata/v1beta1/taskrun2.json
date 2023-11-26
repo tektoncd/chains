@@ -1,0 +1,105 @@
+{
+    "metadata": {
+        "name": "git-clone",
+        "labels": {
+            "tekton.dev/pipelineTask": "git-clone"
+        }
+    },
+    "spec": {
+        "params": [
+            {
+                "name": "url",
+                "value": "https://git.test.com"
+            },
+            {
+                "name": "revision",
+                "value": ""
+            }
+        ],
+        "taskRef": {
+            "name": "git-clone",
+            "kind": "Task"
+        },
+        "serviceAccountName": "default"
+    },
+    "status": {
+        "startTime": "2021-03-29T09:50:00Z",
+        "completionTime": "2021-03-29T09:50:15Z",
+        "conditions": [
+            {
+                "type": "Succeeded",
+                "status": "True",
+                "lastTransitionTime": "2021-03-29T09:50:15Z",
+                "reason": "Succeeded",
+                "message": "All Steps have completed executing"
+            }
+        ],
+        "podName": "test-pod-name",
+        "steps": [
+            {
+                "name": "step1",
+                "container": "step-step1",
+                "imageID": "docker-pullable://gcr.io/test1/test1@sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"
+            }
+        ],
+        "taskResults": [
+            {
+                "name": "some-uri_DIGEST",
+                "value": "sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"
+            },
+            {
+                "name": "some-uri",
+                "value": "pkg:deb/debian/curl@7.50.3-1"
+            }
+        ],
+        "taskSpec": {
+            "steps": [
+                {
+                    "env": [
+                    {
+                      "name": "HOME",
+                      "value": "$(params.userHome)"
+                    },
+                    {
+                      "name": "PARAM_URL",
+                      "value": "$(params.url)"
+                    }
+                  ],
+                    "name": "step1",
+                    "script": "git clone"
+                }
+            ],
+            "params": [
+                {
+                    "name": "CHAINS-GIT_COMMIT",
+                    "type": "string",
+                    "default": "sha:taskdefault"
+                },
+                {
+                    "name": "CHAINS-GIT_URL",
+                    "type": "string",
+                    "default": "https://git.test.com"
+                }
+            ],
+            "results": [
+                {
+                    "name": "some-uri_DIGEST",
+                    "description": "Digest of a file to push."
+                },
+                {
+                    "name": "some-uri",
+                    "description": "some calculated uri"
+                }
+            ]
+        },
+        "provenance": {
+          "refSource": {
+            "uri": "github.com/catalog",
+            "digest": {
+              "sha1": "x123"
+            },
+            "entryPoint": "git-clone.yaml"
+          }
+        }
+    }
+}

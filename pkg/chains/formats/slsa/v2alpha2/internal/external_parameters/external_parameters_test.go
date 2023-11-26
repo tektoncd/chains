@@ -28,13 +28,14 @@ import (
 
 func TestBuildConfigSource(t *testing.T) {
 	digest := map[string]string{"alg1": "hex1", "alg2": "hex2"}
-	provenance := &v1beta1.Provenance{
-		RefSource: &v1beta1.RefSource{
-			Digest:     digest,
-			URI:        "https://tekton.com",
-			EntryPoint: "/path/to/entry",
-		},
-	}
+	provenance := &objects.ProvenanceV1Beta1{
+		Provenance: &v1beta1.Provenance{
+			RefSource: &v1beta1.RefSource{
+				Digest:     digest,
+				URI:        "https://tekton.com",
+				EntryPoint: "/path/to/entry",
+			},
+		}}
 
 	want := map[string]string{
 		"repository": "https://tekton.com",
@@ -65,20 +66,20 @@ func TestBuildConfigSource(t *testing.T) {
 	}
 }
 
-func createPro(path string) *objects.PipelineRunObject {
-	pr, err := objectloader.PipelineRunFromFile(path)
+func createPro(path string) *objects.PipelineRunObjectV1Beta1 {
+	pr, err := objectloader.PipelineRunV1Beta1FromFile(path)
 	if err != nil {
 		panic(err)
 	}
-	tr1, err := objectloader.TaskRunFromFile("../../../testdata/v2alpha2/taskrun1.json")
+	tr1, err := objectloader.TaskRunV1Beta1FromFile("../../../testdata/v2alpha2/taskrun1.json")
 	if err != nil {
 		panic(err)
 	}
-	tr2, err := objectloader.TaskRunFromFile("../../../testdata/v2alpha2/taskrun2.json")
+	tr2, err := objectloader.TaskRunV1Beta1FromFile("../../../testdata/v2alpha2/taskrun2.json")
 	if err != nil {
 		panic(err)
 	}
-	p := objects.NewPipelineRunObject(pr)
+	p := objects.NewPipelineRunObjectV1Beta1(pr)
 	p.AppendTaskRun(tr1)
 	p.AppendTaskRun(tr2)
 	return p
@@ -108,11 +109,11 @@ func TestPipelineRun(t *testing.T) {
 }
 
 func TestTaskRun(t *testing.T) {
-	tr, err := objectloader.TaskRunFromFile("../../../testdata/v2alpha2/taskrun1.json")
+	tr, err := objectloader.TaskRunV1Beta1FromFile("../../../testdata/v2alpha2/taskrun1.json")
 	if err != nil {
 		t.Fatal(err)
 	}
-	got := TaskRun(objects.NewTaskRunObject(tr))
+	got := TaskRun(objects.NewTaskRunObjectV1Beta1(tr))
 
 	want := map[string]any{
 		"runSpec": v1beta1.TaskRunSpec{

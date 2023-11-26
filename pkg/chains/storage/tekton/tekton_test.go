@@ -21,7 +21,7 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/chains/pkg/test/tekton"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	fakepipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	rtesting "knative.dev/pkg/reconciler/testing"
@@ -42,15 +42,15 @@ func TestBackend_StorePayload(t *testing.T) {
 				A: "foo",
 				B: 3,
 			},
-			object: objects.NewTaskRunObject(&v1beta1.TaskRun{
+			object: objects.NewTaskRunObjectV1(&v1.TaskRun{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "foo",
 					Namespace: "bar",
 				},
-				Status: v1beta1.TaskRunStatus{
-					TaskRunStatusFields: v1beta1.TaskRunStatusFields{
-						TaskRunResults: []v1beta1.TaskRunResult{
-							{Name: "IMAGE_URL", Value: *v1beta1.NewStructuredValues("mockImage")},
+				Status: v1.TaskRunStatus{
+					TaskRunStatusFields: v1.TaskRunStatusFields{
+						Results: []v1.TaskRunResult{
+							{Name: "IMAGE_URL", Value: *v1.NewStructuredValues("mockImage")},
 						},
 					},
 				},
@@ -62,15 +62,15 @@ func TestBackend_StorePayload(t *testing.T) {
 				A: "foo",
 				B: 3,
 			},
-			object: objects.NewPipelineRunObject(&v1beta1.PipelineRun{
+			object: objects.NewPipelineRunObjectV1(&v1.PipelineRun{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "foo",
 					Namespace: "bar",
 				},
-				Status: v1beta1.PipelineRunStatus{
-					PipelineRunStatusFields: v1beta1.PipelineRunStatusFields{
-						PipelineResults: []v1beta1.PipelineRunResult{
-							{Name: "IMAGE_URL", Value: *v1beta1.NewStructuredValues("mockImage")},
+				Status: v1.PipelineRunStatus{
+					PipelineRunStatusFields: v1.PipelineRunStatusFields{
+						Results: []v1.PipelineRunResult{
+							{Name: "IMAGE_URL", Value: *v1.NewStructuredValues("mockImage")},
 						},
 					},
 				},

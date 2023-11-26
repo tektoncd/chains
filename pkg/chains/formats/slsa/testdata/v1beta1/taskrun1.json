@@ -1,0 +1,136 @@
+{
+    "metadata": {
+        "name": "taskrun-build",
+        "labels": {
+            "tekton.dev/pipelineTask": "build"
+        }
+    },
+    "spec": {
+        "params": [
+            {
+                "name": "IMAGE",
+                "value": "test.io/test/image"
+            },
+            {
+                "name": "CHAINS-GIT_COMMIT",
+                "value": "sha:taskrun"
+            },
+            {
+                "name": "CHAINS-GIT_URL",
+                "value": "https://git.test.com"
+            }
+        ],
+        "taskRef": {
+            "name": "build",
+            "kind": "Task"
+        },
+        "serviceAccountName": "default"
+    },
+    "status": {
+        "startTime": "2021-03-29T09:50:00Z",
+        "completionTime": "2021-03-29T09:50:15Z",
+        "conditions": [
+            {
+                "type": "Succeeded",
+                "status": "True",
+                "lastTransitionTime": "2021-03-29T09:50:15Z",
+                "reason": "Succeeded",
+                "message": "All Steps have completed executing"
+            }
+        ],
+        "podName": "test-pod-name",
+        "steps": [
+            {
+                "name": "step1",
+                "container": "step-step1",
+                "imageID": "docker-pullable://gcr.io/test1/test1@sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"
+            },
+            {
+                "name": "step2",
+                "container": "step-step2",
+                "imageID": "docker-pullable://gcr.io/test2/test2@sha256:4d6dd704ef58cb214dd826519929e92a978a57cdee43693006139c0080fd6fac"
+            },
+            {
+                "name": "step3",
+                "container": "step-step3",
+                "imageID": "docker-pullable://gcr.io/test3/test3@sha256:f1a8b8549c179f41e27ff3db0fe1a1793e4b109da46586501a8343637b1d0478"
+            }
+        ],
+        "taskResults": [
+            {
+                "name": "IMAGE_DIGEST",
+                "value": "sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"
+            },
+            {
+                "name": "IMAGE_URL",
+                "value": "gcr.io/my/image"
+            }
+        ],
+        "taskSpec": {
+            "params": [
+                {
+                    "name": "IMAGE",
+                    "type": "string"
+                },
+                {
+                    "name": "filename",
+                    "type": "string"
+                },
+                {
+                    "name": "DOCKERFILE",
+                    "type": "string"
+                },
+                {
+                    "name": "CONTEXT",
+                    "type": "string"
+                },
+                {
+                    "name": "EXTRA_ARGS",
+                    "type": "string"
+                },
+                {
+                    "name": "BUILDER_IMAGE",
+                    "type": "string"
+                }, {
+                    "name": "CHAINS-GIT_COMMIT",
+                    "type": "string",
+                    "default": "sha:task"
+                }, {
+                    "name": "CHAINS-GIT_URL",
+                    "type": "string",
+                    "default": "https://defaultgit.test.com"
+                }
+            ],
+            "steps": [
+                {
+                    "name": "step1"
+                },
+                {
+                    "name": "step2"
+                },
+                {
+                    "name": "step3"
+                }
+            ],
+            "results": [
+                {
+                    "name": "IMAGE_DIGEST",
+                    "description": "Digest of the image just built."
+                },
+                {
+                    "name": "filename_DIGEST",
+                    "description": "Digest of the file just built."
+                }
+            ]
+        },
+      "provenance": {
+          "refSource": {
+            "uri": "github.com/test",
+            "digest": {
+              "sha1": "ab123"
+            },
+            "entryPoint": "build.yaml"
+          }
+        }
+    }
+}

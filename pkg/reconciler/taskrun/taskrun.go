@@ -18,9 +18,9 @@ import (
 
 	signing "github.com/tektoncd/chains/pkg/chains"
 	"github.com/tektoncd/chains/pkg/chains/objects"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	"github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
-	taskrunreconciler "github.com/tektoncd/pipeline/pkg/client/injection/reconciler/pipeline/v1beta1/taskrun"
+	taskrunreconciler "github.com/tektoncd/pipeline/pkg/client/injection/reconciler/pipeline/v1/taskrun"
 	"knative.dev/pkg/logging"
 	pkgreconciler "knative.dev/pkg/reconciler"
 )
@@ -30,18 +30,18 @@ const (
 	SecretPath = "/etc/signing-secrets"
 )
 
-type Reconciler struct {
+type ReconcilerV1 struct {
 	TaskRunSigner     signing.Signer
 	Pipelineclientset versioned.Interface
 }
 
 // Check that our Reconciler implements taskrunreconciler.Interface and taskrunreconciler.Finalizer
-var _ taskrunreconciler.Interface = (*Reconciler)(nil)
-var _ taskrunreconciler.Finalizer = (*Reconciler)(nil)
+var _ taskrunreconciler.Interface = (*ReconcilerV1)(nil)
+var _ taskrunreconciler.Finalizer = (*ReconcilerV1)(nil)
 
 // ReconcileKind  handles a changed or created TaskRun.
 // This is the main entrypoint for chains business logic.
-func (r *Reconciler) ReconcileKind(ctx context.Context, tr *v1beta1.TaskRun) pkgreconciler.Event {
+func (r *ReconcilerV1) ReconcileKind(ctx context.Context, tr *v1.TaskRun) pkgreconciler.Event {
 	return r.FinalizeKind(ctx, tr)
 }
 
@@ -49,14 +49,14 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, tr *v1beta1.TaskRun) pkg
 // We utilize finalizers to ensure that we get a crack at signing every taskrun
 // that we see flowing through the system.  If we don't add a finalizer, it could
 // get cleaned up before we see the final state and sign it.
-func (r *Reconciler) FinalizeKind(ctx context.Context, tr *v1beta1.TaskRun) pkgreconciler.Event {
+func (r *ReconcilerV1) FinalizeKind(ctx context.Context, tr *v1.TaskRun) pkgreconciler.Event {
 	// Check to make sure the TaskRun is finished.
 	if !tr.IsDone() {
 		logging.FromContext(ctx).Infof("taskrun %s/%s is still running", tr.Namespace, tr.Name)
 		return nil
 	}
 
-	obj := objects.NewTaskRunObject(tr)
+	obj := objects.NewTaskRunObjectV1(tr)
 
 	// Check to see if it has already been signed.
 	if signing.Reconciled(ctx, r.Pipelineclientset, obj) {

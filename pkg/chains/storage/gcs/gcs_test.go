@@ -23,7 +23,7 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/objects"
 
 	"github.com/tektoncd/chains/pkg/config"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	rtesting "knative.dev/pkg/reconciler/testing"
@@ -32,8 +32,8 @@ import (
 //nolint:staticcheck
 func TestBackend_StorePayload(t *testing.T) {
 	type args struct {
-		tr        *v1beta1.TaskRun
-		pr        *v1beta1.PipelineRun
+		tr        *v1.TaskRun
+		pr        *v1.PipelineRun
 		signed    []byte
 		signature string
 		opts      config.StorageOpts
@@ -46,14 +46,14 @@ func TestBackend_StorePayload(t *testing.T) {
 		{
 			name: "no error, intoto",
 			args: args{
-				tr: &v1beta1.TaskRun{
+				tr: &v1.TaskRun{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "foo",
 						Name:      "bar",
 						UID:       types.UID("uid"),
 					},
 				},
-				pr: &v1beta1.PipelineRun{
+				pr: &v1.PipelineRun{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "foo",
 						Name:      "bar",
@@ -68,14 +68,14 @@ func TestBackend_StorePayload(t *testing.T) {
 		{
 			name: "no error, tekton",
 			args: args{
-				tr: &v1beta1.TaskRun{
+				tr: &v1.TaskRun{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "foo",
 						Name:      "bar",
 						UID:       types.UID("uid"),
 					},
 				},
-				pr: &v1beta1.PipelineRun{
+				pr: &v1.PipelineRun{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "foo",
 						Name:      "bar",
@@ -98,7 +98,7 @@ func TestBackend_StorePayload(t *testing.T) {
 				reader: mockGcsRead,
 				cfg:    config.Config{Storage: config.StorageConfigs{GCS: config.GCSStorageConfig{Bucket: "foo"}}},
 			}
-			trObj := objects.NewTaskRunObject(tt.args.tr)
+			trObj := objects.NewTaskRunObjectV1(tt.args.tr)
 			if err := b.StorePayload(ctx, trObj, tt.args.signed, tt.args.signature, tt.args.opts); (err != nil) != tt.wantErr {
 				t.Errorf("Backend.StorePayload() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -121,7 +121,7 @@ func TestBackend_StorePayload(t *testing.T) {
 				t.Errorf("wrong signature, expected %s, got %s", tt.args.signed, gotPayload[objectPayload])
 			}
 
-			prObj := objects.NewPipelineRunObject(tt.args.pr)
+			prObj := objects.NewPipelineRunObjectV1(tt.args.pr)
 			if err := b.StorePayload(ctx, prObj, tt.args.signed, tt.args.signature, tt.args.opts); (err != nil) != tt.wantErr {
 				t.Errorf("Backend.StorePayload() error = %v, wantErr %v", err, tt.wantErr)
 			}

@@ -65,7 +65,7 @@ func TestMetadata(t *testing.T) {
 		StartedOn:    &start,
 		FinishedOn:   &end,
 	}
-	got := metadata(objects.NewTaskRunObject(tr))
+	got := metadata(objects.NewTaskRunObjectV1Beta1(tr))
 	if d := cmp.Diff(want, got); d != "" {
 		t.Fatalf("metadata (-want, +got):\n%s", d)
 	}
@@ -96,7 +96,7 @@ func TestMetadataInTimeZone(t *testing.T) {
 		StartedOn:    &start,
 		FinishedOn:   &end,
 	}
-	got := metadata(objects.NewTaskRunObject(tr))
+	got := metadata(objects.NewTaskRunObjectV1Beta1(tr))
 	if d := cmp.Diff(want, got); d != "" {
 		t.Fatalf("metadata (-want, +got):\n%s", d)
 	}
@@ -128,7 +128,7 @@ func TestByProducts(t *testing.T) {
 			MediaType: pipelinerun.JsonMediaType,
 		},
 	}
-	got, err := byproducts(objects.NewTaskRunObject(tr))
+	got, err := byproducts(objects.NewTaskRunObjectV1Beta1(tr))
 	if err != nil {
 		t.Fatalf("Could not extract byproducts: %s", err)
 	}
@@ -139,7 +139,7 @@ func TestByProducts(t *testing.T) {
 
 func TestTaskRunGenerateAttestation(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
-	tr, err := objectloader.TaskRunFromFile("../../../testdata/v2alpha2/taskrun1.json")
+	tr, err := objectloader.TaskRunV1Beta1FromFile("../../../testdata/v2alpha2/taskrun1.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -225,7 +225,7 @@ func TestTaskRunGenerateAttestation(t *testing.T) {
 		},
 	}
 
-	got, err := GenerateAttestation(ctx, objects.NewTaskRunObject(tr), &slsaconfig.SlsaConfig{
+	got, err := GenerateAttestation(ctx, objects.NewTaskRunObjectV1Beta1(tr), &slsaconfig.SlsaConfig{
 		BuilderID: "test_builder-1",
 		BuildType: "https://tekton.dev/chains/v2/slsa",
 	})
@@ -238,7 +238,7 @@ func TestTaskRunGenerateAttestation(t *testing.T) {
 	}
 }
 
-func getResolvedDependencies(tro *objects.TaskRunObject) []v1resourcedescriptor.ResourceDescriptor {
+func getResolvedDependencies(tro *objects.TaskRunObjectV1Beta1) []v1resourcedescriptor.ResourceDescriptor {
 	rd, err := resolveddependencies.TaskRun(context.Background(), tro)
 	if err != nil {
 		return []v1resourcedescriptor.ResourceDescriptor{}
@@ -247,7 +247,7 @@ func getResolvedDependencies(tro *objects.TaskRunObject) []v1resourcedescriptor.
 }
 
 func TestGetBuildDefinition(t *testing.T) {
-	tr, err := objectloader.TaskRunFromFile("../../../testdata/v2alpha2/taskrun1.json")
+	tr, err := objectloader.TaskRunV1Beta1FromFile("../../../testdata/v2alpha2/taskrun1.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -259,7 +259,7 @@ func TestGetBuildDefinition(t *testing.T) {
 		"label1": "label1",
 	}
 
-	tro := objects.NewTaskRunObject(tr)
+	tro := objects.NewTaskRunObjectV1Beta1(tr)
 	tests := []struct {
 		name      string
 		buildType string
@@ -317,12 +317,12 @@ func TestGetBuildDefinition(t *testing.T) {
 }
 
 func TestUnsupportedBuildType(t *testing.T) {
-	tr, err := objectloader.TaskRunFromFile("../../../testdata/v2alpha2/taskrun1.json")
+	tr, err := objectloader.TaskRunV1Beta1FromFile("../../../testdata/v2alpha2/taskrun1.json")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	got, err := getBuildDefinition(context.Background(), "bad-buildType", objects.NewTaskRunObject(tr))
+	got, err := getBuildDefinition(context.Background(), "bad-buildType", objects.NewTaskRunObjectV1Beta1(tr))
 	if err == nil {
 		t.Error("getBuildDefinition(): expected error got nil")
 	}

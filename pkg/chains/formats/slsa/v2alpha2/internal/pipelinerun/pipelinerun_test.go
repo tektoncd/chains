@@ -63,7 +63,7 @@ func TestMetadata(t *testing.T) {
 		StartedOn:    &start,
 		FinishedOn:   &end,
 	}
-	got := metadata(objects.NewPipelineRunObject(pr))
+	got := metadata(objects.NewPipelineRunObjectV1Beta1(pr))
 	if d := cmp.Diff(want, got); d != "" {
 		t.Fatalf("metadata (-want, +got):\n%s", d)
 	}
@@ -94,7 +94,7 @@ func TestMetadataInTimeZone(t *testing.T) {
 		StartedOn:    &start,
 		FinishedOn:   &end,
 	}
-	got := metadata(objects.NewPipelineRunObject(pr))
+	got := metadata(objects.NewPipelineRunObjectV1Beta1(pr))
 	if d := cmp.Diff(want, got); d != "" {
 		t.Fatalf("metadata (-want, +got):\n%s", d)
 	}
@@ -126,7 +126,7 @@ func TestByProducts(t *testing.T) {
 			MediaType: JsonMediaType,
 		},
 	}
-	got, err := byproducts(objects.NewPipelineRunObject(pr))
+	got, err := byproducts(objects.NewPipelineRunObjectV1Beta1(pr))
 	if err != nil {
 		t.Fatalf("Could not extract byproducts: %s", err)
 	}
@@ -135,20 +135,20 @@ func TestByProducts(t *testing.T) {
 	}
 }
 
-func createPro(path string) *objects.PipelineRunObject {
-	pr, err := objectloader.PipelineRunFromFile(path)
+func createPro(path string) *objects.PipelineRunObjectV1Beta1 {
+	pr, err := objectloader.PipelineRunV1Beta1FromFile(path)
 	if err != nil {
 		panic(err)
 	}
-	tr1, err := objectloader.TaskRunFromFile("../../../testdata/v2alpha2/taskrun1.json")
+	tr1, err := objectloader.TaskRunV1Beta1FromFile("../../../testdata/v2alpha2/taskrun1.json")
 	if err != nil {
 		panic(err)
 	}
-	tr2, err := objectloader.TaskRunFromFile("../../../testdata/v2alpha2/taskrun2.json")
+	tr2, err := objectloader.TaskRunV1Beta1FromFile("../../../testdata/v2alpha2/taskrun2.json")
 	if err != nil {
 		panic(err)
 	}
-	p := objects.NewPipelineRunObject(pr)
+	p := objects.NewPipelineRunObjectV1Beta1(pr)
 	p.AppendTaskRun(tr1)
 	p.AppendTaskRun(tr2)
 	return p
@@ -275,7 +275,7 @@ func TestGenerateAttestation(t *testing.T) {
 	}
 }
 
-func getResolvedDependencies(addTasks func(*objects.TaskRunObject) (*v1resourcedescriptor.ResourceDescriptor, error)) []v1resourcedescriptor.ResourceDescriptor { //nolint:staticcheck
+func getResolvedDependencies(addTasks func(*objects.TaskRunObjectV1Beta1) (*v1resourcedescriptor.ResourceDescriptor, error)) []v1resourcedescriptor.ResourceDescriptor { //nolint:staticcheck
 	pr := createPro("../../../testdata/v2alpha2/pipelinerun1.json")
 	rd, err := resolveddependencies.PipelineRun(context.Background(), pr, &slsaconfig.SlsaConfig{DeepInspectionEnabled: false}, addTasks)
 	if err != nil {
@@ -294,7 +294,7 @@ func TestGetBuildDefinition(t *testing.T) {
 	}
 	tests := []struct {
 		name        string
-		taskContent func(*objects.TaskRunObject) (*v1resourcedescriptor.ResourceDescriptor, error) //nolint:staticcheck
+		taskContent func(*objects.TaskRunObjectV1Beta1) (*v1resourcedescriptor.ResourceDescriptor, error) //nolint:staticcheck
 		config      *slsaconfig.SlsaConfig
 		want        slsa.ProvenanceBuildDefinition
 	}{

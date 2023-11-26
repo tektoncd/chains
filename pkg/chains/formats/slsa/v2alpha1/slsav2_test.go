@@ -47,7 +47,7 @@ var (
 func TestTaskRunCreatePayload1(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
 
-	tr, err := objectloader.TaskRunFromFile("../testdata/taskrun1.json")
+	tr, err := objectloader.TaskRunV1Beta1FromFile("../testdata/v1beta1/taskrun1.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,7 +117,7 @@ func TestTaskRunCreatePayload1(t *testing.T) {
 						},
 					},
 					"PodTemplate":        (*pod.Template)(nil),
-					"Resources":          (*v1beta1.TaskRunResources)(nil),
+					"Resources":          (*v1beta1.TaskRunResources)(nil), //nolint:staticcheck
 					"Retries":            0,
 					"ServiceAccountName": "default",
 					"SidecarOverrides":   []v1beta1.TaskRunSidecarOverride(nil),
@@ -162,7 +162,7 @@ func TestTaskRunCreatePayload1(t *testing.T) {
 	}
 	i, _ := NewFormatter(cfg)
 
-	got, err := i.CreatePayload(ctx, objects.NewTaskRunObject(tr))
+	got, err := i.CreatePayload(ctx, objects.NewTaskRunObjectV1Beta1(tr))
 
 	if err != nil {
 		t.Errorf("unexpected error: %s", err.Error())
@@ -174,7 +174,7 @@ func TestTaskRunCreatePayload1(t *testing.T) {
 
 func TestTaskRunCreatePayload2(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
-	tr, err := objectloader.TaskRunFromFile("../testdata/taskrun2.json")
+	tr, err := objectloader.TaskRunV1Beta1FromFile("../testdata/v1beta1/taskrun2.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -225,7 +225,7 @@ func TestTaskRunCreatePayload2(t *testing.T) {
 						{Name: "revision", Value: v1beta1.ParamValue{Type: "string"}},
 					},
 					"PodTemplate":        (*pod.Template)(nil),
-					"Resources":          (*v1beta1.TaskRunResources)(nil),
+					"Resources":          (*v1beta1.TaskRunResources)(nil), //nolint:staticcheck
 					"Retries":            0,
 					"ServiceAccountName": "default",
 					"SidecarOverrides":   []v1beta1.TaskRunSidecarOverride(nil),
@@ -263,7 +263,7 @@ func TestTaskRunCreatePayload2(t *testing.T) {
 		},
 	}
 	i, _ := NewFormatter(cfg)
-	got, err := i.CreatePayload(ctx, objects.NewTaskRunObject(tr))
+	got, err := i.CreatePayload(ctx, objects.NewTaskRunObjectV1Beta1(tr))
 
 	if err != nil {
 		t.Errorf("unexpected error: %s", err.Error())
@@ -276,7 +276,7 @@ func TestTaskRunCreatePayload2(t *testing.T) {
 func TestMultipleSubjects(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
 
-	tr, err := objectloader.TaskRunFromFile("../testdata/taskrun-multiple-subjects.json")
+	tr, err := objectloader.TaskRunV1Beta1FromFile("../testdata/v1beta1/taskrun-multiple-subjects.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -326,7 +326,7 @@ func TestMultipleSubjects(t *testing.T) {
 					"Debug":              (*v1beta1.TaskRunDebug)(nil),
 					"Params":             v1beta1.Params{},
 					"PodTemplate":        (*pod.Template)(nil),
-					"Resources":          (*v1beta1.TaskRunResources)(nil),
+					"Resources":          (*v1beta1.TaskRunResources)(nil), //nolint:staticcheck
 					"Retries":            0,
 					"ServiceAccountName": "default",
 					"SidecarOverrides":   []v1beta1.TaskRunSidecarOverride(nil),
@@ -361,7 +361,7 @@ func TestMultipleSubjects(t *testing.T) {
 	}
 
 	i, _ := NewFormatter(cfg)
-	got, err := i.CreatePayload(ctx, objects.NewTaskRunObject(tr))
+	got, err := i.CreatePayload(ctx, objects.NewTaskRunObjectV1Beta1(tr))
 	if err != nil {
 		t.Errorf("unexpected error: %s", err.Error())
 	}

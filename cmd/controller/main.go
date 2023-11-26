@@ -41,5 +41,5 @@ func main() {
 	flag.Parse()
 	ctx := injection.WithNamespaceScope(signals.NewContext(), *namespace)
 
-	sharedmain.MainWithContext(ctx, "watcher", taskrun.NewController, pipelinerun.NewController)
+	sharedmain.MainWithContext(ctx, "watcher", taskrun.NewControllerV1, pipelinerun.NewControllerV1)
 }

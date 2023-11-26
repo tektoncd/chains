@@ -26,11 +26,11 @@ import (
 )
 
 func TestTektonInternalParameters(t *testing.T) {
-	tr, err := objectloader.TaskRunFromFile("../../../testdata/v2alpha2/taskrun1.json")
+	tr, err := objectloader.TaskRunV1Beta1FromFile("../../../testdata/v2alpha2/taskrun1.json")
 	if err != nil {
 		t.Fatal(err)
 	}
-	tro := objects.NewTaskRunObject(tr)
+	tro := objects.NewTaskRunObjectV1Beta1(tr)
 	got := TektonInternalParameters(tro)
 	want := map[string]any{
 		"labels":                         tro.GetLabels(),
@@ -44,11 +44,11 @@ func TestTektonInternalParameters(t *testing.T) {
 }
 
 func TestSLSAInternalParameters(t *testing.T) {
-	tr, err := objectloader.TaskRunFromFile("../../../testdata/v2alpha2/taskrun1.json")
+	tr, err := objectloader.TaskRunV1Beta1FromFile("../../../testdata/v2alpha2/taskrun1.json")
 	if err != nil {
 		t.Fatal(err)
 	}
-	tro := objects.NewTaskRunObject(tr)
+	tro := objects.NewTaskRunObjectV1Beta1(tr)
 	got := SLSAInternalParameters(tro)
 	want := map[string]any{
 		"tekton-pipelines-feature-flags": config.FeatureFlags{EnableAPIFields: "beta", ResultExtractionMethod: "termination-message"},

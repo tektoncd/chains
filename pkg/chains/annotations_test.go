@@ -18,7 +18,7 @@ import (
 
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/test/tekton"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	fakepipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	rtesting "knative.dev/pkg/reconciler/testing"
@@ -78,7 +78,7 @@ func TestReconciled(t *testing.T) {
 			c := fakepipelineclient.Get(ctx)
 
 			// Test TaskRun
-			taskRun := objects.NewTaskRunObject(&v1beta1.TaskRun{
+			taskRun := objects.NewTaskRunObjectV1(&v1.TaskRun{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
 						ChainsAnnotation: tt.annotation,
@@ -87,7 +87,7 @@ func TestReconciled(t *testing.T) {
 			})
 			tekton.CreateObject(t, ctx, c, taskRun)
 
-			cachedTaskRun := objects.NewTaskRunObject(&v1beta1.TaskRun{
+			cachedTaskRun := objects.NewTaskRunObjectV1(&v1.TaskRun{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
 						ChainsAnnotation: tt.latestAnnotation,
@@ -101,7 +101,7 @@ func TestReconciled(t *testing.T) {
 			}
 
 			// Test PipelineRun
-			pipelineRun := objects.NewPipelineRunObject(&v1beta1.PipelineRun{
+			pipelineRun := objects.NewPipelineRunObjectV1(&v1.PipelineRun{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
 						ChainsAnnotation: tt.annotation,
@@ -110,7 +110,7 @@ func TestReconciled(t *testing.T) {
 			})
 			tekton.CreateObject(t, ctx, c, pipelineRun)
 
-			cachedPipelineRun := objects.NewPipelineRunObject(&v1beta1.PipelineRun{
+			cachedPipelineRun := objects.NewPipelineRunObjectV1(&v1.PipelineRun{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
 						ChainsAnnotation: tt.latestAnnotation,
@@ -133,12 +133,12 @@ func TestMarkSigned(t *testing.T) {
 	}{
 		{
 			name: "mark taskrun",
-			object: objects.NewTaskRunObject(&v1beta1.TaskRun{
+			object: objects.NewTaskRunObjectV1(&v1.TaskRun{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "my-taskrun",
 				},
-				Spec: v1beta1.TaskRunSpec{
-					TaskRef: &v1beta1.TaskRef{
+				Spec: v1.TaskRunSpec{
+					TaskRef: &v1.TaskRef{
 						Name: "foo",
 					},
 				},
@@ -146,12 +146,12 @@ func TestMarkSigned(t *testing.T) {
 		},
 		{
 			name: "mark pipelinerun",
-			object: objects.NewPipelineRunObject(&v1beta1.PipelineRun{
+			object: objects.NewPipelineRunObjectV1(&v1.PipelineRun{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "my-pipelinerun",
 				},
-				Spec: v1beta1.PipelineRunSpec{
-					PipelineRef: &v1beta1.PipelineRef{
+				Spec: v1.PipelineRunSpec{
+					PipelineRef: &v1.PipelineRef{
 						Name: "foo",
 					},
 				},
@@ -212,13 +212,13 @@ func TestMarkFailed(t *testing.T) {
 	}{
 		{
 			name: "mark taskrun failed",
-			object: objects.NewTaskRunObject(&v1beta1.TaskRun{
+			object: objects.NewTaskRunObjectV1(&v1.TaskRun{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "my-taskrun",
 					Annotations: map[string]string{RetryAnnotation: "3"},
 				},
-				Spec: v1beta1.TaskRunSpec{
-					TaskRef: &v1beta1.TaskRef{
+				Spec: v1.TaskRunSpec{
+					TaskRef: &v1.TaskRef{
 						Name: "foo",
 					},
 				},
@@ -226,13 +226,13 @@ func TestMarkFailed(t *testing.T) {
 		},
 		{
 			name: "mark pipelinerun failed",
-			object: objects.NewPipelineRunObject(&v1beta1.PipelineRun{
+			object: objects.NewPipelineRunObjectV1(&v1.PipelineRun{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "my-pipelinerun",
 					Annotations: map[string]string{RetryAnnotation: "3"},
 				},
-				Spec: v1beta1.PipelineRunSpec{
-					PipelineRef: &v1beta1.PipelineRef{
+				Spec: v1.PipelineRunSpec{
+					PipelineRef: &v1.PipelineRef{
 						Name: "foo",
 					},
 				},
@@ -294,23 +294,23 @@ func TestRetryAvailble(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
 			// test taskrun
-			tr := &v1beta1.TaskRun{
+			tr := &v1.TaskRun{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: test.annotations,
 				},
 			}
-			trObj := objects.NewTaskRunObject(tr)
+			trObj := objects.NewTaskRunObjectV1(tr)
 			got := RetryAvailable(trObj)
 			if got != test.expected {
 				t.Fatalf("RetryAvailble() got %v expected %v", got, test.expected)
 			}
 			// test pipelinerun
-			pr := &v1beta1.PipelineRun{
+			pr := &v1.PipelineRun{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: test.annotations,
 				},
 			}
-			prObj := objects.NewPipelineRunObject(pr)
+			prObj := objects.NewPipelineRunObjectV1(pr)
 			got = RetryAvailable(prObj)
 			if got != test.expected {
 				t.Fatalf("RetryAvailble() got %v expected %v", got, test.expected)
@@ -326,13 +326,13 @@ func TestAddRetry(t *testing.T) {
 	}{
 		{
 			name: "add retry to taskrun",
-			object: objects.NewTaskRunObject(&v1beta1.TaskRun{
+			object: objects.NewTaskRunObjectV1(&v1.TaskRun{
 				ObjectMeta: metav1.ObjectMeta{Name: "mytaskrun"},
 			}),
 		},
 		{
 			name: "add retry to pipelinerun",
-			object: objects.NewPipelineRunObject(&v1beta1.PipelineRun{
+			object: objects.NewPipelineRunObjectV1(&v1.PipelineRun{
 				ObjectMeta: metav1.ObjectMeta{Name: "mypipelinerun"},
 			}),
 		},

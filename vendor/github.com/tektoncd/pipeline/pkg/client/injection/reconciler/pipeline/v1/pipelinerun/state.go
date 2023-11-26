@@ -21,7 +21,7 @@ package pipelinerun
 import (
 	fmt "fmt"
 
-	v1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	cache "k8s.io/client-go/tools/cache"
 	reconciler "knative.dev/pkg/reconciler"
@@ -83,7 +83,7 @@ func (s *state) isNotLeaderNorObserver() bool {
 	return false
 }
 
-func (s *state) reconcileMethodFor(o *v1beta1.PipelineRun) (string, doReconcile) {
+func (s *state) reconcileMethodFor(o *v1.PipelineRun) (string, doReconcile) {
 	if o.GetDeletionTimestamp().IsZero() {
 		if s.isLeader {
 			return reconciler.DoReconcileKind, s.reconciler.ReconcileKind

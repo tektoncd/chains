@@ -1,0 +1,56 @@
+{
+    "spec": {
+        "params": [],
+        "taskRef": {
+            "name": "test-task",
+            "kind": "Task"
+        },
+        "serviceAccountName": "default"
+    },
+    "status": {
+        "conditions": [
+            {
+                "type": "Succeeded",
+                "status": "True",
+                "lastTransitionTime": "2021-03-29T09:50:15Z",
+                "reason": "Succeeded",
+                "message": "All Steps have completed executing"
+            }
+        ],
+        "podName": "test-pod-name",
+        "steps": [
+            {
+                "name": "step1",
+                "container": "step-step1",
+                "imageID": "docker-pullable://gcr.io/test1/test1@sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"
+            }
+        ],
+        "taskResults": [
+            {
+                "name": "IMAGES",
+                "value": "gcr.io/myimage1@sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6,gcr.io/myimage2@sha256:daa1a56e13c85cf164e7d9e595006649e3a04c47fe4a8261320e18a0bf3b0367"
+            }
+        ],
+        "taskSpec": {
+            "params": [],
+            "results": [
+                {
+                    "name": "file1_DIGEST",
+                    "description": "Digest of a file to push."
+                },
+                {
+                    "name": "file1",
+                    "description": "some assembled file"
+                },
+                {
+                    "name": "file2_DIGEST",
+                    "description": "Digest of a file to push."
+                },
+                {
+                    "name": "file2",
+                    "description": "some assembled file"
+                }
+            ]
+        }
+    }
+}

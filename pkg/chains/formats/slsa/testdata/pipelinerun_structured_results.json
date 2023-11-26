@@ -9,7 +9,9 @@
         "pipelineRef": {
             "name": "test-pipeline"
         },
-        "serviceAccountName": "pipeline"
+        "taskRunTemplate": {
+            "serviceAccountName": "pipeline"
+        }
     },
     "status": {
         "startTime": "2021-03-29T09:50:00Z",
@@ -23,7 +25,7 @@
                 "type": "Succeeded"
             }
         ],
-        "pipelineResults": [
+        "results": [
             {
                 "name": "image-ARTIFACT_INPUTS",
                 "value": {
@@ -113,7 +115,7 @@
                       }
                     }
                   ],
-                  "taskResults": [
+                  "results": [
                     {
                       "name": "commit",
                       "value": "abcd"
@@ -196,7 +198,7 @@
                             }
                         }
                     ],
-                    "taskResults": [
+                    "results": [
                         {
                             "name": "IMAGE_DIGEST",
                             "value": "sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"

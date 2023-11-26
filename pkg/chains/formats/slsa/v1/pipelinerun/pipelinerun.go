@@ -22,7 +22,7 @@ import (
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/attest"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
-	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/material"
+	materialv1beta1 "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/material/v1beta1"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -47,10 +47,10 @@ type TaskAttestation struct {
 	Results    []v1beta1.TaskRunResult   `json:"results,omitempty"`
 }
 
-func GenerateAttestation(ctx context.Context, pro *objects.PipelineRunObject, slsaConfig *slsaconfig.SlsaConfig) (interface{}, error) {
+func GenerateAttestation(ctx context.Context, pro *objects.PipelineRunObjectV1Beta1, slsaConfig *slsaconfig.SlsaConfig) (interface{}, error) {
 	subjects := extract.SubjectDigests(ctx, pro, slsaConfig)
 
-	mat, err := material.PipelineMaterials(ctx, pro, slsaConfig)
+	mat, err := materialv1beta1.PipelineMaterials(ctx, pro, slsaConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -74,15 +74,15 @@ func GenerateAttestation(ctx context.Context, pro *objects.PipelineRunObject, sl
 	return att, nil
 }
 
-func invocation(pro *objects.PipelineRunObject) slsa.ProvenanceInvocation {
+func invocation(pro *objects.PipelineRunObjectV1Beta1) slsa.ProvenanceInvocation {
 	var paramSpecs []v1beta1.ParamSpec
 	if ps := pro.Status.PipelineSpec; ps != nil {
 		paramSpecs = ps.Params
 	}
-	return attest.Invocation(pro, pro.Spec.Params, paramSpecs)
+	return attest.InvocationV1Beta1(pro, pro.Spec.Params, paramSpecs)
 }
 
-func buildConfig(ctx context.Context, pro *objects.PipelineRunObject) BuildConfig {
+func buildConfig(ctx context.Context, pro *objects.PipelineRunObjectV1Beta1) BuildConfig {
 	logger := logging.FromContext(ctx)
 	tasks := []TaskAttestation{}
 
@@ -104,7 +104,7 @@ func buildConfig(ctx context.Context, pro *objects.PipelineRunObject) BuildConfi
 		steps := []attest.StepAttestation{}
 		for i, stepState := range tr.Status.Steps {
 			step := tr.Status.TaskSpec.Steps[i]
-			steps = append(steps, attest.Step(&step, &stepState))
+			steps = append(steps, attest.StepV1Beta1(&step, &stepState))
 		}
 		after := t.RunAfter
 
@@ -146,7 +146,7 @@ func buildConfig(ctx context.Context, pro *objects.PipelineRunObject) BuildConfi
 			FinishedOn: tr.Status.CompletionTime.Time.UTC(),
 			Status:     getStatus(tr.Status.Conditions),
 			Steps:      steps,
-			Invocation: attest.Invocation(tr, params, paramSpecs),
+			Invocation: attest.InvocationV1Beta1(tr, params, paramSpecs),
 			Results:    tr.Status.TaskRunResults,
 		}
 
@@ -162,7 +162,7 @@ func buildConfig(ctx context.Context, pro *objects.PipelineRunObject) BuildConfi
 	return BuildConfig{Tasks: tasks}
 }
 
-func metadata(pro *objects.PipelineRunObject) *slsa.ProvenanceMetadata {
+func metadata(pro *objects.PipelineRunObjectV1Beta1) *slsa.ProvenanceMetadata {
 	m := &slsa.ProvenanceMetadata{}
 	if pro.Status.StartTime != nil {
 		utc := pro.Status.StartTime.Time.UTC()

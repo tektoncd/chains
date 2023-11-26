@@ -19,11 +19,11 @@ import (
 	"github.com/tektoncd/chains/pkg/chains"
 	"github.com/tektoncd/chains/pkg/chains/storage"
 	"github.com/tektoncd/chains/pkg/config"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	pipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client"
-	pipelineruninformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/pipelinerun"
-	taskruninformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/taskrun"
-	pipelinerunreconciler "github.com/tektoncd/pipeline/pkg/client/injection/reconciler/pipeline/v1beta1/pipelinerun"
+	pipelineruninformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1/pipelinerun"
+	taskruninformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1/taskrun"
+	pipelinerunreconciler "github.com/tektoncd/pipeline/pkg/client/injection/reconciler/pipeline/v1/pipelinerun"
 	"k8s.io/client-go/tools/cache"
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
 	"knative.dev/pkg/configmap"
@@ -33,7 +33,7 @@ import (
 	_ "github.com/tektoncd/chains/pkg/chains/formats/all"
 )
 
-func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
+func NewControllerV1(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
 	logger := logging.FromContext(ctx)
 	pipelineRunInformer := pipelineruninformer.Get(ctx)
 	taskRunInformer := taskruninformer.Get(ctx)
@@ -77,12 +77,66 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 
 	c.Tracker = impl.Tracker
 
-	pipelineRunInformer.Informer().AddEventHandler(controller.HandleAll(impl.Enqueue))
+	pipelineRunInformer.Informer().AddEventHandler(controller.HandleAll(impl.Enqueue)) //nolint:errcheck
 
-	taskRunInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
-		FilterFunc: controller.FilterController(&v1beta1.PipelineRun{}),
+	taskRunInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{ //nolint:errcheck
+		FilterFunc: controller.FilterController(&v1.PipelineRun{}),
 		Handler:    controller.HandleAll(impl.EnqueueControllerOf),
 	})
 
 	return impl
 }
+
+// func NewControllerV1Beta1(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
+// 	logger := logging.FromContext(ctx)
+// 	pipelineRunInformer := v1beta1pipelineruninformer.Get(ctx)
+// 	taskRunInformer := v1beta1taskruninformer.Get(ctx)
+
+// 	kubeClient := kubeclient.Get(ctx)
+// 	pipelineClient := pipelineclient.Get(ctx)
+
+// 	psSigner := &chains.ObjectSigner{
+// 		SecretPath:        SecretPath,
+// 		Pipelineclientset: pipelineClient,
+// 	}
+
+// 	c := &ReconcilerV1Beta1{
+// 		PipelineRunSigner: psSigner,
+// 		Pipelineclientset: pipelineClient,
+// 		TaskRunLister:     taskRunInformer.Lister(),
+// 	}
+// 	impl := v1beta1pipelinerunreconciler.NewImpl(ctx, c, func(impl *controller.Impl) controller.Options {
+// 		cfgStore := config.NewConfigStore(logger, func(name string, value interface{}) {
+// 			// get updated config
+// 			cfg := *value.(*config.Config)
+
+// 			// get all backends for storing provenance
+// 			backends, err := storage.InitializeBackends(ctx, pipelineClient, kubeClient, cfg)
+// 			if err != nil {
+// 				logger.Error(err)
+// 			}
+// 			psSigner.Backends = backends
+// 		})
+
+// 		// setup watches for the config names provided by client
+// 		cfgStore.WatchConfigs(cmw)
+
+// 		return controller.Options{
+// 			// The chains reconciler shouldn't mutate the pipelinerun's status.
+// 			SkipStatusUpdates: true,
+// 			ConfigStore:       cfgStore,
+// 			FinalizerName:     "chains.tekton.dev/pipelinerun", // TODO: unique name required?
+// 		}
+// 	})
+
+// 	c.Tracker = impl.Tracker
+
+// 	pipelineRunInformer.Informer().AddEventHandler(controller.HandleAll(impl.Enqueue)) //nolint:errcheck
+
+// 	taskRunInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{ //nolint:errcheck
+// 		FilterFunc: controller.FilterController(&v1beta1.PipelineRun{}), //nolint:staticcheck
+// 		Handler:    controller.HandleAll(impl.EnqueueControllerOf),
+// 	})
+
+// 	return impl
+// }

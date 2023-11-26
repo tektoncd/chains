@@ -18,6 +18,7 @@ package material
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -28,6 +29,8 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/artifact"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/objects"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"knative.dev/pkg/logging"
 )
 
@@ -37,7 +40,7 @@ const (
 )
 
 // TaskMaterials constructs `predicate.materials` section by collecting all the artifacts that influence a taskrun such as source code repo and step&sidecar base images.
-func TaskMaterials(ctx context.Context, tro *objects.TaskRunObject) ([]common.ProvenanceMaterial, error) {
+func TaskMaterials(ctx context.Context, tro *objects.TaskRunObjectV1) ([]common.ProvenanceMaterial, error) {
 	var mats []common.ProvenanceMaterial
 
 	// add step images
@@ -56,13 +59,26 @@ func TaskMaterials(ctx context.Context, tro *objects.TaskRunObject) ([]common.Pr
 
 	mats = artifact.AppendMaterials(mats, FromTaskParamsAndResults(ctx, tro)...)
 
-	// add task resources
-	mats = artifact.AppendMaterials(mats, FromTaskResources(ctx, tro)...)
+	// convert to v1beta1 and add any task resources
+	serializedResources := tro.Annotations["tekton.dev/v1beta1-spec-resources"]
+	var resources v1beta1.TaskRunResources //nolint:staticcheck
+	shouldReplace := false
+	if err := json.Unmarshal([]byte(serializedResources), &resources); err == nil {
+		shouldReplace = true
+
+	}
+	trV1Beta1 := &v1beta1.TaskRun{} //nolint:staticcheck
+	if err := trV1Beta1.ConvertFrom(ctx, tro.GetObject().(*v1.TaskRun)); err == nil {
+		if shouldReplace {
+			trV1Beta1.Spec.Resources = &resources //nolint:staticcheck
+		}
+		mats = artifact.AppendMaterials(mats, FromTaskResources(ctx, trV1Beta1)...)
+	}
 
 	return mats, nil
 }
 
-func PipelineMaterials(ctx context.Context, pro *objects.PipelineRunObject, slsaconfig *slsaconfig.SlsaConfig) ([]common.ProvenanceMaterial, error) {
+func PipelineMaterials(ctx context.Context, pro *objects.PipelineRunObjectV1, slsaconfig *slsaconfig.SlsaConfig) ([]common.ProvenanceMaterial, error) {
 	logger := logging.FromContext(ctx)
 	var mats []common.ProvenanceMaterial
 	if p := pro.Status.Provenance; p != nil && p.RefSource != nil {
@@ -113,7 +129,7 @@ func PipelineMaterials(ctx context.Context, pro *objects.PipelineRunObject, slsa
 }
 
 // FromStepImages gets predicate.materials from step images
-func FromStepImages(tro *objects.TaskRunObject) ([]common.ProvenanceMaterial, error) {
+func FromStepImages(tro *objects.TaskRunObjectV1) ([]common.ProvenanceMaterial, error) {
 	mats := []common.ProvenanceMaterial{}
 	for _, image := range tro.GetStepImages() {
 		m, err := fromImageID(image)
@@ -126,7 +142,7 @@ func FromStepImages(tro *objects.TaskRunObject) ([]common.ProvenanceMaterial, er
 }
 
 // FromSidecarImages gets predicate.materials from sidecar images
-func FromSidecarImages(tro *objects.TaskRunObject) ([]common.ProvenanceMaterial, error) {
+func FromSidecarImages(tro *objects.TaskRunObjectV1) ([]common.ProvenanceMaterial, error) {
 	mats := []common.ProvenanceMaterial{}
 	for _, image := range tro.GetSidecarImages() {
 		m, err := fromImageID(image)
@@ -158,11 +174,11 @@ func fromImageID(imageID string) (common.ProvenanceMaterial, error) {
 }
 
 // FromTaskResourcesToMaterials gets materials from task resources.
-func FromTaskResources(ctx context.Context, tro *objects.TaskRunObject) []common.ProvenanceMaterial {
+func FromTaskResources(ctx context.Context, tr *v1beta1.TaskRun) []common.ProvenanceMaterial { //nolint:staticcheck
 	mats := []common.ProvenanceMaterial{}
-	if tro.Spec.Resources != nil { //nolint:all //incompatible with pipelines v0.45
+	if tr.Spec.Resources != nil { //nolint:all //incompatible with pipelines v0.45
 		// check for a Git PipelineResource
-		for _, input := range tro.Spec.Resources.Inputs { //nolint:all //incompatible with pipelines v0.45
+		for _, input := range tr.Spec.Resources.Inputs { //nolint:all //incompatible with pipelines v0.45
 			if input.ResourceSpec == nil || input.ResourceSpec.Type != backport.PipelineResourceTypeGit { //nolint:all //incompatible with pipelines v0.45
 				continue
 			}
@@ -171,7 +187,7 @@ func FromTaskResources(ctx context.Context, tro *objects.TaskRunObject) []common
 				Digest: common.DigestSet{},
 			}
 
-			for _, rr := range tro.Status.ResourcesResult {
+			for _, rr := range tr.Status.ResourcesResult {
 				if rr.ResourceName != input.Name {
 					continue
 				}
@@ -202,7 +218,7 @@ func FromTaskResources(ctx context.Context, tro *objects.TaskRunObject) []common
 // FromTaskParamsAndResults scans over the taskrun, taskspec params and taskrun results
 // and looks for unstructured type hinted names matching CHAINS-GIT_COMMIT and CHAINS-GIT_URL
 // to extract the commit and url value for input artifact materials.
-func FromTaskParamsAndResults(ctx context.Context, tro *objects.TaskRunObject) []common.ProvenanceMaterial {
+func FromTaskParamsAndResults(ctx context.Context, tro *objects.TaskRunObjectV1) []common.ProvenanceMaterial {
 	var commit, url string
 	// Scan for git params to use for materials
 	if tro.Status.TaskSpec != nil {
@@ -230,7 +246,7 @@ func FromTaskParamsAndResults(ctx context.Context, tro *objects.TaskRunObject) [
 		}
 	}
 
-	for _, r := range tro.Status.TaskRunResults {
+	for _, r := range tro.Status.Results {
 		if r.Name == attest.CommitParam {
 			commit = r.Value.StringVal
 		}
@@ -257,7 +273,7 @@ func FromTaskParamsAndResults(ctx context.Context, tro *objects.TaskRunObject) [
 }
 
 // FromPipelineParamsAndResults extracts type hinted params and results and adds the url and digest to materials.
-func FromPipelineParamsAndResults(ctx context.Context, pro *objects.PipelineRunObject, slsaconfig *slsaconfig.SlsaConfig) []common.ProvenanceMaterial {
+func FromPipelineParamsAndResults(ctx context.Context, pro *objects.PipelineRunObjectV1, slsaconfig *slsaconfig.SlsaConfig) []common.ProvenanceMaterial {
 	mats := []common.ProvenanceMaterial{}
 	sms := artifacts.RetrieveMaterialsFromStructuredResults(ctx, pro, artifacts.ArtifactsInputsResultName)
 	mats = artifact.AppendMaterials(mats, sms...)
@@ -308,8 +324,8 @@ func FromPipelineParamsAndResults(ctx context.Context, pro *objects.PipelineRunO
 		}
 	}
 
-	// search status.PipelineRunResults
-	for _, r := range pro.Status.PipelineResults {
+	// search status.Results
+	for _, r := range pro.Status.Results {
 		if r.Name == attest.CommitParam {
 			commit = r.Value.StringVal
 		}

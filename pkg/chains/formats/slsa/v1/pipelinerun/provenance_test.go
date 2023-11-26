@@ -36,31 +36,31 @@ import (
 )
 
 // Global pro is only read from, never modified
-var pro *objects.PipelineRunObject
-var proStructuredResults *objects.PipelineRunObject
+var pro *objects.PipelineRunObjectV1Beta1
+var proStructuredResults *objects.PipelineRunObjectV1Beta1
 var e1BuildStart = time.Unix(1617011400, 0)
 var e1BuildFinished = time.Unix(1617011415, 0)
 
 func init() {
-	pro = createPro("../../testdata/pipelinerun1.json")
-	proStructuredResults = createPro("../../testdata/pipelinerun_structured_results.json")
+	pro = createPro("../../testdata/v1beta1/pipelinerun1.json")
+	proStructuredResults = createPro("../../testdata/v1beta1/pipelinerun_structured_results.json")
 }
 
-func createPro(path string) *objects.PipelineRunObject {
+func createPro(path string) *objects.PipelineRunObjectV1Beta1 {
 	var err error
-	pr, err := objectloader.PipelineRunFromFile(path)
+	pr, err := objectloader.PipelineRunV1Beta1FromFile(path)
 	if err != nil {
 		panic(err)
 	}
-	tr1, err := objectloader.TaskRunFromFile("../../testdata/taskrun1.json")
+	tr1, err := objectloader.TaskRunV1Beta1FromFile("../../testdata/v1beta1/taskrun1.json")
 	if err != nil {
 		panic(err)
 	}
-	tr2, err := objectloader.TaskRunFromFile("../../testdata/taskrun2.json")
+	tr2, err := objectloader.TaskRunV1Beta1FromFile("../../testdata/v1beta1/taskrun2.json")
 	if err != nil {
 		panic(err)
 	}
-	p := objects.NewPipelineRunObject(pr)
+	p := objects.NewPipelineRunObjectV1Beta1(pr)
 	p.AppendTaskRun(tr1)
 	p.AppendTaskRun(tr2)
 	return p
@@ -420,7 +420,7 @@ func TestBuildConfigTaskOrder(t *testing.T) {
 				WhenExpressions: tt.whenExpressions,
 				RunAfter:        tt.runAfter,
 			}
-			pro := createPro("../../testdata/pipelinerun1.json")
+			pro := createPro("../../testdata/v1beta1/pipelinerun1.json")
 			pro.Status.PipelineSpec.Tasks[BUILD_TASK] = pt
 			ctx := logtesting.TestContextWithLogger(t)
 			got := buildConfig(ctx, pro)
@@ -461,7 +461,7 @@ func TestMetadataInTimeZone(t *testing.T) {
 		Reproducible: false,
 	}
 
-	zoned := objects.NewPipelineRunObject(pro.DeepCopy())
+	zoned := objects.NewPipelineRunObjectV1Beta1(pro.DeepCopy())
 	tz := time.FixedZone("Test Time", int((12 * time.Hour).Seconds()))
 	zoned.Status.StartTime.Time = zoned.Status.StartTime.Time.In(tz)
 	zoned.Status.CompletionTime.Time = zoned.Status.CompletionTime.Time.In(tz)

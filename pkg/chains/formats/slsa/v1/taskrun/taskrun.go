@@ -21,16 +21,16 @@ import (
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/attest"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
-	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/material"
+	materialv1beta1 "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/material/v1beta1"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 )
 
-func GenerateAttestation(ctx context.Context, tro *objects.TaskRunObject, slsaConfig *slsaconfig.SlsaConfig) (interface{}, error) {
+func GenerateAttestation(ctx context.Context, tro *objects.TaskRunObjectV1Beta1, slsaConfig *slsaconfig.SlsaConfig) (interface{}, error) {
 	subjects := extract.SubjectDigests(ctx, tro, slsaConfig)
 
-	mat, err := material.TaskMaterials(ctx, tro)
+	mat, err := materialv1beta1.TaskMaterials(ctx, tro)
 	if err != nil {
 		return nil, err
 	}
@@ -57,17 +57,17 @@ func GenerateAttestation(ctx context.Context, tro *objects.TaskRunObject, slsaCo
 // invocation describes the event that kicked off the build
 // we currently don't set ConfigSource because we don't know
 // which material the Task definition came from
-func invocation(tro *objects.TaskRunObject) slsa.ProvenanceInvocation {
+func invocation(tro *objects.TaskRunObjectV1Beta1) slsa.ProvenanceInvocation {
 	var paramSpecs []v1beta1.ParamSpec
 	if ts := tro.Status.TaskSpec; ts != nil {
 		paramSpecs = ts.Params
 	}
-	return attest.Invocation(tro, tro.Spec.Params, paramSpecs)
+	return attest.InvocationV1Beta1(tro, tro.Spec.Params, paramSpecs)
 }
 
 // Metadata adds taskrun's start time, completion time and reproducibility labels
 // to the metadata section of the generated provenance.
-func Metadata(tro *objects.TaskRunObject) *slsa.ProvenanceMetadata {
+func Metadata(tro *objects.TaskRunObjectV1Beta1) *slsa.ProvenanceMetadata {
 	m := &slsa.ProvenanceMetadata{}
 	if tro.Status.StartTime != nil {
 		utc := tro.Status.StartTime.Time.UTC()

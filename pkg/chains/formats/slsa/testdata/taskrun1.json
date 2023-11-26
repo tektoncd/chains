@@ -56,7 +56,7 @@
                 "imageID": "docker-pullable://gcr.io/test3/test3@sha256:f1a8b8549c179f41e27ff3db0fe1a1793e4b109da46586501a8343637b1d0478"
             }
         ],
-        "taskResults": [
+        "results": [
             {
                 "name": "IMAGE_DIGEST",
                 "value": "sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"

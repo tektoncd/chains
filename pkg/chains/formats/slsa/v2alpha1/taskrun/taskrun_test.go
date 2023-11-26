@@ -53,7 +53,7 @@ const (
 )
 
 func TestMetadata(t *testing.T) {
-	tr := &v1beta1.TaskRun{
+	tr := &v1beta1.TaskRun{ //nolint:staticcheck
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "my-taskrun",
 			Namespace: "my-namespace",
@@ -74,7 +74,7 @@ func TestMetadata(t *testing.T) {
 		BuildStartedOn:  &start,
 		BuildFinishedOn: &end,
 	}
-	got := slsav1.Metadata(objects.NewTaskRunObject(tr))
+	got := slsav1.Metadata(objects.NewTaskRunObjectV1Beta1(tr))
 	if !reflect.DeepEqual(expected, got) {
 		t.Fatalf("expected %v got %v", expected, got)
 	}
@@ -82,7 +82,7 @@ func TestMetadata(t *testing.T) {
 
 func TestMetadataInTimeZone(t *testing.T) {
 	tz := time.FixedZone("Test Time", int((12 * time.Hour).Seconds()))
-	tr := &v1beta1.TaskRun{
+	tr := &v1beta1.TaskRun{ //nolint:staticcheck
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "my-taskrun",
 			Namespace: "my-namespace",
@@ -103,7 +103,7 @@ func TestMetadataInTimeZone(t *testing.T) {
 		BuildStartedOn:  &start,
 		BuildFinishedOn: &end,
 	}
-	got := slsav1.Metadata(objects.NewTaskRunObject(tr))
+	got := slsav1.Metadata(objects.NewTaskRunObjectV1Beta1(tr))
 	if !reflect.DeepEqual(expected, got) {
 		t.Fatalf("expected %v got %v", expected, got)
 	}
@@ -167,7 +167,7 @@ status:
       RunningInEnvWithInjectedSidecars: true
 `
 
-	var taskRun *v1beta1.TaskRun
+	var taskRun *v1beta1.TaskRun //nolint:staticcheck
 	if err := yaml.Unmarshal([]byte(taskrun), &taskRun); err != nil {
 		t.Fatal(err)
 	}
@@ -192,7 +192,7 @@ status:
 			"ComputeResources":   (*corev1.ResourceRequirements)(nil),
 			"Debug":              (*v1beta1.TaskRunDebug)(nil),
 			"PodTemplate":        (*pod.Template)(nil),
-			"Resources":          (*v1beta1.TaskRunResources)(nil),
+			"Resources":          (*v1beta1.TaskRunResources)(nil), //nolint:staticcheck
 			"Retries":            0,
 			"ServiceAccountName": "",
 			"SidecarOverrides":   []v1beta1.TaskRunSidecarOverride(nil),
@@ -214,7 +214,7 @@ status:
 			},
 		},
 	}
-	got := invocation(objects.NewTaskRunObject(taskRun))
+	got := invocation(objects.NewTaskRunObjectV1Beta1(taskRun))
 	if !reflect.DeepEqual(expected, got) {
 		if d := cmp.Diff(expected, got); d != "" {
 			t.Log(d)
@@ -224,18 +224,18 @@ status:
 }
 
 func TestGetSubjectDigests(t *testing.T) {
-	tr := &v1beta1.TaskRun{
+	tr := &v1beta1.TaskRun{ //nolint:staticcheck
 		Spec: v1beta1.TaskRunSpec{
-			Resources: &v1beta1.TaskRunResources{
-				Outputs: []v1beta1.TaskResourceBinding{
+			Resources: &v1beta1.TaskRunResources{ //nolint:staticcheck
+				Outputs: []v1beta1.TaskResourceBinding{ //nolint:staticcheck
 					{
-						PipelineResourceBinding: v1beta1.PipelineResourceBinding{
+						PipelineResourceBinding: v1beta1.PipelineResourceBinding{ //nolint:staticcheck
 							Name: "nil-check",
 						},
 					}, {
-						PipelineResourceBinding: v1beta1.PipelineResourceBinding{
+						PipelineResourceBinding: v1beta1.PipelineResourceBinding{ //nolint:staticcheck
 							Name: "built-image",
-							ResourceSpec: &v1alpha1.PipelineResourceSpec{
+							ResourceSpec: &v1alpha1.PipelineResourceSpec{ //nolint:staticcheck
 								Type: backport.PipelineResourceTypeImage,
 							},
 						},
@@ -357,7 +357,7 @@ func TestGetSubjectDigests(t *testing.T) {
 			},
 		},
 	}
-	tro := objects.NewTaskRunObject(tr)
+	tro := objects.NewTaskRunObjectV1Beta1(tr)
 	ctx := logtesting.TestContextWithLogger(t)
 	got := extract.SubjectDigests(ctx, tro, nil)
 

@@ -38,29 +38,29 @@ import (
 
 const digest = "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b7"
 
-var pro *objects.PipelineRunObject
-var proStructuredResults *objects.PipelineRunObject
+var pro *objects.PipelineRunObjectV1Beta1
+var proStructuredResults *objects.PipelineRunObjectV1Beta1
 
 func init() {
 	pro = createPro("../../../testdata/v2alpha2/pipelinerun1.json")
 	proStructuredResults = createPro("../../../testdata/v2alpha2/pipelinerun_structured_results.json")
 }
 
-func createPro(path string) *objects.PipelineRunObject {
+func createPro(path string) *objects.PipelineRunObjectV1Beta1 {
 	var err error
-	pr, err := objectloader.PipelineRunFromFile(path)
+	pr, err := objectloader.PipelineRunV1Beta1FromFile(path)
 	if err != nil {
 		panic(err)
 	}
-	tr1, err := objectloader.TaskRunFromFile("../../../testdata/v2alpha2/taskrun1.json")
+	tr1, err := objectloader.TaskRunV1Beta1FromFile("../../../testdata/v2alpha2/taskrun1.json")
 	if err != nil {
 		panic(err)
 	}
-	tr2, err := objectloader.TaskRunFromFile("../../../testdata/v2alpha2/taskrun2.json")
+	tr2, err := objectloader.TaskRunV1Beta1FromFile("../../../testdata/v2alpha2/taskrun2.json")
 	if err != nil {
 		panic(err)
 	}
-	p := objects.NewPipelineRunObject(pr)
+	p := objects.NewPipelineRunObjectV1Beta1(pr)
 	p.AppendTaskRun(tr1)
 	p.AppendTaskRun(tr2)
 	return p
@@ -68,11 +68,11 @@ func createPro(path string) *objects.PipelineRunObject {
 
 func tektonTaskRuns() map[string][]byte {
 	trs := make(map[string][]byte)
-	tr1, err := objectloader.TaskRunFromFile("../../../testdata/v2alpha2/taskrun1.json")
+	tr1, err := objectloader.TaskRunV1Beta1FromFile("../../../testdata/v2alpha2/taskrun1.json")
 	if err != nil {
 		panic(err)
 	}
-	tr2, err := objectloader.TaskRunFromFile("../../../testdata/v2alpha2/taskrun2.json")
+	tr2, err := objectloader.TaskRunV1Beta1FromFile("../../../testdata/v2alpha2/taskrun2.json")
 	if err != nil {
 		panic(err)
 	}
@@ -501,7 +501,7 @@ func TestTaskRun(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := logtesting.TestContextWithLogger(t)
-			rd, err := TaskRun(ctx, objects.NewTaskRunObject(tc.taskRun))
+			rd, err := TaskRun(ctx, objects.NewTaskRunObjectV1Beta1(tc.taskRun))
 			if err != nil {
 				t.Fatalf("Did not expect an error but got %v", err)
 			}

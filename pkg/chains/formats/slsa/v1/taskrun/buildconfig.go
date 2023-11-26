@@ -36,16 +36,16 @@ type Step struct {
 	Annotations map[string]string `json:"annotations"`
 }
 
-func buildConfig(tro *objects.TaskRunObject) BuildConfig {
+func buildConfig(tro *objects.TaskRunObjectV1Beta1) BuildConfig {
 	attestations := []attest.StepAttestation{}
 	for _, stepState := range tro.Status.Steps {
 		step := stepFromTaskRun(stepState.Name, tro)
-		attestations = append(attestations, attest.Step(step, &stepState))
+		attestations = append(attestations, attest.StepV1Beta1(step, &stepState))
 	}
 	return BuildConfig{Steps: attestations}
 }
 
-func stepFromTaskRun(name string, tro *objects.TaskRunObject) *v1beta1.Step {
+func stepFromTaskRun(name string, tro *objects.TaskRunObjectV1Beta1) *v1beta1.Step {
 	if tro.Status.TaskSpec != nil {
 		for _, s := range tro.Status.TaskSpec.Steps {
 			if s.Name == name {

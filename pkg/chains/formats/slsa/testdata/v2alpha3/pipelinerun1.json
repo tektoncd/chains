@@ -1,0 +1,312 @@
+{
+    "metadata": {
+        "name": "pipelinerun-build",
+	"uid": "abhhf-12354-asjsdbjs23-3435353n"
+    },
+    "spec": {
+        "params": [
+            {
+                "name": "IMAGE",
+                "value": "test.io/test/image"
+            }
+        ],
+        "pipelineRef": {
+            "name": "test-pipeline"
+        },
+        "taskRunTemplate": {
+            "serviceAccountName": "pipeline"
+        }
+    },
+    "status": {
+        "startTime": "2021-03-29T09:50:00Z",
+        "completionTime": "2021-03-29T09:50:15Z",
+        "conditions": [
+            {
+                "lastTransitionTime": "2021-03-29T09:50:15Z",
+                "message": "Tasks Completed: 2 (Failed: 0, Cancelled 0), Skipped: 0",
+                "reason": "Succeeded",
+                "status": "True",
+                "type": "Succeeded"
+            }
+        ],
+        "results": [
+            {
+                "name": "CHAINS-GIT_COMMIT",
+                "value": "abcd"
+            },
+            {
+                "name": "CHAINS-GIT_URL",
+                "value": "https://git.test.com"
+            },
+            {
+                "name": "IMAGE_URL",
+                "value": "test.io/test/image"
+            },
+            {
+                "name": "IMAGE_DIGEST",
+                "value": "sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"
+            },
+            {
+                "name": "img-ARTIFACT_INPUTS",
+                "value": {
+                    "uri": "abc","digest": "sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"
+                }
+            },
+            {
+                "name": "img2-ARTIFACT_OUTPUTS",
+                "value": {
+                    "uri": "def","digest": "sha256:"
+                }
+            },
+            {
+                "name": "img_no_uri-ARTIFACT_OUTPUTS",
+                "value": {
+                    "digest": "sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"
+                }
+            }
+        ],
+        "pipelineSpec": {
+            "params": [
+                {
+                    "description": "Image path on registry",
+                    "name": "IMAGE",
+                    "type": "string"
+                }
+            ],
+            "results": [
+                {
+                    "description": "",
+                    "name": "CHAINS-GIT_COMMIT",
+                    "value": "$(tasks.git-clone.results.commit)"
+                },
+                {
+                    "description": "",
+                    "name": "CHAINS-GIT_URL",
+                    "value": "$(tasks.git-clone.results.url)"
+                },
+                {
+                    "description": "",
+                    "name": "IMAGE_URL",
+                    "value": "$(tasks.build.results.IMAGE_URL)"
+                },
+                {
+                    "description": "",
+                    "name": "IMAGE_DIGEST",
+                    "value": "$(tasks.build.results.IMAGE_DIGEST)"
+                }
+            ],
+            "tasks": [
+                {
+                    "name": "git-clone",
+                    "params": [
+                        {
+                            "name": "url",
+                            "value": "https://git.test.com"
+                        },
+                        {
+                            "name": "revision",
+                            "value": ""
+                        }
+                    ],
+                    "taskRef": {
+                        "kind": "ClusterTask",
+                        "name": "git-clone"
+                    }
+                },
+                {
+                    "name": "build",
+                    "params": [
+                        {
+                            "name": "CHAINS-GIT_COMMIT",
+                            "value": "$(tasks.git-clone.results.commit)"
+                        },
+                        {
+                            "name": "CHAINS-GIT_URL",
+                            "value": "$(tasks.git-clone.results.url)"
+                        }
+                    ],
+                    "taskRef": {
+                        "kind": "ClusterTask",
+                        "name": "build"
+                    }
+                }
+            ]
+        },
+        "taskRuns": {
+            "git-clone": {
+                "pipelineTaskName": "git-clone",
+                "status": {
+                  "completionTime": "2021-03-29T09:50:15Z",
+                  "conditions": [
+                    {
+                      "lastTransitionTime": "2021-03-29T09:50:15Z",
+                      "message": "All Steps have completed executing",
+                      "reason": "Succeeded",
+                      "status": "True",
+                      "type": "Succeeded"
+                    }
+                  ],
+                  "podName": "git-clone-pod",
+                  "startTime": "2021-03-29T09:50:00Z",
+                  "steps": [
+                    {
+                      "container": "step-clone",
+                      "imageID": "test.io/test/clone-image",
+                      "name": "clone",
+                      "terminated": {
+                        "exitCode": 0,
+                        "finishedAt": "2021-03-29T09:50:15Z",
+                        "reason": "Completed",
+                        "startedAt": "2022-05-31T19:13:27Z"
+                      }
+                    }
+                  ],
+                  "results": [
+                    {
+                      "name": "commit",
+                      "value": "abcd"
+                    },
+                    {
+                      "name": "url",
+                      "value": "https://git.test.com"
+                    }
+                  ],
+                  "taskSpec": {
+                    "params": [
+                      {
+                        "description": "Repository URL to clone from.",
+                        "name": "url",
+                        "type": "string"
+                      },
+                      {
+                        "default": "",
+                        "description": "Revision to checkout. (branch, tag, sha, ref, etc...)",
+                        "name": "revision",
+                        "type": "string"
+                      }
+                    ],
+                    "results": [
+                      {
+                        "description": "The precise commit SHA that was fetched by this Task.",
+                        "name": "commit"
+                      },
+                      {
+                        "description": "The precise URL that was fetched by this Task.",
+                        "name": "url"
+                      }
+                    ],
+                    "steps": [
+                      {
+                        "env": [
+                          {
+                            "name": "HOME",
+                            "value": "$(params.userHome)"
+                          },
+                          {
+                            "name": "PARAM_URL",
+                            "value": "$(params.url)"
+                          }
+                        ],
+                        "image": "$(params.gitInitImage)",
+                        "name": "clone",
+                        "resources": {},
+                        "script": "git clone"
+                      }
+                    ]
+                  }
+                }
+              },
+            "taskrun-build": {
+                "pipelineTaskName": "build",
+                "status": {
+                    "completionTime": "2021-03-29T09:50:15Z",
+                    "conditions": [
+                        {
+                            "lastTransitionTime": "2021-03-29T09:50:15Z",
+                            "message": "All Steps have completed executing",
+                            "reason": "Succeeded",
+                            "status": "True",
+                            "type": "Succeeded"
+                        }
+                    ],
+                    "podName": "build-pod",
+                    "startTime": "2021-03-29T09:50:00Z",
+                    "steps": [
+                        {
+                            "container": "step-build",
+                            "imageID": "test.io/test/build-image",
+                            "name": "build",
+                            "terminated": {
+                                "exitCode": 0,
+                                "finishedAt": "2022-05-31T19:17:30Z",
+                                "reason": "Completed",
+                                "startedAt": "2021-03-29T09:50:00Z"
+                            }
+                        }
+                    ],
+                    "results": [
+                        {
+                            "name": "IMAGE_DIGEST",
+                            "value": "sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"
+                        },
+                        {
+                            "name": "IMAGE_URL",
+                            "value": "test.io/test/image\n"
+                        }
+                    ],
+                    "taskSpec": {
+                        "params": [
+                            {
+                                "description": "Git CHAINS URL",
+                                "name": "CHAINS-GIT_URL",
+                                "type": "string"
+                            },
+                            {
+                                "description": "Git CHAINS Commit",
+                                "name": "CHAINS-GIT_COMMIT",
+                                "type": "string"
+                            }
+                        ],
+                        "results": [
+                            {
+                                "description": "Digest of the image just built.",
+                                "name": "IMAGE_DIGEST"
+                            },
+                            {
+                                "description": "URL of the image just built.",
+                                "name": "IMAGE_URL"
+                            }
+                        ],
+                        "steps": [
+                            {
+                                "command": [
+                                    "buildah",
+                                    "build"
+                                ],
+                                "image": "test.io/test/build-image",
+                                "name": "generate"
+                            },
+                            {
+                                "command": [
+                                    "buildah",
+                                    "push"
+                                ],
+                                "image": "test.io/test/build-image",
+                                "name": "push"
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        "provenance": {
+          "refSource": {
+            "uri": "git+https://github.com/test",
+            "digest": {
+              "sha1": "28b123"
+            },
+            "entryPoint": "pipeline.yaml"
+          }
+        }
+    }
+}
