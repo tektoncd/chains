@@ -43,13 +43,13 @@ import (
 const namespace = "oci-test"
 
 var (
-	tr = &v1beta1.TaskRun{
+	tr = &v1beta1.TaskRun{ //nolint:staticcheck
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: namespace,
 		},
 	}
-	pr = &v1beta1.PipelineRun{
+	pr = &v1beta1.PipelineRun{ //nolint:staticcheck
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: namespace,
@@ -116,7 +116,7 @@ func TestBackend_StorePayload(t *testing.T) {
 	}{{
 		name: "simplesigning payload",
 		fields: fields{
-			object: objects.NewTaskRunObject(tr),
+			object: objects.NewTaskRunObjectV1Beta1(tr),
 		},
 		args: args{
 			payload:   simple,
@@ -129,7 +129,7 @@ func TestBackend_StorePayload(t *testing.T) {
 	}, {
 		name: "into-to payload",
 		fields: fields{
-			object: objects.NewTaskRunObject(tr),
+			object: objects.NewTaskRunObjectV1Beta1(tr),
 		},
 		args: args{
 			payload:   intotoStatement,
@@ -142,7 +142,7 @@ func TestBackend_StorePayload(t *testing.T) {
 	}, {
 		name: "no subject",
 		fields: fields{
-			object: objects.NewTaskRunObject(tr),
+			object: objects.NewTaskRunObjectV1Beta1(tr),
 		},
 		args: args{
 			payload:   in_toto.Statement{},
@@ -155,7 +155,7 @@ func TestBackend_StorePayload(t *testing.T) {
 	}, {
 		name: "simplesigning payload",
 		fields: fields{
-			object: objects.NewPipelineRunObject(pr),
+			object: objects.NewPipelineRunObjectV1Beta1(pr),
 		},
 		args: args{
 			payload:   simple,
@@ -168,7 +168,7 @@ func TestBackend_StorePayload(t *testing.T) {
 	}, {
 		name: "into-to payload",
 		fields: fields{
-			object: objects.NewPipelineRunObject(pr),
+			object: objects.NewPipelineRunObjectV1Beta1(pr),
 		},
 		args: args{
 			payload:   intotoStatement,
@@ -181,7 +181,7 @@ func TestBackend_StorePayload(t *testing.T) {
 	}, {
 		name: "in-toto-and-simple-payload",
 		fields: fields{
-			object: objects.NewTaskRunObject(tr),
+			object: objects.NewTaskRunObjectV1Beta1(tr),
 		},
 		args: args{
 			payload:   simple,
@@ -194,7 +194,7 @@ func TestBackend_StorePayload(t *testing.T) {
 	}, {
 		name: "tekton-and-simple-payload",
 		fields: fields{
-			object: objects.NewTaskRunObject(tr),
+			object: objects.NewTaskRunObjectV1Beta1(tr),
 		},
 		args: args{
 			payload:   simple,
@@ -207,7 +207,7 @@ func TestBackend_StorePayload(t *testing.T) {
 	}, {
 		name: "no subject",
 		fields: fields{
-			object: objects.NewPipelineRunObject(pr),
+			object: objects.NewPipelineRunObjectV1Beta1(pr),
 		},
 		args: args{
 			payload:   in_toto.Statement{},

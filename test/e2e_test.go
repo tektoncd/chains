@@ -21,6 +21,7 @@ package test
 
 import (
 	"bytes"
+	"context"
 	"crypto"
 	"crypto/ecdsa"
 	"encoding/base64"
@@ -45,6 +46,7 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/chains/provenance"
 	"github.com/tektoncd/chains/pkg/test/tekton"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -214,10 +216,13 @@ func TestOCISigning(t *testing.T) {
 			t.Cleanup(cleanup)
 
 			// Setup the right config.
-			resetConfig := setConfigMap(ctx, t, c, map[string]string{"artifacts.oci.storage": "tekton", "artifacts.taskrun.format": "in-toto"})
+			resetConfig := setConfigMap(ctx, t, c, map[string]string{
+				"artifacts.oci.storage":    "tekton",
+				"artifacts.taskrun.format": "in-toto",
+			})
 			t.Cleanup(resetConfig)
 
-			tro := getTaskRunObject(ns)
+			tro := getTaskRunObjectV1(ns)
 
 			createdTro := tekton.CreateObject(t, ctx, c.PipelineClient, tro)
 
@@ -234,8 +239,15 @@ func TestOCISigning(t *testing.T) {
 
 			// Let's fetch the signature and body:
 			t.Log(obj.GetAnnotations())
+			if _, ok := obj.GetAnnotations()["chains.tekton.dev/signature-586789aa031f"]; !ok {
+				t.Fatal("TaskRun missing expected signature annotation: chains.tekton.dev/signature-586789aa031f")
+			}
+			if _, ok := obj.GetAnnotations()["chains.tekton.dev/payload-586789aa031f"]; !ok {
+				t.Fatal("TaskRun missing expected payload annotation: chains.tekton.dev/signature-586789aa031f")
+			}
 
-			sig, body := obj.GetAnnotations()["chains.tekton.dev/signature-05f95b26ed10"], obj.GetAnnotations()["chains.tekton.dev/payload-05f95b26ed10"]
+			sig, body := obj.GetAnnotations()["chains.tekton.dev/signature-586789aa031f"],
+				obj.GetAnnotations()["chains.tekton.dev/payload-586789aa031f"]
 			// base64 decode them
 			sigBytes, err := base64.StdEncoding.DecodeString(sig)
 			if err != nil {
@@ -417,7 +429,7 @@ func TestOCIStorage(t *testing.T) {
 	imageName := "chains-test-oci-storage"
 	image := fmt.Sprintf("%s/%s", c.internalRegistry, imageName)
 	task := kanikoTask(t, ns, image)
-	if _, err := c.PipelineClient.TektonV1beta1().Tasks(ns).Create(ctx, task, metav1.CreateOptions{}); err != nil {
+	if _, err := c.PipelineClient.TektonV1().Tasks(ns).Create(ctx, task, metav1.CreateOptions{}); err != nil {
 		t.Fatalf("error creating task: %s", err)
 	}
 
@@ -537,7 +549,7 @@ func TestRetryFailed(t *testing.T) {
 				registry:        true,
 				kanikoTaskImage: "chains-test-tr-retryfailed",
 			},
-			getObject: getTaskRunObject,
+			getObject: getTaskRunObjectV1,
 		},
 		{
 			name: "pipelinerun",
@@ -635,30 +647,61 @@ var imageTaskRun = v1beta1.TaskRun{
 }
 
 func getTaskRunObject(ns string) objects.TektonObject {
-	o := objects.NewTaskRunObject(&imageTaskRun)
+	trV1 := &v1.TaskRun{}
+	imageTaskRun.ConvertTo(context.Background(), trV1)
+	o := objects.NewTaskRunObjectV1(trV1)
 	o.Namespace = ns
 	return o
 }
 
-func getTaskRunObjectWithParams(ns string, params []v1beta1.Param) objects.TektonObject {
-	o := objects.NewTaskRunObject(&imageTaskRun)
+func getTaskRunObjectWithParams(ns string, params []v1.Param) objects.TektonObject {
+	trV1 := &v1.TaskRun{}
+	imageTaskRun.ConvertTo(context.Background(), trV1)
+	o := objects.NewTaskRunObjectV1(trV1)
 	o.Namespace = ns
 	o.Spec.Params = params
 	return o
 }
 
-var imagePipelineRun = v1beta1.PipelineRun{
+func taskRunFromFile(f string) (*v1.TaskRun, error) {
+	contents, err := os.ReadFile(f)
+	if err != nil {
+		return nil, err
+	}
+	var tr v1.TaskRun
+	if err := json.Unmarshal(contents, &tr); err != nil {
+		return nil, err
+	}
+	return &tr, nil
+}
+
+func getTaskRunObjectV1(ns string) objects.TektonObject {
+	tr, _ := taskRunFromFile("testdata/type-hinting/taskrun.json")
+	o := objects.NewTaskRunObjectV1(tr)
+	o.Namespace = ns
+	return o
+}
+
+func getTaskRunObjectV1WithParams(ns string, params []v1.Param) objects.TektonObject {
+	tr, _ := taskRunFromFile("testdata/type-hinting/taskrun.json")
+	o := objects.NewTaskRunObjectV1(tr)
+	o.Namespace = ns
+	o.Spec.Params = params
+	return o
+}
+
+var imagePipelineRun = v1.PipelineRun{
 	ObjectMeta: metav1.ObjectMeta{
 		GenerateName: "image-pipelinerun",
 		Annotations:  map[string]string{chains.RekorAnnotation: "true"},
 	},
-	Spec: v1beta1.PipelineRunSpec{
-		PipelineSpec: &v1beta1.PipelineSpec{
-			Tasks: []v1beta1.PipelineTask{{
+	Spec: v1.PipelineRunSpec{
+		PipelineSpec: &v1.PipelineSpec{
+			Tasks: []v1.PipelineTask{{
 				Name: "echo",
-				TaskSpec: &v1beta1.EmbeddedTask{
-					TaskSpec: v1beta1.TaskSpec{
-						Steps: []v1beta1.Step{
+				TaskSpec: &v1.EmbeddedTask{
+					TaskSpec: v1.TaskSpec{
+						Steps: []v1.Step{
 							{
 								Image:  "busybox",
 								Script: "echo success",
@@ -672,13 +715,13 @@ var imagePipelineRun = v1beta1.PipelineRun{
 }
 
 func getPipelineRunObject(ns string) objects.TektonObject {
-	o := objects.NewPipelineRunObject(&imagePipelineRun)
+	o := objects.NewPipelineRunObjectV1(&imagePipelineRun)
 	o.Namespace = ns
 	return o
 }
 
-func getPipelineRunObjectWithParams(ns string, params []v1beta1.Param) objects.TektonObject {
-	o := objects.NewPipelineRunObject(&imagePipelineRun)
+func getPipelineRunObjectWithParams(ns string, params []v1.Param) objects.TektonObject {
+	o := objects.NewPipelineRunObjectV1(&imagePipelineRun)
 	o.Namespace = ns
 	o.Spec.Params = params
 	return o
@@ -688,7 +731,7 @@ func TestProvenanceMaterials(t *testing.T) {
 	tests := []struct {
 		name                string
 		cm                  map[string]string
-		getObjectWithParams func(ns string, params []v1beta1.Param) objects.TektonObject
+		getObjectWithParams func(ns string, params []v1.Param) objects.TektonObject
 		payloadKey          string
 	}{
 		{
@@ -725,10 +768,10 @@ func TestProvenanceMaterials(t *testing.T) {
 
 			commit := "my-git-commit"
 			url := "https://my-git-url"
-			params := []v1beta1.Param{{
-				Name: "CHAINS-GIT_COMMIT", Value: *v1beta1.NewStructuredValues(commit),
+			params := []v1.Param{{
+				Name: "CHAINS-GIT_COMMIT", Value: *v1.NewStructuredValues(commit),
 			}, {
-				Name: "CHAINS-GIT_URL", Value: *v1beta1.NewStructuredValues(url),
+				Name: "CHAINS-GIT_URL", Value: *v1.NewStructuredValues(url),
 			}}
 			obj := test.getObjectWithParams(ns, params)
 
@@ -774,9 +817,9 @@ func TestProvenanceMaterials(t *testing.T) {
 			}
 
 			if test.name == "pipelinerun" {
-				pr := signedObj.GetObject().(*v1beta1.PipelineRun)
+				pr := signedObj.GetObject().(*v1.PipelineRun)
 				for _, cr := range pr.Status.ChildReferences {
-					taskRun, err := c.PipelineClient.TektonV1beta1().TaskRuns(ns).Get(ctx, cr.Name, metav1.GetOptions{})
+					taskRun, err := c.PipelineClient.TektonV1().TaskRuns(ns).Get(ctx, cr.Name, metav1.GetOptions{})
 					if err != nil {
 						t.Errorf("Did not expect an error but got %v", err)
 					}
@@ -790,7 +833,7 @@ func TestProvenanceMaterials(t *testing.T) {
 					}
 				}
 			} else {
-				tr := signedObj.GetObject().(*v1beta1.TaskRun)
+				tr := signedObj.GetObject().(*v1.TaskRun)
 				for _, step := range tr.Status.Steps {
 					want = append(want, provenance.ProvenanceMaterial{
 						URI: artifacts.OCIScheme + "" + strings.Split(step.ImageID, "@")[0],

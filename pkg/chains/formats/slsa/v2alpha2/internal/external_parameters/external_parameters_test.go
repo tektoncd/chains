@@ -23,13 +23,14 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/internal/objectloader"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 )
 
 func TestBuildConfigSource(t *testing.T) {
 	digest := map[string]string{"alg1": "hex1", "alg2": "hex2"}
-	provenance := &v1beta1.Provenance{
-		RefSource: &v1beta1.RefSource{
+	provenance := &v1.Provenance{
+		RefSource: &v1.RefSource{
 			Digest:     digest,
 			URI:        "https://tekton.com",
 			EntryPoint: "/path/to/entry",
@@ -65,27 +66,27 @@ func TestBuildConfigSource(t *testing.T) {
 	}
 }
 
-func createPro(path string) *objects.PipelineRunObject {
-	pr, err := objectloader.PipelineRunFromFile(path)
+func createPro(path string) *objects.PipelineRunObjectV1Beta1 {
+	pr, err := objectloader.PipelineRunV1Beta1FromFile(path)
 	if err != nil {
 		panic(err)
 	}
-	tr1, err := objectloader.TaskRunFromFile("../../../testdata/v2alpha2/taskrun1.json")
+	tr1, err := objectloader.TaskRunV1Beta1FromFile("../../../testdata/slsa-v2alpha2/taskrun1.json")
 	if err != nil {
 		panic(err)
 	}
-	tr2, err := objectloader.TaskRunFromFile("../../../testdata/v2alpha2/taskrun2.json")
+	tr2, err := objectloader.TaskRunV1Beta1FromFile("../../../testdata/slsa-v2alpha2/taskrun2.json")
 	if err != nil {
 		panic(err)
 	}
-	p := objects.NewPipelineRunObject(pr)
+	p := objects.NewPipelineRunObjectV1Beta1(pr)
 	p.AppendTaskRun(tr1)
 	p.AppendTaskRun(tr2)
 	return p
 }
 
 func TestPipelineRun(t *testing.T) {
-	pro := createPro("../../../testdata/v2alpha2/pipelinerun1.json")
+	pro := createPro("../../../testdata/slsa-v2alpha2/pipelinerun1.json")
 
 	got := PipelineRun(pro)
 
@@ -108,11 +109,11 @@ func TestPipelineRun(t *testing.T) {
 }
 
 func TestTaskRun(t *testing.T) {
-	tr, err := objectloader.TaskRunFromFile("../../../testdata/v2alpha2/taskrun1.json")
+	tr, err := objectloader.TaskRunV1Beta1FromFile("../../../testdata/slsa-v2alpha2/taskrun1.json")
 	if err != nil {
 		t.Fatal(err)
 	}
-	got := TaskRun(objects.NewTaskRunObject(tr))
+	got := TaskRun(objects.NewTaskRunObjectV1Beta1(tr))
 
 	want := map[string]any{
 		"runSpec": v1beta1.TaskRunSpec{

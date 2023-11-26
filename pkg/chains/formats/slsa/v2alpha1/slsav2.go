@@ -24,6 +24,8 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha1/taskrun"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 )
 
 const (
@@ -50,8 +52,16 @@ func (s *Slsa) Wrap() bool {
 
 func (s *Slsa) CreatePayload(ctx context.Context, obj interface{}) (interface{}, error) {
 	switch v := obj.(type) {
-	case *objects.TaskRunObject:
+	case *objects.TaskRunObjectV1:
+		tro := obj.(*objects.TaskRunObjectV1)
+		trV1Beta1 := &v1beta1.TaskRun{} //nolint:staticcheck
+		if err := trV1Beta1.ConvertFrom(ctx, tro.GetObject().(*v1.TaskRun)); err != nil {
+			return nil, fmt.Errorf("error converting Tekton TaskRun from version v1 to v1beta1: %s", err)
+		}
+		return taskrun.GenerateAttestation(ctx, s.builderID, s.Type(), objects.NewTaskRunObjectV1Beta1(trV1Beta1))
+	case *objects.TaskRunObjectV1Beta1:
 		return taskrun.GenerateAttestation(ctx, s.builderID, s.Type(), v)
+
 	default:
 		return nil, fmt.Errorf("intoto does not support type: %s", v)
 	}

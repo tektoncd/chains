@@ -110,7 +110,7 @@ func setup(ctx context.Context, t *testing.T, opts setupOpts) (*clients, string,
 		imageDest := fmt.Sprintf("%s/%s", c.internalRegistry, opts.kanikoTaskImage)
 		t.Logf("Creating Kaniko task referencing image %s", imageDest)
 		task := kanikoTask(t, namespace, imageDest)
-		if _, err := c.PipelineClient.TektonV1beta1().Tasks(namespace).Create(ctx, task, metav1.CreateOptions{}); err != nil {
+		if _, err := c.PipelineClient.TektonV1().Tasks(namespace).Create(ctx, task, metav1.CreateOptions{}); err != nil {
 			t.Fatalf("error creating task: %s", err)
 		}
 	}

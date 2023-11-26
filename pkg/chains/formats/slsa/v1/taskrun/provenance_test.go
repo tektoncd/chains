@@ -34,7 +34,7 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logtesting "knative.dev/pkg/logging/testing"
 	"sigs.k8s.io/yaml"
 )
@@ -48,8 +48,8 @@ const (
 )
 
 func TestMetadata(t *testing.T) {
-	tr := &v1beta1.TaskRun{
-		ObjectMeta: v1.ObjectMeta{
+	tr := &v1beta1.TaskRun{ //nolint:staticcheck
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "my-taskrun",
 			Namespace: "my-namespace",
 			Annotations: map[string]string{
@@ -58,8 +58,8 @@ func TestMetadata(t *testing.T) {
 		},
 		Status: v1beta1.TaskRunStatus{
 			TaskRunStatusFields: v1beta1.TaskRunStatusFields{
-				StartTime:      &v1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 12, time.UTC)},
-				CompletionTime: &v1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 24, time.UTC)},
+				StartTime:      &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 12, time.UTC)},
+				CompletionTime: &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 24, time.UTC)},
 			},
 		},
 	}
@@ -69,7 +69,7 @@ func TestMetadata(t *testing.T) {
 		BuildStartedOn:  &start,
 		BuildFinishedOn: &end,
 	}
-	got := Metadata(objects.NewTaskRunObject(tr))
+	got := Metadata(objects.NewTaskRunObjectV1Beta1(tr))
 	if !reflect.DeepEqual(expected, got) {
 		t.Fatalf("expected %v got %v", expected, got)
 	}
@@ -77,8 +77,8 @@ func TestMetadata(t *testing.T) {
 
 func TestMetadataInTimeZone(t *testing.T) {
 	tz := time.FixedZone("Test Time", int((12 * time.Hour).Seconds()))
-	tr := &v1beta1.TaskRun{
-		ObjectMeta: v1.ObjectMeta{
+	tr := &v1beta1.TaskRun{ //nolint:staticcheck
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "my-taskrun",
 			Namespace: "my-namespace",
 			Annotations: map[string]string{
@@ -87,8 +87,8 @@ func TestMetadataInTimeZone(t *testing.T) {
 		},
 		Status: v1beta1.TaskRunStatus{
 			TaskRunStatusFields: v1beta1.TaskRunStatusFields{
-				StartTime:      &v1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 12, tz)},
-				CompletionTime: &v1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 24, tz)},
+				StartTime:      &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 12, tz)},
+				CompletionTime: &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 24, tz)},
 			},
 		},
 	}
@@ -98,7 +98,7 @@ func TestMetadataInTimeZone(t *testing.T) {
 		BuildStartedOn:  &start,
 		BuildFinishedOn: &end,
 	}
-	got := Metadata(objects.NewTaskRunObject(tr))
+	got := Metadata(objects.NewTaskRunObjectV1Beta1(tr))
 	if !reflect.DeepEqual(expected, got) {
 		t.Fatalf("expected %v got %v", expected, got)
 	}
@@ -161,7 +161,7 @@ status:
       default: []
 `
 
-	var taskRun *v1beta1.TaskRun
+	var taskRun *v1beta1.TaskRun //nolint:staticcheck
 	if err := yaml.Unmarshal([]byte(taskrun), &taskRun); err != nil {
 		t.Fatal(err)
 	}
@@ -189,7 +189,7 @@ status:
 		},
 	}
 
-	got := invocation(objects.NewTaskRunObject(taskRun))
+	got := invocation(objects.NewTaskRunObjectV1Beta1(taskRun))
 	if !reflect.DeepEqual(expected, got) {
 		if d := cmp.Diff(expected, got); d != "" {
 			t.Log(d)
@@ -199,18 +199,18 @@ status:
 }
 
 func TestGetSubjectDigests(t *testing.T) {
-	tr := &v1beta1.TaskRun{
+	tr := &v1beta1.TaskRun{ //nolint:staticcheck
 		Spec: v1beta1.TaskRunSpec{
-			Resources: &v1beta1.TaskRunResources{
-				Outputs: []v1beta1.TaskResourceBinding{
+			Resources: &v1beta1.TaskRunResources{ //nolint:staticcheck
+				Outputs: []v1beta1.TaskResourceBinding{ //nolint:staticcheck
 					{
-						PipelineResourceBinding: v1beta1.PipelineResourceBinding{
+						PipelineResourceBinding: v1beta1.PipelineResourceBinding{ //nolint:staticcheck
 							Name: "nil-check",
 						},
 					}, {
-						PipelineResourceBinding: v1beta1.PipelineResourceBinding{
+						PipelineResourceBinding: v1beta1.PipelineResourceBinding{ //nolint:staticcheck
 							Name: "built-image",
-							ResourceSpec: &v1alpha1.PipelineResourceSpec{
+							ResourceSpec: &v1alpha1.PipelineResourceSpec{ //nolint:staticcheck
 								Type: backport.PipelineResourceTypeImage,
 							},
 						},
@@ -333,7 +333,7 @@ func TestGetSubjectDigests(t *testing.T) {
 		},
 	}
 	ctx := logtesting.TestContextWithLogger(t)
-	tro := objects.NewTaskRunObject(tr)
+	tro := objects.NewTaskRunObjectV1Beta1(tr)
 	got := extract.SubjectDigests(ctx, tro, nil)
 
 	if d := cmp.Diff(want, got, compare.SubjectCompareOption()); d != "" {

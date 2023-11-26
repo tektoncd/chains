@@ -23,76 +23,76 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/tektoncd/chains/pkg/chains"
 	"github.com/tektoncd/chains/pkg/chains/objects"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	v1 "k8s.io/api/core/v1"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const taskName = "kaniko-task"
 
 func kanikoPipelineRun(ns string) objects.TektonObject {
-	imagePipelineRun := v1beta1.PipelineRun{
+	imagePipelineRun := v1.PipelineRun{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "image-pipelinerun",
 			Namespace:    ns,
 			Annotations:  map[string]string{chains.RekorAnnotation: "true"},
 		},
-		Spec: v1beta1.PipelineRunSpec{
-			PipelineSpec: &v1beta1.PipelineSpec{
-				Tasks: []v1beta1.PipelineTask{{
+		Spec: v1.PipelineRunSpec{
+			PipelineSpec: &v1.PipelineSpec{
+				Tasks: []v1.PipelineTask{{
 					Name: "kaniko",
-					TaskRef: &v1beta1.TaskRef{
+					TaskRef: &v1.TaskRef{
 						Name: "kaniko-task",
-						Kind: v1beta1.NamespacedTaskKind,
+						Kind: v1.NamespacedTaskKind,
 					},
 				}},
-				Results: []v1beta1.PipelineResult{{
+				Results: []v1.PipelineResult{{
 					Name:  "IMAGE_URL",
-					Value: *v1beta1.NewStructuredValues("$(tasks.kaniko.results.IMAGE_URL)"),
+					Value: *v1.NewStructuredValues("$(tasks.kaniko.results.IMAGE_URL)"),
 				}, {
 					Name:  "IMAGE_DIGEST",
-					Value: *v1beta1.NewStructuredValues("$(tasks.kaniko.results.IMAGE_DIGEST)"),
+					Value: *v1.NewStructuredValues("$(tasks.kaniko.results.IMAGE_DIGEST)"),
 				}},
 			},
 		},
 	}
-	return objects.NewPipelineRunObject(&imagePipelineRun)
+	return objects.NewPipelineRunObjectV1(&imagePipelineRun)
 }
 
 func kanikoTaskRun(namespace string) objects.TektonObject {
-	tr := &v1beta1.TaskRun{
+	tr := &v1.TaskRun{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "kaniko-taskrun",
 			Namespace:    namespace,
 		},
-		Spec: v1beta1.TaskRunSpec{
-			TaskRef: &v1beta1.TaskRef{
+		Spec: v1.TaskRunSpec{
+			TaskRef: &v1.TaskRef{
 				Name: taskName,
 			},
 		},
 	}
-	return objects.NewTaskRunObject(tr)
+	return objects.NewTaskRunObjectV1(tr)
 }
 
-func kanikoTask(t *testing.T, namespace, destinationImage string) *v1beta1.Task {
+func kanikoTask(t *testing.T, namespace, destinationImage string) *v1.Task {
 	ref, err := name.ParseReference(destinationImage)
 	if err != nil {
 		t.Fatalf("unable to parse image name: %v", err)
 	}
-	return &v1beta1.Task{
+	return &v1.Task{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      taskName,
 			Namespace: namespace,
 		},
-		Spec: v1beta1.TaskSpec{
-			Results: []v1beta1.TaskResult{
+		Spec: v1.TaskSpec{
+			Results: []v1.TaskResult{
 				{Name: "IMAGE_URL"},
 				{Name: "IMAGE_DIGEST"},
 			},
-			Steps: []v1beta1.Step{{
+			Steps: []v1.Step{{
 				Name:  "create-dockerfile",
 				Image: "bash:latest",
-				VolumeMounts: []v1.VolumeMount{{
+				VolumeMounts: []corev1.VolumeMount{{
 					Name:      "dockerfile",
 					MountPath: "/dockerfile",
 				}},
@@ -109,23 +109,23 @@ func kanikoTask(t *testing.T, namespace, destinationImage string) *v1beta1.Task 
 					// Need this to push the image to the insecure registry
 					"--insecure",
 				},
-				VolumeMounts: []v1.VolumeMount{{
+				VolumeMounts: []corev1.VolumeMount{{
 					Name:      "dockerfile",
 					MountPath: "/dockerfile",
 				}},
 			}, {
 				Name:  "save-image-url",
 				Image: "bash:latest",
-				VolumeMounts: []v1.VolumeMount{{
+				VolumeMounts: []corev1.VolumeMount{{
 					Name:      "dockerfile",
 					MountPath: "/dockerfile",
 				}},
 				Script: fmt.Sprintf("#!/usr/bin/env bash\necho %s | tee $(results.IMAGE_URL.path)", ref.String()),
 			},
 			},
-			Volumes: []v1.Volume{{
+			Volumes: []corev1.Volume{{
 				Name:         "dockerfile",
-				VolumeSource: v1.VolumeSource{EmptyDir: &v1.EmptyDirVolumeSource{}},
+				VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}},
 			}},
 		},
 	}
@@ -144,14 +144,14 @@ cosign verify --allow-insecure-registry --key cosign.pub %s
 cosign verify-attestation --allow-insecure-registry --key cosign.pub %s`
 	script = fmt.Sprintf(script, publicKey, destinationImage, destinationImage)
 
-	return objects.NewTaskRunObject(&v1beta1.TaskRun{
+	return objects.NewTaskRunObjectV1(&v1.TaskRun{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "verify-kaniko-taskrun",
 			Namespace:    namespace,
 		},
-		Spec: v1beta1.TaskRunSpec{
-			TaskSpec: &v1beta1.TaskSpec{
-				Steps: []v1beta1.Step{{
+		Spec: v1.TaskRunSpec{
+			TaskSpec: &v1.TaskSpec{
+				Steps: []v1.Step{{
 					Name:   "verify-image",
 					Image:  "gcr.io/projectsigstore/cosign/ci/cosign:d764e8b89934dc1043bd1b13112a66641c63a038@sha256:228c37f9f37415efbd6a4ff16aae81197206ce1410a227bcab8ac8b039b36237",
 					Script: script,

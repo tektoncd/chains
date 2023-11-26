@@ -35,7 +35,7 @@ import (
 	chainsstorage "github.com/tektoncd/chains/pkg/chains/storage"
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/chains/pkg/test/tekton"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	pipelineclientset "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -44,9 +44,9 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func getTr(ctx context.Context, t *testing.T, c pipelineclientset.Interface, name, ns string) (tr *v1beta1.TaskRun) {
+func getTr(ctx context.Context, t *testing.T, c pipelineclientset.Interface, name, ns string) (tr *v1.TaskRun) {
 	t.Helper()
-	tr, err := c.TektonV1beta1().TaskRuns(ns).Get(ctx, name, metav1.GetOptions{})
+	tr, err := c.TektonV1().TaskRuns(ns).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		t.Error(err)
 	}
@@ -116,16 +116,16 @@ func signed(obj objects.TektonObject) bool {
 	return ok
 }
 
-var simpleTaskspec = v1beta1.TaskSpec{
-	Steps: []v1beta1.Step{{
+var simpleTaskspec = v1.TaskSpec{
+	Steps: []v1.Step{{
 		Image:  "busybox",
 		Script: "echo true",
 	}},
 }
 
-var simpleTaskRun = v1beta1.TaskRun{
+var simpleTaskRun = v1.TaskRun{
 	ObjectMeta: metav1.ObjectMeta{GenerateName: "test-task-"},
-	Spec:       v1beta1.TaskRunSpec{TaskSpec: &simpleTaskspec},
+	Spec:       v1.TaskRunSpec{TaskSpec: &simpleTaskspec},
 }
 
 func makeBucket(t *testing.T, client *storage.Client) (string, func()) {
@@ -216,11 +216,11 @@ func printDebugging(t *testing.T, obj objects.TektonObject) {
 	kind := obj.GetObjectKind().GroupVersionKind().Kind
 
 	t.Logf("============================== %s logs ==============================", obj.GetGVK())
-	output, _ := exec.Command("tkn", kind, "logs", "-n", obj.GetNamespace(), obj.GetName()).CombinedOutput()
+	output, _ := exec.Command("tkn", strings.ToLower(kind), "logs", "-n", obj.GetNamespace(), obj.GetName()).CombinedOutput()
 	t.Log(string(output))
 
 	t.Logf("============================== %s describe ==============================", obj.GetGVK())
-	output, _ = exec.Command("tkn", kind, "describe", "-n", obj.GetNamespace(), obj.GetName()).CombinedOutput()
+	output, _ = exec.Command("tkn", strings.ToLower(kind), "describe", "-n", obj.GetNamespace(), obj.GetName()).CombinedOutput()
 	t.Log(string(output))
 
 	t.Log("============================== chains controller logs ==============================")
@@ -251,10 +251,16 @@ func verifySignature(ctx context.Context, t *testing.T, c *clients, obj objects.
 	var configuredBackends []string
 	var key string
 	switch obj.GetObject().(type) {
-	case *objects.TaskRunObject:
+	case *objects.TaskRunObjectV1:
 		configuredBackends = sets.List[string](cfg.Artifacts.TaskRuns.StorageBackend)
 		key = fmt.Sprintf("taskrun-%s", obj.GetUID())
-	case *objects.PipelineRunObject:
+	case *objects.PipelineRunObjectV1:
+		configuredBackends = sets.List[string](cfg.Artifacts.PipelineRuns.StorageBackend)
+		key = fmt.Sprintf("pipelinerun-%s", obj.GetUID())
+	case *objects.TaskRunObjectV1Beta1:
+		configuredBackends = sets.List[string](cfg.Artifacts.TaskRuns.StorageBackend)
+		key = fmt.Sprintf("taskrun-%s", obj.GetUID())
+	case *objects.PipelineRunObjectV1Beta1:
 		configuredBackends = sets.List[string](cfg.Artifacts.PipelineRuns.StorageBackend)
 		key = fmt.Sprintf("pipelinerun-%s", obj.GetUID())
 	}

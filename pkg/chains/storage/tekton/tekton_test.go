@@ -42,7 +42,7 @@ func TestBackend_StorePayload(t *testing.T) {
 				A: "foo",
 				B: 3,
 			},
-			object: objects.NewTaskRunObject(&v1beta1.TaskRun{
+			object: objects.NewTaskRunObjectV1Beta1(&v1beta1.TaskRun{ //nolint:staticcheck
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "foo",
 					Namespace: "bar",
@@ -62,7 +62,7 @@ func TestBackend_StorePayload(t *testing.T) {
 				A: "foo",
 				B: 3,
 			},
-			object: objects.NewPipelineRunObject(&v1beta1.PipelineRun{
+			object: objects.NewPipelineRunObjectV1Beta1(&v1beta1.PipelineRun{ //nolint:staticcheck
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "foo",
 					Namespace: "bar",

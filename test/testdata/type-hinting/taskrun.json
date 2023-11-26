@@ -1,0 +1,33 @@
+{
+  "apiVersion": "tekton.dev/v1",
+  "kind": "TaskRun",
+  "metadata": {
+    "name": "image-build",
+    "annotations": {
+      "chains.tekton.dev/rekor": "true"
+    }
+  },
+  "spec": {
+    "taskSpec": {
+      "results": [
+        {
+          "name": "first-image-IMAGE_URL",
+          "type": "string",
+          "description": "The precise URL of the OCI image built."
+        },
+        {
+          "name": "first-image-IMAGE_DIGEST",
+          "type": "string",
+          "description": "The algorithm and digest of the OCI image built."
+        }
+      ],
+      "steps": [
+        {
+          "name": "dummy-build",
+          "image": "bash:latest",
+          "script": "#!/usr/bin/env bash\necho -n \"gcr.io/foo/bar\" | tee $(results.first-image-IMAGE_URL.path)\necho -n \"sha256:586789aa031fafc7d78a5393cdc772e0b55107ea54bb8bcf3f2cdac6c6da51ee\" | tee $(results.first-image-IMAGE_DIGEST.path)\n"
+        }
+      ]
+    }
+  }
+}

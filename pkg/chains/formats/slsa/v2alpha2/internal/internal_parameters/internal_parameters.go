@@ -18,13 +18,13 @@ package internalparameters
 
 import (
 	"github.com/tektoncd/chains/pkg/chains/objects"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 )
 
 // SLSAInternalParameters provides the chains config as internalparameters
 func SLSAInternalParameters(tko objects.TektonObject) map[string]any {
 	internalParams := make(map[string]any)
-	if provenance := tko.GetProvenance(); provenance != (*v1beta1.Provenance)(nil) && provenance.FeatureFlags != nil {
+	if provenance := tko.GetProvenance(); provenance != (*v1.Provenance)(nil) && provenance.FeatureFlags != nil {
 		internalParams["tekton-pipelines-feature-flags"] = *provenance.FeatureFlags
 	}
 	return internalParams
@@ -33,7 +33,7 @@ func SLSAInternalParameters(tko objects.TektonObject) map[string]any {
 // TektonInternalParameters provides the chains config as well as annotations and labels
 func TektonInternalParameters(tko objects.TektonObject) map[string]any {
 	internalParams := make(map[string]any)
-	if provenance := tko.GetProvenance(); provenance != (*v1beta1.Provenance)(nil) && provenance.FeatureFlags != nil {
+	if provenance := tko.GetProvenance(); provenance != (*v1.Provenance)(nil) && provenance.FeatureFlags != nil {
 		internalParams["tekton-pipelines-feature-flags"] = *provenance.FeatureFlags
 	}
 	internalParams["labels"] = tko.GetLabels()

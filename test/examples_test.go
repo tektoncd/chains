@@ -46,7 +46,7 @@ import (
 
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/test/tekton"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	"sigs.k8s.io/yaml"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -250,10 +250,10 @@ func (v *verifier) Public() crypto.PublicKey {
 
 func expectedProvenanceSLSA1(t *testing.T, ctx context.Context, example string, obj objects.TektonObject, outputLocation string, ns string, c *clients) intoto.ProvenanceStatementSLSA1 {
 	switch obj.(type) {
-	case *objects.TaskRunObject:
+	case *objects.TaskRunObjectV1:
 		f := expectedTaskRunProvenanceFormat(t, example, obj, outputLocation)
 		return expectedAttestationSLSA1(t, example, f, outputLocation)
-	case *objects.PipelineRunObject:
+	case *objects.PipelineRunObjectV1:
 		f := expectedPipelineRunProvenanceFormat(t, ctx, example, obj, outputLocation, ns, c)
 		return expectedAttestationSLSA1(t, example, f, outputLocation)
 	default:
@@ -264,10 +264,10 @@ func expectedProvenanceSLSA1(t *testing.T, ctx context.Context, example string, 
 
 func expectedProvenance(t *testing.T, ctx context.Context, example string, obj objects.TektonObject, outputLocation string, ns string, c *clients) intoto.ProvenanceStatement {
 	switch obj.(type) {
-	case *objects.TaskRunObject:
+	case *objects.TaskRunObjectV1:
 		f := expectedTaskRunProvenanceFormat(t, example, obj, outputLocation)
 		return expectedAttestation(t, example, f, outputLocation)
-	case *objects.PipelineRunObject:
+	case *objects.PipelineRunObjectV1:
 		f := expectedPipelineRunProvenanceFormat(t, ctx, example, obj, outputLocation, ns, c)
 		return expectedAttestation(t, example, f, outputLocation)
 	default:
@@ -294,7 +294,7 @@ type Format struct {
 }
 
 func expectedTaskRunProvenanceFormat(t *testing.T, example string, obj objects.TektonObject, outputLocation string) Format {
-	tr := obj.GetObject().(*v1beta1.TaskRun)
+	tr := obj.GetObject().(*v1.TaskRun)
 
 	name := tr.Name
 	if tr.Spec.TaskRef != nil {
@@ -330,7 +330,7 @@ func expectedTaskRunProvenanceFormat(t *testing.T, example string, obj objects.T
 }
 
 func expectedPipelineRunProvenanceFormat(t *testing.T, ctx context.Context, example string, obj objects.TektonObject, outputLocation string, ns string, c *clients) Format {
-	pr := obj.GetObject().(*v1beta1.PipelineRun)
+	pr := obj.GetObject().(*v1.PipelineRun)
 
 	buildStartTimes := []string{}
 	buildFinishedTimes := []string{}
@@ -338,7 +338,7 @@ func expectedPipelineRunProvenanceFormat(t *testing.T, ctx context.Context, exam
 	uriDigestSet := make(map[string]bool)
 
 	for _, cr := range pr.Status.ChildReferences {
-		taskRun, err := c.PipelineClient.TektonV1beta1().TaskRuns(ns).Get(ctx, cr.Name, metav1.GetOptions{})
+		taskRun, err := c.PipelineClient.TektonV1().TaskRuns(ns).Get(ctx, cr.Name, metav1.GetOptions{})
 		if err != nil {
 			t.Errorf("Did not expect an error but got %v", err)
 		}
@@ -465,12 +465,12 @@ func taskRunFromExample(t *testing.T, ns, example string) objects.TektonObject {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var tr *v1beta1.TaskRun
+	var tr *v1.TaskRun
 	if err := yaml.Unmarshal(contents, &tr); err != nil {
 		t.Fatal(err)
 	}
 	tr.Namespace = ns
-	return objects.NewTaskRunObject(tr)
+	return objects.NewTaskRunObjectV1(tr)
 }
 
 func pipelineRunFromExample(t *testing.T, ns, example string) objects.TektonObject {
@@ -478,12 +478,12 @@ func pipelineRunFromExample(t *testing.T, ns, example string) objects.TektonObje
 	if err != nil {
 		t.Fatal(err)
 	}
-	var pr *v1beta1.PipelineRun
+	var pr *v1.PipelineRun
 	if err := yaml.Unmarshal(contents, &pr); err != nil {
 		t.Fatal(err)
 	}
 	pr.Namespace = ns
-	return objects.NewPipelineRunObject(pr)
+	return objects.NewPipelineRunObjectV1(pr)
 }
 
 func ignoreEnvironmentAnnotationsAndLabels(key string, value any) bool {

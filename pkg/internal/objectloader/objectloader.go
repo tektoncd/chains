@@ -20,27 +20,52 @@ import (
 	"encoding/json"
 	"os"
 
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 )
 
-func TaskRunFromFile(f string) (*v1beta1.TaskRun, error) {
+func TaskRunFromFile(f string) (*v1.TaskRun, error) {
 	contents, err := os.ReadFile(f)
 	if err != nil {
 		return nil, err
 	}
-	var tr v1beta1.TaskRun
+	var tr v1.TaskRun
 	if err := json.Unmarshal(contents, &tr); err != nil {
 		return nil, err
 	}
 	return &tr, nil
 }
 
-func PipelineRunFromFile(f string) (*v1beta1.PipelineRun, error) {
+func PipelineRunFromFile(f string) (*v1.PipelineRun, error) {
 	contents, err := os.ReadFile(f)
 	if err != nil {
 		return nil, err
 	}
-	var pr v1beta1.PipelineRun
+	var pr v1.PipelineRun
+	if err := json.Unmarshal(contents, &pr); err != nil {
+		return nil, err
+	}
+	return &pr, nil
+}
+
+func TaskRunV1Beta1FromFile(f string) (*v1beta1.TaskRun, error) { //nolint:staticcheck
+	contents, err := os.ReadFile(f)
+	if err != nil {
+		return nil, err
+	}
+	var tr v1beta1.TaskRun //nolint:staticcheck
+	if err := json.Unmarshal(contents, &tr); err != nil {
+		return nil, err
+	}
+	return &tr, nil
+}
+
+func PipelineRunV1Beta1FromFile(f string) (*v1beta1.PipelineRun, error) { //nolint:staticcheck
+	contents, err := os.ReadFile(f)
+	if err != nil {
+		return nil, err
+	}
+	var pr v1beta1.PipelineRun //nolint:staticcheck
 	if err := json.Unmarshal(contents, &pr); err != nil {
 		return nil, err
 	}

@@ -22,7 +22,7 @@ import (
 
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	v1 "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
-	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/material"
+	materialv1beta1 "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/material/v1beta1"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"go.uber.org/zap"
@@ -44,11 +44,11 @@ const (
 
 // used to toggle the fields in resolvedDependencies. see AddTektonTaskDescriptor
 // and AddSLSATaskDescriptor
-type addTaskDescriptorContent func(*objects.TaskRunObject) (*v1.ResourceDescriptor, error) //nolint:staticcheck
+type addTaskDescriptorContent func(*objects.TaskRunObjectV1Beta1) (*v1.ResourceDescriptor, error) //nolint:staticcheck
 
 // the more verbose resolved dependency content. this adds the name, uri, digest
 // and content if possible.
-func AddTektonTaskDescriptor(tr *objects.TaskRunObject) (*v1.ResourceDescriptor, error) { //nolint:staticcheck
+func AddTektonTaskDescriptor(tr *objects.TaskRunObjectV1Beta1) (*v1.ResourceDescriptor, error) { //nolint:staticcheck
 	rd := v1.ResourceDescriptor{}
 	storedTr, err := json.Marshal(tr)
 	if err != nil {
@@ -67,7 +67,7 @@ func AddTektonTaskDescriptor(tr *objects.TaskRunObject) (*v1.ResourceDescriptor,
 
 // resolved dependency content for the more generic slsa verifiers. just logs
 // the name, uri and digest.
-func AddSLSATaskDescriptor(tr *objects.TaskRunObject) (*v1.ResourceDescriptor, error) { //nolint:staticcheck
+func AddSLSATaskDescriptor(tr *objects.TaskRunObjectV1Beta1) (*v1.ResourceDescriptor, error) { //nolint:staticcheck
 	if tr.Status.Provenance != nil && tr.Status.Provenance.RefSource != nil {
 		return &v1.ResourceDescriptor{
 			Name:   pipelineTaskConfigName,
@@ -131,7 +131,7 @@ func removeDuplicateResolvedDependencies(resolvedDependencies []v1.ResourceDescr
 
 // fromPipelineTask adds the resolved dependencies from pipeline tasks
 // such as pipeline task uri/digest for remote pipeline tasks and step and sidecar images.
-func fromPipelineTask(logger *zap.SugaredLogger, pro *objects.PipelineRunObject, addTasks addTaskDescriptorContent) ([]v1.ResourceDescriptor, error) {
+func fromPipelineTask(logger *zap.SugaredLogger, pro *objects.PipelineRunObjectV1Beta1, addTasks addTaskDescriptorContent) ([]v1.ResourceDescriptor, error) {
 	pSpec := pro.Status.PipelineSpec
 	resolvedDependencies := []v1.ResourceDescriptor{}
 	if pSpec != nil {
@@ -156,14 +156,14 @@ func fromPipelineTask(logger *zap.SugaredLogger, pro *objects.PipelineRunObject,
 			mats := []common.ProvenanceMaterial{}
 
 			// add step images
-			stepMaterials, err := material.FromStepImages(tr)
+			stepMaterials, err := materialv1beta1.FromStepImages(tr)
 			if err != nil {
 				return nil, err
 			}
 			mats = append(mats, stepMaterials...)
 
 			// add sidecar images
-			sidecarMaterials, err := material.FromSidecarImages(tr)
+			sidecarMaterials, err := materialv1beta1.FromSidecarImages(tr)
 			if err != nil {
 				return nil, err
 			}
@@ -177,30 +177,30 @@ func fromPipelineTask(logger *zap.SugaredLogger, pro *objects.PipelineRunObject,
 }
 
 // taskDependencies gather all dependencies in a task and adds them to resolvedDependencies
-func taskDependencies(ctx context.Context, tr *objects.TaskRunObject) ([]v1.ResourceDescriptor, error) {
+func taskDependencies(ctx context.Context, tr *objects.TaskRunObjectV1Beta1) ([]v1.ResourceDescriptor, error) {
 	var resolvedDependencies []v1.ResourceDescriptor
 	var err error
 	mats := []common.ProvenanceMaterial{}
 
 	// add step and sidecar images
-	stepMaterials, err := material.FromStepImages(tr)
+	stepMaterials, err := materialv1beta1.FromStepImages(tr)
 	mats = append(mats, stepMaterials...)
 	if err != nil {
 		return nil, err
 	}
-	sidecarMaterials, err := material.FromSidecarImages(tr)
+	sidecarMaterials, err := materialv1beta1.FromSidecarImages(tr)
 	if err != nil {
 		return nil, err
 	}
 	mats = append(mats, sidecarMaterials...)
 	resolvedDependencies = append(resolvedDependencies, convertMaterialsToResolvedDependencies(mats, "")...)
 
-	mats = material.FromTaskParamsAndResults(ctx, tr)
+	mats = materialv1beta1.FromTaskParamsAndResults(ctx, tr)
 	// convert materials to resolved dependencies
 	resolvedDependencies = append(resolvedDependencies, convertMaterialsToResolvedDependencies(mats, inputResultName)...)
 
 	// add task resources
-	mats = material.FromTaskResources(ctx, tr)
+	mats = materialv1beta1.FromTaskResources(ctx, tr)
 	// convert materials to resolved dependencies
 	resolvedDependencies = append(resolvedDependencies, convertMaterialsToResolvedDependencies(mats, pipelineResourceName)...)
 
@@ -214,7 +214,7 @@ func taskDependencies(ctx context.Context, tr *objects.TaskRunObject) ([]v1.Reso
 }
 
 // TaskRun constructs `predicate.resolvedDependencies` section by collecting all the artifacts that influence a taskrun such as source code repo and step&sidecar base images.
-func TaskRun(ctx context.Context, tro *objects.TaskRunObject) ([]v1.ResourceDescriptor, error) {
+func TaskRun(ctx context.Context, tro *objects.TaskRunObjectV1Beta1) ([]v1.ResourceDescriptor, error) {
 	var resolvedDependencies []v1.ResourceDescriptor
 	var err error
 
@@ -238,7 +238,7 @@ func TaskRun(ctx context.Context, tro *objects.TaskRunObject) ([]v1.ResourceDesc
 }
 
 // PipelineRun constructs `predicate.resolvedDependencies` section by collecting all the artifacts that influence a pipeline run such as source code repo and step&sidecar base images.
-func PipelineRun(ctx context.Context, pro *objects.PipelineRunObject, slsaconfig *slsaconfig.SlsaConfig, addTasks addTaskDescriptorContent) ([]v1.ResourceDescriptor, error) {
+func PipelineRun(ctx context.Context, pro *objects.PipelineRunObjectV1Beta1, slsaconfig *slsaconfig.SlsaConfig, addTasks addTaskDescriptorContent) ([]v1.ResourceDescriptor, error) {
 	var err error
 	var resolvedDependencies []v1.ResourceDescriptor
 	logger := logging.FromContext(ctx)
@@ -261,7 +261,7 @@ func PipelineRun(ctx context.Context, pro *objects.PipelineRunObject, slsaconfig
 	resolvedDependencies = append(resolvedDependencies, rds...)
 
 	// add resolved dependencies from pipeline results
-	mats := material.FromPipelineParamsAndResults(ctx, pro, slsaconfig)
+	mats := materialv1beta1.FromPipelineParamsAndResults(ctx, pro, slsaconfig)
 	// convert materials to resolved dependencies
 	resolvedDependencies = append(resolvedDependencies, convertMaterialsToResolvedDependencies(mats, inputResultName)...)
 

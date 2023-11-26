@@ -20,8 +20,8 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/storage"
 	"github.com/tektoncd/chains/pkg/config"
 	pipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client"
-	taskruninformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/taskrun"
-	taskrunreconciler "github.com/tektoncd/pipeline/pkg/client/injection/reconciler/pipeline/v1beta1/taskrun"
+	taskruninformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1/taskrun"
+	taskrunreconciler "github.com/tektoncd/pipeline/pkg/client/injection/reconciler/pipeline/v1/taskrun"
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
 	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/controller"
@@ -70,7 +70,9 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		}
 	})
 
-	taskRunInformer.Informer().AddEventHandler(controller.HandleAll(impl.Enqueue))
+	if _, err := taskRunInformer.Informer().AddEventHandler(controller.HandleAll(impl.Enqueue)); err != nil {
+		logger.Errorf("adding event handler for taskrun controller's taskrun informer encountered error: %w", err)
+	}
 
 	return impl
 }
