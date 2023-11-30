@@ -46,7 +46,7 @@ type ObjectSigner struct {
 	Pipelineclientset versioned.Interface
 }
 
-func allSigners(ctx context.Context, sp string, cfg config.Config) map[string]signing.Signer {
+func allSigners(ctx context.Context, sp string, cfg config.Config) (map[string]signing.Signer, error) {
 	l := logging.FromContext(ctx)
 	all := map[string]signing.Signer{}
 	neededSigners := map[string]struct{}{
@@ -64,14 +64,14 @@ func allSigners(ctx context.Context, sp string, cfg config.Config) map[string]si
 			signer, err := x509.NewSigner(ctx, sp, cfg)
 			if err != nil {
 				l.Warnf("error configuring x509 signer: %s", err)
-				continue
+				return nil, err
 			}
 			all[s] = signer
 		case signing.TypeKMS:
 			signer, err := kms.NewSigner(ctx, cfg.Signers.KMS)
 			if err != nil {
 				l.Warnf("error configuring kms signer with config %v: %s", cfg.Signers.KMS, err)
-				continue
+				return nil, err
 			}
 			all[s] = signer
 		default:
@@ -79,7 +79,8 @@ func allSigners(ctx context.Context, sp string, cfg config.Config) map[string]si
 			l.Panicf("unsupported signer: %s", s)
 		}
 	}
-	return all
+	fmt.Println(all)
+	return all, nil
 }
 
 // TODO: Hook this up to config.
@@ -116,7 +117,15 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 		return err
 	}
 
-	signers := allSigners(ctx, o.SecretPath, cfg)
+	signers, err := allSigners(ctx, o.SecretPath, cfg)
+	if err != nil {
+		logger.Info("Skipping the tekton resource...")
+		if err := MarkSkipped(ctx, tektonObj, o.Pipelineclientset, map[string]string{}); err != nil {
+			logger.Error(err)
+			return err
+		}
+		return nil
+	}
 
 	var merr *multierror.Error
 	extraAnnotations := map[string]string{}
@@ -151,7 +160,7 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 			signer, ok := signers[signerType]
 			if !ok {
 				logger.Warnf("No signer %s configured for %s", signerType, signableType.Type())
-				continue
+				return nil
 			}
 
 			if payloader.Wrap() {

@@ -68,6 +68,14 @@ func MarkSigned(ctx context.Context, obj objects.TektonObject, ps versioned.Inte
 	return AddAnnotation(ctx, obj, ps, ChainsAnnotation, "true", annotations)
 }
 
+// MarkSkipped marks a Tekton object as skipped because configurations were not set
+func MarkSkipped(ctx context.Context, obj objects.TektonObject, ps versioned.Interface, annotations map[string]string) error {
+	if _, ok := obj.GetAnnotations()[ChainsAnnotation]; ok {
+		return nil
+	}
+	return AddAnnotation(ctx, obj, ps, ChainsAnnotation, "skipped", annotations)
+}
+
 func MarkFailed(ctx context.Context, obj objects.TektonObject, ps versioned.Interface, annotations map[string]string) error {
 	return AddAnnotation(ctx, obj, ps, ChainsAnnotation, "failed", annotations)
 }

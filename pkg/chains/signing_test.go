@@ -17,6 +17,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
 
@@ -182,6 +183,56 @@ func TestSigner_Sign(t *testing.T) {
 
 		})
 	}
+}
+
+func TestSigningObjectsSkipped(t *testing.T) {
+	ctx, _ := rtesting.SetupFakeContext(t)
+	ps := fakepipelineclient.Get(ctx)
+
+	tro := objects.NewTaskRunObject(&v1beta1.TaskRun{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "foo",
+		},
+	})
+
+	tcfg := &config.Config{
+		Artifacts: config.ArtifactConfigs{
+			TaskRuns: config.Artifact{
+				Format:         "in-toto",
+				StorageBackend: sets.New[string]("mock"),
+				Signer:         "x509",
+			},
+		},
+	}
+	ctx = config.ToContext(ctx, tcfg.DeepCopy())
+
+	ts := &ObjectSigner{
+		Pipelineclientset: ps,
+	}
+
+	tekton.CreateObject(t, ctx, ps, tro)
+
+	if err := ts.Sign(ctx, tro); (err != nil) != false {
+		t.Errorf("Signer.Sign() error = %v", err)
+	}
+
+	// Fetch the updated object
+	updatedObject, err := tekton.GetObject(t, ctx, ps, tro)
+	if err != nil {
+		t.Errorf("error fetching fake object: %v", err)
+	}
+
+	shouldBeSigned := !true
+	if Reconciled(ctx, ps, updatedObject) != shouldBeSigned {
+		t.Errorf("IsSigned()=%t, wanted %t", Reconciled(ctx, ps, updatedObject), shouldBeSigned)
+	}
+
+	// Retrieve all annotations
+	annotations := updatedObject.GetAnnotations()
+	expectedAnnotation := "chains.tekton.dev/signed"
+
+	actualValue := annotations[expectedAnnotation]
+	assert.Equal(t, "skipped", actualValue)
 }
 
 func TestSigner_Transparency(t *testing.T) {
@@ -393,7 +444,10 @@ func TestSigningObjects(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx, _ := rtesting.SetupFakeContext(t)
-			signers := allSigners(ctx, tt.SecretPath, tt.config)
+			signers, err := allSigners(ctx, tt.SecretPath, tt.config)
+			if err != nil {
+				t.Errorf(err.Error())
+			}
 			var signerTypes []string
 			for _, signer := range signers {
 				signerTypes = append(signerTypes, signer.Type())
