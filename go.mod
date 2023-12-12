@@ -33,7 +33,7 @@ require (
 	gocloud.dev/docstore/mongodocstore v0.35.0
 	gocloud.dev/pubsub/kafkapubsub v0.35.0
 	golang.org/x/crypto v0.16.0
-	google.golang.org/grpc v1.59.0
+	google.golang.org/grpc v1.60.0
 	google.golang.org/protobuf v1.31.0
 	k8s.io/api v0.28.3
 	k8s.io/apimachinery v0.28.3
