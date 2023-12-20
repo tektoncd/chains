@@ -16,7 +16,7 @@ require (
 	github.com/in-toto/in-toto-golang v0.9.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/pkg/errors v0.9.1
-	github.com/secure-systems-lab/go-securesystemslib v0.7.0
+	github.com/secure-systems-lab/go-securesystemslib v0.8.0
 	github.com/sigstore/cosign/v2 v2.2.2
 	github.com/sigstore/rekor v1.3.4
 	github.com/sigstore/sigstore v1.7.6
@@ -26,14 +26,14 @@ require (
 	github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.7.6
 	github.com/spiffe/go-spiffe/v2 v2.1.6
 	github.com/stretchr/testify v1.8.4
-	github.com/tektoncd/pipeline v0.54.0
+	github.com/tektoncd/pipeline v0.54.1
 	github.com/tektoncd/plumbing v0.0.0-20230907180608-5625252a2de1
 	go.uber.org/zap v1.26.0
 	gocloud.dev v0.35.0
 	gocloud.dev/docstore/mongodocstore v0.35.0
 	gocloud.dev/pubsub/kafkapubsub v0.35.0
 	golang.org/x/crypto v0.17.0
-	google.golang.org/grpc v1.60.0
+	google.golang.org/grpc v1.60.1
 	google.golang.org/protobuf v1.31.0
 	k8s.io/api v0.28.3
 	k8s.io/apimachinery v0.28.3
