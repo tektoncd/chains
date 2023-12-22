@@ -26,7 +26,7 @@ require (
 	github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.8.0
 	github.com/spiffe/go-spiffe/v2 v2.1.6
 	github.com/stretchr/testify v1.8.4
-	github.com/tektoncd/pipeline v0.54.2
+	github.com/tektoncd/pipeline v0.55.0
 	github.com/tektoncd/plumbing v0.0.0-20230907180608-5625252a2de1
 	go.uber.org/zap v1.26.0
 	gocloud.dev v0.35.0
@@ -34,7 +34,7 @@ require (
 	gocloud.dev/pubsub/kafkapubsub v0.35.0
 	golang.org/x/crypto v0.17.0
 	google.golang.org/grpc v1.60.1
-	google.golang.org/protobuf v1.31.0
+	google.golang.org/protobuf v1.32.0
 	k8s.io/api v0.28.3
 	k8s.io/apimachinery v0.28.3
 	k8s.io/client-go v0.28.3
