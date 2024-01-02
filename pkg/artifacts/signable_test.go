@@ -331,16 +331,19 @@ func TestExtractOCIImagesFromResults(t *testing.T) {
 		},
 	}
 	obj := objects.NewTaskRunObject(tr)
-	want := []interface{}{
+	want := []name.Digest{
 		createDigest(t, fmt.Sprintf("img1@%s", digest1)),
 		createDigest(t, fmt.Sprintf("img2@%s", digest2)),
 		createDigest(t, fmt.Sprintf("img3@%s", digest1)),
 	}
 	ctx := logtesting.TestContextWithLogger(t)
-	got := ExtractOCIImagesFromResults(ctx, obj)
+	got, err := extractOCIImagesFromResults(ctx, obj)
+	if err != nil {
+		t.Fatal(err)
+	}
 	sort.Slice(got, func(i, j int) bool {
-		a := got[i].(name.Digest)
-		b := got[j].(name.Digest)
+		a := got[i]
+		b := got[j]
 		return a.String() < b.String()
 	})
 	if !cmp.Equal(got, want, ignore...) {

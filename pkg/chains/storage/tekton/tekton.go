@@ -18,7 +18,7 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"github.com/in-toto/in-toto-golang/in_toto"
+	v1 "github.com/tektoncd/chains/pkg/chains/formats/slsa/v1"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/chains/signing"
 	"github.com/tektoncd/chains/pkg/chains/storage/api"
@@ -55,11 +55,11 @@ func NewStorageBackend(ps versioned.Interface) *Backend {
 func (b *Backend) StorePayload(ctx context.Context, obj objects.TektonObject, rawPayload []byte, signature string, opts config.StorageOpts) error {
 	logger := logging.FromContext(ctx)
 
-	store := &Storer{
+	store := &Storer[*v1.ProvenanceStatement]{
 		client: b.pipelineclientset,
 		key:    opts.ShortKey,
 	}
-	if _, err := store.Store(ctx, &api.StoreRequest[objects.TektonObject, *in_toto.Statement]{
+	if _, err := store.Store(ctx, &api.StoreRequest[objects.TektonObject, *v1.ProvenanceStatement]{
 		Object:   obj,
 		Artifact: obj,
 		// We don't actually use payload - we store the raw bundle values directly.
@@ -146,18 +146,45 @@ func payloadName(opts config.StorageOpts) string {
 	return fmt.Sprintf(PayloadAnnotationFormat, opts.ShortKey)
 }
 
-type Storer struct {
+// Storer stores attestation information in Tekton objects.
+// T represents any attestation output type - the Tekton Storer
+// does not not use this value meaningfully (only the signature is stored),
+// so this effectively allows any attestation type to be stored.
+type Storer[T any] struct {
 	client versioned.Interface
 	// optional key override. If not specified, the UID of the object is used.
 	key string
 }
 
 var (
-	_ api.Storer[objects.TektonObject, *in_toto.Statement] = &Storer{}
+	_ api.Storer[objects.TektonObject, any] = &Storer[any]{}
 )
 
+func NewStorer[T any](client versioned.Interface, opts ...StorerOption) *Storer[T] {
+	o := &storerOpts{}
+	for _, f := range opts {
+		f(o)
+	}
+	return &Storer[T]{
+		client: client,
+		key:    o.key,
+	}
+}
+
+type storerOpts struct {
+	key string
+}
+
+type StorerOption func(*storerOpts)
+
+func WithKey(key string) StorerOption {
+	return func(s *storerOpts) {
+		s.key = key
+	}
+}
+
 // Store stores the statement in the TaskRun metadata as an annotation.
-func (s *Storer) Store(ctx context.Context, req *api.StoreRequest[objects.TektonObject, *in_toto.Statement]) (*api.StoreResponse, error) {
+func (s *Storer[T]) Store(ctx context.Context, req *api.StoreRequest[objects.TektonObject, T]) (*api.StoreResponse, error) {
 	logger := logging.FromContext(ctx)
 
 	obj := req.Object

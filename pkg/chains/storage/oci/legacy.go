@@ -106,7 +106,7 @@ func (b *Backend) StorePayload(ctx context.Context, obj objects.TektonObject, ra
 			return nil
 		}
 
-		return b.uploadAttestation(ctx, attestation, signature, storageOpts, auth)
+		return b.uploadAttestation(ctx, obj, attestation, signature, storageOpts, auth)
 	}
 
 	// Fallback in case unsupported payload format is used or the deprecated "tekton" format
@@ -130,7 +130,7 @@ func (b *Backend) uploadSignature(ctx context.Context, format simple.SimpleConta
 		return errors.Wrapf(err, "getting storage repo for sub %s", imageName)
 	}
 
-	store, err := NewSimpleStorerFromConfig(WithTargetRepository(repo))
+	store, err := NewSimpleStorer(WithTargetRepository(repo))
 	if err != nil {
 		return err
 	}
@@ -152,44 +152,31 @@ func (b *Backend) uploadSignature(ctx context.Context, format simple.SimpleConta
 	return nil
 }
 
-func (b *Backend) uploadAttestation(ctx context.Context, attestation in_toto.Statement, signature string, storageOpts config.StorageOpts, remoteOpts ...remote.Option) error {
+func (b *Backend) uploadAttestation(ctx context.Context, obj objects.TektonObject, attestation in_toto.Statement, signature string, storageOpts config.StorageOpts, remoteOpts ...remote.Option) error {
 	logger := logging.FromContext(ctx)
 	// upload an attestation for each subject
 	logger.Info("Starting to upload attestations to OCI ...")
-	for _, subj := range attestation.Subject {
-		imageName := fmt.Sprintf("%s@sha256:%s", subj.Name, subj.Digest["sha256"])
-		logger.Infof("Starting attestation upload to OCI for %s...", imageName)
 
-		ref, err := name.NewDigest(imageName)
-		if err != nil {
-			return errors.Wrapf(err, "getting digest for subj %s", imageName)
-		}
-
-		repo, err := newRepo(b.cfg, ref)
-		if err != nil {
-			return errors.Wrapf(err, "getting storage repo for sub %s", imageName)
-		}
-
-		store, err := NewAttestationStorer(WithTargetRepository(repo))
-		if err != nil {
-			return err
-		}
-		// TODO: make these creation opts.
-		store.remoteOpts = remoteOpts
-		if _, err := store.Store(ctx, &api.StoreRequest[name.Digest, in_toto.Statement]{
-			Object:   nil,
-			Artifact: ref,
-			Payload:  attestation,
-			Bundle: &signing.Bundle{
-				Content:   nil,
-				Signature: []byte(signature),
-				Cert:      []byte(storageOpts.Cert),
-				Chain:     []byte(storageOpts.Chain),
-			},
-		}); err != nil {
-			return err
-		}
+	store, err := NewAttestationStorer[in_toto.Statement]()
+	if err != nil {
+		return err
 	}
+	// TODO: make these creation opts.
+	store.remoteOpts = remoteOpts
+	if _, err := store.Store(ctx, &api.StoreRequest[objects.TektonObject, in_toto.Statement]{
+		Object:   obj,
+		Artifact: obj,
+		Payload:  attestation,
+		Bundle: &signing.Bundle{
+			Content:   nil,
+			Signature: []byte(signature),
+			Cert:      []byte(storageOpts.Cert),
+			Chain:     []byte(storageOpts.Chain),
+		},
+	}); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -271,14 +258,13 @@ func (b *Backend) RetrievePayloads(ctx context.Context, obj objects.TektonObject
 
 func (b *Backend) RetrieveArtifact(ctx context.Context, obj objects.TektonObject, opts config.StorageOpts) (map[string]oci.SignedImage, error) {
 	// Given the TaskRun, retrieve the OCI images.
-	images := artifacts.ExtractOCIImagesFromResults(ctx, obj)
+	images, err := artifacts.ExtractOCI(ctx, obj)
+	if err != nil {
+		return nil, err
+	}
 	m := make(map[string]oci.SignedImage)
 
-	for _, image := range images {
-		ref, ok := image.(name.Digest)
-		if !ok {
-			return nil, errors.New("error parsing image")
-		}
+	for _, ref := range images {
 		img, err := ociremote.SignedImage(ref)
 		if err != nil {
 			return nil, err

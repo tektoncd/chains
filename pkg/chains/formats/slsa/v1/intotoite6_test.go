@@ -54,7 +54,7 @@ func TestTaskRunCreatePayload1(t *testing.T) {
 			ID: "test_builder-1",
 		},
 	}
-	expected := in_toto.ProvenanceStatement{
+	expected := &in_toto.ProvenanceStatement{
 		StatementHeader: in_toto.StatementHeader{
 			Type:          in_toto.StatementInTotoV01,
 			PredicateType: slsa.PredicateSLSAProvenance,
@@ -133,7 +133,7 @@ func TestTaskRunCreatePayload1(t *testing.T) {
 			},
 		},
 	}
-	i, _ := NewFormatter(cfg)
+	i, _ := NewPayloader(cfg)
 
 	got, err := i.CreatePayload(ctx, objects.NewTaskRunObject(tr))
 
@@ -158,7 +158,7 @@ func TestPipelineRunCreatePayload(t *testing.T) {
 			ID: "test_builder-1",
 		},
 	}
-	expected := in_toto.ProvenanceStatement{
+	expected := &in_toto.ProvenanceStatement{
 		StatementHeader: in_toto.StatementHeader{
 			Type:          in_toto.StatementInTotoV01,
 			PredicateType: slsa.PredicateSLSAProvenance,
@@ -359,7 +359,7 @@ func TestPipelineRunCreatePayload(t *testing.T) {
 	pro.AppendTaskRun(tr1)
 	pro.AppendTaskRun(tr2)
 
-	i, _ := NewFormatter(cfg)
+	i, _ := NewPayloader(cfg)
 
 	got, err := i.CreatePayload(ctx, pro)
 	if err != nil {
@@ -382,7 +382,7 @@ func TestPipelineRunCreatePayloadChildRefs(t *testing.T) {
 			ID: "test_builder-1",
 		},
 	}
-	expected := in_toto.ProvenanceStatement{
+	expected := &in_toto.ProvenanceStatement{
 		StatementHeader: in_toto.StatementHeader{
 			Type:          in_toto.StatementInTotoV01,
 			PredicateType: slsa.PredicateSLSAProvenance,
@@ -577,7 +577,7 @@ func TestPipelineRunCreatePayloadChildRefs(t *testing.T) {
 	pro.AppendTaskRun(tr1)
 	pro.AppendTaskRun(tr2)
 
-	i, _ := NewFormatter(cfg)
+	i, _ := NewPayloader(cfg)
 	got, err := i.CreatePayload(ctx, pro)
 	if err != nil {
 		t.Errorf("unexpected error: %s", err.Error())
@@ -600,7 +600,7 @@ func TestTaskRunCreatePayload2(t *testing.T) {
 			ID: "test_builder-2",
 		},
 	}
-	expected := in_toto.ProvenanceStatement{
+	expected := &in_toto.ProvenanceStatement{
 		StatementHeader: in_toto.StatementHeader{
 			Type:          in_toto.StatementInTotoV01,
 			PredicateType: slsa.PredicateSLSAProvenance,
@@ -652,7 +652,7 @@ func TestTaskRunCreatePayload2(t *testing.T) {
 			},
 		},
 	}
-	i, _ := NewFormatter(cfg)
+	i, _ := NewPayloader(cfg)
 	got, err := i.CreatePayload(ctx, objects.NewTaskRunObject(tr))
 
 	if err != nil {
@@ -676,7 +676,7 @@ func TestMultipleSubjects(t *testing.T) {
 			ID: "test_builder-multiple",
 		},
 	}
-	expected := in_toto.ProvenanceStatement{
+	expected := &in_toto.ProvenanceStatement{
 		StatementHeader: in_toto.StatementHeader{
 			Type:          in_toto.StatementInTotoV01,
 			PredicateType: slsa.PredicateSLSAProvenance,
@@ -723,7 +723,7 @@ func TestMultipleSubjects(t *testing.T) {
 		},
 	}
 
-	i, _ := NewFormatter(cfg)
+	i, _ := NewPayloader(cfg)
 	got, err := i.CreatePayload(ctx, objects.NewTaskRunObject(tr))
 	if err != nil {
 		t.Errorf("unexpected error: %s", err.Error())
@@ -740,7 +740,7 @@ func TestNewFormatter(t *testing.T) {
 				ID: "testid",
 			},
 		}
-		f, err := NewFormatter(cfg)
+		f, err := NewPayloader(cfg)
 		if f == nil {
 			t.Error("Failed to create formatter")
 		}
@@ -758,7 +758,7 @@ func TestCreatePayloadError(t *testing.T) {
 			ID: "testid",
 		},
 	}
-	f, _ := NewFormatter(cfg)
+	f, _ := NewPayloader(cfg)
 
 	t.Run("Invalid type", func(t *testing.T) {
 		p, err := f.CreatePayload(ctx, "not a task ref")

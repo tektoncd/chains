@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/google/go-containerregistry/pkg/name"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	"github.com/tektoncd/chains/internal/backport"
@@ -95,16 +94,17 @@ func subjectsFromTektonObject(ctx context.Context, obj objects.TektonObject) []i
 	logger := logging.FromContext(ctx)
 	var subjects []intoto.Subject
 
-	imgs := artifacts.ExtractOCIImagesFromResults(ctx, obj)
-	for _, i := range imgs {
-		if d, ok := i.(name.Digest); ok {
-			subjects = artifact.AppendSubjects(subjects, intoto.Subject{
-				Name: d.Repository.Name(),
-				Digest: common.DigestSet{
-					"sha256": strings.TrimPrefix(d.DigestStr(), "sha256:"),
-				},
-			})
-		}
+	imgs, err := artifacts.ExtractOCI(ctx, obj)
+	if err != nil {
+		logger.Warnf("error extracting OCI artifacts: %v", err)
+	}
+	for _, d := range imgs {
+		subjects = artifact.AppendSubjects(subjects, intoto.Subject{
+			Name: d.Repository.Name(),
+			Digest: common.DigestSet{
+				"sha256": strings.TrimPrefix(d.DigestStr(), "sha256:"),
+			},
+		})
 	}
 
 	sts := artifacts.ExtractSignableTargetFromResults(ctx, obj)

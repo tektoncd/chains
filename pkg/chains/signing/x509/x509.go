@@ -42,6 +42,9 @@ import (
 
 const (
 	defaultOIDCClientID = "sigstore"
+
+	// SecretPath contains the path to the secrets volume that is mounted in.
+	defaultSecretPath = "/etc/signing-secrets"
 )
 
 // Signer exposes methods to sign payloads.
@@ -53,6 +56,9 @@ type Signer struct {
 
 // NewSigner returns a configured Signer
 func NewSigner(ctx context.Context, secretPath string, cfg config.Config) (*Signer, error) {
+	if secretPath == "" {
+		secretPath = defaultSecretPath
+	}
 	x509PrivateKeyPath := filepath.Join(secretPath, "x509.pem")
 	cosignPrivateKeypath := filepath.Join(secretPath, "cosign.key")
 

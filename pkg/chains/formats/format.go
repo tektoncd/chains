@@ -21,10 +21,19 @@ import (
 )
 
 // Payloader is an interface to generate a chains Payload from a TaskRun
+// Deprecated: Use Formatter instead.
 type Payloader interface {
 	CreatePayload(ctx context.Context, obj interface{}) (interface{}, error)
 	Type() config.PayloadType
 	Wrap() bool
+}
+
+// Formatter transforms an extracted Input artifact into an Output
+// artifact suitable for signing + storage.
+type Formatter[Input any, Output any] interface {
+	// Effectively the same as CreatePayload, but using a different name so that
+	// this interface can coexist with Payloader.
+	FormatPayload(ctx context.Context, in Input) (Output, error)
 }
 
 const (
