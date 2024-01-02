@@ -59,14 +59,14 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, pr *v1beta1.PipelineRun)
 func (r *Reconciler) FinalizeKind(ctx context.Context, pr *v1beta1.PipelineRun) pkgreconciler.Event {
 	// Check to make sure the PipelineRun is finished.
 	if !pr.IsDone() {
-		logging.FromContext(ctx).Infof("pipelinerun is still running")
+		logging.FromContext(ctx).Debugf("pipelinerun \"%s/%s\" is still running", pr.Namespace, pr.Name)
 		return nil
 	}
 	pro := objects.NewPipelineRunObject(pr)
 
 	// Check to see if it has already been signed.
 	if signing.Reconciled(ctx, r.Pipelineclientset, pro) {
-		logging.FromContext(ctx).Infof("pipelinerun has been reconciled")
+		logging.FromContext(ctx).Infof("pipelinerun \"%s/%s\" has been reconciled", pr.Namespace, pr.Name)
 		return nil
 	}
 
@@ -78,7 +78,7 @@ func (r *Reconciler) FinalizeKind(ctx context.Context, pr *v1beta1.PipelineRun) 
 			// has exceeded. Wait to process the PipelineRun on the next update, see
 			// https://github.com/tektoncd/pipeline/issues/4916
 			if ptrs.Status == nil || ptrs.Status.CompletionTime == nil {
-				logging.FromContext(ctx).Infof("taskrun %s within pipelinerun is not yet finalized: embedded status is not complete", trName)
+				logging.FromContext(ctx).Infof("taskrun \"%s\" within pipelinerun \"%s\" is not yet finalized: embedded status is not complete", trName, pr.Name)
 				return nil
 			}
 			trs = append(trs, trName)
@@ -95,7 +95,7 @@ func (r *Reconciler) FinalizeKind(ctx context.Context, pr *v1beta1.PipelineRun) 
 	for _, name := range trs {
 		tr, err := r.TaskRunLister.TaskRuns(pr.Namespace).Get(name)
 		if err != nil {
-			logging.FromContext(ctx).Errorf("Unable to get reconciled status of taskrun %s within pipelinerun", name)
+			logging.FromContext(ctx).Errorf("Unable to get reconciled status of taskrun \"%s\" within pipelinerun \"%s\"", name, pr.Name)
 			if errors.IsNotFound(err) {
 				// Since this is an unrecoverable scenario, returning the error would prevent the
 				// finalizer from being removed, thus preventing the PipelineRun from being deleted.
@@ -104,16 +104,16 @@ func (r *Reconciler) FinalizeKind(ctx context.Context, pr *v1beta1.PipelineRun) 
 			return err
 		}
 		if tr == nil {
-			logging.FromContext(ctx).Infof("taskrun %s within pipelinerun is not found", name)
+			logging.FromContext(ctx).Infof("taskrun \"%s\" within pipelinerun \"%s\" is not found", name, pr.Name)
 			return nil
 		}
 		if tr.Status.CompletionTime == nil {
-			logging.FromContext(ctx).Infof("taskrun %s within pipelinerun is not yet finalized: status is not complete", name)
+			logging.FromContext(ctx).Infof("taskrun \"%s\" within pipelinerun \"%s\" is not yet finalized: status is not complete", name, pr.Name)
 			return r.trackTaskRun(tr, pr)
 		}
 		reconciled := signing.Reconciled(ctx, r.Pipelineclientset, objects.NewTaskRunObject(tr))
 		if !reconciled {
-			logging.FromContext(ctx).Infof("taskrun %s within pipelinerun is not yet reconciled", name)
+			logging.FromContext(ctx).Infof("taskrun \"%s\" within pipelinerun \"%s\" is not yet reconciled", name, pr.Name)
 			return r.trackTaskRun(tr, pr)
 		}
 		pro.AppendTaskRun(tr)
