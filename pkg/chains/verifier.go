@@ -51,13 +51,16 @@ func (tv *TaskRunVerifier) VerifyTaskRun(ctx context.Context, tr *v1.TaskRun) er
 		&artifacts.OCIArtifact{},
 	}
 
-	// TODO(https://github.com/tektoncd/chains/issues/1026) add support for passing v1 object (vs converted v1beta1) for v2alpha3+
-	trV1Beta1 := &v1beta1.TaskRun{} //nolint:staticcheck
-	if err := trV1Beta1.ConvertFrom(ctx, tr); err != nil {
-		return err
+	var trObj objects.TektonObject
+	if cfg.Artifacts.TaskRuns.Format == "v2alpha3" {
+		trObj = objects.NewTaskRunObjectV1(tr)
+	} else {
+		trV1Beta1 := &v1beta1.TaskRun{} //nolint:staticcheck
+		if err := trV1Beta1.ConvertFrom(ctx, tr); err != nil {
+			return err
+		}
+		trObj = objects.NewTaskRunObjectV1Beta1(trV1Beta1)
 	}
-
-	trObj := objects.NewTaskRunObjectV1Beta1(trV1Beta1)
 
 	// Storage
 	allBackends, err := storage.InitializeBackends(ctx, tv.Pipelineclientset, tv.KubeClient, cfg)

@@ -38,7 +38,7 @@ The following shows the mapping between slsa version and formatter name.
 
 | SLSA Version | Formatter Name         |
 | ------------ | ---------------------- |
-| v1.0         | `slsa/v2alpha2`        |
+| v1.0         | `slsa/v2alpha3`        |
 | v0.2         | `slsa/v1` or `in-toto` |
 
 To configure Task-level provenance version
