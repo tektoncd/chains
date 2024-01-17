@@ -22,7 +22,7 @@ import (
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
-	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/material"
+	materialv1beta1 "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/material/v1beta1"
 	slsav1 "github.com/tektoncd/chains/pkg/chains/formats/slsa/v1/taskrun"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
@@ -37,9 +37,9 @@ type BuildConfig struct {
 	TaskRunResults []v1beta1.TaskRunResult `json:"taskRunResults"`
 }
 
-func GenerateAttestation(ctx context.Context, builderID string, payloadType config.PayloadType, tro *objects.TaskRunObject) (interface{}, error) {
+func GenerateAttestation(ctx context.Context, builderID string, payloadType config.PayloadType, tro *objects.TaskRunObjectV1Beta1) (interface{}, error) {
 	subjects := extract.SubjectDigests(ctx, tro, nil)
-	mat, err := material.TaskMaterials(ctx, tro)
+	mat, err := materialv1beta1.TaskMaterials(ctx, tro)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func GenerateAttestation(ctx context.Context, builderID string, payloadType conf
 	return att, nil
 }
 
-func metadata(tro *objects.TaskRunObject) *slsa.ProvenanceMetadata {
+func metadata(tro *objects.TaskRunObjectV1Beta1) *slsa.ProvenanceMetadata {
 	m := slsav1.Metadata(tro)
 	m.Completeness = slsa.ProvenanceComplete{
 		Parameters: true,
@@ -74,7 +74,7 @@ func metadata(tro *objects.TaskRunObject) *slsa.ProvenanceMetadata {
 // invocation describes the event that kicked off the build
 // we currently don't set ConfigSource because we don't know
 // which material the Task definition came from
-func invocation(tro *objects.TaskRunObject) slsa.ProvenanceInvocation {
+func invocation(tro *objects.TaskRunObjectV1Beta1) slsa.ProvenanceInvocation {
 	i := slsa.ProvenanceInvocation{}
 	if p := tro.Status.Provenance; p != nil && p.RefSource != nil {
 		i.ConfigSource = slsa.ConfigSource{
@@ -94,7 +94,7 @@ func invocation(tro *objects.TaskRunObject) slsa.ProvenanceInvocation {
 // invocationEnv adds the tekton feature flags that were enabled
 // for the taskrun. In the future, we can populate versioning information
 // here as well.
-func invocationEnv(tro *objects.TaskRunObject) map[string]any {
+func invocationEnv(tro *objects.TaskRunObjectV1Beta1) map[string]any {
 	var iEnv map[string]any = make(map[string]any)
 	if tro.Status.Provenance != nil && tro.Status.Provenance.FeatureFlags != nil {
 		iEnv["tekton-pipelines-feature-flags"] = tro.Status.Provenance.FeatureFlags
@@ -104,7 +104,7 @@ func invocationEnv(tro *objects.TaskRunObject) map[string]any {
 
 // invocationParams adds all fields from the task run object except
 // TaskRef or TaskSpec since they are in the ConfigSource or buildConfig.
-func invocationParams(tro *objects.TaskRunObject) map[string]any {
+func invocationParams(tro *objects.TaskRunObjectV1Beta1) map[string]any {
 	var iParams map[string]any = make(map[string]any)
 	skipFields := sets.NewString("TaskRef", "TaskSpec")
 	v := reflect.ValueOf(tro.Spec)

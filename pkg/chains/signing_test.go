@@ -26,7 +26,7 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/storage"
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/chains/pkg/test/tekton"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	fakepipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -40,13 +40,13 @@ func TestSigner_Sign(t *testing.T) {
 	// - generates payloads
 	// - stores them in the configured systems
 	// - marks the object as signed
-	tro := objects.NewTaskRunObject(&v1beta1.TaskRun{
+	tro := objects.NewTaskRunObjectV1(&v1.TaskRun{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "foo",
 		},
 	})
 
-	pro := objects.NewPipelineRunObject(&v1beta1.PipelineRun{
+	pro := objects.NewPipelineRunObjectV1(&v1.PipelineRun{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "foo",
 		},
@@ -186,14 +186,14 @@ func TestSigner_Sign(t *testing.T) {
 
 func TestSigner_Transparency(t *testing.T) {
 	newTaskRun := func(name string) objects.TektonObject {
-		return objects.NewTaskRunObject(&v1beta1.TaskRun{
+		return objects.NewTaskRunObjectV1(&v1.TaskRun{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: name,
 			},
 		})
 	}
 	newPipelineRun := func(name string) objects.TektonObject {
-		return objects.NewPipelineRunObject(&v1beta1.PipelineRun{
+		return objects.NewPipelineRunObjectV1(&v1.PipelineRun{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: name,
 			},
@@ -202,12 +202,12 @@ func TestSigner_Transparency(t *testing.T) {
 	setAnnotation := func(obj objects.TektonObject, key, value string) {
 		// TODO: opportunity to add code reuse
 		switch o := obj.GetObject().(type) {
-		case *v1beta1.PipelineRun:
+		case *v1.PipelineRun:
 			if o.Annotations == nil {
 				o.Annotations = make(map[string]string)
 			}
 			o.Annotations[key] = value
-		case *v1beta1.TaskRun:
+		case *v1.TaskRun:
 			if o.Annotations == nil {
 				o.Annotations = make(map[string]string)
 			}

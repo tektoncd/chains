@@ -26,7 +26,7 @@ import (
 
 	versionedscheme "github.com/tektoncd/pipeline/pkg/client/clientset/versioned/scheme"
 	client "github.com/tektoncd/pipeline/pkg/client/injection/client"
-	pipelinerun "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/pipelinerun"
+	pipelinerun "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1/pipelinerun"
 	zap "go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	labels "k8s.io/apimachinery/pkg/labels"

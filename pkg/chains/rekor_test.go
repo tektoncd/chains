@@ -18,8 +18,8 @@ import (
 
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestShouldUploadTlog(t *testing.T) {
@@ -77,13 +77,13 @@ func TestShouldUploadTlog(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
-			tr := &v1beta1.TaskRun{
-				ObjectMeta: v1.ObjectMeta{
+			tr := &v1.TaskRun{
+				ObjectMeta: metav1.ObjectMeta{
 					Annotations: test.annotations,
 				},
 			}
 			cfg := config.Config{Transparency: test.cfg}
-			trObj := objects.NewTaskRunObject(tr)
+			trObj := objects.NewTaskRunObjectV1(tr)
 			got := shouldUploadTlog(cfg, trObj)
 			if got != test.expected {
 				t.Fatalf("got (%v) doesn't match expected (%v)", got, test.expected)

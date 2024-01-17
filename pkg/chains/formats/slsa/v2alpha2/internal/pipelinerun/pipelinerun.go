@@ -36,7 +36,7 @@ const (
 )
 
 // GenerateAttestation generates a provenance statement with SLSA v1.0 predicate for a pipeline run.
-func GenerateAttestation(ctx context.Context, pro *objects.PipelineRunObject, slsaconfig *slsaconfig.SlsaConfig) (interface{}, error) {
+func GenerateAttestation(ctx context.Context, pro *objects.PipelineRunObjectV1Beta1, slsaconfig *slsaconfig.SlsaConfig) (interface{}, error) {
 	bp, err := byproducts(pro)
 	if err != nil {
 		return nil, err
@@ -67,7 +67,7 @@ func GenerateAttestation(ctx context.Context, pro *objects.PipelineRunObject, sl
 	return att, nil
 }
 
-func metadata(pro *objects.PipelineRunObject) slsa.BuildMetadata {
+func metadata(pro *objects.PipelineRunObjectV1Beta1) slsa.BuildMetadata {
 	m := slsa.BuildMetadata{
 		InvocationID: string(pro.ObjectMeta.UID),
 	}
@@ -83,7 +83,7 @@ func metadata(pro *objects.PipelineRunObject) slsa.BuildMetadata {
 }
 
 // byproducts contains the pipelineRunResults
-func byproducts(pro *objects.PipelineRunObject) ([]slsa.ResourceDescriptor, error) {
+func byproducts(pro *objects.PipelineRunObjectV1Beta1) ([]slsa.ResourceDescriptor, error) {
 	byProd := []slsa.ResourceDescriptor{}
 	for _, key := range pro.Status.PipelineResults {
 		content, err := json.Marshal(key.Value)
@@ -101,7 +101,7 @@ func byproducts(pro *objects.PipelineRunObject) ([]slsa.ResourceDescriptor, erro
 }
 
 // getBuildDefinition get the buildDefinition based on the configured buildType. This will default to the slsa buildType
-func getBuildDefinition(ctx context.Context, slsaconfig *slsaconfig.SlsaConfig, pro *objects.PipelineRunObject) (slsa.ProvenanceBuildDefinition, error) {
+func getBuildDefinition(ctx context.Context, slsaconfig *slsaconfig.SlsaConfig, pro *objects.PipelineRunObjectV1Beta1) (slsa.ProvenanceBuildDefinition, error) {
 	// if buildType is not set in the chains-config, default to slsa build type
 	buildDefinitionType := slsaconfig.BuildType
 	if slsaconfig.BuildType == "" {

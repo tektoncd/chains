@@ -23,6 +23,7 @@ import (
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/objects"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -59,7 +60,7 @@ func Step(step *v1beta1.Step, stepState *v1beta1.StepState) StepAttestation {
 }
 
 func Invocation(obj objects.TektonObject, params []v1beta1.Param, paramSpecs []v1beta1.ParamSpec) slsa.ProvenanceInvocation {
-	var source *v1beta1.RefSource
+	var source *v1.RefSource
 	if p := obj.GetProvenance(); p != nil {
 		source = p.RefSource
 	}
@@ -108,7 +109,7 @@ func Invocation(obj objects.TektonObject, params []v1beta1.Param, paramSpecs []v
 	return i
 }
 
-func convertConfigSource(source *v1beta1.RefSource) slsa.ConfigSource {
+func convertConfigSource(source *v1.RefSource) slsa.ConfigSource {
 	if source == nil {
 		return slsa.ConfigSource{}
 	}

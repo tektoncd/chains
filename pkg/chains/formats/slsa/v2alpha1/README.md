@@ -2,7 +2,7 @@
 When running the following taskrun with bundle resolver referencing the [remote task](https://github.com/tektoncd/catalog/tree/main/task/git-clone/0.9):
 
 ```yaml
-apiVersion: tekton.dev/v1beta1
+apiVersion: tekton.dev/v1
 kind: TaskRun
 metadata:
   generateName: bundles-resolver-
@@ -44,7 +44,7 @@ The following output was generated. Notice the following below:
     "builder": {
       "id": "https://tekton.dev/chains/v2"
     },
-    "buildType": "https://chains.tekton.dev/format/slsa/v2alpha1/type/tekton.dev/v1beta1/TaskRun",
+    "buildType": "https://chains.tekton.dev/format/slsa/v2alpha1/type/tekton.dev/v1/TaskRun",
     "invocation": {
       "configSource": {
         "uri": "gcr.io/tekton-releases/catalog/upstream/git-clone",
@@ -102,7 +102,7 @@ The following output was generated. Notice the following below:
           "EnableProvenanceInStatus": true,
           "ResultExtractionMethod": "termination-message",
           "MaxResultSize": 4096,
-          "CustomTaskVersion": "v1beta1"
+          "CustomTaskVersion": "v1"
         }
       }
     },

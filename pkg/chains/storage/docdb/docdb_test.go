@@ -43,7 +43,7 @@ func TestBackend_StorePayload(t *testing.T) {
 		{
 			name: "no error",
 			args: args{
-				rawPayload: &v1beta1.TaskRun{ObjectMeta: metav1.ObjectMeta{UID: "foo"}},
+				rawPayload: &v1beta1.TaskRun{ObjectMeta: metav1.ObjectMeta{UID: "foo"}}, //nolint:staticcheck
 				signature:  "signature",
 				key:        "foo",
 			},
@@ -51,7 +51,7 @@ func TestBackend_StorePayload(t *testing.T) {
 		{
 			name: "no error - PipelineRun",
 			args: args{
-				rawPayload: &v1beta1.PipelineRun{ObjectMeta: metav1.ObjectMeta{UID: "foo"}},
+				rawPayload: &v1beta1.PipelineRun{ObjectMeta: metav1.ObjectMeta{UID: "foo"}}, //nolint:staticcheck
 				signature:  "signature",
 				key:        "moo",
 			},

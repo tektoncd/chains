@@ -59,7 +59,7 @@ status:
     terminated:
       containerID: containerd://e2fadd134495619cccd1c48d8a9df2aed2afd64e6c62ea55135f90796102231e`
 
-	var taskRun *v1beta1.TaskRun
+	var taskRun *v1beta1.TaskRun //nolint:staticcheck
 	if err := yaml.Unmarshal([]byte(taskrun), &taskRun); err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +84,7 @@ status:
 		},
 	}
 
-	got := buildConfig(objects.NewTaskRunObject(taskRun))
+	got := buildConfig(objects.NewTaskRunObjectV1Beta1(taskRun))
 	if !reflect.DeepEqual(expected, got) {
 		if d := cmp.Diff(expected, got); d != "" {
 			t.Log(d)

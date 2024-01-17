@@ -20,10 +20,10 @@ import (
 	"fmt"
 
 	"github.com/tektoncd/chains/pkg/chains/objects"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 )
 
-func buildConfigSource(provenance *v1beta1.Provenance) map[string]string {
+func buildConfigSource(provenance *v1.Provenance) map[string]string {
 	ref := ""
 	for alg, hex := range provenance.RefSource.Digest {
 		ref = fmt.Sprintf("%s:%s", alg, hex)
@@ -38,7 +38,7 @@ func buildConfigSource(provenance *v1beta1.Provenance) map[string]string {
 }
 
 // PipelineRun adds the pipeline run spec and provenance if available
-func PipelineRun(pro *objects.PipelineRunObject) map[string]any {
+func PipelineRun(pro *objects.PipelineRunObjectV1Beta1) map[string]any {
 	externalParams := make(map[string]any)
 
 	if provenance := pro.GetRemoteProvenance(); provenance != nil {
@@ -49,7 +49,7 @@ func PipelineRun(pro *objects.PipelineRunObject) map[string]any {
 }
 
 // TaskRun adds the task run spec and provenance if available
-func TaskRun(tro *objects.TaskRunObject) map[string]any {
+func TaskRun(tro *objects.TaskRunObjectV1Beta1) map[string]any {
 	externalParams := make(map[string]any)
 
 	if provenance := tro.GetRemoteProvenance(); provenance != nil {

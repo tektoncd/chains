@@ -66,7 +66,7 @@ const (
 var (
 	// clone taskrun
 	// --------------
-	cloneTaskRun = &v1beta1.TaskRun{
+	cloneTaskRun = &v1beta1.TaskRun{ //nolint:staticcheck
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",
 			Name:      "git-clone",
@@ -100,7 +100,7 @@ var (
 	artifactIdentifier2 = fmt.Sprintf("%s@sha256:%s", artifactURL2, artifactDigest2)
 
 	// artifact build taskrun
-	buildTaskRun = &v1beta1.TaskRun{
+	buildTaskRun = &v1beta1.TaskRun{ //nolint:staticcheck
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",
 			Name:      "artifact-build",
@@ -139,7 +139,7 @@ var (
 	}
 
 	// ci pipelinerun
-	ciPipeline = &v1beta1.PipelineRun{
+	ciPipeline = &v1beta1.PipelineRun{ //nolint:staticcheck
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",
 			Name:      "ci-pipeline",
@@ -261,7 +261,7 @@ func TestGrafeasBackend_StoreAndRetrieve(t *testing.T) {
 		{
 			name: "intoto for clone taskrun, no error, no occurrences created because no artifacts were built.",
 			args: args{
-				runObject: &objects.TaskRunObject{
+				runObject: &objects.TaskRunObjectV1Beta1{
 					TaskRun: cloneTaskRun,
 				},
 				payload:   getRawPayload(t, cloneTaskRunProvenance),
@@ -274,7 +274,7 @@ func TestGrafeasBackend_StoreAndRetrieve(t *testing.T) {
 		{
 			name: "intoto for build taskrun, no error, 2 BUILD occurrences should be created for the 2 artifacts generated.",
 			args: args{
-				runObject: &objects.TaskRunObject{
+				runObject: &objects.TaskRunObjectV1Beta1{
 					TaskRun: buildTaskRun,
 				},
 				payload:   getRawPayload(t, buildTaskRunProvenance),
@@ -287,7 +287,7 @@ func TestGrafeasBackend_StoreAndRetrieve(t *testing.T) {
 		{
 			name: "simplesigning for the build taskrun, no error, 1 ATTESTATION occurrence should be created for the artifact specified in storageopts.key",
 			args: args{
-				runObject: &objects.TaskRunObject{
+				runObject: &objects.TaskRunObjectV1Beta1{
 					TaskRun: buildTaskRun,
 				},
 				payload:   []byte("attestation payload"),
@@ -300,7 +300,7 @@ func TestGrafeasBackend_StoreAndRetrieve(t *testing.T) {
 		{
 			name: "intoto for the ci pipeline, no error, 2 occurences should be created for the pipelinerun for the 2 artifact generated.",
 			args: args{
-				runObject: &objects.PipelineRunObject{
+				runObject: &objects.PipelineRunObjectV1Beta1{
 					PipelineRun: ciPipeline,
 				},
 				payload:   getRawPayload(t, ciPipelineRunProvenance),
@@ -313,7 +313,7 @@ func TestGrafeasBackend_StoreAndRetrieve(t *testing.T) {
 		{
 			name: "tekton format for a taskrun, error, only simplesigning and intoto are supported",
 			args: args{
-				runObject: &objects.TaskRunObject{
+				runObject: &objects.TaskRunObjectV1Beta1{
 					TaskRun: buildTaskRun,
 				},
 				payload:   []byte("foo"),
