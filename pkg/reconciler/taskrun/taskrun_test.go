@@ -21,6 +21,7 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/chains/pkg/internal/mocksigner"
+	_ "github.com/tektoncd/chains/pkg/taskrunmetrics/fake"
 	"github.com/tektoncd/chains/pkg/test/tekton"
 	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	informers "github.com/tektoncd/pipeline/pkg/client/informers/externalversions/pipeline/v1"

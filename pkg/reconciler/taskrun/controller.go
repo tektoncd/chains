@@ -19,6 +19,7 @@ import (
 	"github.com/tektoncd/chains/pkg/chains"
 	"github.com/tektoncd/chains/pkg/chains/storage"
 	"github.com/tektoncd/chains/pkg/config"
+	"github.com/tektoncd/chains/pkg/taskrunmetrics"
 	pipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client"
 	taskruninformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1/taskrun"
 	taskrunreconciler "github.com/tektoncd/pipeline/pkg/client/injection/reconciler/pipeline/v1/taskrun"
@@ -40,6 +41,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	tsSigner := &chains.ObjectSigner{
 		SecretPath:        SecretPath,
 		Pipelineclientset: pipelineClient,
+		Recorder:          taskrunmetrics.Get(ctx),
 	}
 
 	c := &Reconciler{
