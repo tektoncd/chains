@@ -103,6 +103,9 @@ spec:
               value: tekton.dev/chains
             - name: CONFIG_OBSERVABILITY_NAME
               value: tekton-chains-config-observability
+            - name: CONFIG_LEADERELECTION_NAME
+              value: tekton-chains-config-leader-election
+
           ports:
             - name: metrics
               containerPort: 9090
