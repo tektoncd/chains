@@ -22,7 +22,7 @@ import (
 )
 
 // PipelineRun adds the pipeline run spec and provenance if available
-func PipelineRun(pro *objects.PipelineRunObjectV1Beta1) map[string]any {
+func PipelineRun(pro *objects.PipelineRunObjectV1) map[string]any {
 	externalParams := make(map[string]any)
 
 	if provenance := pro.GetRemoteProvenance(); provenance != nil {
@@ -33,7 +33,7 @@ func PipelineRun(pro *objects.PipelineRunObjectV1Beta1) map[string]any {
 }
 
 // TaskRun adds the task run spec and provenance if available
-func TaskRun(tro *objects.TaskRunObjectV1Beta1) map[string]any {
+func TaskRun(tro *objects.TaskRunObjectV1) map[string]any {
 	externalParams := make(map[string]any)
 
 	if provenance := tro.GetRemoteProvenance(); provenance != nil {

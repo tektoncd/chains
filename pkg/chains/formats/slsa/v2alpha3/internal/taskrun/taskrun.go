@@ -24,15 +24,15 @@ import (
 	buildtypes "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/build_types"
 	internalparameters "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/internal_parameters"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
-	externalparameters "github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha2/internal/external_parameters"
-	resolveddependencies "github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha2/internal/resolved_dependencies"
+	externalparameters "github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha3/internal/external_parameters"
+	resolveddependencies "github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha3/internal/resolved_dependencies"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 )
 
 const taskRunResults = "taskRunResults/%s"
 
 // GenerateAttestation generates a provenance statement with SLSA v1.0 predicate for a task run.
-func GenerateAttestation(ctx context.Context, tro *objects.TaskRunObjectV1Beta1, slsaConfig *slsaconfig.SlsaConfig) (interface{}, error) {
+func GenerateAttestation(ctx context.Context, tro *objects.TaskRunObjectV1, slsaConfig *slsaconfig.SlsaConfig) (interface{}, error) {
 	bp, err := byproducts(tro)
 	if err != nil {
 		return nil, err
@@ -63,7 +63,7 @@ func GenerateAttestation(ctx context.Context, tro *objects.TaskRunObjectV1Beta1,
 	return att, nil
 }
 
-func metadata(tro *objects.TaskRunObjectV1Beta1) slsa.BuildMetadata {
+func metadata(tro *objects.TaskRunObjectV1) slsa.BuildMetadata {
 	m := slsa.BuildMetadata{
 		InvocationID: string(tro.ObjectMeta.UID),
 	}
@@ -79,9 +79,9 @@ func metadata(tro *objects.TaskRunObjectV1Beta1) slsa.BuildMetadata {
 }
 
 // byproducts contains the taskRunResults
-func byproducts(tro *objects.TaskRunObjectV1Beta1) ([]slsa.ResourceDescriptor, error) {
+func byproducts(tro *objects.TaskRunObjectV1) ([]slsa.ResourceDescriptor, error) {
 	byProd := []slsa.ResourceDescriptor{}
-	for _, key := range tro.Status.TaskRunResults {
+	for _, key := range tro.Status.Results {
 		content, err := json.Marshal(key.Value)
 		if err != nil {
 			return nil, err
@@ -97,7 +97,7 @@ func byproducts(tro *objects.TaskRunObjectV1Beta1) ([]slsa.ResourceDescriptor, e
 }
 
 // getBuildDefinition get the buildDefinition based on the configured buildType. This will default to the slsa buildType
-func getBuildDefinition(ctx context.Context, buildType string, tro *objects.TaskRunObjectV1Beta1) (slsa.ProvenanceBuildDefinition, error) {
+func getBuildDefinition(ctx context.Context, buildType string, tro *objects.TaskRunObjectV1) (slsa.ProvenanceBuildDefinition, error) {
 	// if buildType is not set in the chains-config, default to slsa build type
 	buildDefinitionType := buildType
 	if buildType == "" {

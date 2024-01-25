@@ -26,7 +26,7 @@ import (
 )
 
 func TestTektonInternalParameters(t *testing.T) {
-	tr, err := objectloader.TaskRunV1Beta1FromFile("../../../testdata/slsa-v2alpha2/taskrun1.json")
+	tr, err := objectloader.TaskRunV1Beta1FromFile("../../testdata/slsa-v2alpha2/taskrun1.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,7 +44,7 @@ func TestTektonInternalParameters(t *testing.T) {
 }
 
 func TestSLSAInternalParameters(t *testing.T) {
-	tr, err := objectloader.TaskRunV1Beta1FromFile("../../../testdata/slsa-v2alpha2/taskrun1.json")
+	tr, err := objectloader.TaskRunV1Beta1FromFile("../../testdata/slsa-v2alpha2/taskrun1.json")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -19,4 +19,5 @@ import (
 	_ "github.com/tektoncd/chains/pkg/chains/formats/slsa/v1"
 	_ "github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha1"
 	_ "github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha2"
+	_ "github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha3"
 )
