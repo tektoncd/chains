@@ -19,6 +19,7 @@ import (
 	"github.com/tektoncd/chains/pkg/chains"
 	"github.com/tektoncd/chains/pkg/chains/storage"
 	"github.com/tektoncd/chains/pkg/config"
+	"github.com/tektoncd/chains/pkg/pipelinerunmetrics"
 	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	pipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client"
 	pipelineruninformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1/pipelinerun"
@@ -44,6 +45,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	psSigner := &chains.ObjectSigner{
 		SecretPath:        SecretPath,
 		Pipelineclientset: pipelineClient,
+		Recorder:          pipelinerunmetrics.Get(ctx),
 	}
 
 	c := &Reconciler{
