@@ -62,23 +62,23 @@ type Recorder struct {
 // initializes this singleton and returns the same recorder across any
 // subsequent invocations.
 var (
-	once           sync.Once
-	r              *Recorder
-	errRegistering error
+	once sync.Once
+	r    *Recorder
 )
 
 // NewRecorder creates a new metrics recorder instance
 // to log the TaskRun related metrics
 func NewRecorder(ctx context.Context) (*Recorder, error) {
+	var errRegistering error
+	logger := logging.FromContext(ctx)
 	once.Do(func() {
 		r = &Recorder{
 			initialized: true,
 		}
-
 		errRegistering = viewRegister()
-
 		if errRegistering != nil {
 			r.initialized = false
+			logger.Errorf("View Register Failed ", r.initialized)
 			return
 		}
 	})
