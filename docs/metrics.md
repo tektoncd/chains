@@ -9,3 +9,25 @@ Metric collectors like Prometheus and OpenTelemetry can be used to collect these
 metrics. See
 [Knative - Collecting Metrics](https://knative.dev/docs/serving/observability/metrics/collecting-metrics/)
 for more details.
+
+# Chains Controller Metrics
+
+The following chains metrics are also available at `tekton-chains-metrics` service on port `9090`.
+
+| Name                                                                                    | Type | Description |
+|-----------------------------------------------------------------------------------------| ----------- | ----------- |
+| `pipelinerun_sign_created_total`                                             | Counter | Total number of signed messages for pipelineruns |
+| `pipelinerun_payload_uploaded_total`                                             | Counter | Total number of uploaded payloads for pipelineruns |
+| `pipelinerun_payload_stored_total`                                             | Counter | Total number of stored payloads for pipelineruns |
+| `pipelinerun_marked_signed_total`                                             | Counter | Total number of objects marked as signed for pipelineruns |
+| `taskrun_sign_created_total`                                             | Counter | Total number of signed messages for taskruns |
+| `taskrun_payload_uploaded_total`                                             | Counter | Total number of uploaded payloads for taskruns |
+| `taskrun_payload_stored_total`                                             | Counter | Total number of stored payloads for taskruns |
+| `taskrun_marked_signed_total`                                             | Counter | Total number of objects marked as signed for taskruns |
+
+To access the chains metrics, use the following commands:
+```shell
+kubectl port-forward -n tekton-chains service/tekton-chains-metrics 9090
+```
+
+And then check that changes have been applied to metrics coming from [http://127.0.0.1:9090/metrics](http://127.0.0.1:9090/metrics)
