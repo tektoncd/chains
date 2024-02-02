@@ -139,6 +139,14 @@ func taskDependencies(ctx context.Context, tro *objects.TaskRunObjectV1) ([]slsa
 	// convert materials to resolved dependencies
 	resolvedDependencies = append(resolvedDependencies, resolveddependencies.ConvertMaterialsToResolvedDependencies(mats, resolveddependencies.InputResultName)...)
 
+	mats, err = material.FromStepArtifactInputs(tro)
+
+	resolvedDependencies = append(resolvedDependencies, resolveddependencies.ConvertMaterialsToResolvedDependencies(mats, "aritfacts/inputs")...)
+
+	if err != nil {
+		return nil, err
+	}
+
 	// add task resources
 	// =====
 	// convert to v1beta1 and add any task resources

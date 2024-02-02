@@ -150,6 +150,7 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 				continue
 			}
 			logger.Infof("Created payload of type %s for %s %s/%s", string(payloadFormat), tektonObj.GetGVK(), tektonObj.GetNamespace(), tektonObj.GetName())
+			logger.Info(payload)
 
 			// Sign it!
 			signerType := signableType.Signer(cfg)

@@ -140,7 +140,25 @@ func SubjectsFromTektonObjectV1Beta1(ctx context.Context, obj objects.TektonObje
 	// the POC for TEP-84
 	// More info: https://tekton.dev/docs/pipelines/resources/
 	tr, ok := obj.GetObject().(*v1beta1.TaskRun) //nolint:staticcheck
-	if !ok || tr.Spec.Resources == nil {         //nolint:staticcheck
+	if !ok {                                     //nolint:staticcheck
+		return subjects
+	}
+
+	for _, ss := range tr.Status.Steps {
+		for _, o := range ss.Outputs {
+			for _, v := range o.Values {
+				s := strings.Split(v.Digest, ":")
+				subjects = artifact.AppendSubjects(subjects, intoto.Subject{
+					Name: v.Uri,
+					Digest: common.DigestSet{
+						s[0]: s[1],
+					},
+				})
+			}
+		}
+	}
+
+	if tr.Spec.Resources == nil {
 		return subjects
 	}
 

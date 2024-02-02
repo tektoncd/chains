@@ -143,6 +143,27 @@ func FromSidecarImages(tro *objects.TaskRunObjectV1) ([]common.ProvenanceMateria
 	return mats, nil
 }
 
+func FromStepArtifactInputs(tro *objects.TaskRunObjectV1) ([]common.ProvenanceMaterial, error) {
+	mats := []common.ProvenanceMaterial{}
+	for _, ss := range tro.Status.Steps {
+		for _, a := range ss.Inputs {
+			for _, av := range a.Values {
+				s := strings.Split(av.Digest, digestSeparator)
+				if len(s) != 2 {
+					return []common.ProvenanceMaterial{}, fmt.Errorf("")
+				}
+				m := common.ProvenanceMaterial{
+					Digest: common.DigestSet{},
+				}
+				m.URI = av.Uri
+				m.Digest[s[0]] = s[1]
+				
+			}
+		}
+	}
+	return mats, nil
+}
+
 // fromImageID converts an imageId with format <uri>@sha256:<digest> and generates a provenance materials.
 func fromImageID(imageID string) (common.ProvenanceMaterial, error) {
 	uriDigest := strings.Split(imageID, uriSeparator)

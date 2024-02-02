@@ -58,6 +58,12 @@ func TaskMaterials(ctx context.Context, tro *objects.TaskRunObjectV1Beta1) ([]co
 
 	// add task resources
 	mats = artifact.AppendMaterials(mats, FromTaskResources(ctx, tro)...)
+	stepArtifactInputsMats, err := FromStepArtifactInputs(tro)
+
+	if err != nil {
+		return nil, err
+	}
+	mats = append(mats, stepArtifactInputsMats...)
 
 	return mats, nil
 }
@@ -155,6 +161,27 @@ func fromImageID(imageID string) (common.ProvenanceMaterial, error) {
 	m.URI = artifacts.OCIScheme + uri
 	m.Digest[digest[0]] = digest[1]
 	return m, nil
+}
+
+func FromStepArtifactInputs(tro *objects.TaskRunObjectV1Beta1) ([]common.ProvenanceMaterial, error) {
+	mats := []common.ProvenanceMaterial{}
+	for _, ss := range tro.Status.Steps {
+		for _, a := range ss.Inputs {
+			for _, av := range a.Values {
+				s := strings.Split(av.Digest, digestSeparator)
+				if len(s) != 2 {
+					return []common.ProvenanceMaterial{}, fmt.Errorf("artifact value should be in the format of algorithm:value")
+				}
+				m := common.ProvenanceMaterial{
+					Digest: common.DigestSet{},
+				}
+				m.URI = av.Uri
+				m.Digest[s[0]] = s[1]
+				mats = append(mats, m)
+			}
+		}
+	}
+	return mats, nil
 }
 
 // FromTaskResourcesToMaterials gets materials from task resources.
