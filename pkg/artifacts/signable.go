@@ -24,7 +24,6 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	"github.com/opencontainers/go-digest"
-	"github.com/opentracing/opentracing-go/log"
 	"github.com/tektoncd/chains/internal/backport"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
@@ -151,6 +150,7 @@ type image struct {
 }
 
 func (oa *OCIArtifact) ExtractObjects(ctx context.Context, obj objects.TektonObject) []interface{} {
+	logger := logging.FromContext(ctx)
 	objs := []interface{}{}
 
 	// TODO: Not applicable to PipelineRuns, should look into a better way to separate this out
@@ -181,7 +181,7 @@ func (oa *OCIArtifact) ExtractObjects(ctx context.Context, obj objects.TektonObj
 			for _, image := range imageResourceNames {
 				dgst, err := name.NewDigest(fmt.Sprintf("%s@%s", image.url, image.digest))
 				if err != nil {
-					log.Error(err)
+					logger.Error(err)
 					continue
 				}
 
