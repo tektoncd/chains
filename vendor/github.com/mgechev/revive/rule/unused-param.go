@@ -35,7 +35,7 @@ func (r *UnusedParamRule) configure(args lint.Arguments) {
 		r.failureMsg = "parameter '%s' seems to be unused, consider removing or renaming it as _"
 	} else {
 		// Arguments = [{}]
-		options := args[0].(map[string]interface{})
+		options := args[0].(map[string]any)
 		// Arguments = [{allowedRegex="^_"}]
 
 		if allowedRegexParam, ok := options["allowRegex"]; ok {
@@ -113,7 +113,7 @@ func (w lintUnusedParamRule) Visit(node ast.Node) ast.Visitor {
 
 			return false
 		}
-		_ = pick(n.Body, fselect, nil)
+		_ = pick(n.Body, fselect)
 
 		for _, p := range n.Type.Params.List {
 			for _, n := range p.Names {

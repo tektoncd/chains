@@ -18,10 +18,11 @@ var upperCaseConstRE = regexp.MustCompile(`^_?[A-Z][A-Z\d]*(_[A-Z\d]+)*$`)
 
 // VarNamingRule lints given else constructs.
 type VarNamingRule struct {
-	configured     bool
-	whitelist      []string
-	blacklist      []string
-	upperCaseConst bool // if true - allows to use UPPER_SOME_NAMES for constants
+	configured            bool
+	whitelist             []string
+	blacklist             []string
+	upperCaseConst        bool // if true - allows to use UPPER_SOME_NAMES for constants
+	skipPackageNameChecks bool
 	sync.Mutex
 }
 
@@ -44,19 +45,41 @@ func (r *VarNamingRule) configure(arguments lint.Arguments) {
 	if len(arguments) >= 3 {
 		// not pretty code because should keep compatibility with TOML (no mixed array types) and new map parameters
 		thirdArgument := arguments[2]
-		asSlice, ok := thirdArgument.([]interface{})
+		asSlice, ok := thirdArgument.([]any)
 		if !ok {
 			panic(fmt.Sprintf("Invalid third argument to the var-naming rule. Expecting a %s of type slice, got %T", "options", arguments[2]))
 		}
 		if len(asSlice) != 1 {
 			panic(fmt.Sprintf("Invalid third argument to the var-naming rule. Expecting a %s of type slice, of len==1, but %d", "options", len(asSlice)))
 		}
-		args, ok := asSlice[0].(map[string]interface{})
+		args, ok := asSlice[0].(map[string]any)
 		if !ok {
 			panic(fmt.Sprintf("Invalid third argument to the var-naming rule. Expecting a %s of type slice, of len==1, with map, but %T", "options", asSlice[0]))
 		}
 		r.upperCaseConst = fmt.Sprint(args["upperCaseConst"]) == "true"
+		r.skipPackageNameChecks = fmt.Sprint(args["skipPackageNameChecks"]) == "true"
 	}
+}
+
+func (r *VarNamingRule) applyPackageCheckRules(walker *lintNames) {
+	// Package names need slightly different handling than other names.
+	if strings.Contains(walker.fileAst.Name.Name, "_") && !strings.HasSuffix(walker.fileAst.Name.Name, "_test") {
+		walker.onFailure(lint.Failure{
+			Failure:    "don't use an underscore in package name",
+			Confidence: 1,
+			Node:       walker.fileAst.Name,
+			Category:   "naming",
+		})
+	}
+	if anyCapsRE.MatchString(walker.fileAst.Name.Name) {
+		walker.onFailure(lint.Failure{
+			Failure:    fmt.Sprintf("don't use MixedCaps in package name; %s should be %s", walker.fileAst.Name.Name, strings.ToLower(walker.fileAst.Name.Name)),
+			Confidence: 1,
+			Node:       walker.fileAst.Name,
+			Category:   "naming",
+		})
+	}
+
 }
 
 // Apply applies the rule to given file.
@@ -78,22 +101,8 @@ func (r *VarNamingRule) Apply(file *lint.File, arguments lint.Arguments) []lint.
 		upperCaseConst: r.upperCaseConst,
 	}
 
-	// Package names need slightly different handling than other names.
-	if strings.Contains(walker.fileAst.Name.Name, "_") && !strings.HasSuffix(walker.fileAst.Name.Name, "_test") {
-		walker.onFailure(lint.Failure{
-			Failure:    "don't use an underscore in package name",
-			Confidence: 1,
-			Node:       walker.fileAst.Name,
-			Category:   "naming",
-		})
-	}
-	if anyCapsRE.MatchString(walker.fileAst.Name.Name) {
-		walker.onFailure(lint.Failure{
-			Failure:    fmt.Sprintf("don't use MixedCaps in package name; %s should be %s", walker.fileAst.Name.Name, strings.ToLower(walker.fileAst.Name.Name)),
-			Confidence: 1,
-			Node:       walker.fileAst.Name,
-			Category:   "naming",
-		})
+	if !r.skipPackageNameChecks {
+		r.applyPackageCheckRules(&walker)
 	}
 
 	ast.Walk(&walker, fileAst)
@@ -127,7 +136,7 @@ func (w *lintNames) check(id *ast.Ident, thing string) {
 
 	// #851 upperCaseConst support
 	// if it's const
-	if thing == token.CONST.String() && w.upperCaseConst && upperCaseConstRE.Match([]byte(id.Name)) {
+	if thing == token.CONST.String() && w.upperCaseConst && upperCaseConstRE.MatchString(id.Name) {
 		return
 	}
 
@@ -255,8 +264,8 @@ func (w *lintNames) Visit(n ast.Node) ast.Visitor {
 	return w
 }
 
-func getList(arg interface{}, argName string) []string {
-	temp, ok := arg.([]interface{})
+func getList(arg any, argName string) []string {
+	temp, ok := arg.([]any)
 	if !ok {
 		panic(fmt.Sprintf("Invalid argument to the var-naming rule. Expecting a %s of type slice with initialisms, got %T", argName, arg))
 	}
