@@ -64,19 +64,19 @@ function install_chains() {
   ko apply -f config/ || fail_test "Tekton Chains installation failed"
 
   # Wait for pods to be running in the namespaces we are deploying to
-  wait_until_pods_running tekton-chains || fail_test "Tekton Chains did not come up"
+  wait_until_pods_running ${namespace} || fail_test "Tekton Chains did not come up"
 }
 
 function chains_patch_spire() {
-  kubectl patch -n tekton-chains deployment tekton-chains-controller \
+  kubectl patch -n ${namespace} deployment tekton-chains-controller \
     --patch-file "$(dirname $0)/testdata/chains-patch-spire.json"
   # Wait for pods to be running in the namespaces we are deploying to
-  wait_until_pods_running tekton-chains || fail_test "Tekton Chains did not come up after patching"
+  wait_until_pods_running ${namespace} || fail_test "Tekton Chains did not come up after patching"
 }
 
 function dump_logs() {
   echo ">> Tekton Chains Logs"
-  kubectl logs deployment/tekton-chains-controller -n tekton-chains
+  kubectl logs deployment/tekton-chains-controller -n ${namespace}
 }
 
 function spire_apply() {
@@ -108,9 +108,9 @@ function install_spire() {
     -selector k8s_psat:agent_sa:spire-agent \
     -node
   spire_apply \
-    -spiffeID spiffe://example.org/ns/tekton-chains/sa/tekton-chains-controller \
+    -spiffeID spiffe://example.org/ns/${namespace}/sa/tekton-chains-controller \
     -parentID spiffe://example.org/ns/spire/node/example \
-    -selector k8s:ns:tekton-chains \
+    -selector k8s:ns:${namespace} \
     -selector k8s:sa:tekton-chains-controller
 }
 
@@ -159,7 +159,7 @@ EOF
       role_type=jwt \
       user_claim=sub \
       bound_audiences=e2e \
-      bound_subject=spiffe://example.org/ns/tekton-chains/sa/tekton-chains-controller \
+      bound_subject=spiffe://example.org/ns/${namespace}/sa/tekton-chains-controller \
       token_ttl=15m \
       token_policies=spire-transit
   vault_exec read transit/keys/e2e >/dev/null 2>&1 \
