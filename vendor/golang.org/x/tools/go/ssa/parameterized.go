@@ -105,9 +105,9 @@ func (w *tpWalker) isParameterizedLocked(typ types.Type) (res bool) {
 		return w.isParameterizedLocked(t.Elem())
 
 	case *types.Named:
-		args := typeparams.NamedTypeArgs(t)
+		args := t.TypeArgs()
 		// TODO(taking): this does not match go/types/infer.go. Check with rfindley.
-		if params := typeparams.ForNamed(t); params.Len() > args.Len() {
+		if params := t.TypeParams(); params.Len() > args.Len() {
 			return true
 		}
 		for i, n := 0, args.Len(); i < n; i++ {
@@ -117,7 +117,7 @@ func (w *tpWalker) isParameterizedLocked(typ types.Type) (res bool) {
 		}
 		return w.isParameterizedLocked(t.Underlying()) // recurse for types local to parameterized functions
 
-	case *typeparams.TypeParam:
+	case *types.TypeParam:
 		return true
 
 	default:
