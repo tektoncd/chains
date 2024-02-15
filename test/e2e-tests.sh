@@ -17,6 +17,9 @@
 # This script calls out to scripts in tektoncd/plumbing to setup a cluster
 # and deploy Tekton Pipelines to it for running integration tests.
 
+export namespace="${NAMESPACE:-tekton-chains}"
+echo "Using namespace: $namespace"
+
 source $(git rev-parse --show-toplevel)/test/e2e-common.sh
 
 # Script entry point.

@@ -172,7 +172,7 @@ func readObj(t *testing.T, bucket, name string, client *storage.Client) io.Reade
 func setConfigMap(ctx context.Context, t *testing.T, c *clients, data map[string]string) func() {
 	// Change the config to be GCS storage with this bucket.
 	// Note(rgreinho): This comment does not look right...
-	cm, err := c.KubeClient.CoreV1().ConfigMaps("tekton-chains").Get(ctx, "chains-config", metav1.GetOptions{})
+	cm, err := c.KubeClient.CoreV1().ConfigMaps(namespace).Get(ctx, "chains-config", metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -190,7 +190,7 @@ func setConfigMap(ctx context.Context, t *testing.T, c *clients, data map[string
 	for k, v := range data {
 		cm.Data[k] = v
 	}
-	cm, err = c.KubeClient.CoreV1().ConfigMaps("tekton-chains").Update(ctx, cm, metav1.UpdateOptions{})
+	cm, err = c.KubeClient.CoreV1().ConfigMaps(namespace).Update(ctx, cm, metav1.UpdateOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -206,7 +206,7 @@ func setConfigMap(ctx context.Context, t *testing.T, c *clients, data map[string
 		for k, v := range oldData {
 			cm.Data[k] = v
 		}
-		if _, err := c.KubeClient.CoreV1().ConfigMaps("tekton-chains").Update(ctx, cm, metav1.UpdateOptions{}); err != nil {
+		if _, err := c.KubeClient.CoreV1().ConfigMaps(namespace).Update(ctx, cm, metav1.UpdateOptions{}); err != nil {
 			t.Log(err)
 		}
 	}
@@ -224,13 +224,13 @@ func printDebugging(t *testing.T, obj objects.TektonObject) {
 	t.Log(string(output))
 
 	t.Log("============================== chains controller logs ==============================")
-	output, _ = exec.Command("kubectl", "logs", "deploy/tekton-chains-controller", "-n", "tekton-chains").CombinedOutput()
+	output, _ = exec.Command("kubectl", "logs", "deploy/tekton-chains-controller", "-n", namespace).CombinedOutput()
 	t.Log(string(output))
 }
 
 func verifySignature(ctx context.Context, t *testing.T, c *clients, obj objects.TektonObject) {
 	// Retrieve the configuration.
-	chainsConfig, err := c.KubeClient.CoreV1().ConfigMaps("tekton-chains").Get(ctx, "chains-config", metav1.GetOptions{})
+	chainsConfig, err := c.KubeClient.CoreV1().ConfigMaps(namespace).Get(ctx, "chains-config", metav1.GetOptions{})
 	if err != nil {
 		t.Errorf("error retrieving tekton chains configmap: %s", err)
 		return
@@ -297,7 +297,7 @@ func verifySignature(ctx context.Context, t *testing.T, c *clients, obj objects.
 // restartChainsControllerPod restarts the pod running Chains
 // it then waits for a given timeout for the pod to resume running state
 func restartChainsControllerPod(ctx context.Context, c kubernetes.Interface, timeout time.Duration) error {
-	pods, err := c.CoreV1().Pods("tekton-chains").List(ctx, metav1.ListOptions{LabelSelector: "app.kubernetes.io/component=controller"})
+	pods, err := c.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{LabelSelector: "app.kubernetes.io/component=controller"})
 	if err != nil {
 		return err
 	}
@@ -310,7 +310,7 @@ func restartChainsControllerPod(ctx context.Context, c kubernetes.Interface, tim
 	}
 
 	return wait.PollUntilContextTimeout(ctx, 2*time.Second, timeout, true, func(context.Context) (done bool, err error) {
-		pods, err := c.CoreV1().Pods("tekton-chains").List(context.Background(), metav1.ListOptions{LabelSelector: "app.kubernetes.io/component=controller"})
+		pods, err := c.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{LabelSelector: "app.kubernetes.io/component=controller"})
 		if err != nil {
 			return false, err
 		}

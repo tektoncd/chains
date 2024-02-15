@@ -35,6 +35,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -202,7 +203,7 @@ type secret struct {
 
 func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface, opts setupOpts) secret {
 	// Only overwrite the secret data if it isn't set.
-	namespace := "tekton-chains"
+	namespace := os.Getenv("namespace")
 	s := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "signing-secrets",

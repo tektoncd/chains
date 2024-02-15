@@ -53,11 +53,20 @@ import (
 	logtesting "knative.dev/pkg/logging/testing"
 )
 
+var namespace string
+
+func init() {
+	namespace = os.Getenv("namespace")
+	if namespace == "" {
+		namespace = "tekton-chains"
+	}
+}
+
 func TestInstall(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
 	c, _, cleanup := setup(ctx, t, setupOpts{})
 	t.Cleanup(cleanup)
-	dep, err := c.KubeClient.AppsV1().Deployments("tekton-chains").Get(ctx, "tekton-chains-controller", metav1.GetOptions{})
+	dep, err := c.KubeClient.AppsV1().Deployments(namespace).Get(ctx, "tekton-chains-controller", metav1.GetOptions{})
 	if err != nil {
 		t.Errorf("Error getting chains deployment: %v", err)
 	}
