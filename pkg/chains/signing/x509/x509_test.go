@@ -52,6 +52,27 @@ MC4CAQAwBQYDK2VwBCIEIGQn0bJwshjwuVdnd/FylMk3Gvb89aGgH49bQpgzCY0n
 // npx jwtgen -a HS256 -s "my-secret" -c "iss=user123" -e 3600
 const token = `eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE2Nzc1NjAyMTgsImV4cCI6MTY3NzU2MzgxOCwiaXNzIjoidXNlcjEyMyJ9.c-sDgCyuZA6VaIGl7Y3-9XxttW1PUkBeNBLE9gCKG8s`
 
+func TestCreateSignerFulcioEnabledDefaultTokenFileMissing(t *testing.T) {
+	ctx := logtesting.TestContextWithLogger(t)
+	d := t.TempDir()
+
+	data := make(map[string]string)
+	data["signers.x509.fulcio.enabled"] = "true"
+	cfg, err := config.NewConfigFromMap(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !cfg.Signers.X509.FulcioEnabled {
+		t.Fatal("fulcio is not enabled, expected to be enabled")
+	}
+	_, _ = NewSigner(ctx, d, *cfg)
+	//  With default file not present, expect the list of providers to be empty
+	if providers.Enabled(ctx) {
+		t.Fatal("Expected providers to be false")
+	}
+}
+
 func TestCreateSignerFulcioEnabled(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
 	d := t.TempDir()
