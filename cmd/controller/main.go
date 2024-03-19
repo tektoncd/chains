@@ -18,6 +18,10 @@ import (
 
 	"github.com/tektoncd/chains/pkg/reconciler/pipelinerun"
 	"github.com/tektoncd/chains/pkg/reconciler/taskrun"
+
+	"k8s.io/client-go/rest"
+
+	"knative.dev/pkg/controller"
 	"knative.dev/pkg/injection"
 	"knative.dev/pkg/injection/sharedmain"
 	"knative.dev/pkg/signals"
@@ -35,11 +39,22 @@ import (
 	_ "github.com/sigstore/sigstore/pkg/signature/kms/hashivault"
 )
 
-var namespace = flag.String("namespace", "", "Namespace to restrict informer to. Optional, defaults to all namespaces.")
-
 func main() {
+	flag.IntVar(&controller.DefaultThreadsPerController, "threads-per-controller", controller.DefaultThreadsPerController, "Threads (goroutines) to create per controller")
+	namespace := flag.String("namespace", "", "Namespace to restrict informer to. Optional, defaults to all namespaces.")
+
+	// This also calls flag.Parse().
+	cfg := injection.ParseAndGetRESTConfigOrDie()
+
+	if cfg.QPS == 0 {
+		cfg.QPS = 2 * rest.DefaultQPS
+	}
+	if cfg.Burst == 0 {
+		cfg.Burst = rest.DefaultBurst
+	}
+
 	flag.Parse()
 	ctx := injection.WithNamespaceScope(signals.NewContext(), *namespace)
 
-	sharedmain.MainWithContext(ctx, "watcher", taskrun.NewController, pipelinerun.NewController)
+	sharedmain.MainWithConfig(ctx, "watcher", cfg, taskrun.NewController, pipelinerun.NewController)
 }
