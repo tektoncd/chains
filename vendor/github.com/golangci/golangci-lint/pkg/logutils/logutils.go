@@ -5,6 +5,9 @@ import (
 	"strings"
 )
 
+// EnvTestRun value: "1"
+const EnvTestRun = "GL_TEST_RUN"
+
 // envDebug value: one or several debug keys.
 // examples:
 // - Remove output to `/dev/null`: `GL_DEBUG=linters_output ./golangci-lint run`
@@ -57,6 +60,7 @@ const (
 
 const (
 	DebugKeyGoCritic  = "gocritic"  // Debugs `go-critic` linter.
+	DebugKeyGovet     = "govet"     // Debugs `govet` linter.
 	DebugKeyMegacheck = "megacheck" // Debugs `staticcheck` related linters.
 	DebugKeyNolint    = "nolint"    // Debugs a filter excluding issues by `//nolint` comments.
 	DebugKeyRevive    = "revive"    // Debugs `revive` linter.
@@ -99,8 +103,15 @@ func HaveDebugTag(tag string) bool {
 	return enabledDebugs[tag]
 }
 
+var verbose bool
+
 func SetupVerboseLog(log Log, isVerbose bool) {
 	if isVerbose {
+		verbose = isVerbose
 		log.SetLevel(LogLevelInfo)
 	}
+}
+
+func IsVerbose() bool {
+	return verbose
 }
