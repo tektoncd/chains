@@ -21,7 +21,7 @@ cloud.google.com/go/compute/metadata
 cloud.google.com/go/firestore/apiv1
 cloud.google.com/go/firestore/apiv1/firestorepb
 cloud.google.com/go/firestore/internal
-# cloud.google.com/go/iam v1.1.6
+# cloud.google.com/go/iam v1.1.7
 ## explicit; go 1.19
 cloud.google.com/go/iam
 cloud.google.com/go/iam/apiv1/iampb
@@ -33,7 +33,7 @@ cloud.google.com/go/kms/internal
 # cloud.google.com/go/longrunning v0.5.5
 ## explicit; go 1.19
 cloud.google.com/go/longrunning/autogen/longrunningpb
-# cloud.google.com/go/storage v1.39.1
+# cloud.google.com/go/storage v1.40.0
 ## explicit; go 1.19
 cloud.google.com/go/storage
 cloud.google.com/go/storage/internal
@@ -532,7 +532,7 @@ github.com/chavacava/garif
 github.com/chrismellard/docker-credential-acr-env/pkg/credhelper
 github.com/chrismellard/docker-credential-acr-env/pkg/registry
 github.com/chrismellard/docker-credential-acr-env/pkg/token
-# github.com/ckaznocha/intrange v0.1.0
+# github.com/ckaznocha/intrange v0.1.1
 ## explicit; go 1.21
 github.com/ckaznocha/intrange
 # github.com/clbanning/mxj/v2 v2.7.0
@@ -831,7 +831,7 @@ github.com/golangci/dupl/syntax/golang
 github.com/golangci/gofmt/gofmt
 github.com/golangci/gofmt/gofmt/internal/diff
 github.com/golangci/gofmt/goimports
-# github.com/golangci/golangci-lint v1.57.1
+# github.com/golangci/golangci-lint v1.57.2
 ## explicit; go 1.21
 github.com/golangci/golangci-lint/cmd/golangci-lint
 github.com/golangci/golangci-lint/internal/cache
@@ -844,9 +844,10 @@ github.com/golangci/golangci-lint/pkg/commands/internal
 github.com/golangci/golangci-lint/pkg/config
 github.com/golangci/golangci-lint/pkg/exitcodes
 github.com/golangci/golangci-lint/pkg/fsutils
+github.com/golangci/golangci-lint/pkg/goanalysis
+github.com/golangci/golangci-lint/pkg/goanalysis/load
 github.com/golangci/golangci-lint/pkg/golinters
-github.com/golangci/golangci-lint/pkg/golinters/goanalysis
-github.com/golangci/golangci-lint/pkg/golinters/goanalysis/load
+github.com/golangci/golangci-lint/pkg/golinters/internal
 github.com/golangci/golangci-lint/pkg/golinters/nolintlint
 github.com/golangci/golangci-lint/pkg/goutil
 github.com/golangci/golangci-lint/pkg/lint
@@ -1016,7 +1017,7 @@ github.com/google/wire
 ## explicit; go 1.19
 github.com/googleapis/enterprise-certificate-proxy/client
 github.com/googleapis/enterprise-certificate-proxy/client/util
-# github.com/googleapis/gax-go/v2 v2.12.2
+# github.com/googleapis/gax-go/v2 v2.12.3
 ## explicit; go 1.19
 github.com/googleapis/gax-go/v2
 github.com/googleapis/gax-go/v2/apierror
@@ -1173,7 +1174,7 @@ github.com/jedisct1/go-minisign
 # github.com/jellydator/ttlcache/v3 v3.2.0
 ## explicit; go 1.18
 github.com/jellydator/ttlcache/v3
-# github.com/jgautheron/goconst v1.7.0
+# github.com/jgautheron/goconst v1.7.1
 ## explicit; go 1.13
 github.com/jgautheron/goconst
 # github.com/jingyugao/rowserrcheck v1.1.1
@@ -1197,7 +1198,7 @@ github.com/json-iterator/go
 # github.com/julz/importas v0.1.0
 ## explicit; go 1.15
 github.com/julz/importas
-# github.com/karamaru-alpha/copyloopvar v1.0.8
+# github.com/karamaru-alpha/copyloopvar v1.0.10
 ## explicit; go 1.21
 github.com/karamaru-alpha/copyloopvar
 # github.com/kelseyhightower/envconfig v1.4.0
@@ -1209,7 +1210,7 @@ github.com/kevinburke/ssh_config
 # github.com/kisielk/errcheck v1.7.0
 ## explicit; go 1.18
 github.com/kisielk/errcheck/errcheck
-# github.com/kkHAIKE/contextcheck v1.1.4
+# github.com/kkHAIKE/contextcheck v1.1.5
 ## explicit; go 1.20
 github.com/kkHAIKE/contextcheck
 # github.com/klauspost/compress v1.17.7
@@ -1236,8 +1237,8 @@ github.com/kylelemons/godebug/pretty
 # github.com/kyoh86/exportloopref v0.1.11
 ## explicit; go 1.18
 github.com/kyoh86/exportloopref
-# github.com/ldez/gomoddirectives v0.2.3
-## explicit; go 1.16
+# github.com/ldez/gomoddirectives v0.2.4
+## explicit; go 1.21
 github.com/ldez/gomoddirectives
 # github.com/ldez/tagliatelle v0.5.0
 ## explicit; go 1.19
@@ -1344,7 +1345,7 @@ github.com/nishanths/predeclared/passes/predeclared
 # github.com/nozzle/throttler v0.0.0-20180817012639-2ea982251481
 ## explicit
 github.com/nozzle/throttler
-# github.com/nunnatsa/ginkgolinter v0.16.1
+# github.com/nunnatsa/ginkgolinter v0.16.2
 ## explicit; go 1.21
 github.com/nunnatsa/ginkgolinter
 github.com/nunnatsa/ginkgolinter/internal/ginkgohandler
@@ -2303,7 +2304,7 @@ golang.org/x/xerrors/internal
 # gomodules.xyz/jsonpatch/v2 v2.4.0
 ## explicit; go 1.20
 gomodules.xyz/jsonpatch/v2
-# google.golang.org/api v0.169.0
+# google.golang.org/api v0.170.0
 ## explicit; go 1.19
 google.golang.org/api/googleapi
 google.golang.org/api/googleapi/transport
@@ -2343,7 +2344,7 @@ google.golang.org/genproto/googleapis/type/date
 google.golang.org/genproto/googleapis/type/expr
 google.golang.org/genproto/googleapis/type/latlng
 google.golang.org/genproto/protobuf/field_mask
-# google.golang.org/genproto/googleapis/api v0.0.0-20240311173647-c811ad7063a7
+# google.golang.org/genproto/googleapis/api v0.0.0-20240314234333-6e1732d8331c
 ## explicit; go 1.19
 google.golang.org/genproto/googleapis/api
 google.golang.org/genproto/googleapis/api/annotations
