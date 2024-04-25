@@ -1,0 +1,68 @@
+# Documentation: https://golangci-lint.run/usage/configuration/
+linters:
+  disable-all: true
+  enable:
+    - bodyclose
+    - containedctx
+    - decorder
+    - depguard
+    - dogsled
+    - dupl
+    - dupword
+    - errcheck
+    - errchkjson
+    - errname
+    - errorlint
+    - exhaustive
+    - goconst
+    - gocritic
+    - gofmt
+    - goimports
+    - gomodguard
+    - gosec
+    - gosimple
+    - govet
+    - ireturn
+    - maintidx
+    - makezero
+    - misspell
+    - musttag
+    - nakedret
+    - nilerr
+    - nilnil
+    - noctx
+    - nolintlint
+    - nosprintfhostport
+    - revive
+    - staticcheck
+    - thelper
+    - typecheck
+    - unconvert
+    - unparam
+    - unused
+    - usestdlibvars
+    - whitespace
+output:
+  uniq-by-line: false
+issues:
+  # Only flag new issues
+  new: true
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gosec
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  include:
+    # Enable off-by-default rules for revive requiring that all exported elements have a properly formatted comment.
+    - EXC0012 # https://golangci-lint.run/usage/false-positives/#exc0012
+    - EXC0014 # https://golangci-lint.run/usage/false-positives/#exc0014
+run:
+  issues-exit-code: 1
+  build-tags:
+    - e2e
+  # skip-dirs:
+  #   - vendor
+  timeout: 20m
+  modules-download-mode: vendor
