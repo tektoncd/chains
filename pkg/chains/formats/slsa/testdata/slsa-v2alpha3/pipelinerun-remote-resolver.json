@@ -1,0 +1,113 @@
+{
+    "metadata": {
+        "name": "build-push-gke-deploy-run-2",
+        "uid": "5e28bf07-ed8f-4fe2-bfa0-d1f2cb90e5de"
+    },
+    "spec": {
+        "params": [
+            {
+                "name": "pathToContext",
+                "value": "gke-deploy/example/app"
+            },
+            {
+                "name": "pathToKubernetesConfigs",
+                "value": "gke-deploy/example/app/config"
+            }
+        ],
+        "pipelineRef": {
+            "params": [
+                {
+                    "name": "url",
+                    "value": "https://github.com/tektoncd/catalog"
+                },
+                {
+                    "name": "revision",
+                    "value": "main"
+                },
+                {
+                    "name": "pathInRepo",
+                    "value": "pipeline/build-push-gke-deploy/0.1/build-push-gke-deploy.yaml"
+                }
+            ],
+            "resolver": "git"
+        },
+        "taskRunTemplate": {
+            "serviceAccountName": "default"
+        }
+    },
+    "status": {
+        "childReferences": [
+            {
+                "apiVersion": "tekton.dev/v1",
+                "kind": "TaskRun",
+                "name": "build-push-gke-deploy-run-2-kaniko",
+                "pipelineTaskName": "kaniko"
+            }
+        ],
+        "conditions": [
+            {
+                "lastTransitionTime": "2024-04-29T20:45:15Z",
+                "message": "Tasks Completed: 0 (Failed: 0, Cancelled 0), Incomplete: 2, Skipped: 0",
+                "reason": "Running",
+                "status": "Unknown",
+                "type": "Succeeded"
+            }
+        ],
+        "pipelineSpec": {
+            "description": "This Pipeline builds, pushes, and deploys your application to a Google Kubernetes Engine cluster using gke-deploy.",
+            "params": [
+                {
+                    "default": ".",
+                    "description": "The path to the build context relative to your source repo's root. This is used by Kaniko.",
+                    "name": "pathToContext",
+                    "type": "string"
+                },
+                {
+                    "description": "The path to the Kubernetes configs to deploy, relative to your source repo's root.",
+                    "name": "pathToKubernetesConfigs",
+                    "type": "string"
+                }
+            ],
+            "tasks": [
+                {
+                    "name": "gke-deploy",
+                    "params": [
+                        {
+                            "name": "ARGS",
+                            "value": [
+                                "run",
+                                "--image=gcr.io/foo/gke-deploy-tekton-demo:1.0.0",
+                                "--filename=$(workspaces.source.path)/gke-deploy/example/app/config"
+                            ]
+                        }
+                    ],
+                    "taskRef": {
+                        "kind": "Task",
+                        "name": "gke-deploy"
+                    },
+                    "workspaces": [
+                        {
+                            "name": "source",
+                            "workspace": "source"
+                        }
+                    ]
+                }
+            ],
+            "workspaces": [
+                {
+                    "description": "The workspace containing the source code which is to be build, pushed and deployed",
+                    "name": "source"
+                }
+            ]
+        },
+        "provenance": {
+            "refSource": {
+                "digest": {
+                    "sha1": "4df486f198c3c2616ab129186fb30a74f580b5a1"
+                },
+                "entryPoint": "pipeline/build-push-gke-deploy/0.1/build-push-gke-deploy.yaml",
+                "uri": "git+https://github.com/tektoncd/catalog"
+            }
+        }
+    }
+}

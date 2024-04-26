@@ -1,0 +1,122 @@
+{
+    "metadata": {
+        "name": "run-deploy",
+        "labels": {
+            "tekton.dev/task": "gcloud"
+        },
+        "uid": "9d828161-17bb-4eb9-bcb3-1d5f9eeb8c25"
+    },
+    "spec": {
+        "params": [
+            {
+                "name": "ARGS",
+                "value": [
+                    "help"
+                ]
+            }
+        ],
+        "serviceAccountName": "default",
+        "taskRef": {
+            "kind": "Task",
+            "params": [
+                {
+                    "name": "url",
+                    "value": "https://github.com/tektoncd/catalog.git"
+                },
+                {
+                    "name": "revision",
+                    "value": "main"
+                },
+                {
+                    "name": "pathInRepo",
+                    "value": "task/gcloud/0.3/gcloud.yaml"
+                }
+            ],
+            "resolver": "git"
+        }
+    },
+    "status": {
+        "completionTime": "2024-04-29T19:20:34Z",
+        "conditions": [
+            {
+                "lastTransitionTime": "2024-04-29T19:20:34Z",
+                "message": "All Steps have completed executing",
+                "reason": "Succeeded",
+                "status": "True",
+                "type": "Succeeded"
+            }
+        ],
+        "podName": "run-deploy-pod",
+        "provenance": {
+            "featureFlags": {
+                "EnableAPIFields": "beta",
+                "ResultExtractionMethod": "termination-message"
+            },
+            "refSource": {
+                "digest": {
+                    "sha1": "4df486f198c3c2616ab129186fb30a74f580b5a1"
+                },
+                "entryPoint": "task/gcloud/0.3/gcloud.yaml",
+                "uri": "git+https://github.com/tektoncd/catalog.git"
+            }
+        },
+        "startTime": "2024-04-29T19:19:33Z",
+        "steps": [
+            {
+                "container": "step-gcloud",
+                "imageID": "gcr.io/google.com/cloudsdktool/cloud-sdk@sha256:f01eb4375c0b8af5488bc717b9b43323b5033d2d0ab5c565e4100a4226e9ac38",
+                "name": "gcloud",
+                "terminated": {
+                    "containerID": "containerd://d18a954ecb902aca2a0bbdb83f45d757ad15ad5e352b78b82adfeacb11657b2d",
+                    "exitCode": 0,
+                    "finishedAt": "2024-04-29T19:20:31Z",
+                    "reason": "Completed",
+                    "startedAt": "2024-04-29T19:20:29Z"
+                },
+                "terminationReason": "Completed"
+            }
+        ],
+        "taskSpec": {
+            "description": "This task performs operations on Google Cloud Platform resources using gcloud.",
+            "params": [
+                {
+                    "default": "gcr.io/google.com/cloudsdktool/cloud-sdk",
+                    "description": "gcloud CLI container image to run this task",
+                    "name": "gcloud-image",
+                    "type": "string"
+                },
+                {
+                    "default": "slim",
+                    "description": "gcloud CLI version run this task",
+                    "name": "version",
+                    "type": "string"
+                },
+                {
+                    "default": [
+                        "help"
+                    ],
+                    "description": "gcloud CLI arguments to run",
+                    "name": "ARGS",
+                    "type": "array"
+                },
+                {
+                    "default": "gcloud $@",
+                    "description": "CLI script to execute",
+                    "name": "SCRIPT",
+                    "type": "string"
+                }
+            ],
+            "steps": [
+                {
+                    "args": [
+                        "help"
+                    ],
+                    "computeResources": {},
+                    "image": "gcr.io/google.com/cloudsdktool/cloud-sdk:slim",
+                    "name": "gcloud",
+                    "script": "gcloud $@\n"
+                }
+            ]
+        }
+    }
+}
