@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/tektoncd/pipeline/pkg/apis/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/pod"
@@ -70,6 +71,8 @@ type TektonObject interface {
 	SupportsOCIArtifact() bool
 	GetRemoteProvenance() *v1.Provenance
 	IsRemote() bool
+	GetStartTime() *time.Time
+	GetCompletitionTime() *time.Time
 }
 
 func NewTektonObject(i interface{}) (TektonObject, error) {
@@ -143,6 +146,20 @@ func (tro *TaskRunObjectV1) GetResults() []Result {
 	return res
 }
 
+// GetStepResults returns all the results from associated StepActions.
+func (tro *TaskRunObjectV1) GetStepResults() []Result {
+	res := []Result{}
+	for _, s := range tro.Status.Steps {
+		for _, r := range s.Results {
+			res = append(res, Result{
+				Name:  r.Name,
+				Value: r.Value,
+			})
+		}
+	}
+	return res
+}
+
 func (tro *TaskRunObjectV1) GetStepImages() []string {
 	images := []string{}
 	for _, stepState := range tro.Status.Steps {
@@ -196,6 +213,26 @@ func (tro *TaskRunObjectV1) IsRemote() bool {
 		}
 	}
 	return isRemoteTask
+}
+
+// GetStartTime returns the time when the TaskRun started.
+func (tro *TaskRunObjectV1) GetStartTime() *time.Time {
+	var utc *time.Time
+	if tro.Status.StartTime != nil {
+		val := tro.Status.StartTime.Time.UTC()
+		utc = &val
+	}
+	return utc
+}
+
+// GetCompletitionTime returns the time when the TaskRun finished.
+func (tro *TaskRunObjectV1) GetCompletitionTime() *time.Time {
+	var utc *time.Time
+	if tro.Status.CompletionTime != nil {
+		val := tro.Status.CompletionTime.Time.UTC()
+		utc = &val
+	}
+	return utc
 }
 
 // PipelineRunObjectV1 extends v1.PipelineRun with additional functions.
@@ -320,6 +357,26 @@ func (pro *PipelineRunObjectV1) IsRemote() bool {
 		}
 	}
 	return isRemotePipeline
+}
+
+// GetStartTime returns the time when the PipelineRun started.
+func (pro *PipelineRunObjectV1) GetStartTime() *time.Time {
+	var utc *time.Time
+	if pro.Status.StartTime != nil {
+		val := pro.Status.StartTime.Time.UTC()
+		utc = &val
+	}
+	return utc
+}
+
+// GetCompletitionTime returns the time when the PipelineRun finished.
+func (pro *PipelineRunObjectV1) GetCompletitionTime() *time.Time {
+	var utc *time.Time
+	if pro.Status.CompletionTime != nil {
+		val := pro.Status.CompletionTime.Time.UTC()
+		utc = &val
+	}
+	return utc
 }
 
 // Get the imgPullSecrets from a pod template, if they exist
@@ -483,6 +540,26 @@ func (pro *PipelineRunObjectV1Beta1) IsRemote() bool {
 	return isRemotePipeline
 }
 
+// GetStartTime returns the time when the PipelineRun started.
+func (pro *PipelineRunObjectV1Beta1) GetStartTime() *time.Time {
+	var utc *time.Time
+	if pro.Status.StartTime != nil {
+		val := pro.Status.StartTime.Time.UTC()
+		utc = &val
+	}
+	return utc
+}
+
+// GetCompletitionTime returns the time when the PipelineRun finished.
+func (pro *PipelineRunObjectV1Beta1) GetCompletitionTime() *time.Time {
+	var utc *time.Time
+	if pro.Status.CompletionTime != nil {
+		val := pro.Status.CompletionTime.Time.UTC()
+		utc = &val
+	}
+	return utc
+}
+
 // TaskRunObjectV1Beta1 extends v1beta1.TaskRun with additional functions.
 type TaskRunObjectV1Beta1 struct {
 	*v1beta1.TaskRun
@@ -623,4 +700,24 @@ func (tro *TaskRunObjectV1Beta1) IsRemote() bool {
 		}
 	}
 	return isRemoteTask
+}
+
+// GetStartTime returns the time when the TaskRun started.
+func (tro *TaskRunObjectV1Beta1) GetStartTime() *time.Time {
+	var utc *time.Time
+	if tro.Status.StartTime != nil {
+		val := tro.Status.StartTime.Time.UTC()
+		utc = &val
+	}
+	return utc
+}
+
+// GetCompletitionTime returns the time when the TaskRun finished.
+func (tro *TaskRunObjectV1Beta1) GetCompletitionTime() *time.Time {
+	var utc *time.Time
+	if tro.Status.CompletionTime != nil {
+		val := tro.Status.CompletionTime.Time.UTC()
+		utc = &val
+	}
+	return utc
 }

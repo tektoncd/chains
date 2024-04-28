@@ -94,7 +94,7 @@ func SubjectsFromTektonObjectV1Beta1(ctx context.Context, obj objects.TektonObje
 	logger := logging.FromContext(ctx)
 	var subjects []intoto.Subject
 
-	imgs := artifacts.ExtractOCIImagesFromResults(ctx, obj)
+	imgs := artifacts.ExtractOCIImagesFromResults(ctx, obj.GetResults())
 	for _, i := range imgs {
 		if d, ok := i.(name.Digest); ok {
 			subjects = artifact.AppendSubjects(subjects, intoto.Subject{
@@ -121,7 +121,7 @@ func SubjectsFromTektonObjectV1Beta1(ctx context.Context, obj objects.TektonObje
 		})
 	}
 
-	ssts := artifacts.ExtractStructuredTargetFromResults(ctx, obj, artifacts.ArtifactsOutputsResultName)
+	ssts := artifacts.ExtractStructuredTargetFromResults(ctx, obj.GetResults(), artifacts.ArtifactsOutputsResultName)
 	for _, s := range ssts {
 		splits := strings.Split(s.Digest, ":")
 		alg := splits[0]

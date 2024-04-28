@@ -271,6 +271,175 @@ func TestPipelineRunObserveModeForSubjects(t *testing.T) {
 	}
 }
 
+func TestSubjectsFromBuildArtifact(t *testing.T) {
+	tests := []struct {
+		name             string
+		results          []objects.Result
+		expectedSubjects []intoto.Subject
+	}{
+		{
+			name: "no type-hinted build artifacts",
+			results: []objects.Result{
+				{
+					Name:  "result2_ARTIFACT_URL",
+					Value: *v1.NewStructuredValues("gcr.io/test/img4"),
+				},
+				{
+					Name:  "result2_ARTIFACT_DIGEST",
+					Value: *v1.NewStructuredValues("sha256:jh5f72309sf937b16a914eea7cb81ebaa8f2b0a13833797acd26dty46529ihm"),
+				},
+				{
+					Name: "result3_ARTIFACT_OUTPUTS",
+					Value: *v1.NewObject(map[string]string{
+						"uri":    "gcr.io/img5",
+						"digest": "sha256:7492314e32aa75ff1f2cfea35b7dda85d8831929d076aab52420c3400c8c65d8",
+					}),
+				},
+			},
+		},
+		{
+			name: "type-hinted build artifacts",
+			results: []objects.Result{
+				{
+					Name:  "result1_IMAGE_URL",
+					Value: *v1.NewStructuredValues("gcr.io/test/img1"),
+				},
+				{
+					Name:  "result1_IMAGE_DIGEST",
+					Value: *v1.NewStructuredValues("sha256:52e18b100a8da6e191a1955913ba127b75a8b38146cd9b0f573ec1d8e8ecd135"),
+				},
+				{
+					Name: "IMAGES",
+					Value: *v1.NewStructuredValues(
+						"gcr.io/test/img2@sha256:2996854378975c2f8011ddf0526975d1aaf1790b404da7aad4bf25293055bc8b, " +
+							"gcr.io/test/img3@sha256:ef334b5d9704da9b325ed6d4e3e5327863847e2da6d43f81831fd1decbdb2213",
+					),
+				},
+				{
+					Name: "result2_ARTIFACT_OUTPUTS",
+					Value: *v1.NewObject(map[string]string{
+						"uri":             "gcr.io/test/img4",
+						"digest":          "sha256:910700c5ace59f70588c4e2a38ed131146c9f65c94379dfe12376075fc2f338f",
+						"isBuildArtifact": "true",
+					}),
+				},
+				{
+					Name: "result3_ARTIFACT_OUTPUTS",
+					Value: *v1.NewObject(map[string]string{
+						"uri":             "gcr.io/test/img5",
+						"digest":          "sha256:7492314e32aa75ff1f2cfea35b7dda85d8831929d076aab52420c3400c8c65d8",
+						"isBuildArtifact": "true",
+					}),
+				},
+			},
+			expectedSubjects: []intoto.Subject{
+				{
+					Name: "gcr.io/test/img4",
+					Digest: map[string]string{
+						"sha256": "910700c5ace59f70588c4e2a38ed131146c9f65c94379dfe12376075fc2f338f",
+					},
+				},
+				{
+					Name: "gcr.io/test/img5",
+					Digest: map[string]string{
+						"sha256": "7492314e32aa75ff1f2cfea35b7dda85d8831929d076aab52420c3400c8c65d8",
+					},
+				},
+				{
+					Name: "gcr.io/test/img1",
+					Digest: map[string]string{
+						"sha256": "52e18b100a8da6e191a1955913ba127b75a8b38146cd9b0f573ec1d8e8ecd135",
+					},
+				},
+				{
+					Name: "gcr.io/test/img2",
+					Digest: map[string]string{
+						"sha256": "2996854378975c2f8011ddf0526975d1aaf1790b404da7aad4bf25293055bc8b",
+					},
+				},
+				{
+					Name: "gcr.io/test/img3",
+					Digest: map[string]string{
+						"sha256": "ef334b5d9704da9b325ed6d4e3e5327863847e2da6d43f81831fd1decbdb2213",
+					},
+				},
+			},
+		},
+		{
+			name: "no repetead type-hinted build artifacts",
+			results: []objects.Result{
+				{
+					Name: "result1_ARTIFACT_OUTPUTS",
+					Value: *v1.NewObject(map[string]string{
+						"uri":             "gcr.io/test/img1",
+						"digest":          "sha256:8b7b3e8b124f937b16a914eea7cb81ebaa8f2b0a13833797acd26d67edf4e056",
+						"isBuildArtifact": "true",
+					}),
+				},
+				{
+					Name: "result2_ARTIFACT_OUTPUTS",
+					Value: *v1.NewObject(map[string]string{
+						"uri":             "gcr.io/test/img1",
+						"digest":          "sha256:8b7b3e8b124f937b16a914eea7cb81ebaa8f2b0a13833797acd26d67edf4e056",
+						"isBuildArtifact": "true",
+					}),
+				},
+				{
+					Name: "IMAGES",
+					Value: *v1.NewStructuredValues(
+						"gcr.io/test/img1@sha256:8b7b3e8b124f937b16a914eea7cb81ebaa8f2b0a13833797acd26d67edf4e056",
+					),
+				},
+			},
+			expectedSubjects: []intoto.Subject{
+				{
+					Name: "gcr.io/test/img1",
+					Digest: map[string]string{
+						"sha256": "8b7b3e8b124f937b16a914eea7cb81ebaa8f2b0a13833797acd26d67edf4e056",
+					},
+				},
+			},
+		},
+		{
+			name: "malformed digests",
+			results: []objects.Result{
+				{
+					Name:  "result1_IMAGE_URL",
+					Value: *v1.NewStructuredValues("gcr.io/test/img1"),
+				},
+				{
+					Name:  "result1_IMAGE_DIGEST",
+					Value: *v1.NewStructuredValues("sha256@52e18b100a8da6e191a1955913ba127b75a8b38146cd9b0f573ec1d8e8ecd135"),
+				},
+				{
+					Name: "IMAGES",
+					Value: *v1.NewStructuredValues(
+						"gcr.io/test/img2@sha256@2996854378975c2f8011ddf0526975d1aaf1790b404da7aad4bf25293055bc8b",
+					),
+				},
+				{
+					Name: "result2_ARTIFACT_OUTPUTS",
+					Value: *v1.NewObject(map[string]string{
+						"uri":             "gcr.io/test/img5",
+						"digest":          "sha256@7492314e32aa75ff1f2cfea35b7dda85d8831929d076aab52420c3400c8c65d8",
+						"isBuildArtifact": "true",
+					}),
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := logtesting.TestContextWithLogger(t)
+			got := extract.SubjectsFromBuildArtifact(ctx, test.results)
+			if diff := cmp.Diff(test.expectedSubjects, got); diff != "" {
+				t.Errorf("Wrong subjects from build artifacts, +got -want, diff=%s", diff)
+			}
+		})
+	}
+}
+
 func createTaskRunObjectWithResults(results map[string]string) objects.TektonObject {
 	trResults := []v1.TaskRunResult{}
 	prefix := 0

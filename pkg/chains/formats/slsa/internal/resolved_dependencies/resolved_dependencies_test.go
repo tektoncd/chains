@@ -301,9 +301,10 @@ func tektonTaskRuns() map[string][]byte {
 
 func TestTaskRun(t *testing.T) {
 	tests := []struct {
-		name string
-		obj  objects.TektonObject //nolint:staticcheck
-		want []v1slsa.ResourceDescriptor
+		name        string
+		obj         objects.TektonObject //nolint:staticcheck
+		resolveOpts ResolveOptions
+		want        []v1slsa.ResourceDescriptor
 	}{
 		{
 			name: "resolvedDependencies from pipeline resources",
@@ -459,6 +460,12 @@ func TestTaskRun(t *testing.T) {
 				Status: v1.TaskRunStatus{
 					TaskRunStatusFields: v1.TaskRunStatusFields{
 						Steps: []v1.StepState{{
+							Results: []v1.TaskRunStepResult{
+								{Name: "res1_ARTIFACT_INPUTS", Value: *v1.NewObject(map[string]string{
+									"uri":    "https://github.com/tektoncd/pipeline",
+									"digest": "sha1:7f2f46e1b97df36b2b82d1b1d87c81b8b3d21601",
+								})},
+							},
 							Name:    "git-source-repo-jwqcl",
 							ImageID: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init@sha256:b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 						}, {
@@ -493,7 +500,64 @@ func TestTaskRun(t *testing.T) {
 					},
 				},
 			},
-		}}
+		},
+		{
+			name: "resolvedDependencies with nested results",
+			resolveOpts: ResolveOptions{
+				WithStepActionsResults: true,
+			},
+			obj: objects.NewTaskRunObjectV1(&v1.TaskRun{ //nolint:staticcheck
+				Status: v1.TaskRunStatus{
+					TaskRunStatusFields: v1.TaskRunStatusFields{
+						Steps: []v1.StepState{{
+							Results: []v1.TaskRunStepResult{
+								{Name: "res1_ARTIFACT_INPUTS", Value: *v1.NewObject(map[string]string{
+									"uri":    "https://github.com/tektoncd/pipeline",
+									"digest": "sha1:7f2f46e1b97df36b2b82d1b1d87c81b8b3d21601",
+								})},
+							},
+							Name:    "git-source-repo-jwqcl",
+							ImageID: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init@sha256:b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
+						}, {
+							Name:    "git-source-repo-repeat-again-jwqcl",
+							ImageID: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init@sha256:b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
+						}, {
+							Name:    "build",
+							ImageID: "gcr.io/cloud-marketplace-containers/google/bazel@sha256:010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
+						}},
+						Sidecars: []v1.SidecarState{{
+							Name:    "sidecar-jwqcl",
+							ImageID: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/sidecar-git-init@sha256:a1234f6e7a69617db57b685893256f978436277094c21d43b153994acd8a09567",
+						}},
+					},
+				},
+			}),
+			want: []v1slsa.ResourceDescriptor{
+				{
+					URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+					Digest: common.DigestSet{
+						"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
+					},
+				}, {
+					URI: "oci://gcr.io/cloud-marketplace-containers/google/bazel",
+					Digest: common.DigestSet{
+						"sha256": "010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
+					},
+				}, {
+					URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/sidecar-git-init",
+					Digest: common.DigestSet{
+						"sha256": "a1234f6e7a69617db57b685893256f978436277094c21d43b153994acd8a09567",
+					},
+				}, {
+					Name: "inputs/result",
+					URI:  "https://github.com/tektoncd/pipeline",
+					Digest: common.DigestSet{
+						"sha1": "7f2f46e1b97df36b2b82d1b1d87c81b8b3d21601",
+					},
+				},
+			},
+		},
+	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := logtesting.TestContextWithLogger(t)
@@ -517,7 +581,7 @@ func TestTaskRun(t *testing.T) {
 				}
 			}
 
-			rd, err := TaskRun(ctx, input)
+			rd, err := TaskRun(ctx, tc.resolveOpts, input)
 			if err != nil {
 				t.Fatalf("Did not expect an error but got %v", err)
 			}

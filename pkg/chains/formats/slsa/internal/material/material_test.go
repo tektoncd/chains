@@ -598,6 +598,161 @@ func TestFromPipelineParamsAndResults(t *testing.T) {
 	}
 }
 
+func TestFromStepActionsResults(t *testing.T) {
+	tests := []struct {
+		name     string
+		steps    []v1.StepState
+		expected []common.ProvenanceMaterial
+	}{
+		{
+			name: "no type-hint input",
+			steps: []v1.StepState{
+				{
+					Results: []v1.TaskRunStepResult{
+						{Name: "result1_ARTIFACT_URI", Value: *v1.NewStructuredValues("gcr.io/foo/bar1")},
+						{Name: "result1_ARTIFACT_DIGEST", Value: *v1.NewStructuredValues(digest)},
+						{Name: "result2_IMAGE_URL", Value: *v1.NewStructuredValues("gcr.io/foo/bar2")},
+						{Name: "result2_IMAGE_DIGEST", Value: *v1.NewStructuredValues(digest)},
+					},
+				},
+				{
+					Results: []v1.TaskRunStepResult{
+						{Name: "result3_ARTIFACT_OUTPUTS", Value: *v1.NewObject(map[string]string{
+							"uri":    "gcr.io/foo/bar1",
+							"digest": digest,
+						})},
+					},
+				},
+			},
+		},
+		{
+			name: "git result type-hint input",
+			steps: []v1.StepState{
+				{
+					Results: []v1.TaskRunStepResult{
+						{Name: "CHAINS-GIT_URL", Value: *v1.NewStructuredValues("https://github.com/org/repo1")},
+						{Name: "CHAINS-GIT_COMMIT", Value: *v1.NewStructuredValues("a3efeffe520230f3608b8fc41f7807cbf19a472d")},
+					},
+				},
+				{
+					Results: []v1.TaskRunStepResult{
+						{Name: "CHAINS-GIT_URL", Value: *v1.NewStructuredValues("https://github.com/org/repo2")},
+						{Name: "CHAINS-GIT_COMMIT", Value: *v1.NewStructuredValues("05669ed367ed21569f68edee8b93c64eda91e910")},
+					},
+				},
+			},
+			expected: []common.ProvenanceMaterial{
+				{
+					URI: artifacts.GitSchemePrefix + "https://github.com/org/repo1.git",
+					Digest: common.DigestSet{
+						"sha1": "a3efeffe520230f3608b8fc41f7807cbf19a472d",
+					},
+				},
+				{
+					URI: artifacts.GitSchemePrefix + "https://github.com/org/repo2.git",
+					Digest: common.DigestSet{
+						"sha1": "05669ed367ed21569f68edee8b93c64eda91e910",
+					},
+				},
+			},
+		},
+		{
+			name: "object result type-hint input",
+			steps: []v1.StepState{
+				{
+					Results: []v1.TaskRunStepResult{
+						{Name: "res1_ARTIFACT_INPUTS", Value: *v1.NewObject(map[string]string{
+							"uri":    "https://github.com/tektoncd/pipeline",
+							"digest": "sha1:7f2f46e1b97df36b2b82d1b1d87c81b8b3d21601",
+						})},
+					},
+				},
+				{
+					Results: []v1.TaskRunStepResult{
+						{Name: "res2_ARTIFACT_INPUTS", Value: *v1.NewObject(map[string]string{
+							"uri":    "https://github.com/org/repo2",
+							"digest": "sha1:05669ed367ed21569f68edee8b93c64eda91e910",
+						})},
+					},
+				},
+			},
+			expected: []common.ProvenanceMaterial{
+				{
+					URI: "https://github.com/tektoncd/pipeline",
+					Digest: common.DigestSet{
+						"sha1": "7f2f46e1b97df36b2b82d1b1d87c81b8b3d21601",
+					},
+				},
+				{
+					URI: "https://github.com/org/repo2",
+					Digest: common.DigestSet{
+						"sha1": "05669ed367ed21569f68edee8b93c64eda91e910",
+					},
+				},
+			},
+		},
+		{
+			name: "no repeated inputs",
+			steps: []v1.StepState{
+				{
+					Results: []v1.TaskRunStepResult{
+						{Name: "CHAINS-GIT_URL", Value: *v1.NewStructuredValues("https://github.com/tektoncd/pipeline")},
+						{Name: "CHAINS-GIT_COMMIT", Value: *v1.NewStructuredValues("7f2f46e1b97df36b2b82d1b1d87c81b8b3d21601")},
+						{Name: "res1_ARTIFACT_INPUTS", Value: *v1.NewObject(map[string]string{
+							"uri":    "https://github.com/tektoncd/pipeline",
+							"digest": "sha1:7f2f46e1b97df36b2b82d1b1d87c81b8b3d21601",
+						})},
+					},
+				},
+				{
+					Results: []v1.TaskRunStepResult{
+						{Name: "CHAINS-GIT_URL", Value: *v1.NewStructuredValues("https://github.com/tektoncd/pipeline")},
+						{Name: "CHAINS-GIT_COMMIT", Value: *v1.NewStructuredValues("7f2f46e1b97df36b2b82d1b1d87c81b8b3d21601")},
+						{Name: "res1_ARTIFACT_INPUTS", Value: *v1.NewObject(map[string]string{
+							"uri":    "https://github.com/tektoncd/pipeline",
+							"digest": "sha1:7f2f46e1b97df36b2b82d1b1d87c81b8b3d21601",
+						})},
+					},
+				},
+			},
+			expected: []common.ProvenanceMaterial{
+				{
+					URI: "https://github.com/tektoncd/pipeline",
+					Digest: common.DigestSet{
+						"sha1": "7f2f46e1b97df36b2b82d1b1d87c81b8b3d21601",
+					},
+				},
+				{
+					URI: artifacts.GitSchemePrefix + "https://github.com/tektoncd/pipeline.git",
+					Digest: common.DigestSet{
+						"sha1": "7f2f46e1b97df36b2b82d1b1d87c81b8b3d21601",
+					},
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := logtesting.TestContextWithLogger(t)
+			tr := objects.NewTaskRunObjectV1(
+				&v1.TaskRun{
+					Status: v1.TaskRunStatus{
+						TaskRunStatusFields: v1.TaskRunStatusFields{
+							Steps: test.steps,
+						},
+					},
+				},
+			)
+
+			got := FromStepActionsResults(ctx, tr)
+			if diff := cmp.Diff(test.expected, got, compare.MaterialsCompareOption()); diff != "" {
+				t.Errorf("FromStepActionsResults(): -want +got: %s", diff)
+			}
+		})
+	}
+}
+
 //nolint:all
 func createProWithPipelineParamAndTaskResult() *objects.PipelineRunObjectV1 {
 	pro := objects.NewPipelineRunObjectV1(&v1.PipelineRun{

@@ -250,7 +250,7 @@ func FromTaskParamsAndResults(ctx context.Context, tro *objects.TaskRunObjectV1B
 		})
 	}
 
-	sms := artifacts.RetrieveMaterialsFromStructuredResults(ctx, tro, artifacts.ArtifactsInputsResultName)
+	sms := artifacts.RetrieveMaterialsFromStructuredResults(ctx, tro.GetResults())
 	mats = artifact.AppendMaterials(mats, sms...)
 
 	return mats
@@ -259,7 +259,7 @@ func FromTaskParamsAndResults(ctx context.Context, tro *objects.TaskRunObjectV1B
 // FromPipelineParamsAndResults extracts type hinted params and results and adds the url and digest to materials.
 func FromPipelineParamsAndResults(ctx context.Context, pro *objects.PipelineRunObjectV1Beta1, slsaconfig *slsaconfig.SlsaConfig) []common.ProvenanceMaterial {
 	mats := []common.ProvenanceMaterial{}
-	sms := artifacts.RetrieveMaterialsFromStructuredResults(ctx, pro, artifacts.ArtifactsInputsResultName)
+	sms := artifacts.RetrieveMaterialsFromStructuredResults(ctx, pro.GetResults())
 	mats = artifact.AppendMaterials(mats, sms...)
 
 	var commit, url string

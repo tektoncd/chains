@@ -1,5 +1,5 @@
 /*
-Copyright 2023 The Tekton Authors
+Copyright 2024 The Tekton Authors
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -15,51 +15,55 @@ package taskrun
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
 	builddefinition "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/build_definition"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/provenance"
 	resolveddependencies "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/resolved_dependencies"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/results"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 )
 
-const taskRunResults = "taskRunResults/%s"
+const (
+	taskRunResults     = "taskRunResults/%s"
+	taskRunStepResults = "stepResults/%s"
+)
 
-// GenerateAttestation generates a provenance statement with SLSA v1.0 predicate for a task run.
+// GenerateAttestation returns the provenance for the given taskrun in SALSA 1.0 format.
 func GenerateAttestation(ctx context.Context, tro *objects.TaskRunObjectV1, slsaConfig *slsaconfig.SlsaConfig) (interface{}, error) {
 	bp, err := byproducts(tro)
 	if err != nil {
 		return nil, err
 	}
 
-	bd, err := builddefinition.GetTaskRunBuildDefinition(ctx, tro, slsaConfig.BuildType, resolveddependencies.ResolveOptions{})
+	resOpts := resolveddependencies.ResolveOptions{WithStepActionsResults: true}
+	bd, err := builddefinition.GetTaskRunBuildDefinition(ctx, tro, slsaConfig.BuildType, resOpts)
 	if err != nil {
 		return nil, err
 	}
 
-	sub := extract.SubjectDigests(ctx, tro, slsaConfig)
+	results := append(tro.GetResults(), tro.GetStepResults()...)
+	sub := extract.SubjectsFromBuildArtifact(ctx, results)
 
 	return provenance.GetSLSA1Statement(tro, sub, bd, bp, slsaConfig), nil
 }
 
-// byproducts contains the taskRunResults
 func byproducts(tro *objects.TaskRunObjectV1) ([]slsa.ResourceDescriptor, error) {
 	byProd := []slsa.ResourceDescriptor{}
-	for _, key := range tro.Status.Results {
-		content, err := json.Marshal(key.Value)
-		if err != nil {
-			return nil, err
-		}
-		bp := slsa.ResourceDescriptor{
-			Name:      fmt.Sprintf(taskRunResults, key.Name),
-			Content:   content,
-			MediaType: "application/json",
-		}
-		byProd = append(byProd, bp)
+
+	res, err := results.GetResultsWithoutBuildArtifacts(tro.GetResults(), taskRunResults)
+	if err != nil {
+		return nil, err
 	}
+	byProd = append(byProd, res...)
+
+	res, err = results.GetResultsWithoutBuildArtifacts(tro.GetStepResults(), taskRunStepResults)
+	if err != nil {
+		return nil, err
+	}
+	byProd = append(byProd, res...)
+
 	return byProd, nil
 }

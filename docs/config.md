@@ -21,7 +21,7 @@ Supported keys include:
 
 | Key                         | Description                                                                                                                                                                                      | Supported Values                           | Default   |
 | :-------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------- | :-------- |
-| `artifacts.taskrun.format`  | The format to store `TaskRun` payloads in.                                                                                                                                                       | `in-toto`, `slsa/v1`, `slsa/v2alpha3`      | `in-toto` |
+| `artifacts.taskrun.format`  | The format to store `TaskRun` payloads in.                                                                                                                                                       | `in-toto`, `slsa/v1`, `slsa/v2alpha3`, `slsa/v2alpha4`      | `in-toto` |
 | `artifacts.taskrun.storage` | The storage backend to store `TaskRun` signatures in. Multiple backends can be specified with comma-separated list ("tekton,oci"). To disable the `TaskRun` artifact input an empty string (""). | `tekton`, `oci`, `gcs`, `docdb`, `grafeas` | `tekton`  |
 | `artifacts.taskrun.signer`  | The signature backend to sign `TaskRun` payloads with.                                                                                                                                           | `x509`, `kms`                              | `x509`    |
 
@@ -29,6 +29,7 @@ Supported keys include:
 >
 > - `slsa/v1` is an alias of `in-toto` for backwards compatibility.
 > - `slsa/v2alpha3` corresponds to the slsav1.0 spec. and uses latest [`v1` Tekton Objects](https://tekton.dev/docs/pipelines/pipeline-api/#tekton.dev/v1).  Recommended format for new chains users who want the slsav1.0 spec.
+> - `slsa/v2alpha4` corresponds to the slsav1.0 spec. and uses latest [`v1` Tekton Objects](https://tekton.dev/docs/pipelines/pipeline-api/#tekton.dev/v1). It reads type-hinted results from [StepActions](https://tekton.dev/docs/pipelines/pipeline-api/#tekton.dev/v1alpha1.StepAction). Recommended format for new chains users who want the slsav1.0 spec.
 
 ### PipelineRun Configuration
 

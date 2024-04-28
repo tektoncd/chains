@@ -60,6 +60,7 @@ const (
 type TestExample struct {
 	name              string
 	cm                map[string]string
+	pipelinesCm       map[string]string
 	getExampleObjects func(t *testing.T, ns string) map[string]objects.TektonObject
 	payloadKey        string
 	signatureKey      string
@@ -119,6 +120,33 @@ func TestExamples(t *testing.T) {
 			outputLocation:    "slsa/v2alpha3",
 			predicate:         "slsav1.0",
 		},
+		{
+			name: "taskrun-examples-slsa-v2alpha4",
+			cm: map[string]string{
+				"artifacts.taskrun.format": "slsa/v2alpha4",
+				"artifacts.oci.storage":    "tekton",
+			},
+			getExampleObjects: getTaskRunExamples,
+			payloadKey:        "chains.tekton.dev/payload-taskrun-%s",
+			signatureKey:      "chains.tekton.dev/signature-taskrun-%s",
+			outputLocation:    "slsa/v2alpha4",
+			predicate:         "slsav1.0",
+		},
+		{
+			name: "taskrun-type-hinted-results-v2alpha4",
+			cm: map[string]string{
+				"artifacts.taskrun.format": "slsa/v2alpha4",
+				"artifacts.oci.storage":    "tekton",
+			},
+			pipelinesCm: map[string]string{
+				"enable-api-fields": "alpha",
+			},
+			getExampleObjects: getTaskRunWithTypeHintedResultsExamples,
+			payloadKey:        "chains.tekton.dev/payload-taskrun-%s",
+			signatureKey:      "chains.tekton.dev/signature-taskrun-%s",
+			outputLocation:    "slsa/v2alpha4",
+			predicate:         "slsav1.0",
+		},
 	}
 
 	for _, test := range tests {
@@ -126,9 +154,16 @@ func TestExamples(t *testing.T) {
 			ctx := context.Background()
 			c, ns, cleanup := setup(ctx, t, setupOpts{})
 			t.Cleanup(cleanup)
+
 			cleanUpInTotoFormatter := setConfigMap(ctx, t, c, test.cm)
+			t.Cleanup(cleanUpInTotoFormatter)
+
+			if len(test.pipelinesCm) > 0 {
+				resetPipelinesConfig := setupPipelinesFeatureFlags(ctx, t, c, test.pipelinesCm)
+				t.Cleanup(resetPipelinesConfig)
+			}
+
 			runInTotoFormatterTests(ctx, t, ns, c, test)
-			cleanUpInTotoFormatter()
 		})
 	}
 }
@@ -416,6 +451,13 @@ func getTaskRunExamples(t *testing.T, ns string) map[string]objects.TektonObject
 		examples[example] = taskRunFromExample(t, ns, example)
 	}
 	return examples
+}
+
+func getTaskRunWithTypeHintedResultsExamples(t *testing.T, ns string) map[string]objects.TektonObject {
+	path := "../examples/v2alpha4/task-with-object-type-hinting.yaml"
+	trs := make(map[string]objects.TektonObject)
+	trs[path] = taskRunFromExample(t, ns, path)
+	return trs
 }
 
 func getPipelineRunExamples(t *testing.T, ns string) map[string]objects.TektonObject {

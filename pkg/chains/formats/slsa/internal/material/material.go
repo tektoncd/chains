@@ -255,16 +255,44 @@ func FromTaskParamsAndResults(ctx context.Context, tro *objects.TaskRunObjectV1)
 		})
 	}
 
-	sms := artifacts.RetrieveMaterialsFromStructuredResults(ctx, tro, artifacts.ArtifactsInputsResultName)
+	sms := artifacts.RetrieveMaterialsFromStructuredResults(ctx, tro.GetResults())
 	mats = artifact.AppendMaterials(mats, sms...)
 
 	return mats
 }
 
+// FromStepActionsResults extracts type hinted results from StepActions associated with the TaskRun and adds the url and digest to materials.
+func FromStepActionsResults(ctx context.Context, tro *objects.TaskRunObjectV1) (mats []common.ProvenanceMaterial) {
+	for _, s := range tro.Status.Steps {
+		var sCommit, sURL string
+		for _, r := range s.Results {
+			if r.Name == attest.CommitParam {
+				sCommit = r.Value.StringVal
+				continue
+			}
+
+			if r.Name == attest.URLParam {
+				sURL = r.Value.StringVal
+			}
+		}
+
+		sURL = attest.SPDXGit(sURL, "")
+		if sCommit != "" && sURL != "" {
+			mats = artifact.AppendMaterials(mats, common.ProvenanceMaterial{
+				URI:    sURL,
+				Digest: map[string]string{"sha1": sCommit},
+			})
+		}
+	}
+	sms := artifacts.RetrieveMaterialsFromStructuredResults(ctx, tro.GetStepResults())
+	mats = artifact.AppendMaterials(mats, sms...)
+	return
+}
+
 // FromPipelineParamsAndResults extracts type hinted params and results and adds the url and digest to materials.
 func FromPipelineParamsAndResults(ctx context.Context, pro *objects.PipelineRunObjectV1, slsaconfig *slsaconfig.SlsaConfig) []common.ProvenanceMaterial {
 	mats := []common.ProvenanceMaterial{}
-	sms := artifacts.RetrieveMaterialsFromStructuredResults(ctx, pro, artifacts.ArtifactsInputsResultName)
+	sms := artifacts.RetrieveMaterialsFromStructuredResults(ctx, pro.GetResults())
 	mats = artifact.AppendMaterials(mats, sms...)
 
 	var commit, url string

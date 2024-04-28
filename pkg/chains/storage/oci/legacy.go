@@ -271,7 +271,7 @@ func (b *Backend) RetrievePayloads(ctx context.Context, obj objects.TektonObject
 
 func (b *Backend) RetrieveArtifact(ctx context.Context, obj objects.TektonObject, opts config.StorageOpts) (map[string]oci.SignedImage, error) {
 	// Given the TaskRun, retrieve the OCI images.
-	images := artifacts.ExtractOCIImagesFromResults(ctx, obj)
+	images := artifacts.ExtractOCIImagesFromResults(ctx, obj.GetResults())
 	m := make(map[string]oci.SignedImage)
 
 	for _, image := range images {

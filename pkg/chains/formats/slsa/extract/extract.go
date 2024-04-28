@@ -101,7 +101,7 @@ func subjectsFromTektonObject(ctx context.Context, obj objects.TektonObject) []i
 	logger := logging.FromContext(ctx)
 	var subjects []intoto.Subject
 
-	imgs := artifacts.ExtractOCIImagesFromResults(ctx, obj)
+	imgs := artifacts.ExtractOCIImagesFromResults(ctx, obj.GetResults())
 	for _, i := range imgs {
 		if d, ok := i.(name.Digest); ok {
 			subjects = artifact.AppendSubjects(subjects, intoto.Subject{
@@ -128,7 +128,7 @@ func subjectsFromTektonObject(ctx context.Context, obj objects.TektonObject) []i
 		})
 	}
 
-	ssts := artifacts.ExtractStructuredTargetFromResults(ctx, obj, artifacts.ArtifactsOutputsResultName)
+	ssts := artifacts.ExtractStructuredTargetFromResults(ctx, obj.GetResults(), artifacts.ArtifactsOutputsResultName)
 	for _, s := range ssts {
 		splits := strings.Split(s.Digest, ":")
 		alg := splits[0]
@@ -201,4 +201,48 @@ func RetrieveAllArtifactURIs(ctx context.Context, obj objects.TektonObject, deep
 		}
 	}
 	return result
+}
+
+// SubjectsFromBuildArtifact returns the software artifacts/images produced by the TaskRun/PipelineRun in the form of standard
+// subject field of intoto statement. The detection is based on type hinting. To be read as a software artifact the
+// type hintint should:
+// - use one of the following type-hints:
+//   - Use the *ARTIFACT_OUTPUTS object type-hinting suffix. The value associated with the result should be an object
+//     with the fields `uri`, `digest`, and `isBuildArtifact` set to true.
+//   - Use the IMAGES type-hint
+//   - Use the *IMAGE_URL / *IMAGE_DIGEST type-hint suffix
+func SubjectsFromBuildArtifact(ctx context.Context, results []objects.Result) []intoto.Subject {
+	var subjects []intoto.Subject
+	logger := logging.FromContext(ctx)
+	buildArtifacts := artifacts.ExtractBuildArtifactsFromResults(ctx, results)
+	for _, ba := range buildArtifacts {
+		splits := strings.Split(ba.Digest, ":")
+		if len(splits) != 2 {
+			logger.Errorf("Error procesing build artifact %v, digest %v malformed. Build artifact skipped", ba.FullRef(), ba.Digest)
+			continue
+		}
+
+		alg := splits[0]
+		digest := splits[1]
+		subjects = artifact.AppendSubjects(subjects, intoto.Subject{
+			Name: ba.URI,
+			Digest: common.DigestSet{
+				alg: digest,
+			},
+		})
+	}
+
+	imgs := artifacts.ExtractOCIImagesFromResults(ctx, results)
+	for _, i := range imgs {
+		if d, ok := i.(name.Digest); ok {
+			subjects = artifact.AppendSubjects(subjects, intoto.Subject{
+				Name: d.Repository.Name(),
+				Digest: common.DigestSet{
+					"sha256": strings.TrimPrefix(d.DigestStr(), "sha256:"),
+				},
+			})
+		}
+	}
+
+	return subjects
 }

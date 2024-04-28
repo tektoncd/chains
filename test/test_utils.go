@@ -172,7 +172,31 @@ func readObj(t *testing.T, bucket, name string, client *storage.Client) io.Reade
 func setConfigMap(ctx context.Context, t *testing.T, c *clients, data map[string]string) func() {
 	// Change the config to be GCS storage with this bucket.
 	// Note(rgreinho): This comment does not look right...
-	cm, err := c.KubeClient.CoreV1().ConfigMaps(namespace).Get(ctx, "chains-config", metav1.GetOptions{})
+	clean := updateConfigMap(ctx, t, c, data, namespace, "chains-config")
+
+	err := restartChainsControllerPod(ctx, c.KubeClient, 300*time.Second)
+	if err != nil {
+		t.Fatalf("Failed to restart the pod: %v", err)
+	}
+
+	return clean
+}
+
+func setupPipelinesFeatureFlags(ctx context.Context, t *testing.T, c *clients, data map[string]string) func() {
+	pipelinesNs := "tekton-pipelines"
+
+	clean := updateConfigMap(ctx, t, c, data, pipelinesNs, "feature-flags")
+
+	err := restartControllerPod(ctx, c.KubeClient, 300*time.Second, pipelinesNs, "app.kubernetes.io/component=controller")
+	if err != nil {
+		t.Fatalf("Failed to restart the pod: %v", err)
+	}
+
+	return clean
+}
+
+func updateConfigMap(ctx context.Context, t *testing.T, c *clients, data map[string]string, ns, configMapName string) func() {
+	cm, err := c.KubeClient.CoreV1().ConfigMaps(ns).Get(ctx, configMapName, metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -190,13 +214,9 @@ func setConfigMap(ctx context.Context, t *testing.T, c *clients, data map[string
 	for k, v := range data {
 		cm.Data[k] = v
 	}
-	cm, err = c.KubeClient.CoreV1().ConfigMaps(namespace).Update(ctx, cm, metav1.UpdateOptions{})
+	cm, err = c.KubeClient.CoreV1().ConfigMaps(ns).Update(ctx, cm, metav1.UpdateOptions{})
 	if err != nil {
 		t.Fatal(err)
-	}
-	err = restartChainsControllerPod(ctx, c.KubeClient, 300*time.Second)
-	if err != nil {
-		t.Fatalf("Failed to restart the pod: %v", err)
 	}
 
 	return func() {
@@ -206,7 +226,7 @@ func setConfigMap(ctx context.Context, t *testing.T, c *clients, data map[string
 		for k, v := range oldData {
 			cm.Data[k] = v
 		}
-		if _, err := c.KubeClient.CoreV1().ConfigMaps(namespace).Update(ctx, cm, metav1.UpdateOptions{}); err != nil {
+		if _, err := c.KubeClient.CoreV1().ConfigMaps(ns).Update(ctx, cm, metav1.UpdateOptions{}); err != nil {
 			t.Log(err)
 		}
 	}
@@ -297,7 +317,11 @@ func verifySignature(ctx context.Context, t *testing.T, c *clients, obj objects.
 // restartChainsControllerPod restarts the pod running Chains
 // it then waits for a given timeout for the pod to resume running state
 func restartChainsControllerPod(ctx context.Context, c kubernetes.Interface, timeout time.Duration) error {
-	pods, err := c.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{LabelSelector: "app.kubernetes.io/component=controller"})
+	return restartControllerPod(ctx, c, timeout, namespace, "app.kubernetes.io/component=controller")
+}
+
+func restartControllerPod(ctx context.Context, c kubernetes.Interface, timeout time.Duration, ns, labelSelector string) error {
+	pods, err := c.CoreV1().Pods(ns).List(ctx, metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
 		return err
 	}
@@ -310,7 +334,7 @@ func restartChainsControllerPod(ctx context.Context, c kubernetes.Interface, tim
 	}
 
 	return wait.PollUntilContextTimeout(ctx, 2*time.Second, timeout, true, func(context.Context) (done bool, err error) {
-		pods, err := c.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{LabelSelector: "app.kubernetes.io/component=controller"})
+		pods, err := c.CoreV1().Pods(ns).List(context.Background(), metav1.ListOptions{LabelSelector: labelSelector})
 		if err != nil {
 			return false, err
 		}

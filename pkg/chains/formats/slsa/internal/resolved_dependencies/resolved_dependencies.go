@@ -51,6 +51,12 @@ const (
 // and AddSLSATaskDescriptor
 type addTaskDescriptorContent func(*objects.TaskRunObjectV1) (*slsa.ResourceDescriptor, error) //nolint:staticcheck
 
+// ResolveOptions represents the configuration to be use to resolve dependencies.
+type ResolveOptions struct {
+	// Indicates if StepActions type-hinted results should be read to resolve dependecies.
+	WithStepActionsResults bool
+}
+
 // ConvertMaterialToResolvedDependency converts a SLSAv0.2 Material to a resolved dependency
 func ConvertMaterialsToResolvedDependencies(mats []common.ProvenanceMaterial, name string) []slsa.ResourceDescriptor {
 	rds := []slsa.ResourceDescriptor{}
@@ -183,7 +189,7 @@ func fromPipelineTask(logger *zap.SugaredLogger, pro *objects.PipelineRunObjectV
 }
 
 // taskDependencies gather all dependencies in a task and adds them to resolvedDependencies
-func taskDependencies(ctx context.Context, tro *objects.TaskRunObjectV1) ([]slsa.ResourceDescriptor, error) {
+func taskDependencies(ctx context.Context, opts ResolveOptions, tro *objects.TaskRunObjectV1) ([]slsa.ResourceDescriptor, error) {
 	var resolvedDependencies []slsa.ResourceDescriptor
 	var err error
 	mats := []common.ProvenanceMaterial{}
@@ -201,6 +207,11 @@ func taskDependencies(ctx context.Context, tro *objects.TaskRunObjectV1) ([]slsa
 	}
 	mats = append(mats, sidecarMaterials...)
 	resolvedDependencies = append(resolvedDependencies, ConvertMaterialsToResolvedDependencies(mats, "")...)
+
+	if opts.WithStepActionsResults {
+		mats = material.FromStepActionsResults(ctx, tro)
+		resolvedDependencies = append(resolvedDependencies, ConvertMaterialsToResolvedDependencies(mats, InputResultName)...)
+	}
 
 	mats = material.FromTaskParamsAndResults(ctx, tro)
 	// convert materials to resolved dependencies
@@ -240,7 +251,7 @@ func taskDependencies(ctx context.Context, tro *objects.TaskRunObjectV1) ([]slsa
 }
 
 // TaskRun constructs `predicate.resolvedDependencies` section by collecting all the artifacts that influence a taskrun such as source code repo and step&sidecar base images.
-func TaskRun(ctx context.Context, tro *objects.TaskRunObjectV1) ([]slsa.ResourceDescriptor, error) {
+func TaskRun(ctx context.Context, opts ResolveOptions, tro *objects.TaskRunObjectV1) ([]slsa.ResourceDescriptor, error) {
 	var resolvedDependencies []slsa.ResourceDescriptor
 	var err error
 
@@ -254,7 +265,7 @@ func TaskRun(ctx context.Context, tro *objects.TaskRunObjectV1) ([]slsa.Resource
 		resolvedDependencies = append(resolvedDependencies, rd)
 	}
 
-	rds, err := taskDependencies(ctx, tro)
+	rds, err := taskDependencies(ctx, opts, tro)
 	if err != nil {
 		return nil, err
 	}

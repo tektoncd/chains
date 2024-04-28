@@ -1,5 +1,5 @@
 /*
-Copyright 2021 The Tekton Authors
+Copyright 2024 The Tekton Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@ limitations under the License.
 package taskrun
 
 import (
-	"context"
 	"encoding/json"
 	"testing"
 	"time"
@@ -27,16 +26,16 @@ import (
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
 
-	v1resourcedescriptor "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
-	resolveddependencies "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/resolved_dependencies"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
-	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha3/internal/pipelinerun"
+
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/internal/objectloader"
 	"github.com/tektoncd/pipeline/pkg/apis/config"
 	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	logtesting "knative.dev/pkg/logging/testing"
 )
+
+const jsonMediaType = "application/json"
 
 func TestByProducts(t *testing.T) {
 	resultValue := v1.ResultValue{Type: "string", StringVal: "result-value"}
@@ -61,7 +60,7 @@ func TestByProducts(t *testing.T) {
 		{
 			Name:      "taskRunResults/result-name",
 			Content:   resultBytes,
-			MediaType: pipelinerun.JsonMediaType,
+			MediaType: jsonMediaType,
 		},
 	}
 	got, err := byproducts(objects.NewTaskRunObjectV1(tr))
@@ -75,23 +74,12 @@ func TestByProducts(t *testing.T) {
 
 func TestTaskRunGenerateAttestation(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
-	tr, err := objectloader.TaskRunFromFile("../../../testdata/slsa-v2alpha3/taskrun1.json")
+	tr, err := objectloader.TaskRunFromFile("../../../testdata/slsa-v2alpha4/taskrun1.json")
 	if err != nil {
 		t.Fatal(err)
 	}
 	e1BuildStart := time.Unix(1617011400, 0)
 	e1BuildFinished := time.Unix(1617011415, 0)
-
-	resultValue := v1.ResultValue{Type: "string", StringVal: "sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"}
-	resultBytesDigest, err := json.Marshal(resultValue)
-	if err != nil {
-		t.Fatalf("Could not marshal results: %s", err)
-	}
-	resultValue = v1.ResultValue{Type: "string", StringVal: "gcr.io/my/image"}
-	resultBytesUri, err := json.Marshal(resultValue)
-	if err != nil {
-		t.Fatalf("Could not marshal results: %s", err)
-	}
 
 	want := in_toto.ProvenanceStatementSLSA1{
 		StatementHeader: in_toto.StatementHeader{
@@ -99,9 +87,15 @@ func TestTaskRunGenerateAttestation(t *testing.T) {
 			PredicateType: slsa.PredicateSLSAProvenance,
 			Subject: []in_toto.Subject{
 				{
-					Name: "gcr.io/my/image",
+					Name: "gcr.io/my/image/fromstep3",
 					Digest: common.DigestSet{
 						"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7",
+					},
+				},
+				{
+					Name: "gcr.io/my/image",
+					Digest: common.DigestSet{
+						"sha256": "d31cc8328054de2bd93735f9cbf0ccfb6e0ee8f4c4225da7d8f8cb3900eaf466",
 					},
 				},
 			},
@@ -147,14 +141,14 @@ func TestTaskRunGenerateAttestation(t *testing.T) {
 				},
 				Byproducts: []slsa.ResourceDescriptor{
 					{
-						Name:      "taskRunResults/IMAGE_DIGEST",
-						Content:   resultBytesDigest,
-						MediaType: pipelinerun.JsonMediaType,
+						Name:      "stepResults/step1_result1",
+						MediaType: "application/json",
+						Content:   []uint8(`"result-value"`),
 					},
 					{
-						Name:      "taskRunResults/IMAGE_URL",
-						Content:   resultBytesUri,
-						MediaType: pipelinerun.JsonMediaType,
+						Name:      "stepResults/step1_result1-ARTIFACT_OUTPUTS",
+						MediaType: "application/json",
+						Content:   []uint8(`{"digest":"sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7","uri":"gcr.io/my/image/fromstep2"}`),
 					},
 				},
 			},
@@ -172,12 +166,4 @@ func TestTaskRunGenerateAttestation(t *testing.T) {
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("GenerateAttestation(): -want +got: %s", diff)
 	}
-}
-
-func getResolvedDependencies(tro *objects.TaskRunObjectV1) []v1resourcedescriptor.ResourceDescriptor {
-	rd, err := resolveddependencies.TaskRun(context.Background(), resolveddependencies.ResolveOptions{}, tro)
-	if err != nil {
-		return []v1resourcedescriptor.ResourceDescriptor{}
-	}
-	return rd
 }

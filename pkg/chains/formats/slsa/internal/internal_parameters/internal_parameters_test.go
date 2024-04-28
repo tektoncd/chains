@@ -20,41 +20,60 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	buildtypes "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/build_types"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/internal/objectloader"
 	"github.com/tektoncd/pipeline/pkg/apis/config"
 )
 
-func TestTektonInternalParameters(t *testing.T) {
-	tr, err := objectloader.TaskRunV1Beta1FromFile("../../testdata/slsa-v2alpha2/taskrun1.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	tro := objects.NewTaskRunObjectV1Beta1(tr)
-	got := TektonInternalParameters(tro)
-	want := map[string]any{
-		"labels":                         tro.GetLabels(),
-		"annotations":                    tro.GetAnnotations(),
-		"tekton-pipelines-feature-flags": config.FeatureFlags{EnableAPIFields: "beta", ResultExtractionMethod: "termination-message"},
+func TestGetInternalParamters(t *testing.T) {
+	tests := []struct {
+		name                string
+		shouldErr           bool
+		buildDefinitionType string
+		expected            map[string]any
+	}{
+		{
+			name:                "SLSA build type",
+			buildDefinitionType: buildtypes.SlsaBuildType,
+			expected: map[string]any{
+				"tekton-pipelines-feature-flags": config.FeatureFlags{EnableAPIFields: "beta", ResultExtractionMethod: "termination-message"},
+			},
+		},
+		{
+			name:                "Tekton build type",
+			buildDefinitionType: buildtypes.TektonBuildType,
+			expected: map[string]any{
+				"labels":                         map[string]string{"tekton.dev/pipelineTask": "build"},
+				"annotations":                    map[string]string(nil),
+				"tekton-pipelines-feature-flags": config.FeatureFlags{EnableAPIFields: "beta", ResultExtractionMethod: "termination-message"},
+			},
+		},
+		{
+			name:                "Invalid build type",
+			buildDefinitionType: "invalid-type",
+			shouldErr:           true,
+		},
 	}
 
-	if diff := cmp.Diff(want, got); diff != "" {
-		t.Errorf("TaskRun(): -want +got: %s", diff)
-	}
-}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			tr, err := objectloader.TaskRunV1Beta1FromFile("../../testdata/slsa-v2alpha2/taskrun1.json")
+			if err != nil {
+				t.Fatal(err)
+			}
+			tro := objects.NewTaskRunObjectV1Beta1(tr)
 
-func TestSLSAInternalParameters(t *testing.T) {
-	tr, err := objectloader.TaskRunV1Beta1FromFile("../../testdata/slsa-v2alpha2/taskrun1.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	tro := objects.NewTaskRunObjectV1Beta1(tr)
-	got := SLSAInternalParameters(tro)
-	want := map[string]any{
-		"tekton-pipelines-feature-flags": config.FeatureFlags{EnableAPIFields: "beta", ResultExtractionMethod: "termination-message"},
-	}
+			got, err := GetInternalParamters(tro, test.buildDefinitionType)
 
-	if diff := cmp.Diff(want, got); diff != "" {
-		t.Errorf("TaskRun(): -want +got: %s", diff)
+			didError := err != nil
+			if didError != test.shouldErr {
+				t.Fatalf("Unexpected error behavior, shouldErr: %v, didError: %v, error: %v", test.shouldErr, didError, err)
+			}
+
+			if diff := cmp.Diff(test.expected, got); diff != "" {
+				t.Errorf("TaskRun(): -want +got: %s", diff)
+			}
+		})
 	}
 }

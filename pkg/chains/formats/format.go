@@ -33,6 +33,7 @@ const (
 	PayloadTypeInTotoIte6    config.PayloadType = "in-toto"
 	PayloadTypeSlsav1        config.PayloadType = "slsa/v1"
 	PayloadTypeSlsav2alpha3  config.PayloadType = "slsa/v2alpha3"
+	PayloadTypeSlsav2alpha4  config.PayloadType = "slsa/v2alpha4"
 )
 
 var (
@@ -40,6 +41,7 @@ var (
 		PayloadTypeInTotoIte6:   {},
 		PayloadTypeSlsav1:       {},
 		PayloadTypeSlsav2alpha3: {},
+		PayloadTypeSlsav2alpha4: {},
 	}
 	payloaderMap = map[config.PayloadType]PayloaderInit{}
 )
