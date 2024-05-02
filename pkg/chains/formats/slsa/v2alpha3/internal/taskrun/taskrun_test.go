@@ -28,11 +28,11 @@ import (
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
 
 	v1resourcedescriptor "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
+	externalparameters "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/external_parameters"
 	internalparameters "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/internal_parameters"
+	resolveddependencies "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/resolved_dependencies"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
-	externalparameters "github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha3/internal/external_parameters"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha3/internal/pipelinerun"
-	resolveddependencies "github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha3/internal/resolved_dependencies"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/internal/objectloader"
 	"github.com/tektoncd/pipeline/pkg/apis/config"

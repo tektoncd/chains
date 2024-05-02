@@ -19,6 +19,7 @@ package externalparameters
 import (
 	"fmt"
 
+	"github.com/tektoncd/chains/pkg/chains/objects"
 	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 )
 
@@ -34,4 +35,26 @@ func BuildConfigSource(provenance *v1.Provenance) map[string]string {
 		"path":       provenance.RefSource.EntryPoint,
 	}
 	return buildConfigSource
+}
+
+// PipelineRun adds the pipeline run spec and provenance if available
+func PipelineRun(pro *objects.PipelineRunObjectV1) map[string]any {
+	externalParams := make(map[string]any)
+
+	if provenance := pro.GetRemoteProvenance(); provenance != nil {
+		externalParams["buildConfigSource"] = BuildConfigSource(provenance)
+	}
+	externalParams["runSpec"] = pro.Spec
+	return externalParams
+}
+
+// TaskRun adds the task run spec and provenance if available
+func TaskRun(tro *objects.TaskRunObjectV1) map[string]any {
+	externalParams := make(map[string]any)
+
+	if provenance := tro.GetRemoteProvenance(); provenance != nil {
+		externalParams["buildConfigSource"] = BuildConfigSource(provenance)
+	}
+	externalParams["runSpec"] = tro.Spec
+	return externalParams
 }
