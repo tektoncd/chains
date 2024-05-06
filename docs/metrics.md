@@ -16,14 +16,14 @@ The following chains metrics are also available at `tekton-chains-metrics` servi
 
 | Name                                                                                    | Type | Description |
 |-----------------------------------------------------------------------------------------| ----------- | ----------- |
-| `pipelinerun_sign_created_total`                                             | Counter | Total number of signed messages for pipelineruns |
-| `pipelinerun_payload_uploaded_total`                                             | Counter | Total number of uploaded payloads for pipelineruns |
-| `pipelinerun_payload_stored_total`                                             | Counter | Total number of stored payloads for pipelineruns |
-| `pipelinerun_marked_signed_total`                                             | Counter | Total number of objects marked as signed for pipelineruns |
-| `taskrun_sign_created_total`                                             | Counter | Total number of signed messages for taskruns |
-| `taskrun_payload_uploaded_total`                                             | Counter | Total number of uploaded payloads for taskruns |
-| `taskrun_payload_stored_total`                                             | Counter | Total number of stored payloads for taskruns |
-| `taskrun_marked_signed_total`                                             | Counter | Total number of objects marked as signed for taskruns |
+| `watcher_pipelinerun_sign_created_total`                                             | Counter | Total number of signed messages for pipelineruns |
+| `watcher_pipelinerun_payload_uploaded_total`                                             | Counter | Total number of uploaded payloads for pipelineruns |
+| `watcher_pipelinerun_payload_stored_total`                                             | Counter | Total number of stored payloads for pipelineruns |
+| `watcher_pipelinerun_marked_signed_total`                                             | Counter | Total number of objects marked as signed for pipelineruns |
+| `watcher_taskrun_sign_created_total`                                             | Counter | Total number of signed messages for taskruns |
+| `watcher_taskrun_payload_uploaded_total`                                             | Counter | Total number of uploaded payloads for taskruns |
+| `watcher_taskrun_payload_stored_total`                                             | Counter | Total number of stored payloads for taskruns |
+| `watcher_taskrun_marked_signed_total`                                             | Counter | Total number of objects marked as signed for taskruns |
 
 To access the chains metrics, use the following commands:
 ```shell
