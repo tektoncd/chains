@@ -53,6 +53,10 @@ func main() {
 		cfg.Burst = rest.DefaultBurst
 	}
 
+	// Multiply by number of controllers
+	cfg.QPS = 2 * cfg.QPS
+	cfg.Burst = 2 * cfg.Burst
+
 	flag.Parse()
 	ctx := injection.WithNamespaceScope(signals.NewContext(), *namespace)
 
