@@ -42,6 +42,13 @@ linters:
     - unused
     - usestdlibvars
     - whitespace
+linters-settings:
+  depguard:
+    rules:
+      main:
+        list-mode: lax
+        allow:
+          - $gostd
 output:
   uniq-by-line: false
 issues:
