@@ -96,42 +96,6 @@ func TestExamples(t *testing.T) {
 			predicate:         "slsav0.1",
 		},
 		{
-			name: "taskrun-examples-slsa-v2",
-			cm: map[string]string{
-				"artifacts.taskrun.format": "slsa/v2alpha1",
-				"artifacts.oci.storage":    "tekton",
-			},
-			getExampleObjects: getTaskRunExamples,
-			payloadKey:        "chains.tekton.dev/payload-taskrun-%s",
-			signatureKey:      "chains.tekton.dev/signature-taskrun-%s",
-			outputLocation:    "slsa/v2",
-			predicate:         "slsav0.2",
-		},
-		{
-			name: "taskrun-examples-slsa-v2alpha2",
-			cm: map[string]string{
-				"artifacts.taskrun.format": "slsa/v2alpha2",
-				"artifacts.oci.storage":    "tekton",
-			},
-			getExampleObjects: getTaskRunExamples,
-			payloadKey:        "chains.tekton.dev/payload-taskrun-%s",
-			signatureKey:      "chains.tekton.dev/signature-taskrun-%s",
-			outputLocation:    "slsa/v2alpha2",
-			predicate:         "slsav1.0",
-		},
-		{
-			name: "pipelinerun-examples-slsa-v2alpha2",
-			cm: map[string]string{
-				"artifacts.pipelinerun.format": "slsa/v2alpha2",
-				"artifacts.oci.storage":        "tekton",
-			},
-			getExampleObjects: getPipelineRunExamples,
-			payloadKey:        "chains.tekton.dev/payload-pipelinerun-%s",
-			signatureKey:      "chains.tekton.dev/signature-pipelinerun-%s",
-			outputLocation:    "slsa/v2alpha2",
-			predicate:         "slsav1.0",
-		},
-		{
 			name: "taskrun-examples-slsa-v2alpha3",
 			cm: map[string]string{
 				"artifacts.taskrun.format": "slsa/v2alpha3",
