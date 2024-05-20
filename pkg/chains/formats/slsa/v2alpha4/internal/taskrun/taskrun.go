@@ -16,7 +16,7 @@ package taskrun
 import (
 	"context"
 
-	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
+	intoto "github.com/in-toto/attestation/go/v1"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
 	builddefinition "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/build_definition"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/provenance"
@@ -47,11 +47,11 @@ func GenerateAttestation(ctx context.Context, tro *objects.TaskRunObjectV1, slsa
 	results := append(tro.GetResults(), tro.GetStepResults()...)
 	sub := extract.SubjectsFromBuildArtifact(ctx, results)
 
-	return provenance.GetSLSA1Statement(tro, sub, bd, bp, slsaConfig), nil
+	return provenance.GetSLSA1Statement(tro, sub, &bd, bp, slsaConfig)
 }
 
-func byproducts(tro *objects.TaskRunObjectV1) ([]slsa.ResourceDescriptor, error) {
-	byProd := []slsa.ResourceDescriptor{}
+func byproducts(tro *objects.TaskRunObjectV1) ([]*intoto.ResourceDescriptor, error) {
+	byProd := []*intoto.ResourceDescriptor{}
 
 	res, err := results.GetResultsWithoutBuildArtifacts(tro.GetResults(), taskRunResults)
 	if err != nil {

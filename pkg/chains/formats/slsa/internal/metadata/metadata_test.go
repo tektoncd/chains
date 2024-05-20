@@ -18,14 +18,16 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
+	slsa "github.com/in-toto/attestation/go/predicates/provenance/v1"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
+	"google.golang.org/protobuf/testing/protocmp"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestMetadata(t *testing.T) {
-	tr := &v1.TaskRun{ //nolint:staticcheck
+	tr := &v1.TaskRun{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "my-taskrun",
 			Namespace: "my-namespace",
@@ -43,20 +45,20 @@ func TestMetadata(t *testing.T) {
 	}
 	start := time.Date(1995, time.December, 24, 6, 12, 12, 12, time.UTC)
 	end := time.Date(1995, time.December, 24, 6, 12, 12, 24, time.UTC)
-	want := slsa.BuildMetadata{
-		InvocationID: "abhhf-12354-asjsdbjs23-3435353n",
-		StartedOn:    &start,
-		FinishedOn:   &end,
+	want := &slsa.BuildMetadata{
+		InvocationId: "abhhf-12354-asjsdbjs23-3435353n",
+		StartedOn:    timestamppb.New(start),
+		FinishedOn:   timestamppb.New(end),
 	}
 	got := GetBuildMetadata(objects.NewTaskRunObjectV1(tr))
-	if d := cmp.Diff(want, got); d != "" {
+	if d := cmp.Diff(want, got, cmp.Options{protocmp.Transform()}); d != "" {
 		t.Fatalf("metadata (-want, +got):\n%s", d)
 	}
 }
 
 func TestMetadataInTimeZone(t *testing.T) {
 	tz := time.FixedZone("Test Time", int((12 * time.Hour).Seconds()))
-	tr := &v1.TaskRun{ //nolint:staticcheck
+	tr := &v1.TaskRun{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "my-taskrun",
 			Namespace: "my-namespace",
@@ -74,13 +76,13 @@ func TestMetadataInTimeZone(t *testing.T) {
 	}
 	start := time.Date(1995, time.December, 24, 6, 12, 12, 12, tz).UTC()
 	end := time.Date(1995, time.December, 24, 6, 12, 12, 24, tz).UTC()
-	want := slsa.BuildMetadata{
-		InvocationID: "abhhf-12354-asjsdbjs23-3435353n",
-		StartedOn:    &start,
-		FinishedOn:   &end,
+	want := &slsa.BuildMetadata{
+		InvocationId: "abhhf-12354-asjsdbjs23-3435353n",
+		StartedOn:    timestamppb.New(start),
+		FinishedOn:   timestamppb.New(end),
 	}
 	got := GetBuildMetadata(objects.NewTaskRunObjectV1(tr))
-	if d := cmp.Diff(want, got); d != "" {
+	if d := cmp.Diff(want, got, cmp.Options{protocmp.Transform()}); d != "" {
 		t.Fatalf("metadata (-want, +got):\n%s", d)
 	}
 }

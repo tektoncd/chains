@@ -22,16 +22,19 @@ import (
 	"time"
 
 	"github.com/tektoncd/chains/pkg/chains/formats"
-	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/compare"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha3/internal/pipelinerun"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/chains/pkg/internal/objectloader"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/testing/protocmp"
+	"google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/in-toto/in-toto-golang/in_toto"
+	slsa "github.com/in-toto/attestation/go/predicates/provenance/v1"
+	intoto "github.com/in-toto/attestation/go/v1"
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
-	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
 	pipelineConfig "github.com/tektoncd/pipeline/pkg/apis/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	logtesting "knative.dev/pkg/logging/testing"
@@ -77,13 +80,10 @@ func TestCreatePayloadError(t *testing.T) {
 		}
 		if err == nil {
 			t.Errorf("Expected error")
-		} else {
-			if err.Error() != "intoto does not support type: not a task ref" {
-				t.Errorf("wrong error returned: '%s'", err.Error())
-			}
+		} else if err.Error() != "intoto does not support type: not a task ref" {
+			t.Errorf("wrong error returned: '%s'", err.Error())
 		}
 	})
-
 }
 
 func TestCorrectPayloadType(t *testing.T) {
@@ -117,72 +117,82 @@ func TestTaskRunCreatePayload1(t *testing.T) {
 			ID: "test_builder-1",
 		},
 	}
-	expected := in_toto.ProvenanceStatementSLSA1{
-		StatementHeader: in_toto.StatementHeader{
-			Type:          in_toto.StatementInTotoV01,
-			PredicateType: slsa.PredicateSLSAProvenance,
-			Subject: []in_toto.Subject{
+
+	extParams := map[string]any{
+		"runSpec": tr.Spec,
+	}
+	intParams := map[string]any{
+		"tekton-pipelines-feature-flags": pipelineConfig.FeatureFlags{EnableAPIFields: "beta", ResultExtractionMethod: "termination-message"},
+	}
+
+	slsaPredicate := slsa.Provenance{
+		BuildDefinition: &slsa.BuildDefinition{
+			BuildType:          "https://tekton.dev/chains/v2/slsa",
+			ExternalParameters: getStruct(t, extParams),
+			InternalParameters: getStruct(t, intParams),
+			ResolvedDependencies: []*intoto.ResourceDescriptor{
 				{
-					Name: "gcr.io/my/image",
-					Digest: common.DigestSet{
-						"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7",
-					},
+					Uri:    "git+https://github.com/test",
+					Digest: common.DigestSet{"sha1": "ab123"},
+					Name:   "task",
+				},
+				{
+					Uri:    "oci://gcr.io/test1/test1",
+					Digest: common.DigestSet{"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"},
+				},
+				{
+					Uri:    "oci://gcr.io/test2/test2",
+					Digest: common.DigestSet{"sha256": "4d6dd704ef58cb214dd826519929e92a978a57cdee43693006139c0080fd6fac"},
+				},
+				{
+					Uri:    "oci://gcr.io/test3/test3",
+					Digest: common.DigestSet{"sha256": "f1a8b8549c179f41e27ff3db0fe1a1793e4b109da46586501a8343637b1d0478"},
+				},
+				{
+					Name:   "inputs/result",
+					Uri:    "git+https://git.test.com.git",
+					Digest: common.DigestSet{"sha1": "taskrun"},
 				},
 			},
 		},
-		Predicate: slsa.ProvenancePredicate{
-			BuildDefinition: slsa.ProvenanceBuildDefinition{
-				BuildType: "https://tekton.dev/chains/v2/slsa",
-				ExternalParameters: map[string]any{
-					"runSpec": tr.Spec,
-				},
-				InternalParameters: map[string]any{
-					"tekton-pipelines-feature-flags": pipelineConfig.FeatureFlags{EnableAPIFields: "beta", ResultExtractionMethod: "termination-message"},
-				},
-				ResolvedDependencies: []slsa.ResourceDescriptor{
-					{
-						URI:    "git+https://github.com/test",
-						Digest: common.DigestSet{"sha1": "ab123"},
-						Name:   "task",
-					},
-					{
-						URI:    "oci://gcr.io/test1/test1",
-						Digest: common.DigestSet{"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"},
-					},
-					{
-						URI:    "oci://gcr.io/test2/test2",
-						Digest: common.DigestSet{"sha256": "4d6dd704ef58cb214dd826519929e92a978a57cdee43693006139c0080fd6fac"},
-					},
-					{
-						URI:    "oci://gcr.io/test3/test3",
-						Digest: common.DigestSet{"sha256": "f1a8b8549c179f41e27ff3db0fe1a1793e4b109da46586501a8343637b1d0478"},
-					},
-					{Name: "inputs/result", URI: "git+https://git.test.com.git", Digest: common.DigestSet{"sha1": "taskrun"}},
-				},
+		RunDetails: &slsa.RunDetails{
+			Builder: &slsa.Builder{
+				Id: "test_builder-1",
 			},
-			RunDetails: slsa.ProvenanceRunDetails{
-				Builder: slsa.Builder{
-					ID: "test_builder-1",
+			Metadata: &slsa.BuildMetadata{
+				InvocationId: "abhhf-12354-asjsdbjs23-3435353n",
+				StartedOn:    timestamppb.New(e1BuildStart),
+				FinishedOn:   timestamppb.New(e1BuildFinished),
+			},
+			Byproducts: []*intoto.ResourceDescriptor{
+				{
+					Name:      "taskRunResults/IMAGE_DIGEST",
+					Content:   resultBytesDigest,
+					MediaType: pipelinerun.JsonMediaType,
 				},
-				BuildMetadata: slsa.BuildMetadata{
-					InvocationID: "abhhf-12354-asjsdbjs23-3435353n",
-					StartedOn:    &e1BuildStart,
-					FinishedOn:   &e1BuildFinished,
-				},
-				Byproducts: []slsa.ResourceDescriptor{
-					{
-						Name:      "taskRunResults/IMAGE_DIGEST",
-						Content:   resultBytesDigest,
-						MediaType: pipelinerun.JsonMediaType,
-					},
-					{
-						Name:      "taskRunResults/IMAGE_URL",
-						Content:   resultBytesUri,
-						MediaType: pipelinerun.JsonMediaType,
-					},
+				{
+					Name:      "taskRunResults/IMAGE_URL",
+					Content:   resultBytesUri,
+					MediaType: pipelinerun.JsonMediaType,
 				},
 			},
 		},
+	}
+
+	predicateStruct := getPredicateStruct(t, &slsaPredicate)
+
+	expected := &intoto.Statement{
+		Type:          intoto.StatementTypeUri,
+		PredicateType: "https://slsa.dev/provenance/v1",
+		Subject: []*intoto.ResourceDescriptor{
+			{
+				Name: "gcr.io/my/image",
+				Digest: common.DigestSet{
+					"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7",
+				},
+			},
+		},
+		Predicate: predicateStruct,
 	}
 
 	i, _ := NewFormatter(cfg)
@@ -192,7 +202,7 @@ func TestTaskRunCreatePayload1(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %s", err.Error())
 	}
-	if diff := cmp.Diff(expected, got); diff != "" {
+	if diff := cmp.Diff(expected, got, cmp.Options{protocmp.Transform()}); diff != "" {
 		t.Errorf("Slsa.CreatePayload(): -want +got: %s", diff)
 	}
 }
@@ -220,55 +230,64 @@ func TestTaskRunCreatePayload2(t *testing.T) {
 			ID: "test_builder-2",
 		},
 	}
-	expected := in_toto.ProvenanceStatementSLSA1{
-		StatementHeader: in_toto.StatementHeader{
-			Type:          in_toto.StatementInTotoV01,
-			PredicateType: slsa.PredicateSLSAProvenance,
-			Subject:       nil,
-		},
-		Predicate: slsa.ProvenancePredicate{
-			BuildDefinition: slsa.ProvenanceBuildDefinition{
-				BuildType: "https://tekton.dev/chains/v2/slsa",
-				ExternalParameters: map[string]any{
-					"runSpec": tr.Spec,
+
+	extParams := map[string]any{
+		"runSpec": tr.Spec,
+	}
+
+	slsaPredicate := slsa.Provenance{
+		BuildDefinition: &slsa.BuildDefinition{
+			BuildType:          "https://tekton.dev/chains/v2/slsa",
+			ExternalParameters: getStruct(t, extParams),
+			InternalParameters: getStruct(t, map[string]any{}),
+			ResolvedDependencies: []*intoto.ResourceDescriptor{
+				{
+					Uri:    "git+https://github.com/catalog",
+					Digest: common.DigestSet{"sha1": "x123"},
+					Name:   "task",
 				},
-				InternalParameters: map[string]any{},
-				ResolvedDependencies: []slsa.ResourceDescriptor{
-					{
-						URI:    "git+https://github.com/catalog",
-						Digest: common.DigestSet{"sha1": "x123"},
-						Name:   "task",
-					},
-					{
-						URI:    "oci://gcr.io/test1/test1",
-						Digest: common.DigestSet{"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"},
-					},
-					{Name: "inputs/result", URI: "git+https://git.test.com.git", Digest: common.DigestSet{"sha1": "sha:taskdefault"}},
+				{
+					Uri:    "oci://gcr.io/test1/test1",
+					Digest: common.DigestSet{"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"},
 				},
-			},
-			RunDetails: slsa.ProvenanceRunDetails{
-				Builder: slsa.Builder{
-					ID: "test_builder-2",
-				},
-				BuildMetadata: slsa.BuildMetadata{
-					InvocationID: "abhhf-12354-asjsdbjs23-3435353n",
-					StartedOn:    &e1BuildStart,
-					FinishedOn:   &e1BuildFinished,
-				},
-				Byproducts: []slsa.ResourceDescriptor{
-					{
-						Name:      "taskRunResults/some-uri_DIGEST",
-						Content:   resultBytesDigest,
-						MediaType: pipelinerun.JsonMediaType,
-					},
-					{
-						Name:      "taskRunResults/some-uri",
-						Content:   resultBytesUri,
-						MediaType: pipelinerun.JsonMediaType,
-					},
+				{
+					Name:   "inputs/result",
+					Uri:    "git+https://git.test.com.git",
+					Digest: common.DigestSet{"sha1": "sha:taskdefault"},
 				},
 			},
 		},
+		RunDetails: &slsa.RunDetails{
+			Builder: &slsa.Builder{
+				Id: "test_builder-2",
+			},
+			Metadata: &slsa.BuildMetadata{
+				InvocationId: "abhhf-12354-asjsdbjs23-3435353n",
+				StartedOn:    timestamppb.New(e1BuildStart),
+				FinishedOn:   timestamppb.New(e1BuildFinished),
+			},
+			Byproducts: []*intoto.ResourceDescriptor{
+				{
+					Name:      "taskRunResults/some-uri_DIGEST",
+					Content:   resultBytesDigest,
+					MediaType: pipelinerun.JsonMediaType,
+				},
+				{
+					Name:      "taskRunResults/some-uri",
+					Content:   resultBytesUri,
+					MediaType: pipelinerun.JsonMediaType,
+				},
+			},
+		},
+	}
+
+	predicateStruct := getPredicateStruct(t, &slsaPredicate)
+
+	expected := &intoto.Statement{
+		Type:          intoto.StatementTypeUri,
+		PredicateType: "https://slsa.dev/provenance/v1",
+		Subject:       nil,
+		Predicate:     predicateStruct,
 	}
 
 	i, _ := NewFormatter(cfg)
@@ -277,7 +296,7 @@ func TestTaskRunCreatePayload2(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %s", err.Error())
 	}
-	if diff := cmp.Diff(expected, got); diff != "" {
+	if diff := cmp.Diff(expected, got, cmp.Options{protocmp.Transform()}); diff != "" {
 		t.Errorf("Slsa.CreatePayload(): -want +got: %s", diff)
 	}
 }
@@ -303,52 +322,58 @@ func TestMultipleSubjects(t *testing.T) {
 			ID: "test_builder-multiple",
 		},
 	}
-	expected := in_toto.ProvenanceStatementSLSA1{
-		StatementHeader: in_toto.StatementHeader{
-			Type:          in_toto.StatementInTotoV01,
-			PredicateType: slsa.PredicateSLSAProvenance,
-			Subject: []in_toto.Subject{
+
+	extParams := map[string]any{
+		"runSpec": tr.Spec,
+	}
+
+	slsaPredicate := slsa.Provenance{
+		BuildDefinition: &slsa.BuildDefinition{
+			BuildType:          "https://tekton.dev/chains/v2/slsa",
+			ExternalParameters: getStruct(t, extParams),
+			InternalParameters: getStruct(t, map[string]any{}),
+			ResolvedDependencies: []*intoto.ResourceDescriptor{
 				{
-					Name: "gcr.io/myimage1",
-					Digest: common.DigestSet{
-						"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6",
-					},
-				}, {
-					Name: "gcr.io/myimage2",
-					Digest: common.DigestSet{
-						"sha256": "daa1a56e13c85cf164e7d9e595006649e3a04c47fe4a8261320e18a0bf3b0367",
-					},
+					Uri:    "oci://gcr.io/test1/test1",
+					Digest: common.DigestSet{"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"},
 				},
 			},
 		},
-		Predicate: slsa.ProvenancePredicate{
-			BuildDefinition: slsa.ProvenanceBuildDefinition{
-				BuildType: "https://tekton.dev/chains/v2/slsa",
-				ExternalParameters: map[string]any{
-					"runSpec": tr.Spec,
-				},
-				InternalParameters: map[string]any{},
-				ResolvedDependencies: []slsa.ResourceDescriptor{
-					{
-						URI:    "oci://gcr.io/test1/test1",
-						Digest: common.DigestSet{"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"},
-					},
-				},
+		RunDetails: &slsa.RunDetails{
+			Builder: &slsa.Builder{
+				Id: "test_builder-multiple",
 			},
-			RunDetails: slsa.ProvenanceRunDetails{
-				Builder: slsa.Builder{
-					ID: "test_builder-multiple",
-				},
-				BuildMetadata: slsa.BuildMetadata{},
-				Byproducts: []slsa.ResourceDescriptor{
-					{
-						Name:      "taskRunResults/IMAGES",
-						Content:   resultBytes,
-						MediaType: pipelinerun.JsonMediaType,
-					},
+			Metadata: &slsa.BuildMetadata{},
+			Byproducts: []*intoto.ResourceDescriptor{
+				{
+					Name:      "taskRunResults/IMAGES",
+					Content:   resultBytes,
+					MediaType: pipelinerun.JsonMediaType,
 				},
 			},
 		},
+	}
+
+	predicateStruct := getPredicateStruct(t, &slsaPredicate)
+
+	expected := &intoto.Statement{
+
+		Type:          intoto.StatementTypeUri,
+		PredicateType: "https://slsa.dev/provenance/v1",
+		Subject: []*intoto.ResourceDescriptor{
+			{
+				Name: "gcr.io/myimage1",
+				Digest: common.DigestSet{
+					"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6",
+				},
+			}, {
+				Name: "gcr.io/myimage2",
+				Digest: common.DigestSet{
+					"sha256": "daa1a56e13c85cf164e7d9e595006649e3a04c47fe4a8261320e18a0bf3b0367",
+				},
+			},
+		},
+		Predicate: predicateStruct,
 	}
 
 	i, _ := NewFormatter(cfg)
@@ -356,7 +381,7 @@ func TestMultipleSubjects(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %s", err.Error())
 	}
-	if diff := cmp.Diff(expected, got); diff != "" {
+	if diff := cmp.Diff(expected, got, cmp.Options{protocmp.Transform()}); diff != "" {
 		t.Errorf("Slsa.CreatePayload(): -want +got: %s", diff)
 	}
 }
@@ -390,104 +415,111 @@ func TestPipelineRunCreatePayload1(t *testing.T) {
 			ID: "test_builder-1",
 		},
 	}
-	expected := in_toto.ProvenanceStatementSLSA1{
-		StatementHeader: in_toto.StatementHeader{
-			Type:          in_toto.StatementInTotoV01,
-			PredicateType: slsa.PredicateSLSAProvenance,
-			Subject: []in_toto.Subject{
+
+	slsaPredicate := slsa.Provenance{
+		BuildDefinition: &slsa.BuildDefinition{
+			BuildType: "https://tekton.dev/chains/v2/slsa",
+			ExternalParameters: getStruct(t, map[string]any{
+				"runSpec": pr.Spec,
+			}),
+			InternalParameters: getStruct(t, map[string]any{}),
+			ResolvedDependencies: []*intoto.ResourceDescriptor{
 				{
-					Name: "test.io/test/image",
-					Digest: common.DigestSet{
-						"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7",
-					},
+					Uri:    "git+https://github.com/test",
+					Digest: common.DigestSet{"sha1": "28b123"},
+					Name:   "pipeline",
+				},
+				{
+					Uri:    "git+https://github.com/catalog",
+					Digest: common.DigestSet{"sha1": "x123"},
+					Name:   "pipelineTask",
+				},
+				{
+					Uri:    "oci://gcr.io/test1/test1",
+					Digest: common.DigestSet{"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"},
+				},
+				{
+					Uri:    "git+https://github.com/test",
+					Digest: common.DigestSet{"sha1": "ab123"},
+					Name:   "pipelineTask",
+				},
+				{
+					Uri:    "oci://gcr.io/test2/test2",
+					Digest: common.DigestSet{"sha256": "4d6dd704ef58cb214dd826519929e92a978a57cdee43693006139c0080fd6fac"},
+				},
+				{
+					Uri:    "oci://gcr.io/test3/test3",
+					Digest: common.DigestSet{"sha256": "f1a8b8549c179f41e27ff3db0fe1a1793e4b109da46586501a8343637b1d0478"},
+				},
+				{
+					Uri:    "abc",
+					Digest: common.DigestSet{"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"},
+					Name:   "inputs/result",
+				},
+				{
+					Name:   "inputs/result",
+					Uri:    "git+https://git.test.com.git",
+					Digest: common.DigestSet{"sha1": "abcd"},
 				},
 			},
 		},
-		Predicate: slsa.ProvenancePredicate{
-			BuildDefinition: slsa.ProvenanceBuildDefinition{
-				BuildType: "https://tekton.dev/chains/v2/slsa",
-				ExternalParameters: map[string]any{
-					"runSpec": pr.Spec,
-				},
-				InternalParameters: map[string]any{},
-				ResolvedDependencies: []slsa.ResourceDescriptor{
-					{
-						URI:    "git+https://github.com/test",
-						Digest: common.DigestSet{"sha1": "28b123"},
-						Name:   "pipeline",
-					},
-					{
-						URI:    "git+https://github.com/catalog",
-						Digest: common.DigestSet{"sha1": "x123"},
-						Name:   "pipelineTask",
-					},
-					{
-						URI:    "oci://gcr.io/test1/test1",
-						Digest: common.DigestSet{"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"},
-					},
-					{
-						URI:    "git+https://github.com/test",
-						Digest: common.DigestSet{"sha1": "ab123"},
-						Name:   "pipelineTask",
-					},
-					{
-						URI:    "oci://gcr.io/test2/test2",
-						Digest: common.DigestSet{"sha256": "4d6dd704ef58cb214dd826519929e92a978a57cdee43693006139c0080fd6fac"},
-					},
-					{
-						URI:    "oci://gcr.io/test3/test3",
-						Digest: common.DigestSet{"sha256": "f1a8b8549c179f41e27ff3db0fe1a1793e4b109da46586501a8343637b1d0478"},
-					},
-					{
-						URI:    "abc",
-						Digest: common.DigestSet{"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"},
-						Name:   "inputs/result",
-					},
-					{Name: "inputs/result", URI: "git+https://git.test.com.git", Digest: common.DigestSet{"sha1": "abcd"}},
-				},
+		RunDetails: &slsa.RunDetails{
+			Builder: &slsa.Builder{
+				Id: "test_builder-1",
 			},
-			RunDetails: slsa.ProvenanceRunDetails{
-				Builder: slsa.Builder{
-					ID: "test_builder-1",
-				},
-				BuildMetadata: slsa.BuildMetadata{
-					InvocationID: "abhhf-12354-asjsdbjs23-3435353n",
-					StartedOn:    &e1BuildStart,
-					FinishedOn:   &e1BuildFinished,
-				},
-				Byproducts: []slsa.ResourceDescriptor{
-					{
-						Name:      "pipelineRunResults/CHAINS-GIT_COMMIT",
-						Content:   []uint8(`"abcd"`),
-						MediaType: pipelinerun.JsonMediaType,
-					}, {
-						Name:      "pipelineRunResults/CHAINS-GIT_URL",
-						Content:   []uint8(`"https://git.test.com"`),
-						MediaType: pipelinerun.JsonMediaType,
-					}, {
-						Name:      "pipelineRunResults/IMAGE_URL",
-						Content:   []uint8(`"test.io/test/image"`),
-						MediaType: pipelinerun.JsonMediaType,
-					}, {
-						Name:      "pipelineRunResults/IMAGE_DIGEST",
-						Content:   []uint8(`"sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"`),
-						MediaType: pipelinerun.JsonMediaType,
-					}, {
-						Name:      "pipelineRunResults/img-ARTIFACT_INPUTS",
-						Content:   []uint8(`{"digest":"sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7","uri":"abc"}`),
-						MediaType: pipelinerun.JsonMediaType,
-					}, {
-						Name:      "pipelineRunResults/img2-ARTIFACT_OUTPUTS",
-						Content:   []uint8(`{"digest":"sha256:","uri":"def"}`),
-						MediaType: pipelinerun.JsonMediaType,
-					}, {
-						Name:      "pipelineRunResults/img_no_uri-ARTIFACT_OUTPUTS",
-						Content:   []uint8(`{"digest":"sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"}`),
-						MediaType: pipelinerun.JsonMediaType,
-					},
+			Metadata: &slsa.BuildMetadata{
+				InvocationId: "abhhf-12354-asjsdbjs23-3435353n",
+				StartedOn:    timestamppb.New(e1BuildStart),
+				FinishedOn:   timestamppb.New(e1BuildFinished),
+			},
+			Byproducts: []*intoto.ResourceDescriptor{
+				{
+					Name:      "pipelineRunResults/CHAINS-GIT_COMMIT",
+					Content:   []uint8(`"abcd"`),
+					MediaType: pipelinerun.JsonMediaType,
+				}, {
+					Name:      "pipelineRunResults/CHAINS-GIT_URL",
+					Content:   []uint8(`"https://git.test.com"`),
+					MediaType: pipelinerun.JsonMediaType,
+				}, {
+					Name:      "pipelineRunResults/IMAGE_URL",
+					Content:   []uint8(`"test.io/test/image"`),
+					MediaType: pipelinerun.JsonMediaType,
+				}, {
+					Name:      "pipelineRunResults/IMAGE_DIGEST",
+					Content:   []uint8(`"sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"`),
+					MediaType: pipelinerun.JsonMediaType,
+				}, {
+					Name:      "pipelineRunResults/img-ARTIFACT_INPUTS",
+					Content:   []uint8(`{"digest":"sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7","uri":"abc"}`),
+					MediaType: pipelinerun.JsonMediaType,
+				}, {
+					Name:      "pipelineRunResults/img2-ARTIFACT_OUTPUTS",
+					Content:   []uint8(`{"digest":"sha256:","uri":"def"}`),
+					MediaType: pipelinerun.JsonMediaType,
+				}, {
+					Name:      "pipelineRunResults/img_no_uri-ARTIFACT_OUTPUTS",
+					Content:   []uint8(`{"digest":"sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"}`),
+					MediaType: pipelinerun.JsonMediaType,
 				},
 			},
 		},
+	}
+
+	predicateStruct := getPredicateStruct(t, &slsaPredicate)
+
+	expected := &intoto.Statement{
+		Type:          intoto.StatementTypeUri,
+		PredicateType: "https://slsa.dev/provenance/v1",
+		Subject: []*intoto.ResourceDescriptor{
+			{
+				Name: "test.io/test/image",
+				Digest: common.DigestSet{
+					"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7",
+				},
+			},
+		},
+		Predicate: predicateStruct,
 	}
 
 	i, _ := NewFormatter(cfg)
@@ -497,7 +529,39 @@ func TestPipelineRunCreatePayload1(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %s", err.Error())
 	}
-	if diff := cmp.Diff(expected, got, compare.SLSAV1CompareOptions()...); diff != "" {
+	if diff := cmp.Diff(expected, got, cmp.Options{protocmp.Transform()}); diff != "" {
 		t.Errorf("Slsa.CreatePayload(): -want +got: %s", diff)
 	}
+}
+
+func getStruct(t *testing.T, data map[string]any) *structpb.Struct {
+	t.Helper()
+	bytes, err := json.Marshal(data)
+	if err != nil {
+		t.Fatalf("error getting proto struct: %v", err)
+	}
+
+	protoStruct := &structpb.Struct{}
+	err = protojson.Unmarshal(bytes, protoStruct)
+	if err != nil {
+		t.Fatalf("error getting proto struct: %v", err)
+	}
+
+	return protoStruct
+}
+
+func getPredicateStruct(t *testing.T, slsaPredicate *slsa.Provenance) *structpb.Struct {
+	t.Helper()
+	predicateJSON, err := protojson.Marshal(slsaPredicate)
+	if err != nil {
+		t.Fatalf("error getting SLSA predicate proto struct: %v", err)
+	}
+
+	predicateStruct := &structpb.Struct{}
+	err = protojson.Unmarshal(predicateJSON, predicateStruct)
+	if err != nil {
+		t.Fatalf("error getting SLSA predicate proto struct: %v", err)
+	}
+
+	return predicateStruct
 }

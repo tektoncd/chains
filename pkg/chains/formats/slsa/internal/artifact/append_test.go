@@ -19,19 +19,20 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	intoto "github.com/in-toto/in-toto-golang/in_toto"
+	intoto "github.com/in-toto/attestation/go/v1"
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
+	"google.golang.org/protobuf/testing/protocmp"
 )
 
 func TestAppendSubjects(t *testing.T) {
 	tests := []struct {
 		name     string
-		original []intoto.Subject
-		toAdd    []intoto.Subject
-		want     []intoto.Subject
+		original []*intoto.ResourceDescriptor
+		toAdd    []*intoto.ResourceDescriptor
+		want     []*intoto.ResourceDescriptor
 	}{{
 		name: "add a completely new subject",
-		original: []intoto.Subject{
+		original: []*intoto.ResourceDescriptor{
 			{
 				Name: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
@@ -44,7 +45,7 @@ func TestAppendSubjects(t *testing.T) {
 				},
 			},
 		},
-		toAdd: []intoto.Subject{
+		toAdd: []*intoto.ResourceDescriptor{
 			{
 				Name: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/sidecar-git-init",
 				Digest: common.DigestSet{
@@ -52,7 +53,7 @@ func TestAppendSubjects(t *testing.T) {
 				},
 			},
 		},
-		want: []intoto.Subject{
+		want: []*intoto.ResourceDescriptor{
 			{
 				Name: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
@@ -72,7 +73,7 @@ func TestAppendSubjects(t *testing.T) {
 		},
 	}, {
 		name: "add a subject with same uri and digest",
-		original: []intoto.Subject{
+		original: []*intoto.ResourceDescriptor{
 			{
 				Name: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
@@ -80,7 +81,7 @@ func TestAppendSubjects(t *testing.T) {
 				},
 			},
 		},
-		toAdd: []intoto.Subject{
+		toAdd: []*intoto.ResourceDescriptor{
 			{
 				Name: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
@@ -88,7 +89,7 @@ func TestAppendSubjects(t *testing.T) {
 				},
 			},
 		},
-		want: []intoto.Subject{
+		want: []*intoto.ResourceDescriptor{
 			{
 				Name: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
@@ -98,7 +99,7 @@ func TestAppendSubjects(t *testing.T) {
 		},
 	}, {
 		name: "add a subject with same uri but different digest",
-		original: []intoto.Subject{
+		original: []*intoto.ResourceDescriptor{
 			{
 				Name: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
@@ -106,7 +107,7 @@ func TestAppendSubjects(t *testing.T) {
 				},
 			},
 		},
-		toAdd: []intoto.Subject{
+		toAdd: []*intoto.ResourceDescriptor{
 			{
 				Name: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
@@ -114,7 +115,7 @@ func TestAppendSubjects(t *testing.T) {
 				},
 			},
 		},
-		want: []intoto.Subject{
+		want: []*intoto.ResourceDescriptor{
 			{
 				Name: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
@@ -130,7 +131,7 @@ func TestAppendSubjects(t *testing.T) {
 	},
 		{
 			name: "add a subject with same uri, one common digest and one different digest",
-			original: []intoto.Subject{
+			original: []*intoto.ResourceDescriptor{
 				{
 					Name: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 					Digest: common.DigestSet{
@@ -139,7 +140,7 @@ func TestAppendSubjects(t *testing.T) {
 					},
 				},
 			},
-			toAdd: []intoto.Subject{
+			toAdd: []*intoto.ResourceDescriptor{
 				{
 					Name: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 					Digest: common.DigestSet{
@@ -148,7 +149,7 @@ func TestAppendSubjects(t *testing.T) {
 					},
 				},
 			},
-			want: []intoto.Subject{
+			want: []*intoto.ResourceDescriptor{
 				{
 					Name: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 					Digest: common.DigestSet{
@@ -164,7 +165,7 @@ func TestAppendSubjects(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			got := AppendSubjects(tc.original, tc.toAdd...)
 
-			if diff := cmp.Diff(tc.want, got); diff != "" {
+			if diff := cmp.Diff(tc.want, got, cmp.Options{protocmp.Transform()}); diff != "" {
 				t.Errorf("materials(): -want +got: %s", diff)
 			}
 		})
@@ -312,7 +313,7 @@ func TestAppendMaterials(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			got := AppendMaterials(tc.original, tc.toAdd...)
 
-			if diff := cmp.Diff(tc.want, got); diff != "" {
+			if diff := cmp.Diff(tc.want, got, cmp.Options{protocmp.Transform()}); diff != "" {
 				t.Errorf("materials(): -want +got: %s", diff)
 			}
 		})

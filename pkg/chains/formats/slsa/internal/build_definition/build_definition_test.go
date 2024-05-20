@@ -18,12 +18,14 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
+	slsa "github.com/in-toto/attestation/go/predicates/provenance/v1"
 	externalparameters "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/external_parameters"
 	internalparameters "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/internal_parameters"
 	resolveddependencies "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/resolved_dependencies"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/internal/objectloader"
+	"google.golang.org/protobuf/testing/protocmp"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func TestGetBuildDefinition(t *testing.T) {
@@ -45,42 +47,43 @@ func TestGetBuildDefinition(t *testing.T) {
 	tests := []struct {
 		name      string
 		buildType string
-		want      slsa.ProvenanceBuildDefinition
+		want      slsa.BuildDefinition
 		err       error
 	}{
 		{
 			name:      "test slsa build type",
 			buildType: "https://tekton.dev/chains/v2/slsa",
-			want: slsa.ProvenanceBuildDefinition{
+			want: slsa.BuildDefinition{
 				BuildType:          "https://tekton.dev/chains/v2/slsa",
-				ExternalParameters: externalparameters.TaskRun(tro),
-				InternalParameters: internalparameters.SLSAInternalParameters(tro),
+				ExternalParameters: getProtoStruct(t, externalparameters.TaskRun(tro)),
+				InternalParameters: getProtoStruct(t, internalparameters.SLSAInternalParameters(tro)),
 			},
 			err: nil,
 		},
 		{
 			name:      "test default build type",
 			buildType: "",
-			want: slsa.ProvenanceBuildDefinition{
+			want: slsa.BuildDefinition{
 				BuildType:          "https://tekton.dev/chains/v2/slsa",
-				ExternalParameters: externalparameters.TaskRun(tro),
-				InternalParameters: internalparameters.SLSAInternalParameters(tro),
+				ExternalParameters: getProtoStruct(t, externalparameters.TaskRun(tro)),
+				InternalParameters: getProtoStruct(t, internalparameters.SLSAInternalParameters(tro)),
 			},
 			err: nil,
 		},
 		{
 			name:      "test tekton build type",
 			buildType: "https://tekton.dev/chains/v2/slsa-tekton",
-			want: slsa.ProvenanceBuildDefinition{
+			want: slsa.BuildDefinition{
 				BuildType:          "https://tekton.dev/chains/v2/slsa-tekton",
-				ExternalParameters: externalparameters.TaskRun(tro),
-				InternalParameters: internalparameters.TektonInternalParameters(tro),
+				ExternalParameters: getProtoStruct(t, externalparameters.TaskRun(tro)),
+				InternalParameters: getProtoStruct(t, internalparameters.TektonInternalParameters(tro)),
 			},
 			err: nil,
 		},
 	}
 
-	for _, tc := range tests {
+	for i := range tests {
+		tc := &tests[i]
 		t.Run(tc.name, func(t *testing.T) {
 			rd, err := resolveddependencies.TaskRun(ctx, resolveddependencies.ResolveOptions{}, tro)
 			if err != nil {
@@ -92,8 +95,8 @@ func TestGetBuildDefinition(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Did not expect an error but got %v", err)
 			}
-
-			if diff := cmp.Diff(tc.want, bd); diff != "" {
+			bd.ProtoReflect()
+			if diff := cmp.Diff(&tc.want, &bd, cmp.Options{protocmp.Transform()}); diff != "" {
 				t.Errorf("getBuildDefinition(): -want +got: %v", diff)
 			}
 		})
@@ -110,7 +113,17 @@ func TestUnsupportedBuildType(t *testing.T) {
 	if err == nil {
 		t.Error("getBuildDefinition(): expected error got nil")
 	}
-	if diff := cmp.Diff(slsa.ProvenanceBuildDefinition{}, got); diff != "" {
+	if diff := cmp.Diff(&slsa.BuildDefinition{}, &got, protocmp.Transform()); diff != "" {
 		t.Errorf("getBuildDefinition(): -want +got: %s", diff)
 	}
+}
+
+func getProtoStruct(t *testing.T, data map[string]any) *structpb.Struct {
+	t.Helper()
+	protoStruct, err := getStruct(data)
+	if err != nil {
+		t.Fatalf("error getting proto struct from data: %v", err)
+	}
+
+	return protoStruct
 }

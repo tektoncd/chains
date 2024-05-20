@@ -21,7 +21,7 @@ import (
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 
-	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
+	slsa "github.com/in-toto/attestation/go/v1"
 )
 
 var imageResultsNamesSuffixs = []string{
@@ -30,8 +30,8 @@ var imageResultsNamesSuffixs = []string{
 }
 
 // GetResultsWithoutBuildArtifacts returns all the results without those that are build artifacts.
-func GetResultsWithoutBuildArtifacts(results []objects.Result, resultTypePrefix string) ([]slsa.ResourceDescriptor, error) {
-	byProd := []slsa.ResourceDescriptor{}
+func GetResultsWithoutBuildArtifacts(results []objects.Result, resultTypePrefix string) ([]*slsa.ResourceDescriptor, error) {
+	byProd := []*slsa.ResourceDescriptor{}
 	for _, r := range results {
 		if isBuildArtifact, err := artifacts.IsBuildArtifact(r); err != nil || isBuildArtifact {
 			continue
@@ -46,7 +46,7 @@ func GetResultsWithoutBuildArtifacts(results []objects.Result, resultTypePrefix 
 			return nil, err
 		}
 
-		byProd = append(byProd, slsa.ResourceDescriptor{
+		byProd = append(byProd, &slsa.ResourceDescriptor{
 			Name:      fmt.Sprintf(resultTypePrefix, r.Name),
 			Content:   content,
 			MediaType: "application/json",

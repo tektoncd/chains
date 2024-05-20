@@ -42,7 +42,7 @@ type Slsa struct {
 }
 
 // NewFormatter returns a new v2alpha4 payloader.
-func NewFormatter(cfg config.Config) (formats.Payloader, error) {
+func NewFormatter(cfg config.Config) (formats.Payloader, error) { //nolint:ireturn
 	return &Slsa{
 		slsaConfig: &slsaconfig.SlsaConfig{
 			BuilderID:             cfg.Builder.ID,

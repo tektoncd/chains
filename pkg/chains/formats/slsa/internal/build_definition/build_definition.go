@@ -15,23 +15,30 @@ package builddefinition
 
 import (
 	"context"
+	"encoding/json"
 
-	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
+	slsa "github.com/in-toto/attestation/go/predicates/provenance/v1"
 	buildtypes "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/build_types"
 	externalparameters "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/external_parameters"
 	internalparameters "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/internal_parameters"
 	resolveddependencies "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/resolved_dependencies"
 	"github.com/tektoncd/chains/pkg/chains/objects"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // GetTaskRunBuildDefinition returns the buildDefinition for the given TaskRun based on the configured buildType. This will default to the slsa buildType
-func GetTaskRunBuildDefinition(ctx context.Context, tro *objects.TaskRunObjectV1, buildType string, resolveOpts resolveddependencies.ResolveOptions) (slsa.ProvenanceBuildDefinition, error) {
+func GetTaskRunBuildDefinition(ctx context.Context, tro *objects.TaskRunObjectV1, buildType string, resolveOpts resolveddependencies.ResolveOptions) (slsa.BuildDefinition, error) {
 	rd, err := resolveddependencies.TaskRun(ctx, resolveOpts, tro)
 	if err != nil {
-		return slsa.ProvenanceBuildDefinition{}, err
+		return slsa.BuildDefinition{}, err
 	}
 
 	externalParams := externalparameters.TaskRun(tro)
+	structExternalParams, err := getStruct(externalParams)
+	if err != nil {
+		return slsa.BuildDefinition{}, err
+	}
 
 	buildDefinitionType := buildType
 	if buildDefinitionType == "" {
@@ -40,13 +47,32 @@ func GetTaskRunBuildDefinition(ctx context.Context, tro *objects.TaskRunObjectV1
 
 	internalParams, err := internalparameters.GetInternalParamters(tro, buildDefinitionType)
 	if err != nil {
-		return slsa.ProvenanceBuildDefinition{}, err
+		return slsa.BuildDefinition{}, err
+	}
+	structInternalParams, err := getStruct(internalParams)
+	if err != nil {
+		return slsa.BuildDefinition{}, err
 	}
 
-	return slsa.ProvenanceBuildDefinition{
+	return slsa.BuildDefinition{
 		BuildType:            buildDefinitionType,
-		ExternalParameters:   externalParams,
-		InternalParameters:   internalParams,
+		ExternalParameters:   structExternalParams,
+		InternalParameters:   structInternalParams,
 		ResolvedDependencies: rd,
 	}, nil
+}
+
+func getStruct(data map[string]any) (*structpb.Struct, error) {
+	bytes, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+
+	protoStruct := &structpb.Struct{}
+	err = protojson.Unmarshal(bytes, protoStruct)
+	if err != nil {
+		return nil, err
+	}
+
+	return protoStruct, nil
 }

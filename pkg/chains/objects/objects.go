@@ -310,7 +310,7 @@ func (pro *PipelineRunObjectV1) AppendTaskRun(tr *v1.TaskRun) {
 }
 
 // Append TaskRuns to this PipelineRun
-func (pro *PipelineRunObjectV1) GetTaskRuns() []*v1.TaskRun { //nolint:staticcheck
+func (pro *PipelineRunObjectV1) GetTaskRuns() []*v1.TaskRun {
 	return pro.taskRuns
 }
 

@@ -74,7 +74,8 @@ func PipelineMaterials(ctx context.Context, pro *objects.PipelineRunObjectV1Beta
 	}
 	pSpec := pro.Status.PipelineSpec
 	if pSpec != nil {
-		pipelineTasks := append(pSpec.Tasks, pSpec.Finally...)
+		pipelineTasks := pSpec.Tasks
+		pipelineTasks = append(pipelineTasks, pSpec.Finally...)
 		for _, t := range pipelineTasks {
 			tr := pro.GetTaskRunFromTask(t.Name)
 			// Ignore Tasks that did not execute during the PipelineRun.
@@ -269,7 +270,8 @@ func FromPipelineParamsAndResults(ctx context.Context, pro *objects.PipelineRunO
 		// search type hinting param/results from each individual taskruns
 		if slsaconfig.DeepInspectionEnabled {
 			logger := logging.FromContext(ctx)
-			pipelineTasks := append(pSpec.Tasks, pSpec.Finally...)
+			pipelineTasks := pSpec.Tasks
+			pipelineTasks = append(pipelineTasks, pSpec.Finally...)
 			for _, t := range pipelineTasks {
 				tr := pro.GetTaskRunFromTask(t.Name)
 				// Ignore Tasks that did not execute during the PipelineRun.

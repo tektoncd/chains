@@ -14,30 +14,52 @@ limitations under the License.
 package provenance
 
 import (
-	intoto "github.com/in-toto/in-toto-golang/in_toto"
-	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
+	slsa "github.com/in-toto/attestation/go/predicates/provenance/v1"
+	intoto "github.com/in-toto/attestation/go/v1"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/metadata"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/objects"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // GetSLSA1Statement returns a predicate in SLSA v1.0 format using the given data.
-func GetSLSA1Statement(obj objects.TektonObject, sub []intoto.Subject, bd slsa.ProvenanceBuildDefinition, bp []slsa.ResourceDescriptor, slsaConfig *slsaconfig.SlsaConfig) intoto.ProvenanceStatementSLSA1 {
-	return intoto.ProvenanceStatementSLSA1{
-		StatementHeader: intoto.StatementHeader{
-			Type:          intoto.StatementInTotoV01,
-			PredicateType: slsa.PredicateSLSAProvenance,
-			Subject:       sub,
-		},
-		Predicate: slsa.ProvenancePredicate{
-			BuildDefinition: bd,
-			RunDetails: slsa.ProvenanceRunDetails{
-				Builder: slsa.Builder{
-					ID: slsaConfig.BuilderID,
-				},
-				BuildMetadata: metadata.GetBuildMetadata(obj),
-				Byproducts:    bp,
+func GetSLSA1Statement(obj objects.TektonObject, sub []*intoto.ResourceDescriptor, bd *slsa.BuildDefinition, bp []*intoto.ResourceDescriptor, slsaConfig *slsaconfig.SlsaConfig) (intoto.Statement, error) {
+	predicate := slsa.Provenance{
+		BuildDefinition: bd,
+		RunDetails: &slsa.RunDetails{
+			Builder: &slsa.Builder{
+				Id: slsaConfig.BuilderID,
 			},
+			Metadata:   metadata.GetBuildMetadata(obj),
+			Byproducts: bp,
 		},
 	}
+
+	predicateStruct, err := getProtoStruct(&predicate)
+	if err != nil {
+		return intoto.Statement{}, err
+	}
+
+	return intoto.Statement{
+		Type:          intoto.StatementTypeUri,
+		PredicateType: "https://slsa.dev/provenance/v1",
+		Subject:       sub,
+		Predicate:     predicateStruct,
+	}, nil
+}
+
+func getProtoStruct(predicate *slsa.Provenance) (*structpb.Struct, error) {
+	protoStruct := &structpb.Struct{}
+	predicateJSON, err := protojson.Marshal(predicate)
+	if err != nil {
+		return nil, err
+	}
+
+	err = protojson.Unmarshal(predicateJSON, protoStruct)
+	if err != nil {
+		return nil, err
+	}
+
+	return protoStruct, nil
 }

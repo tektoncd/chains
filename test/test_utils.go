@@ -130,6 +130,7 @@ var simpleTaskRun = v1.TaskRun{
 
 func makeBucket(t *testing.T, client *storage.Client) (string, func()) {
 	// Make a bucket
+	t.Helper()
 	rand.Seed(time.Now().UnixNano())
 	testBucketName := fmt.Sprintf("tekton-chains-e2e-%d", rand.Intn(1000))
 
@@ -161,6 +162,7 @@ func makeBucket(t *testing.T, client *storage.Client) (string, func()) {
 }
 
 func readObj(t *testing.T, bucket, name string, client *storage.Client) io.Reader {
+	t.Helper()
 	ctx := context.Background()
 	reader, err := client.Bucket(bucket).Object(name).NewReader(ctx)
 	if err != nil {
@@ -170,6 +172,7 @@ func readObj(t *testing.T, bucket, name string, client *storage.Client) io.Reade
 }
 
 func setConfigMap(ctx context.Context, t *testing.T, c *clients, data map[string]string) func() {
+	t.Helper()
 	// Change the config to be GCS storage with this bucket.
 	// Note(rgreinho): This comment does not look right...
 	clean := updateConfigMap(ctx, t, c, data, namespace, "chains-config")
@@ -183,6 +186,7 @@ func setConfigMap(ctx context.Context, t *testing.T, c *clients, data map[string
 }
 
 func setupPipelinesFeatureFlags(ctx context.Context, t *testing.T, c *clients, data map[string]string) func() {
+	t.Helper()
 	pipelinesNs := "tekton-pipelines"
 
 	clean := updateConfigMap(ctx, t, c, data, pipelinesNs, "feature-flags")
@@ -196,6 +200,7 @@ func setupPipelinesFeatureFlags(ctx context.Context, t *testing.T, c *clients, d
 }
 
 func updateConfigMap(ctx context.Context, t *testing.T, c *clients, data map[string]string, ns, configMapName string) func() {
+	t.Helper()
 	cm, err := c.KubeClient.CoreV1().ConfigMaps(ns).Get(ctx, configMapName, metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
@@ -233,6 +238,7 @@ func updateConfigMap(ctx context.Context, t *testing.T, c *clients, data map[str
 }
 
 func printDebugging(t *testing.T, obj objects.TektonObject) {
+	t.Helper()
 	kind := obj.GetObjectKind().GroupVersionKind().Kind
 
 	t.Logf("============================== %s logs ==============================", obj.GetGVK())
@@ -249,6 +255,7 @@ func printDebugging(t *testing.T, obj objects.TektonObject) {
 }
 
 func verifySignature(ctx context.Context, t *testing.T, c *clients, obj objects.TektonObject) {
+	t.Helper()
 	// Retrieve the configuration.
 	chainsConfig, err := c.KubeClient.CoreV1().ConfigMaps(namespace).Get(ctx, "chains-config", metav1.GetOptions{})
 	if err != nil {

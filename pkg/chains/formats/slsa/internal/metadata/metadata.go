@@ -14,15 +14,29 @@ limitations under the License.
 package metadata
 
 import (
-	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
+	slsa "github.com/in-toto/attestation/go/predicates/provenance/v1"
 	"github.com/tektoncd/chains/pkg/chains/objects"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // GetBuildMetadata returns SLSA metadata.
-func GetBuildMetadata(obj objects.TektonObject) slsa.BuildMetadata {
-	return slsa.BuildMetadata{
-		InvocationID: string(obj.GetUID()),
-		StartedOn:    obj.GetStartTime(),
-		FinishedOn:   obj.GetCompletitionTime(),
+func GetBuildMetadata(obj objects.TektonObject) *slsa.BuildMetadata {
+	var startedOn *timestamppb.Timestamp
+	var finishedOn *timestamppb.Timestamp
+	objStartTime := obj.GetStartTime()
+	objCompletitionTime := obj.GetCompletitionTime()
+
+	if objStartTime != nil {
+		startedOn = timestamppb.New(*objStartTime)
+	}
+
+	if objCompletitionTime != nil {
+		finishedOn = timestamppb.New(*objCompletitionTime)
+	}
+
+	return &slsa.BuildMetadata{
+		InvocationId: string(obj.GetUID()),
+		StartedOn:    startedOn,
+		FinishedOn:   finishedOn,
 	}
 }

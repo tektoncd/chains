@@ -17,9 +17,8 @@ package compare
 import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/in-toto/in-toto-golang/in_toto"
+	intoto "github.com/in-toto/attestation/go/v1"
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
-	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
 )
 
 // SLSAV1CompareOptions returns the comparison options for sorting some slice fields in
@@ -28,12 +27,12 @@ func SLSAV1CompareOptions() []cmp.Option {
 	// checking content + uri + digest should be sufficient here based on the fact that
 	// a ResourceDescriptor MUST specify one of uri, digest or content at a minimum.
 	// Source: https://github.com/in-toto/attestation/blob/main/spec/v1/resource_descriptor.md#fields
-	resourceDescriptorSort := func(x, y slsa.ResourceDescriptor) bool {
+	resourceDescriptorSort := func(x, y *intoto.ResourceDescriptor) bool {
 		if string(x.Content) != string(y.Content) {
 			return string(x.Content) < string(y.Content)
 		}
-		if x.URI != y.URI {
-			return x.URI < y.URI
+		if x.Uri != y.Uri {
+			return x.Uri < y.Uri
 		}
 		return lessDigestSet(x.Digest, y.Digest)
 	}
@@ -47,7 +46,7 @@ func SLSAV1CompareOptions() []cmp.Option {
 // SubjectCompareOption returns the comparison option to sort and compare a
 // list of Subjects.
 func SubjectCompareOption() cmp.Option {
-	subjectSort := func(x, y in_toto.Subject) bool {
+	subjectSort := func(x, y *intoto.ResourceDescriptor) bool {
 		if x.Name != y.Name {
 			return x.Name < y.Name
 		}

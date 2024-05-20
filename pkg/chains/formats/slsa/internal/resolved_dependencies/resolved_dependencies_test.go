@@ -22,8 +22,8 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	intoto "github.com/in-toto/attestation/go/v1"
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
-	v1slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
 	"github.com/tektoncd/chains/internal/backport"
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
@@ -32,6 +32,7 @@ import (
 	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
+	"google.golang.org/protobuf/testing/protocmp"
 	logtesting "knative.dev/pkg/logging/testing"
 )
 
@@ -40,41 +41,41 @@ const digest = "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812ad
 func TestRemoveDuplicates(t *testing.T) {
 	tests := []struct {
 		name string
-		rds  []v1slsa.ResourceDescriptor
-		want []v1slsa.ResourceDescriptor
+		rds  []*intoto.ResourceDescriptor
+		want []*intoto.ResourceDescriptor
 	}{{
 		name: "no duplicate resolvedDependencies",
-		rds: []v1slsa.ResourceDescriptor{
+		rds: []*intoto.ResourceDescriptor{
 			{
-				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+				Uri: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
 			}, {
-				URI: "oci://gcr.io/cloud-marketplace-containers/google/bazel",
+				Uri: "oci://gcr.io/cloud-marketplace-containers/google/bazel",
 				Digest: common.DigestSet{
 					"sha256": "010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
 				},
 			}, {
-				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/sidecar-git-init",
+				Uri: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/sidecar-git-init",
 				Digest: common.DigestSet{
 					"sha256": "a1234f6e7a69617db57b685893256f978436277094c21d43b153994acd8a09567",
 				},
 			},
 		},
-		want: []v1slsa.ResourceDescriptor{
+		want: []*intoto.ResourceDescriptor{
 			{
-				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+				Uri: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
 			}, {
-				URI: "oci://gcr.io/cloud-marketplace-containers/google/bazel",
+				Uri: "oci://gcr.io/cloud-marketplace-containers/google/bazel",
 				Digest: common.DigestSet{
 					"sha256": "010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
 				},
 			}, {
-				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/sidecar-git-init",
+				Uri: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/sidecar-git-init",
 				Digest: common.DigestSet{
 					"sha256": "a1234f6e7a69617db57b685893256f978436277094c21d43b153994acd8a09567",
 				},
@@ -82,22 +83,22 @@ func TestRemoveDuplicates(t *testing.T) {
 		},
 	}, {
 		name: "same uri and digest",
-		rds: []v1slsa.ResourceDescriptor{
+		rds: []*intoto.ResourceDescriptor{
 			{
-				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+				Uri: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
 			}, {
-				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+				Uri: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
 			},
 		},
-		want: []v1slsa.ResourceDescriptor{
+		want: []*intoto.ResourceDescriptor{
 			{
-				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+				Uri: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
@@ -105,27 +106,27 @@ func TestRemoveDuplicates(t *testing.T) {
 		},
 	}, {
 		name: "same uri but different digest",
-		rds: []v1slsa.ResourceDescriptor{
+		rds: []*intoto.ResourceDescriptor{
 			{
-				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+				Uri: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
 			}, {
-				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+				Uri: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01248",
 				},
 			},
 		},
-		want: []v1slsa.ResourceDescriptor{
+		want: []*intoto.ResourceDescriptor{
 			{
-				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+				Uri: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
 			}, {
-				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+				Uri: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01248",
 				},
@@ -133,27 +134,27 @@ func TestRemoveDuplicates(t *testing.T) {
 		},
 	}, {
 		name: "same uri but different digest, swap order",
-		rds: []v1slsa.ResourceDescriptor{
+		rds: []*intoto.ResourceDescriptor{
 			{
-				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+				Uri: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01248",
 				},
 			}, {
-				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+				Uri: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
 			},
 		},
-		want: []v1slsa.ResourceDescriptor{
+		want: []*intoto.ResourceDescriptor{
 			{
-				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+				Uri: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01248",
 				},
 			}, {
-				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+				Uri: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
@@ -161,39 +162,39 @@ func TestRemoveDuplicates(t *testing.T) {
 		},
 	}, {
 		name: "task config must be present",
-		rds: []v1slsa.ResourceDescriptor{
+		rds: []*intoto.ResourceDescriptor{
 			{
-				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+				Uri: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01248",
 				},
 			}, {
-				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+				Uri: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
 			}, {
 				Name: "task",
-				URI:  "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+				Uri:  "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
 			},
 		},
-		want: []v1slsa.ResourceDescriptor{
+		want: []*intoto.ResourceDescriptor{
 			{
-				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+				Uri: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01248",
 				},
 			}, {
-				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+				Uri: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
 			}, {
 				Name: "task",
-				URI:  "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+				Uri:  "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
@@ -201,39 +202,39 @@ func TestRemoveDuplicates(t *testing.T) {
 		},
 	}, {
 		name: "pipeline config must be present",
-		rds: []v1slsa.ResourceDescriptor{
+		rds: []*intoto.ResourceDescriptor{
 			{
-				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+				Uri: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01248",
 				},
 			}, {
-				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+				Uri: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
 			}, {
 				Name: "pipeline",
-				URI:  "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+				Uri:  "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
 			},
 		},
-		want: []v1slsa.ResourceDescriptor{
+		want: []*intoto.ResourceDescriptor{
 			{
-				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+				Uri: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01248",
 				},
 			}, {
-				URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+				Uri: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
 			}, {
 				Name: "pipeline",
-				URI:  "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+				Uri:  "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 				Digest: common.DigestSet{
 					"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 				},
@@ -246,7 +247,7 @@ func TestRemoveDuplicates(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Did not expect an error but got %v", err)
 			}
-			if diff := cmp.Diff(tc.want, rds); diff != "" {
+			if diff := cmp.Diff(tc.want, rds, cmp.Options{protocmp.Transform()}); diff != "" {
 				t.Errorf("resolvedDependencies(): -want +got: %s", diff)
 			}
 		})
@@ -302,9 +303,9 @@ func tektonTaskRuns() map[string][]byte {
 func TestTaskRun(t *testing.T) {
 	tests := []struct {
 		name        string
-		obj         objects.TektonObject //nolint:staticcheck
+		obj         objects.TektonObject
 		resolveOpts ResolveOptions
-		want        []v1slsa.ResourceDescriptor
+		want        []*intoto.ResourceDescriptor
 	}{
 		{
 			name: "resolvedDependencies from pipeline resources",
@@ -355,17 +356,17 @@ func TestTaskRun(t *testing.T) {
 					},
 				},
 			}),
-			want: []v1slsa.ResourceDescriptor{
+			want: []*intoto.ResourceDescriptor{
 				{
 					Name: "inputs/result",
-					URI:  "gcr.io/foo/bar",
+					Uri:  "gcr.io/foo/bar",
 					Digest: common.DigestSet{
 						"sha256": strings.TrimPrefix(digest, "sha256:"),
 					},
 				},
 				{
 					Name: "pipelineResource",
-					URI:  "git+https://github.com/GoogleContainerTools/distroless.git",
+					Uri:  "git+https://github.com/GoogleContainerTools/distroless.git",
 					Digest: common.DigestSet{
 						"sha1": "50c56a48cfb3a5a80fa36ed91c739bdac8381cbe",
 					},
@@ -374,7 +375,7 @@ func TestTaskRun(t *testing.T) {
 		},
 		{
 			name: "resolvedDependencies from remote task",
-			obj: objects.NewTaskRunObjectV1(&v1.TaskRun{ //nolint:staticcheck
+			obj: objects.NewTaskRunObjectV1(&v1.TaskRun{
 				Status: v1.TaskRunStatus{
 					TaskRunStatusFields: v1.TaskRunStatusFields{
 						Provenance: &v1.Provenance{
@@ -388,10 +389,10 @@ func TestTaskRun(t *testing.T) {
 					},
 				},
 			}),
-			want: []v1slsa.ResourceDescriptor{
+			want: []*intoto.ResourceDescriptor{
 				{
 					Name: "task",
-					URI:  "git+github.com/something.git",
+					Uri:  "git+github.com/something.git",
 					Digest: common.DigestSet{
 						"sha1": "abcd1234",
 					},
@@ -400,7 +401,7 @@ func TestTaskRun(t *testing.T) {
 		},
 		{
 			name: "git resolvedDependencies from taskrun params",
-			obj: objects.NewTaskRunObjectV1(&v1.TaskRun{ //nolint:staticcheck
+			obj: objects.NewTaskRunObjectV1(&v1.TaskRun{
 				Spec: v1.TaskRunSpec{
 					Params: []v1.Param{{
 						Name:  "CHAINS-GIT_COMMIT",
@@ -411,10 +412,10 @@ func TestTaskRun(t *testing.T) {
 					}},
 				},
 			}),
-			want: []v1slsa.ResourceDescriptor{
+			want: []*intoto.ResourceDescriptor{
 				{
 					Name: "inputs/result",
-					URI:  "git+github.com/something.git",
+					Uri:  "git+github.com/something.git",
 					Digest: common.DigestSet{
 						"sha1": "my-commit",
 					},
@@ -423,7 +424,7 @@ func TestTaskRun(t *testing.T) {
 		},
 		{
 			name: "resolvedDependencies from step images",
-			obj: objects.NewTaskRunObjectV1(&v1.TaskRun{ //nolint:staticcheck
+			obj: objects.NewTaskRunObjectV1(&v1.TaskRun{
 				Status: v1.TaskRunStatus{
 					TaskRunStatusFields: v1.TaskRunStatusFields{
 						Steps: []v1.StepState{{
@@ -439,15 +440,15 @@ func TestTaskRun(t *testing.T) {
 					},
 				},
 			}),
-			want: []v1slsa.ResourceDescriptor{
+			want: []*intoto.ResourceDescriptor{
 				{
-					URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+					Uri: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 					Digest: common.DigestSet{
 						"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 					},
 				},
 				{
-					URI: "oci://gcr.io/cloud-marketplace-containers/google/bazel",
+					Uri: "oci://gcr.io/cloud-marketplace-containers/google/bazel",
 					Digest: common.DigestSet{
 						"sha256": "010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
 					},
@@ -456,7 +457,7 @@ func TestTaskRun(t *testing.T) {
 		},
 		{
 			name: "resolvedDependencies from step and sidecar images",
-			obj: objects.NewTaskRunObjectV1(&v1.TaskRun{ //nolint:staticcheck
+			obj: objects.NewTaskRunObjectV1(&v1.TaskRun{
 				Status: v1.TaskRunStatus{
 					TaskRunStatusFields: v1.TaskRunStatusFields{
 						Steps: []v1.StepState{{
@@ -482,19 +483,19 @@ func TestTaskRun(t *testing.T) {
 					},
 				},
 			}),
-			want: []v1slsa.ResourceDescriptor{
+			want: []*intoto.ResourceDescriptor{
 				{
-					URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+					Uri: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 					Digest: common.DigestSet{
 						"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 					},
 				}, {
-					URI: "oci://gcr.io/cloud-marketplace-containers/google/bazel",
+					Uri: "oci://gcr.io/cloud-marketplace-containers/google/bazel",
 					Digest: common.DigestSet{
 						"sha256": "010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
 					},
 				}, {
-					URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/sidecar-git-init",
+					Uri: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/sidecar-git-init",
 					Digest: common.DigestSet{
 						"sha256": "a1234f6e7a69617db57b685893256f978436277094c21d43b153994acd8a09567",
 					},
@@ -506,7 +507,7 @@ func TestTaskRun(t *testing.T) {
 			resolveOpts: ResolveOptions{
 				WithStepActionsResults: true,
 			},
-			obj: objects.NewTaskRunObjectV1(&v1.TaskRun{ //nolint:staticcheck
+			obj: objects.NewTaskRunObjectV1(&v1.TaskRun{
 				Status: v1.TaskRunStatus{
 					TaskRunStatusFields: v1.TaskRunStatusFields{
 						Steps: []v1.StepState{{
@@ -532,25 +533,25 @@ func TestTaskRun(t *testing.T) {
 					},
 				},
 			}),
-			want: []v1slsa.ResourceDescriptor{
+			want: []*intoto.ResourceDescriptor{
 				{
-					URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+					Uri: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 					Digest: common.DigestSet{
 						"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 					},
 				}, {
-					URI: "oci://gcr.io/cloud-marketplace-containers/google/bazel",
+					Uri: "oci://gcr.io/cloud-marketplace-containers/google/bazel",
 					Digest: common.DigestSet{
 						"sha256": "010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
 					},
 				}, {
-					URI: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/sidecar-git-init",
+					Uri: "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/sidecar-git-init",
 					Digest: common.DigestSet{
 						"sha256": "a1234f6e7a69617db57b685893256f978436277094c21d43b153994acd8a09567",
 					},
 				}, {
 					Name: "inputs/result",
-					URI:  "https://github.com/tektoncd/pipeline",
+					Uri:  "https://github.com/tektoncd/pipeline",
 					Digest: common.DigestSet{
 						"sha1": "7f2f46e1b97df36b2b82d1b1d87c81b8b3d21601",
 					},
@@ -585,7 +586,7 @@ func TestTaskRun(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Did not expect an error but got %v", err)
 			}
-			if diff := cmp.Diff(tc.want, rd); diff != "" {
+			if diff := cmp.Diff(tc.want, rd, cmp.Options{protocmp.Transform()}); diff != "" {
 				t.Errorf("ResolvedDependencies(): -want +got: %s", diff)
 			}
 		})
@@ -597,52 +598,52 @@ func TestPipelineRun(t *testing.T) {
 	tests := []struct {
 		name           string
 		taskDescriptor addTaskDescriptorContent
-		want           []v1slsa.ResourceDescriptor
+		want           []*intoto.ResourceDescriptor
 	}{
 		{
 			name:           "test slsa build type",
 			taskDescriptor: AddSLSATaskDescriptor,
-			want: []v1slsa.ResourceDescriptor{
-				{Name: "pipeline", URI: "git+https://github.com/test", Digest: common.DigestSet{"sha1": "28b123"}},
-				{Name: "pipelineTask", URI: "git+https://github.com/catalog", Digest: common.DigestSet{"sha1": "x123"}},
+			want: []*intoto.ResourceDescriptor{
+				{Name: "pipeline", Uri: "git+https://github.com/test", Digest: common.DigestSet{"sha1": "28b123"}},
+				{Name: "pipelineTask", Uri: "git+https://github.com/catalog", Digest: common.DigestSet{"sha1": "x123"}},
 				{
-					URI:    "oci://gcr.io/test1/test1",
+					Uri:    "oci://gcr.io/test1/test1",
 					Digest: common.DigestSet{"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"},
 				},
-				{Name: "pipelineTask", URI: "git+https://github.com/test", Digest: common.DigestSet{"sha1": "ab123"}},
+				{Name: "pipelineTask", Uri: "git+https://github.com/test", Digest: common.DigestSet{"sha1": "ab123"}},
 				{
-					URI:    "oci://gcr.io/test2/test2",
+					Uri:    "oci://gcr.io/test2/test2",
 					Digest: common.DigestSet{"sha256": "4d6dd704ef58cb214dd826519929e92a978a57cdee43693006139c0080fd6fac"},
 				},
 				{
-					URI:    "oci://gcr.io/test3/test3",
+					Uri:    "oci://gcr.io/test3/test3",
 					Digest: common.DigestSet{"sha256": "f1a8b8549c179f41e27ff3db0fe1a1793e4b109da46586501a8343637b1d0478"},
 				},
-				{Name: "inputs/result", URI: "abc", Digest: common.DigestSet{"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"}},
-				{Name: "inputs/result", URI: "git+https://git.test.com.git", Digest: common.DigestSet{"sha1": "abcd"}},
+				{Name: "inputs/result", Uri: "abc", Digest: common.DigestSet{"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"}},
+				{Name: "inputs/result", Uri: "git+https://git.test.com.git", Digest: common.DigestSet{"sha1": "abcd"}},
 			},
 		},
 		{
 			name:           "test tekton build type",
 			taskDescriptor: AddTektonTaskDescriptor,
-			want: []v1slsa.ResourceDescriptor{
-				{Name: "pipeline", URI: "git+https://github.com/test", Digest: common.DigestSet{"sha1": "28b123"}},
-				{Name: "pipelineTask", URI: "git+https://github.com/catalog", Digest: common.DigestSet{"sha1": "x123"}, Content: taskRuns["git-clone"]},
+			want: []*intoto.ResourceDescriptor{
+				{Name: "pipeline", Uri: "git+https://github.com/test", Digest: common.DigestSet{"sha1": "28b123"}},
+				{Name: "pipelineTask", Uri: "git+https://github.com/catalog", Digest: common.DigestSet{"sha1": "x123"}, Content: taskRuns["git-clone"]},
 				{
-					URI:    "oci://gcr.io/test1/test1",
+					Uri:    "oci://gcr.io/test1/test1",
 					Digest: common.DigestSet{"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"},
 				},
-				{Name: "pipelineTask", URI: "git+https://github.com/test", Digest: common.DigestSet{"sha1": "ab123"}, Content: taskRuns["taskrun-build"]},
+				{Name: "pipelineTask", Uri: "git+https://github.com/test", Digest: common.DigestSet{"sha1": "ab123"}, Content: taskRuns["taskrun-build"]},
 				{
-					URI:    "oci://gcr.io/test2/test2",
+					Uri:    "oci://gcr.io/test2/test2",
 					Digest: common.DigestSet{"sha256": "4d6dd704ef58cb214dd826519929e92a978a57cdee43693006139c0080fd6fac"},
 				},
 				{
-					URI:    "oci://gcr.io/test3/test3",
+					Uri:    "oci://gcr.io/test3/test3",
 					Digest: common.DigestSet{"sha256": "f1a8b8549c179f41e27ff3db0fe1a1793e4b109da46586501a8343637b1d0478"},
 				},
-				{Name: "inputs/result", URI: "abc", Digest: common.DigestSet{"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"}},
-				{Name: "inputs/result", URI: "git+https://git.test.com.git", Digest: common.DigestSet{"sha1": "abcd"}},
+				{Name: "inputs/result", Uri: "abc", Digest: common.DigestSet{"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"}},
+				{Name: "inputs/result", Uri: "git+https://git.test.com.git", Digest: common.DigestSet{"sha1": "abcd"}},
 			},
 		},
 	}
@@ -655,7 +656,7 @@ func TestPipelineRun(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			if d := cmp.Diff(tc.want, got); d != "" {
+			if d := cmp.Diff(tc.want, got, cmp.Options{protocmp.Transform()}); d != "" {
 				t.Errorf("PipelineRunResolvedDependencies(): -want +got: %s", got)
 			}
 		})

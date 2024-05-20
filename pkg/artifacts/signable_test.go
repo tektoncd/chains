@@ -46,7 +46,6 @@ const (
 var ignore = []cmp.Option{cmpopts.IgnoreUnexported(name.Registry{}, name.Repository{}, name.Digest{})}
 
 func TestOCIArtifact_ExtractObjects(t *testing.T) {
-
 	tests := []struct {
 		name string
 		obj  objects.TektonObject
@@ -808,6 +807,7 @@ func TestExtractBuildArtifactsFromResults(t *testing.T) {
 }
 
 func createDigest(t *testing.T, dgst string) name.Digest {
+	t.Helper()
 	result, err := name.NewDigest(dgst)
 	if err != nil {
 		t.Fatal(err)

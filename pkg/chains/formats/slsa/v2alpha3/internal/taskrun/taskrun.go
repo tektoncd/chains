@@ -18,7 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
+	intoto "github.com/in-toto/attestation/go/v1"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
 	builddefinition "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/build_definition"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/provenance"
@@ -43,23 +43,23 @@ func GenerateAttestation(ctx context.Context, tro *objects.TaskRunObjectV1, slsa
 
 	sub := extract.SubjectDigests(ctx, tro, slsaConfig)
 
-	return provenance.GetSLSA1Statement(tro, sub, bd, bp, slsaConfig), nil
+	return provenance.GetSLSA1Statement(tro, sub, &bd, bp, slsaConfig)
 }
 
 // byproducts contains the taskRunResults
-func byproducts(tro *objects.TaskRunObjectV1) ([]slsa.ResourceDescriptor, error) {
-	byProd := []slsa.ResourceDescriptor{}
+func byproducts(tro *objects.TaskRunObjectV1) ([]*intoto.ResourceDescriptor, error) {
+	byProd := []*intoto.ResourceDescriptor{}
 	for _, key := range tro.Status.Results {
 		content, err := json.Marshal(key.Value)
 		if err != nil {
 			return nil, err
 		}
-		bp := slsa.ResourceDescriptor{
+		bp := intoto.ResourceDescriptor{
 			Name:      fmt.Sprintf(taskRunResults, key.Name),
 			Content:   content,
 			MediaType: "application/json",
 		}
-		byProd = append(byProd, bp)
+		byProd = append(byProd, &bp)
 	}
 	return byProd, nil
 }

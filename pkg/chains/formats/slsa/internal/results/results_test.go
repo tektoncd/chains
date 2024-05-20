@@ -18,9 +18,10 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
+	slsa "github.com/in-toto/attestation/go/v1"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
+	"google.golang.org/protobuf/testing/protocmp"
 )
 
 func TestGetResultsWithoutBuildArtifacts(t *testing.T) {
@@ -28,11 +29,11 @@ func TestGetResultsWithoutBuildArtifacts(t *testing.T) {
 		name     string
 		prefix   string
 		results  []objects.Result
-		expected []slsa.ResourceDescriptor
+		expected []*slsa.ResourceDescriptor
 	}{
 		{
 			name:     "no results as input",
-			expected: []slsa.ResourceDescriptor{},
+			expected: []*slsa.ResourceDescriptor{},
 		},
 		{
 			name:   "results without build artifacts",
@@ -121,7 +122,7 @@ func TestGetResultsWithoutBuildArtifacts(t *testing.T) {
 					},
 				},
 			},
-			expected: []slsa.ResourceDescriptor{
+			expected: []*slsa.ResourceDescriptor{
 				{
 					Name:      "taskRunResults/result1",
 					MediaType: "application/json",
@@ -181,7 +182,7 @@ func TestGetResultsWithoutBuildArtifacts(t *testing.T) {
 				t.Fatalf("Unexpected error: %v", err)
 			}
 
-			if d := cmp.Diff(test.expected, got); d != "" {
+			if d := cmp.Diff(test.expected, got, cmp.Options{protocmp.Transform()}); d != "" {
 				t.Fatalf("metadata (-want, +got):\n%s", d)
 			}
 		})
@@ -189,6 +190,7 @@ func TestGetResultsWithoutBuildArtifacts(t *testing.T) {
 }
 
 func toJSONString(t *testing.T, val v1.ParamValue) []byte {
+	t.Helper()
 	res, err := json.Marshal(val)
 	if err != nil {
 		t.Fatalf("error converting to json string: %v", err)

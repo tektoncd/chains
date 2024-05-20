@@ -23,7 +23,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	intoto "github.com/in-toto/in-toto-golang/in_toto"
+	intoto "github.com/in-toto/attestation/go/v1"
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/tektoncd/chains/pkg/chains/formats"
@@ -34,7 +34,9 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/testing/protocmp"
+	"google.golang.org/protobuf/types/known/structpb"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -83,14 +85,12 @@ var (
 	}
 
 	// clone taskrun provenance
-	cloneTaskRunProvenance = intoto.ProvenanceStatement{
-		Predicate: slsa.ProvenancePredicate{
-			Materials: []common.ProvenanceMaterial{
-				{
-					URI: repoURL,
-					Digest: common.DigestSet{
-						"sha1": commitSHA,
-					},
+	cloneTaskRunPredicate = slsa.ProvenancePredicate{
+		Materials: []common.ProvenanceMaterial{
+			{
+				URI: repoURL,
+				Digest: common.DigestSet{
+					"sha1": commitSHA,
 				},
 			},
 		},
@@ -119,20 +119,18 @@ var (
 	}
 
 	// artifact built taskrun provenance
-	buildTaskRunProvenance = intoto.ProvenanceStatement{
-		StatementHeader: intoto.StatementHeader{
-			Subject: []intoto.Subject{
-				{
-					Name: artifactURL1,
-					Digest: common.DigestSet{
-						"sha256": artifactDigest1,
-					},
+	buildTaskRunProvenance = intoto.Statement{
+		Subject: []*intoto.ResourceDescriptor{
+			{
+				Name: artifactURL1,
+				Digest: common.DigestSet{
+					"sha256": artifactDigest1,
 				},
-				{
-					Name: artifactURL2,
-					Digest: common.DigestSet{
-						"sha256": artifactDigest2,
-					},
+			},
+			{
+				Name: artifactURL2,
+				Digest: common.DigestSet{
+					"sha256": artifactDigest2,
 				},
 			},
 		},
@@ -162,11 +160,8 @@ var (
 	}
 
 	// ci pipelinerun provenance
-	ciPipelineRunProvenance = intoto.ProvenanceStatement{
-		StatementHeader: buildTaskRunProvenance.StatementHeader,
-		Predicate: slsa.ProvenancePredicate{
-			Materials: cloneTaskRunProvenance.Predicate.Materials,
-		},
+	ciPipelineRunPredicate = slsa.ProvenancePredicate{
+		Materials: cloneTaskRunPredicate.Materials,
 	}
 )
 
@@ -257,6 +252,15 @@ func TestBackend_ListOccurrences(t *testing.T) {
 // - if the StorePayload function can create correct occurrences and store them into grafeas server
 // - if the RetrievePayloads and RetrieveSignatures functions work properly to fetch correct payloads and signatures
 func TestGrafeasBackend_StoreAndRetrieve(t *testing.T) {
+	cloneTaskRunProvenance := intoto.Statement{
+		Predicate: getPredicateStruct(t, &cloneTaskRunPredicate),
+	}
+
+	ciPipelineRunProvenance := intoto.Statement{
+		Subject:   buildTaskRunProvenance.Subject,
+		Predicate: getPredicateStruct(t, &ciPipelineRunPredicate),
+	}
+
 	tests := []testConfig{
 		{
 			name: "intoto for clone taskrun, no error, no occurrences created because no artifacts were built.",
@@ -264,7 +268,7 @@ func TestGrafeasBackend_StoreAndRetrieve(t *testing.T) {
 				runObject: &objects.TaskRunObjectV1Beta1{
 					TaskRun: cloneTaskRun,
 				},
-				payload:   getRawPayload(t, cloneTaskRunProvenance),
+				payload:   getRawPayload(t, &cloneTaskRunProvenance),
 				signature: "clone taskrun signatures",
 				opts:      config.StorageOpts{PayloadFormat: formats.PayloadTypeSlsav1},
 			},
@@ -277,7 +281,7 @@ func TestGrafeasBackend_StoreAndRetrieve(t *testing.T) {
 				runObject: &objects.TaskRunObjectV1Beta1{
 					TaskRun: buildTaskRun,
 				},
-				payload:   getRawPayload(t, buildTaskRunProvenance),
+				payload:   getRawPayload(t, &buildTaskRunProvenance),
 				signature: "build taskrun signature",
 				opts:      config.StorageOpts{PayloadFormat: formats.PayloadTypeSlsav1},
 			},
@@ -298,12 +302,12 @@ func TestGrafeasBackend_StoreAndRetrieve(t *testing.T) {
 			wantErr:         false,
 		},
 		{
-			name: "intoto for the ci pipeline, no error, 2 occurences should be created for the pipelinerun for the 2 artifact generated.",
+			name: "intoto for the ci pipeline, no error, 2 occurrences should be created for the pipelinerun for the 2 artifact generated.",
 			args: args{
 				runObject: &objects.PipelineRunObjectV1Beta1{
 					PipelineRun: ciPipeline,
 				},
-				payload:   getRawPayload(t, ciPipelineRunProvenance),
+				payload:   getRawPayload(t, &ciPipelineRunProvenance),
 				signature: "ci pipelinerun signature",
 				opts:      config.StorageOpts{PayloadFormat: formats.PayloadTypeSlsav1},
 			},
@@ -333,10 +337,9 @@ func TestGrafeasBackend_StoreAndRetrieve(t *testing.T) {
 	}
 	defer conn.Close()
 
-	// collect all the occurences expected to be created in the server
+	// collect all the occurrences expected to be created in the server
 	allOccurrencesInServer := []*pb.Occurrence{}
 	for _, test := range tests {
-
 		// run the test
 		t.Run(test.name, func(t *testing.T) {
 			ctx := logging.WithLogger(ctx, logtesting.TestLogger(t))
@@ -387,6 +390,7 @@ func TestGrafeasBackend_StoreAndRetrieve(t *testing.T) {
 
 // test attestation storage and retrieval
 func testStoreAndRetrieveHelper(ctx context.Context, t *testing.T, test testConfig, backend Backend) {
+	t.Helper()
 	if err := backend.StorePayload(ctx, test.args.runObject, test.args.payload, test.args.signature, test.args.opts); (err != nil) != test.wantErr {
 		t.Fatalf("Backend.StorePayload() failed. error:%v, wantErr:%v", err, test.wantErr)
 	}
@@ -444,6 +448,7 @@ func testStoreAndRetrieveHelper(ctx context.Context, t *testing.T, test testConf
 // ------------------ occurrences for taskruns and pipelineruns --------------
 // BUILD Occurrence for the build taskrun that stores the slsa provenance
 func getTaskRunBuildOcc(t *testing.T, identifier string) *pb.Occurrence {
+	t.Helper()
 	return &pb.Occurrence{
 		Name:        identifier,
 		ResourceUri: identifier,
@@ -472,7 +477,7 @@ func getTaskRunBuildOcc(t *testing.T, identifier string) *pb.Occurrence {
 			},
 		},
 		Envelope: &pb.Envelope{
-			Payload:     getRawPayload(t, buildTaskRunProvenance),
+			Payload:     getRawPayload(t, &buildTaskRunProvenance),
 			PayloadType: "application/vnd.in-toto+json",
 			Signatures: []*pb.EnvelopeSignature{
 				{Sig: []byte("build taskrun signature")},
@@ -483,6 +488,7 @@ func getTaskRunBuildOcc(t *testing.T, identifier string) *pb.Occurrence {
 
 // ATTESTATION Occurrence for the build taskrun that stores the image attestation
 func getTaskRunAttestationOcc(t *testing.T, identifier string) *pb.Occurrence {
+	t.Helper()
 	return &pb.Occurrence{
 		Name:        identifier,
 		ResourceUri: identifier,
@@ -506,6 +512,12 @@ func getTaskRunAttestationOcc(t *testing.T, identifier string) *pb.Occurrence {
 }
 
 func getPipelineRunBuildOcc(t *testing.T, identifier string) *pb.Occurrence {
+	t.Helper()
+	ciPipelineRunProvenance := intoto.Statement{
+		Subject:   buildTaskRunProvenance.Subject,
+		Predicate: getPredicateStruct(t, &ciPipelineRunPredicate),
+	}
+
 	return &pb.Occurrence{
 		Name:        identifier,
 		ResourceUri: identifier,
@@ -540,7 +552,7 @@ func getPipelineRunBuildOcc(t *testing.T, identifier string) *pb.Occurrence {
 			},
 		},
 		Envelope: &pb.Envelope{
-			Payload:     getRawPayload(t, ciPipelineRunProvenance),
+			Payload:     getRawPayload(t, &ciPipelineRunProvenance),
 			PayloadType: "application/vnd.in-toto+json",
 			Signatures: []*pb.EnvelopeSignature{
 				{Sig: []byte("ci pipelinerun signature")},
@@ -550,6 +562,7 @@ func getPipelineRunBuildOcc(t *testing.T, identifier string) *pb.Occurrence {
 }
 
 func getRawPayload(t *testing.T, in interface{}) []byte {
+	t.Helper()
 	rawPayload, err := json.Marshal(in)
 	if err != nil {
 		t.Errorf("Unable to marshal the provenance: %v", in)
@@ -559,7 +572,7 @@ func getRawPayload(t *testing.T, in interface{}) []byte {
 
 // set up the connection between grafeas server and client
 // and return the client object to the caller
-func setupConnection() (*grpc.ClientConn, pb.GrafeasClient, error) {
+func setupConnection() (*grpc.ClientConn, pb.GrafeasClient, error) { //nolint:ireturn
 	serv := grpc.NewServer()
 	pb.RegisterGrafeasServer(serv, &mockGrafeasServer{})
 
@@ -613,7 +626,7 @@ func (s *mockGrafeasServer) CreateOccurrence(ctx context.Context, req *pb.Create
 	occ := req.GetOccurrence()
 	noteName := req.GetOccurrence().NoteName
 	resourceUri := req.GetOccurrence().ResourceUri
-	occ.Name = resourceUri // mock how the occurrence ID (name) is outputed.
+	occ.Name = resourceUri // mock how the occurrence ID (name) is outputted.
 
 	if note, ok := s.entries[noteName]; ok {
 		if _, ok := note.occurrences[resourceUri]; ok {
@@ -700,7 +713,6 @@ func (s *mockGrafeasServer) getOccurrencesByFilter(filter string, occurrences []
 	// mock how uri filter works
 	uris := parseURIFilterString(filter)
 
-	// result result
 	result := []*pb.Occurrence{}
 
 	for _, occ := range occurrences {
@@ -734,4 +746,20 @@ func parseURIFilterString(filter string) []string {
 	}
 
 	return results
+}
+
+func getPredicateStruct(t *testing.T, predicate *slsa.ProvenancePredicate) *structpb.Struct {
+	t.Helper()
+	predicateJSON, err := json.Marshal(predicate)
+	if err != nil {
+		t.Fatalf("error getting predicate struct: %v", err)
+	}
+
+	predicateStruct := &structpb.Struct{}
+	err = protojson.Unmarshal(predicateJSON, predicateStruct)
+	if err != nil {
+		t.Fatalf("error getting predicate struct: %v", err)
+	}
+
+	return predicateStruct
 }
