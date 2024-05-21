@@ -27,62 +27,117 @@ import (
 )
 
 func TestMetadata(t *testing.T) {
-	tr := &v1.TaskRun{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "my-taskrun",
-			Namespace: "my-namespace",
-			Annotations: map[string]string{
-				"chains.tekton.dev/reproducible": "true",
+	tests := []struct {
+		name     string
+		obj      objects.TektonObject
+		expected slsa.BuildMetadata
+	}{
+		{
+			name: "taskrun metadata",
+			obj: objects.NewTaskRunObjectV1(&v1.TaskRun{
+				ObjectMeta: metav1.ObjectMeta{
+					UID: "abhhf-12354-asjsdbjs23-taskrun",
+				},
+				Status: v1.TaskRunStatus{
+					TaskRunStatusFields: v1.TaskRunStatusFields{
+						StartTime:      &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 12, time.UTC)},
+						CompletionTime: &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 24, time.UTC)},
+					},
+				},
+			}),
+			expected: slsa.BuildMetadata{
+				InvocationId: "abhhf-12354-asjsdbjs23-taskrun",
+				StartedOn:    timestamppb.New(time.Date(1995, time.December, 24, 6, 12, 12, 12, time.UTC)),
+				FinishedOn:   timestamppb.New(time.Date(1995, time.December, 24, 6, 12, 12, 24, time.UTC)),
 			},
-			UID: "abhhf-12354-asjsdbjs23-3435353n",
 		},
-		Status: v1.TaskRunStatus{
-			TaskRunStatusFields: v1.TaskRunStatusFields{
-				StartTime:      &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 12, time.UTC)},
-				CompletionTime: &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 24, time.UTC)},
+		{
+			name: "pipelinerun metadata",
+			obj: objects.NewPipelineRunObjectV1(&v1.PipelineRun{
+				ObjectMeta: metav1.ObjectMeta{
+					UID: "abhhf-12354-asjsdbjs23-pipelinerun",
+				},
+				Status: v1.PipelineRunStatus{
+					PipelineRunStatusFields: v1.PipelineRunStatusFields{
+						StartTime:      &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 12, time.UTC)},
+						CompletionTime: &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 24, time.UTC)},
+					},
+				},
+			}),
+			expected: slsa.BuildMetadata{
+				InvocationId: "abhhf-12354-asjsdbjs23-pipelinerun",
+				StartedOn:    timestamppb.New(time.Date(1995, time.December, 24, 6, 12, 12, 12, time.UTC)),
+				FinishedOn:   timestamppb.New(time.Date(1995, time.December, 24, 6, 12, 12, 24, time.UTC)),
 			},
 		},
 	}
-	start := time.Date(1995, time.December, 24, 6, 12, 12, 12, time.UTC)
-	end := time.Date(1995, time.December, 24, 6, 12, 12, 24, time.UTC)
-	want := &slsa.BuildMetadata{
-		InvocationId: "abhhf-12354-asjsdbjs23-3435353n",
-		StartedOn:    timestamppb.New(start),
-		FinishedOn:   timestamppb.New(end),
-	}
-	got := GetBuildMetadata(objects.NewTaskRunObjectV1(tr))
-	if d := cmp.Diff(want, got, cmp.Options{protocmp.Transform()}); d != "" {
-		t.Fatalf("metadata (-want, +got):\n%s", d)
+
+	for i := range tests {
+		test := &tests[i]
+		t.Run(test.name, func(t *testing.T) {
+			got := GetBuildMetadata(test.obj)
+			if d := cmp.Diff(&test.expected, got, protocmp.Transform()); d != "" {
+				t.Fatalf("metadata (-want, +got):\n%s", d)
+			}
+		})
 	}
 }
 
 func TestMetadataInTimeZone(t *testing.T) {
 	tz := time.FixedZone("Test Time", int((12 * time.Hour).Seconds()))
-	tr := &v1.TaskRun{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "my-taskrun",
-			Namespace: "my-namespace",
-			Annotations: map[string]string{
-				"chains.tekton.dev/reproducible": "true",
+
+	tests := []struct {
+		name     string
+		obj      objects.TektonObject
+		expected slsa.BuildMetadata
+	}{
+		{
+			name: "taskrun metadata",
+			obj: objects.NewTaskRunObjectV1(&v1.TaskRun{
+				ObjectMeta: metav1.ObjectMeta{
+					UID: "abhhf-12354-asjsdbjs23-taskrun",
+				},
+				Status: v1.TaskRunStatus{
+					TaskRunStatusFields: v1.TaskRunStatusFields{
+						StartTime:      &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 12, tz)},
+						CompletionTime: &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 24, tz)},
+					},
+				},
+			}),
+			expected: slsa.BuildMetadata{
+				InvocationId: "abhhf-12354-asjsdbjs23-taskrun",
+				StartedOn:    timestamppb.New(time.Date(1995, time.December, 24, 6, 12, 12, 12, tz).UTC()),
+				FinishedOn:   timestamppb.New(time.Date(1995, time.December, 24, 6, 12, 12, 24, tz).UTC()),
 			},
-			UID: "abhhf-12354-asjsdbjs23-3435353n",
 		},
-		Status: v1.TaskRunStatus{
-			TaskRunStatusFields: v1.TaskRunStatusFields{
-				StartTime:      &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 12, tz)},
-				CompletionTime: &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 24, tz)},
+		{
+			name: "pipelinerun metadata",
+			obj: objects.NewPipelineRunObjectV1(&v1.PipelineRun{
+				ObjectMeta: metav1.ObjectMeta{
+					UID: "abhhf-12354-asjsdbjs23-pipelinerun",
+				},
+				Status: v1.PipelineRunStatus{
+					PipelineRunStatusFields: v1.PipelineRunStatusFields{
+						StartTime:      &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 12, tz)},
+						CompletionTime: &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 24, tz)},
+					},
+				},
+			}),
+			expected: slsa.BuildMetadata{
+				InvocationId: "abhhf-12354-asjsdbjs23-pipelinerun",
+				StartedOn:    timestamppb.New(time.Date(1995, time.December, 24, 6, 12, 12, 12, tz).UTC()),
+				FinishedOn:   timestamppb.New(time.Date(1995, time.December, 24, 6, 12, 12, 24, tz).UTC()),
 			},
 		},
 	}
-	start := time.Date(1995, time.December, 24, 6, 12, 12, 12, tz).UTC()
-	end := time.Date(1995, time.December, 24, 6, 12, 12, 24, tz).UTC()
-	want := &slsa.BuildMetadata{
-		InvocationId: "abhhf-12354-asjsdbjs23-3435353n",
-		StartedOn:    timestamppb.New(start),
-		FinishedOn:   timestamppb.New(end),
-	}
-	got := GetBuildMetadata(objects.NewTaskRunObjectV1(tr))
-	if d := cmp.Diff(want, got, cmp.Options{protocmp.Transform()}); d != "" {
-		t.Fatalf("metadata (-want, +got):\n%s", d)
+
+	for i := range tests {
+		test := &tests[i]
+		t.Run(test.name, func(t *testing.T) {
+			got := GetBuildMetadata(test.obj)
+			if d := cmp.Diff(&test.expected, got, protocmp.Transform()); d != "" {
+				t.Fatalf("metadata (-want, +got):\n%s", d)
+			}
+		})
 	}
 }

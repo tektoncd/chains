@@ -19,16 +19,18 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	slsa "github.com/in-toto/attestation/go/predicates/provenance/v1"
+	intoto "github.com/in-toto/attestation/go/v1"
 	externalparameters "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/external_parameters"
 	internalparameters "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/internal_parameters"
 	resolveddependencies "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/resolved_dependencies"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/internal/objectloader"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-func TestGetBuildDefinition(t *testing.T) {
+func TestGetTaskRunBuildDefinition(t *testing.T) {
 	tr, err := objectloader.TaskRunFromFile("../../testdata/slsa-v2alpha4/taskrun1.json")
 	if err != nil {
 		t.Fatal(err)
@@ -103,7 +105,7 @@ func TestGetBuildDefinition(t *testing.T) {
 	}
 }
 
-func TestUnsupportedBuildType(t *testing.T) {
+func TestTaskRunUnsupportedBuildType(t *testing.T) {
 	tr, err := objectloader.TaskRunFromFile("../../testdata/slsa-v2alpha4/taskrun1.json")
 	if err != nil {
 		t.Fatal(err)
@@ -126,4 +128,103 @@ func getProtoStruct(t *testing.T, data map[string]any) *structpb.Struct {
 	}
 
 	return protoStruct
+}
+
+func TestGetPipelineRunBuildDefinition(t *testing.T) {
+	pr := createPro("../../testdata/slsa-v2alpha3/pipelinerun1.json")
+	pr.Annotations = map[string]string{
+		"annotation1": "annotation1",
+	}
+	pr.Labels = map[string]string{
+		"label1": "label1",
+	}
+	tests := []struct {
+		name   string
+		config *slsaconfig.SlsaConfig
+		want   slsa.BuildDefinition
+	}{
+		{
+			name:   "test slsa build type",
+			config: &slsaconfig.SlsaConfig{BuildType: "https://tekton.dev/chains/v2/slsa"},
+			want: slsa.BuildDefinition{
+				BuildType:            "https://tekton.dev/chains/v2/slsa",
+				ExternalParameters:   getProtoStruct(t, externalparameters.PipelineRun(pr)),
+				InternalParameters:   getProtoStruct(t, internalparameters.SLSAInternalParameters(pr)),
+				ResolvedDependencies: getResolvedDependencies(pr, resolveddependencies.AddSLSATaskDescriptor),
+			},
+		},
+		{
+			name:   "test tekton build type",
+			config: &slsaconfig.SlsaConfig{BuildType: "https://tekton.dev/chains/v2/slsa-tekton"},
+			want: slsa.BuildDefinition{
+				BuildType:            "https://tekton.dev/chains/v2/slsa-tekton",
+				ExternalParameters:   getProtoStruct(t, externalparameters.PipelineRun(pr)),
+				InternalParameters:   getProtoStruct(t, internalparameters.TektonInternalParameters(pr)),
+				ResolvedDependencies: getResolvedDependencies(pr, resolveddependencies.AddTektonTaskDescriptor),
+			},
+		},
+		{
+			name:   "test default build type",
+			config: &slsaconfig.SlsaConfig{BuildType: "https://tekton.dev/chains/v2/slsa"},
+			want: slsa.BuildDefinition{
+				BuildType:            "https://tekton.dev/chains/v2/slsa",
+				ExternalParameters:   getProtoStruct(t, externalparameters.PipelineRun(pr)),
+				InternalParameters:   getProtoStruct(t, internalparameters.SLSAInternalParameters(pr)),
+				ResolvedDependencies: getResolvedDependencies(pr, resolveddependencies.AddSLSATaskDescriptor),
+			},
+		},
+	}
+
+	for i := range tests {
+		tc := &tests[i]
+		t.Run(tc.name, func(t *testing.T) {
+			bd, err := GetPipelineRunBuildDefinition(context.TODO(), pr, tc.config, resolveddependencies.ResolveOptions{})
+			if err != nil {
+				t.Fatalf("Did not expect an error but got %v", err)
+			}
+
+			if diff := cmp.Diff(&tc.want, &bd, protocmp.Transform()); diff != "" {
+				t.Errorf("getBuildDefinition(): -want +got: %v", diff)
+			}
+		})
+	}
+}
+
+func createPro(path string) *objects.PipelineRunObjectV1 {
+	pr, err := objectloader.PipelineRunFromFile(path)
+	if err != nil {
+		panic(err)
+	}
+	tr1, err := objectloader.TaskRunFromFile("../../testdata/slsa-v2alpha3/taskrun1.json")
+	if err != nil {
+		panic(err)
+	}
+	tr2, err := objectloader.TaskRunFromFile("../../testdata/slsa-v2alpha3/taskrun2.json")
+	if err != nil {
+		panic(err)
+	}
+	p := objects.NewPipelineRunObjectV1(pr)
+	p.AppendTaskRun(tr1)
+	p.AppendTaskRun(tr2)
+	return p
+}
+
+func getResolvedDependencies(pr *objects.PipelineRunObjectV1, addTasks func(*objects.TaskRunObjectV1) (*intoto.ResourceDescriptor, error)) []*intoto.ResourceDescriptor {
+	rd, err := resolveddependencies.PipelineRun(context.Background(), pr, &slsaconfig.SlsaConfig{}, resolveddependencies.ResolveOptions{}, addTasks)
+	if err != nil {
+		return []*intoto.ResourceDescriptor{}
+	}
+	return rd
+}
+
+func TestPipelineRunUnsupportedBuildType(t *testing.T) {
+	pr := createPro("../../testdata/slsa-v2alpha3/pipelinerun1.json")
+
+	got, err := GetPipelineRunBuildDefinition(context.Background(), pr, &slsaconfig.SlsaConfig{BuildType: "bad-buildtype"}, resolveddependencies.ResolveOptions{})
+	if err == nil {
+		t.Error("getBuildDefinition(): expected error got nil")
+	}
+	if diff := cmp.Diff(&slsa.BuildDefinition{}, &got, protocmp.Transform()); diff != "" {
+		t.Errorf("getBuildDefinition(): -want +got: %s", diff)
+	}
 }

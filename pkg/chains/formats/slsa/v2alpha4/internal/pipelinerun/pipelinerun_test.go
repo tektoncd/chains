@@ -1,5 +1,5 @@
 /*
-Copyright 2024 The Tekton Authors
+Copyright 2021 The Tekton Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package taskrun
+package pipelinerun
 
 import (
 	"encoding/json"
@@ -26,12 +26,10 @@ import (
 	intoto "github.com/in-toto/attestation/go/v1"
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	slsaprov "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
-
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/compare"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
-
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/internal/objectloader"
-	"github.com/tektoncd/pipeline/pkg/apis/config"
 	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/testing/protocmp"
@@ -40,14 +38,12 @@ import (
 	logtesting "knative.dev/pkg/logging/testing"
 )
 
-const jsonMediaType = "application/json"
-
 func TestByProducts(t *testing.T) {
 	resultValue := v1.ResultValue{Type: "string", StringVal: "result-value"}
-	tr := &v1.TaskRun{
-		Status: v1.TaskRunStatus{
-			TaskRunStatusFields: v1.TaskRunStatusFields{
-				Results: []v1.TaskRunResult{
+	pr := &v1.PipelineRun{
+		Status: v1.PipelineRunStatus{
+			PipelineRunStatusFields: v1.PipelineRunStatusFields{
+				Results: []v1.PipelineRunResult{
 					{
 						Name:  "result-name",
 						Value: resultValue,
@@ -63,50 +59,53 @@ func TestByProducts(t *testing.T) {
 	}
 	want := []*intoto.ResourceDescriptor{
 		{
-			Name:      "taskRunResults/result-name",
+			Name:      "pipelineRunResults/result-name",
 			Content:   resultBytes,
-			MediaType: jsonMediaType,
+			MediaType: JSONMediaType,
 		},
 	}
-	got, err := ByProducts(objects.NewTaskRunObjectV1(tr))
+	got, err := byproducts(objects.NewPipelineRunObjectV1(pr), &slsaconfig.SlsaConfig{})
 	if err != nil {
 		t.Fatalf("Could not extract byproducts: %s", err)
 	}
-	if d := cmp.Diff(want, got, cmp.Options{protocmp.Transform()}); d != "" {
+	if d := cmp.Diff(&want, &got, protocmp.Transform()); d != "" {
 		t.Fatalf("byproducts (-want, +got):\n%s", d)
 	}
 }
 
-func TestTaskRunGenerateAttestation(t *testing.T) {
+func TestGenerateAttestation(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
-	tr, err := objectloader.TaskRunFromFile("../../../testdata/slsa-v2alpha4/taskrun1.json")
-	if err != nil {
-		t.Fatal(err)
-	}
+	pr := createPro("../../../testdata/slsa-v2alpha4/pipelinerun1.json")
+
 	e1BuildStart := time.Unix(1617011400, 0)
 	e1BuildFinished := time.Unix(1617011415, 0)
 
-	externalParams := map[string]any{
-		"runSpec": tr.Spec,
-	}
-	internalParams := map[string]any{
-		"tekton-pipelines-feature-flags": config.FeatureFlags{EnableAPIFields: "beta", ResultExtractionMethod: "termination-message"},
-	}
-
-	slsaPredicate := slsa.Provenance{
+	predicate := &slsa.Provenance{
 		BuildDefinition: &slsa.BuildDefinition{
-			BuildType:          "https://tekton.dev/chains/v2/slsa",
-			ExternalParameters: getStruct(t, externalParams),
-			InternalParameters: getStruct(t, internalParams),
+			BuildType: "https://tekton.dev/chains/v2/slsa",
+			ExternalParameters: getStruct(t, map[string]any{
+				"runSpec": pr.Spec,
+			}),
+			InternalParameters: getStruct(t, map[string]any{}),
 			ResolvedDependencies: []*intoto.ResourceDescriptor{
 				{
 					Uri:    "git+https://github.com/test",
-					Digest: common.DigestSet{"sha1": "ab123"},
-					Name:   "task",
+					Digest: common.DigestSet{"sha1": "28b123"},
+					Name:   "pipeline",
+				},
+				{
+					Uri:    "git+https://github.com/catalog",
+					Digest: common.DigestSet{"sha1": "x123"},
+					Name:   "pipelineTask",
 				},
 				{
 					Uri:    "oci://gcr.io/test1/test1",
 					Digest: common.DigestSet{"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"},
+				},
+				{
+					Uri:    "git+https://github.com/test",
+					Digest: common.DigestSet{"sha1": "ab123"},
+					Name:   "pipelineTask",
 				},
 				{
 					Uri:    "oci://gcr.io/test2/test2",
@@ -117,9 +116,14 @@ func TestTaskRunGenerateAttestation(t *testing.T) {
 					Digest: common.DigestSet{"sha256": "f1a8b8549c179f41e27ff3db0fe1a1793e4b109da46586501a8343637b1d0478"},
 				},
 				{
+					Uri:    "abc",
+					Digest: common.DigestSet{"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"},
+					Name:   "inputs/result",
+				},
+				{
 					Name:   "inputs/result",
 					Uri:    "git+https://git.test.com.git",
-					Digest: common.DigestSet{"sha1": "taskrun"},
+					Digest: common.DigestSet{"sha1": "abcd"},
 				},
 			},
 		},
@@ -134,52 +138,83 @@ func TestTaskRunGenerateAttestation(t *testing.T) {
 			},
 			Byproducts: []*intoto.ResourceDescriptor{
 				{
-					Name:      "stepResults/step1_result1",
-					MediaType: "application/json",
-					Content:   []uint8(`"result-value"`),
-				},
-				{
-					Name:      "stepResults/step1_result1-ARTIFACT_OUTPUTS",
-					MediaType: "application/json",
-					Content:   []uint8(`{"digest":"sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7","uri":"gcr.io/my/image/fromstep2"}`),
+					Name:      "pipelineRunResults/CHAINS-GIT_COMMIT",
+					Content:   []uint8(`"abcd"`),
+					MediaType: JSONMediaType,
+				}, {
+					Name:      "pipelineRunResults/CHAINS-GIT_URL",
+					Content:   []uint8(`"https://git.test.com"`),
+					MediaType: JSONMediaType,
+				}, {
+					Name:      "pipelineRunResults/img-ARTIFACT_INPUTS",
+					Content:   []uint8(`{"digest":"sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7","uri":"abc"}`),
+					MediaType: JSONMediaType,
+				}, {
+					Name:      "pipelineRunResults/img_no_uri-ARTIFACT_OUTPUTS",
+					Content:   []uint8(`{"digest":"sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"}`),
+					MediaType: JSONMediaType,
 				},
 			},
 		},
 	}
 
-	predicateStruct := getPredicateStruct(t, &slsaPredicate)
+	predicateStruct := getPredicateStruct(t, predicate)
 
-	want := intoto.Statement{
+	want := &intoto.Statement{
 		Type:          intoto.StatementTypeUri,
 		PredicateType: slsaprov.PredicateSLSAProvenance,
 		Subject: []*intoto.ResourceDescriptor{
 			{
-				Name: "gcr.io/my/image/fromstep3",
+				Name: "abc",
 				Digest: common.DigestSet{
 					"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7",
 				},
 			},
 			{
-				Name: "gcr.io/my/image",
+				Name: "test.io/test/image",
 				Digest: common.DigestSet{
-					"sha256": "d31cc8328054de2bd93735f9cbf0ccfb6e0ee8f4c4225da7d8f8cb3900eaf466",
+					"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7",
 				},
 			},
 		},
 		Predicate: predicateStruct,
 	}
 
-	got, err := GenerateAttestation(ctx, objects.NewTaskRunObjectV1(tr), &slsaconfig.SlsaConfig{
-		BuilderID: "test_builder-1",
-		BuildType: "https://tekton.dev/chains/v2/slsa",
+	got, err := GenerateAttestation(ctx, pr, &slsaconfig.SlsaConfig{
+		BuilderID:             "test_builder-1",
+		DeepInspectionEnabled: false,
+		BuildType:             "https://tekton.dev/chains/v2/slsa",
 	})
 
 	if err != nil {
 		t.Errorf("unwant error: %s", err.Error())
 	}
-	if diff := cmp.Diff(&want, got, cmp.Options{protocmp.Transform()}); diff != "" {
+
+	opts := compare.SLSAV1CompareOptions()
+	opts = append(opts, protocmp.Transform())
+
+	if diff := cmp.Diff(want, got, opts...); diff != "" {
 		t.Errorf("GenerateAttestation(): -want +got: %s", diff)
 	}
+}
+
+func createPro(path string) *objects.PipelineRunObjectV1 {
+	pr, err := objectloader.PipelineRunFromFile(path)
+	if err != nil {
+		panic(err)
+	}
+	tr1, err := objectloader.TaskRunFromFile("../../../testdata/slsa-v2alpha4/taskrun1.json")
+	if err != nil {
+		panic(err)
+	}
+	tr2, err := objectloader.TaskRunFromFile("../../../testdata/slsa-v2alpha4/taskrun2.json")
+	if err != nil {
+		panic(err)
+	}
+	p := objects.NewPipelineRunObjectV1(pr)
+	p.AppendTaskRun(tr1)
+	p.AppendTaskRun(tr2)
+	return p
 }
 
 func getStruct(t *testing.T, data map[string]any) *structpb.Struct {

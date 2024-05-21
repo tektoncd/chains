@@ -1,0 +1,139 @@
+{
+    "type": "https://in-toto.io/Statement/v1",
+    "predicate_type": "https://slsa.dev/provenance/v1",
+    "subject": [
+        {
+            "name": "gcr.io/foo/img1",
+            "digest": {
+                "sha256": "586789aa031fafc7d78a5393cdc772e0b55107ea54bb8bcf3f2cdac6c6da51ee"
+            }
+        }
+    ],
+    "predicate": {
+        "buildDefinition": {
+            "buildType": "https://tekton.dev/chains/v2/slsa",
+            "externalParameters": {
+                "runSpec": {
+                    "pipelineSpec": {
+                        "tasks": [
+                            {
+                                "name": "t1",
+                                "taskSpec": {
+                                    "spec": null,
+                                    "metadata": {},
+                                    "steps": [
+                                        {
+                                            "name": "step1",
+                                            "image": "busybox:glibc",
+                                            "computeResources": {},
+                                            "script": "echo -n \"Hello!\"\necho -n \"{\\\"uri\\\":\\\"gcr.io/foo/img1\\\", \\\"digest\\\":\\\"sha256:586789aa031fafc7d78a5393cdc772e0b55107ea54bb8bcf3f2cdac6c6da51ee\\\", \\\"isBuildArtifact\\\": \\\"true\\\" }\" \u003e $(results.output1.path)\necho -n \"{\\\"uri\\\":\\\"gcr.io/foo/img2\\\", \\\"digest\\\":\\\"sha256:586789aa031fafc7d78a5393cdc772e0b55107ea54bb8bcf3f2cdac6c6da51ee\\\"}\" \u003e $(results.output2.path)"
+                                        }
+                                    ],
+                                    "results": [
+                                        {
+                                            "name": "output1",
+                                            "type": "object",
+                                            "properties": {
+                                                "digest": {
+                                                    "type": "string"
+                                                },
+                                                "isBuildArtifact": {
+                                                    "type": "string"
+                                                },
+                                                "uri": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "name": "output2",
+                                            "type": "object",
+                                            "properties": {
+                                                "digest": {
+                                                    "type": "string"
+                                                },
+                                                "uri": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        ],
+                        "results": [
+                            {
+                                "name": "output1-ARTIFACT_OUTPUTS",
+                                "description": "",
+                                "value": "$(tasks.t1.results.output1)"
+                            },
+                            {
+                                "name": "output2-ARTIFACT_OUTPUTS",
+                                "description": "",
+                                "value": "$(tasks.t1.results.output2)"
+                            }
+                        ]
+                    },
+                    "timeouts": {
+                        "pipeline": "1h0m0s"
+                    },
+                    "taskRunTemplate": {
+                        "serviceAccountName": "default"
+                    }
+                }
+            },
+            "internalParameters": {
+                "tekton-pipelines-feature-flags": {
+                    "DisableAffinityAssistant": false,
+                    "DisableCredsInit": false,
+                    "RunningInEnvWithInjectedSidecars": true,
+                    "RequireGitSSHSecretKnownHosts": false,
+                    "EnableTektonOCIBundles": false,
+                    "ScopeWhenExpressionsToTask": false,
+                    "EnableAPIFields": "beta",
+                    "SendCloudEventsForRuns": false,
+                    "AwaitSidecarReadiness": true,
+                    "EnforceNonfalsifiability": "none",
+                    "EnableKeepPodOnCancel": false,
+                    "VerificationNoMatchPolicy": "ignore",
+                    "EnableProvenanceInStatus": true,
+                    "ResultExtractionMethod": "termination-message",
+                    "MaxResultSize": 4096,
+                    "SetSecurityContext": false,
+                    "Coschedule": "workspaces",
+                    "EnableCELInWhenExpression": false,
+                    "EnableStepActions": true,
+                    "EnableParamEnum": false,
+                    "EnableArtifacts": false
+                }
+            },
+            "resolvedDependencies": [
+                {{range .URIDigest}}
+                {
+                    "uri": "{{.URI}}",
+                    "digest": {
+                        "sha256": "{{.Digest}}"
+                    }
+                }
+                {{end}}
+            ]
+        },
+        "runDetails": {
+            "builder": {
+                "id": "https://tekton.dev/chains/v2"
+            },
+            "metadata": {
+                "invocationId": "{{.UID}}",
+                "startedOn": "{{.PipelineStartedOn}}",
+                "finishedOn": "{{.PipelineFinishedOn}}"
+            },
+            "byproducts": [
+                {
+                    "name": "pipelineRunResults/output2-ARTIFACT_OUTPUTS",
+                    "mediaType": "application/json",
+                    "content": "eyJkaWdlc3QiOiJzaGEyNTY6NTg2Nzg5YWEwMzFmYWZjN2Q3OGE1MzkzY2RjNzcyZTBiNTUxMDdlYTU0YmI4YmNmM2YyY2RhYzZjNmRhNTFlZSIsInVyaSI6Imdjci5pby9mb28vaW1nMiJ9"
+                }
+            ]
+        }
+    }
+}

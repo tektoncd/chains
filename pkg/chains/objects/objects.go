@@ -294,6 +294,16 @@ func (pro *PipelineRunObjectV1) GetResults() []Result {
 	return res
 }
 
+// GetTaskAndStepResults returns the results of the associated TaskRuns of the PipelineRun.
+func (pro *PipelineRunObjectV1) GetTaskAndStepResults() (results []Result) {
+	execTasks := pro.GetExecutedTasks()
+	for _, task := range execTasks {
+		results = append(results, task.GetResults()...)
+		results = append(results, task.GetStepResults()...)
+	}
+	return
+}
+
 // Get the ServiceAccount declared in the PipelineRun
 func (pro *PipelineRunObjectV1) GetServiceAccountName() string {
 	return pro.Spec.TaskRunTemplate.ServiceAccountName
@@ -377,6 +387,27 @@ func (pro *PipelineRunObjectV1) GetCompletitionTime() *time.Time {
 		utc = &val
 	}
 	return utc
+}
+
+// GetExecutedTasks returns the tasks that were executed during the pipeline run.
+func (pro *PipelineRunObjectV1) GetExecutedTasks() (tro []*TaskRunObjectV1) {
+	pSpec := pro.Status.PipelineSpec
+	if pSpec == nil {
+		return
+	}
+	tasks := pSpec.Tasks
+	tasks = append(tasks, pSpec.Finally...)
+	for _, task := range tasks {
+		tr := pro.GetTaskRunFromTask(task.Name)
+
+		if tr == nil || tr.Status.CompletionTime == nil {
+			continue
+		}
+
+		tro = append(tro, tr)
+	}
+
+	return
 }
 
 // Get the imgPullSecrets from a pod template, if they exist

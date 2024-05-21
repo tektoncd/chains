@@ -18,6 +18,8 @@ package resolveddependencies
 
 import (
 	"encoding/json"
+	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -597,7 +599,7 @@ func TestPipelineRun(t *testing.T) {
 	taskRuns := tektonTaskRuns()
 	tests := []struct {
 		name           string
-		taskDescriptor addTaskDescriptorContent
+		taskDescriptor AddTaskDescriptorContent
 		want           []*intoto.ResourceDescriptor
 	}{
 		{
@@ -652,12 +654,55 @@ func TestPipelineRun(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			pro := createPro("../../testdata/slsa-v2alpha3/pipelinerun1.json")
-			got, err := PipelineRun(ctx, pro, &slsaconfig.SlsaConfig{DeepInspectionEnabled: false}, tc.taskDescriptor)
+			got, err := PipelineRun(ctx, pro, &slsaconfig.SlsaConfig{DeepInspectionEnabled: false}, ResolveOptions{}, tc.taskDescriptor)
 			if err != nil {
 				t.Error(err)
 			}
-			if d := cmp.Diff(tc.want, got, cmp.Options{protocmp.Transform()}); d != "" {
-				t.Errorf("PipelineRunResolvedDependencies(): -want +got: %s", got)
+			if d := cmp.Diff(tc.want, got, protocmp.Transform()); d != "" {
+				t.Errorf("PipelineRunResolvedDependencies(): -want +got: %s", d)
+			}
+		})
+	}
+}
+
+func TestGetTaskDescriptor(t *testing.T) {
+	tests := []struct {
+		name                string
+		buildDefinitionType string
+		expected            AddTaskDescriptorContent
+		shouldErr           bool
+	}{
+		{
+			name:                "slsa task descriptor",
+			buildDefinitionType: "https://tekton.dev/chains/v2/slsa",
+			expected:            AddSLSATaskDescriptor,
+		},
+		{
+			name:                "tekton task descriptor",
+			buildDefinitionType: "https://tekton.dev/chains/v2/slsa-tekton",
+			expected:            AddTektonTaskDescriptor,
+		},
+		{
+			name:                "bad descriptor",
+			buildDefinitionType: "https://foo.io/fake",
+			shouldErr:           true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			td, err := GetTaskDescriptor(test.buildDefinitionType)
+			didErr := err != nil
+
+			if test.shouldErr != didErr {
+				t.Fatalf("Unexpected behavior in error, shouldErr: %v, didErr: %v, err: %v", test.shouldErr, didErr, err)
+			}
+
+			got := runtime.FuncForPC(reflect.ValueOf(td).Pointer()).Name()
+			expected := runtime.FuncForPC(reflect.ValueOf(test.expected).Pointer()).Name()
+
+			if d := cmp.Diff(expected, got); d != "" {
+				t.Errorf("GetTaskDescriptor(): -want +got: %v", d)
 			}
 		})
 	}

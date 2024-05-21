@@ -1,0 +1,35 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  name: pipeline-test-run
+spec:
+  pipelineSpec:
+    results:
+    - name: output1-ARTIFACT_OUTPUTS
+      value: $(tasks.t1.results.output1)
+    - name: output2-ARTIFACT_OUTPUTS
+      value: $(tasks.t1.results.output2)
+    tasks:
+      - name: t1
+        taskSpec:
+          results:
+          - name: output1
+            type: object
+            properties:
+              uri: {}
+              digest: {}
+              isBuildArtifact: {}
+          
+          - name: output2
+            type: object
+            properties:
+              uri: {}
+              digest: {}
+
+          steps:
+            - name: step1
+              image: busybox:glibc
+              script: |
+                echo -n "Hello!"
+                echo -n "{\"uri\":\"gcr.io/foo/img1\", \"digest\":\"sha256:586789aa031fafc7d78a5393cdc772e0b55107ea54bb8bcf3f2cdac6c6da51ee\", \"isBuildArtifact\": \"true\" }" > $(results.output1.path)
+                echo -n "{\"uri\":\"gcr.io/foo/img2\", \"digest\":\"sha256:586789aa031fafc7d78a5393cdc772e0b55107ea54bb8bcf3f2cdac6c6da51ee\"}" > $(results.output2.path)

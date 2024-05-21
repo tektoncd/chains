@@ -22,6 +22,7 @@ import (
 
 	"github.com/tektoncd/chains/pkg/chains/formats"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha4/internal/pipelinerun"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha4/internal/taskrun"
 
 	"github.com/tektoncd/chains/pkg/chains/objects"
@@ -62,6 +63,8 @@ func (s *Slsa) CreatePayload(ctx context.Context, obj interface{}) (interface{},
 	switch v := obj.(type) {
 	case *objects.TaskRunObjectV1:
 		return taskrun.GenerateAttestation(ctx, v, s.slsaConfig)
+	case *objects.PipelineRunObjectV1:
+		return pipelinerun.GenerateAttestation(ctx, v, s.slsaConfig)
 	default:
 		return nil, fmt.Errorf("intoto does not support type: %s", v)
 	}

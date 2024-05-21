@@ -17,7 +17,6 @@ limitations under the License.
 package pipelinerun
 
 import (
-	"context"
 	"encoding/json"
 	"testing"
 	"time"
@@ -26,9 +25,7 @@ import (
 	slsa "github.com/in-toto/attestation/go/predicates/provenance/v1"
 	intoto "github.com/in-toto/attestation/go/v1"
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
-	externalparameters "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/external_parameters"
-	internalparameters "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/internal_parameters"
-	resolveddependencies "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/resolved_dependencies"
+	slsaprov "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/internal/objectloader"
@@ -37,70 +34,8 @@ import (
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logtesting "knative.dev/pkg/logging/testing"
 )
-
-func TestMetadata(t *testing.T) {
-	pr := &v1.PipelineRun{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "my-taskrun",
-			Namespace: "my-namespace",
-			Annotations: map[string]string{
-				"chains.tekton.dev/reproducible": "true",
-			},
-			UID: "abhhf-12354-asjsdbjs23-3435353n",
-		},
-		Status: v1.PipelineRunStatus{
-			PipelineRunStatusFields: v1.PipelineRunStatusFields{
-				StartTime:      &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 12, time.UTC)},
-				CompletionTime: &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 24, time.UTC)},
-			},
-		},
-	}
-	start := time.Date(1995, time.December, 24, 6, 12, 12, 12, time.UTC)
-	end := time.Date(1995, time.December, 24, 6, 12, 12, 24, time.UTC)
-	want := &slsa.BuildMetadata{
-		InvocationId: "abhhf-12354-asjsdbjs23-3435353n",
-		StartedOn:    timestamppb.New(start),
-		FinishedOn:   timestamppb.New(end),
-	}
-	got := metadata(objects.NewPipelineRunObjectV1(pr))
-	if d := cmp.Diff(want, got, protocmp.Transform()); d != "" {
-		t.Fatalf("metadata (-want, +got):\n%s", d)
-	}
-}
-
-func TestMetadataInTimeZone(t *testing.T) {
-	tz := time.FixedZone("Test Time", int((12 * time.Hour).Seconds()))
-	pr := &v1.PipelineRun{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "my-taskrun",
-			Namespace: "my-namespace",
-			Annotations: map[string]string{
-				"chains.tekton.dev/reproducible": "true",
-			},
-			UID: "abhhf-12354-asjsdbjs23-3435353n",
-		},
-		Status: v1.PipelineRunStatus{
-			PipelineRunStatusFields: v1.PipelineRunStatusFields{
-				StartTime:      &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 12, tz)},
-				CompletionTime: &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 24, tz)},
-			},
-		},
-	}
-	start := time.Date(1995, time.December, 24, 6, 12, 12, 12, tz).UTC()
-	end := time.Date(1995, time.December, 24, 6, 12, 12, 24, tz).UTC()
-	want := &slsa.BuildMetadata{
-		InvocationId: "abhhf-12354-asjsdbjs23-3435353n",
-		StartedOn:    timestamppb.New(start),
-		FinishedOn:   timestamppb.New(end),
-	}
-	got := metadata(objects.NewPipelineRunObjectV1(pr))
-	if d := cmp.Diff(want, got, protocmp.Transform()); d != "" {
-		t.Fatalf("metadata (-want, +got):\n%s", d)
-	}
-}
 
 func TestByProducts(t *testing.T) {
 	resultValue := v1.ResultValue{Type: "string", StringVal: "result-value"}
@@ -170,8 +105,8 @@ func TestGenerateAttestation(t *testing.T) {
 	slsaPredicate := slsa.Provenance{
 		BuildDefinition: &slsa.BuildDefinition{
 			BuildType:          "https://tekton.dev/chains/v2/slsa",
-			ExternalParameters: getProtoStruct(t, externalParams),
-			InternalParameters: getProtoStruct(t, map[string]any{}),
+			ExternalParameters: getStruct(t, externalParams),
+			InternalParameters: getStruct(t, map[string]any{}),
 			ResolvedDependencies: []*intoto.ResourceDescriptor{
 				{
 					Uri:    "git+https://github.com/test",
@@ -268,7 +203,7 @@ func TestGenerateAttestation(t *testing.T) {
 
 	want := intoto.Statement{
 		Type:          intoto.StatementTypeUri,
-		PredicateType: "https://slsa.dev/provenance/v1",
+		PredicateType: slsaprov.PredicateSLSAProvenance,
 		Subject: []*intoto.ResourceDescriptor{
 			{
 				Name: "test.io/test/image",
@@ -295,94 +230,15 @@ func TestGenerateAttestation(t *testing.T) {
 	}
 }
 
-func getResolvedDependencies(addTasks func(*objects.TaskRunObjectV1) (*intoto.ResourceDescriptor, error)) []*intoto.ResourceDescriptor {
-	pr := createPro("../../../testdata/slsa-v2alpha3/pipelinerun1.json")
-	rd, err := resolveddependencies.PipelineRun(context.Background(), pr, &slsaconfig.SlsaConfig{DeepInspectionEnabled: false}, addTasks)
-	if err != nil {
-		return nil
-	}
-	return rd
-}
-
-func TestGetBuildDefinition(t *testing.T) {
-	pr := createPro("../../../testdata/slsa-v2alpha3/pipelinerun1.json")
-	pr.Annotations = map[string]string{
-		"annotation1": "annotation1",
-	}
-	pr.Labels = map[string]string{
-		"label1": "label1",
-	}
-	tests := []struct {
-		name        string
-		taskContent func(*objects.TaskRunObjectV1) (*intoto.ResourceDescriptor, error)
-		config      *slsaconfig.SlsaConfig
-		want        slsa.BuildDefinition
-	}{
-		{
-			name:        "test slsa build type",
-			taskContent: resolveddependencies.AddSLSATaskDescriptor,
-			config:      &slsaconfig.SlsaConfig{BuildType: "https://tekton.dev/chains/v2/slsa"},
-			want: slsa.BuildDefinition{
-				BuildType:            "https://tekton.dev/chains/v2/slsa",
-				ExternalParameters:   getProtoStruct(t, externalparameters.PipelineRun(pr)),
-				InternalParameters:   getProtoStruct(t, internalparameters.SLSAInternalParameters(pr)),
-				ResolvedDependencies: getResolvedDependencies(resolveddependencies.AddSLSATaskDescriptor),
-			},
-		},
-		{
-			name:        "test tekton build type",
-			config:      &slsaconfig.SlsaConfig{BuildType: "https://tekton.dev/chains/v2/slsa-tekton"},
-			taskContent: resolveddependencies.AddSLSATaskDescriptor,
-			want: slsa.BuildDefinition{
-				BuildType:            "https://tekton.dev/chains/v2/slsa-tekton",
-				ExternalParameters:   getProtoStruct(t, externalparameters.PipelineRun(pr)),
-				InternalParameters:   getProtoStruct(t, internalparameters.TektonInternalParameters(pr)),
-				ResolvedDependencies: getResolvedDependencies(resolveddependencies.AddTektonTaskDescriptor),
-			},
-		},
-		{
-			name:        "test default build type",
-			config:      &slsaconfig.SlsaConfig{BuildType: "https://tekton.dev/chains/v2/slsa"},
-			taskContent: resolveddependencies.AddSLSATaskDescriptor,
-			want: slsa.BuildDefinition{
-				BuildType:            "https://tekton.dev/chains/v2/slsa",
-				ExternalParameters:   getProtoStruct(t, externalparameters.PipelineRun(pr)),
-				InternalParameters:   getProtoStruct(t, internalparameters.SLSAInternalParameters(pr)),
-				ResolvedDependencies: getResolvedDependencies(resolveddependencies.AddSLSATaskDescriptor),
-			},
-		},
-	}
-
-	for i := range tests {
-		tc := &tests[i]
-		t.Run(tc.name, func(t *testing.T) {
-			bd, err := getBuildDefinition(context.Background(), tc.config, pr)
-			if err != nil {
-				t.Fatalf("Did not expect an error but got %v", err)
-			}
-
-			if diff := cmp.Diff(&tc.want, &bd, cmp.Options{protocmp.Transform()}); diff != "" {
-				t.Errorf("getBuildDefinition(): -want +got: %v", diff)
-			}
-		})
-	}
-}
-
-func TestUnsupportedBuildType(t *testing.T) {
-	pr := createPro("../../../testdata/slsa-v2alpha3/pipelinerun1.json")
-
-	got, err := getBuildDefinition(context.Background(), &slsaconfig.SlsaConfig{BuildType: "bad-buildtype"}, pr)
-	if err == nil {
-		t.Error("getBuildDefinition(): expected error got nil")
-	}
-	if diff := cmp.Diff(&slsa.BuildDefinition{}, &got, cmp.Options{protocmp.Transform()}); diff != "" {
-		t.Errorf("getBuildDefinition(): -want +got: %s", diff)
-	}
-}
-
-func getProtoStruct(t *testing.T, data map[string]any) *structpb.Struct {
+func getStruct(t *testing.T, data map[string]any) *structpb.Struct {
 	t.Helper()
-	protoStruct, err := getStruct(data)
+	bytes, err := json.Marshal(data)
+	if err != nil {
+		t.Fatalf("error getting proto struct: %v", err)
+	}
+
+	protoStruct := &structpb.Struct{}
+	err = protojson.Unmarshal(bytes, protoStruct)
 	if err != nil {
 		t.Fatalf("error getting proto struct: %v", err)
 	}

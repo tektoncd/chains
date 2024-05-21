@@ -33,7 +33,7 @@ const (
 
 // GenerateAttestation returns the provenance for the given taskrun in SALSA 1.0 format.
 func GenerateAttestation(ctx context.Context, tro *objects.TaskRunObjectV1, slsaConfig *slsaconfig.SlsaConfig) (interface{}, error) {
-	bp, err := byproducts(tro)
+	bp, err := ByProducts(tro)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +50,8 @@ func GenerateAttestation(ctx context.Context, tro *objects.TaskRunObjectV1, slsa
 	return provenance.GetSLSA1Statement(tro, sub, &bd, bp, slsaConfig)
 }
 
-func byproducts(tro *objects.TaskRunObjectV1) ([]*intoto.ResourceDescriptor, error) {
+// ByProducts returns the results categorized as byproduct from the given TaskRun.
+func ByProducts(tro *objects.TaskRunObjectV1) ([]*intoto.ResourceDescriptor, error) {
 	byProd := []*intoto.ResourceDescriptor{}
 
 	res, err := results.GetResultsWithoutBuildArtifacts(tro.GetResults(), taskRunResults)

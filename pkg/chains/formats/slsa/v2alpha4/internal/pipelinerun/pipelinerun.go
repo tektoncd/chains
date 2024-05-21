@@ -15,55 +15,75 @@ package pipelinerun
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 
 	intoto "github.com/in-toto/attestation/go/v1"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
 	builddefinition "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/build_definition"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/provenance"
 	resolveddependencies "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/resolved_dependencies"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/results"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha4/internal/taskrun"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 )
 
 const (
 	pipelineRunResults = "pipelineRunResults/%s"
-	// JsonMediaType is the media type of json encoded content used in resource descriptors
-	JsonMediaType = "application/json"
+	// JSONMediaType is the media type of json encoded content used in resource descriptors
+	JSONMediaType = "application/json"
 )
 
 // GenerateAttestation generates a provenance statement with SLSA v1.0 predicate for a pipeline run.
 func GenerateAttestation(ctx context.Context, pro *objects.PipelineRunObjectV1, slsaconfig *slsaconfig.SlsaConfig) (interface{}, error) {
-	bp, err := byproducts(pro)
+	bp, err := byproducts(pro, slsaconfig)
 	if err != nil {
 		return nil, err
 	}
 
-	bd, err := builddefinition.GetPipelineRunBuildDefinition(ctx, pro, slsaconfig, resolveddependencies.ResolveOptions{})
+	opts := resolveddependencies.ResolveOptions{WithStepActionsResults: true}
+	bd, err := builddefinition.GetPipelineRunBuildDefinition(ctx, pro, slsaconfig, opts)
 	if err != nil {
 		return nil, err
 	}
 
-	sub := extract.SubjectDigests(ctx, pro, slsaconfig)
+	sub := subjectDigests(ctx, pro, slsaconfig)
 
 	return provenance.GetSLSA1Statement(pro, sub, &bd, bp, slsaconfig)
 }
 
 // byproducts contains the pipelineRunResults
-func byproducts(pro *objects.PipelineRunObjectV1) ([]*intoto.ResourceDescriptor, error) {
+func byproducts(pro *objects.PipelineRunObjectV1, slsaconfig *slsaconfig.SlsaConfig) ([]*intoto.ResourceDescriptor, error) {
 	byProd := []*intoto.ResourceDescriptor{}
-	for _, key := range pro.Status.Results {
-		content, err := json.Marshal(key.Value)
+
+	res, err := results.GetResultsWithoutBuildArtifacts(pro.GetResults(), pipelineRunResults)
+	if err != nil {
+		return nil, err
+	}
+	byProd = append(byProd, res...)
+
+	if !slsaconfig.DeepInspectionEnabled {
+		return byProd, nil
+	}
+
+	tros := pro.GetExecutedTasks()
+
+	for _, tro := range tros {
+		taskProds, err := taskrun.ByProducts(tro)
 		if err != nil {
 			return nil, err
 		}
-		bp := &intoto.ResourceDescriptor{
-			Name:      fmt.Sprintf(pipelineRunResults, key.Name),
-			Content:   content,
-			MediaType: JsonMediaType,
-		}
-		byProd = append(byProd, bp)
+		byProd = append(byProd, taskProds...)
 	}
+
 	return byProd, nil
+}
+
+func subjectDigests(ctx context.Context, pro *objects.PipelineRunObjectV1, slsaconfig *slsaconfig.SlsaConfig) []*intoto.ResourceDescriptor {
+	results := pro.GetResults()
+
+	if slsaconfig.DeepInspectionEnabled {
+		results = append(results, pro.GetTaskAndStepResults()...)
+	}
+
+	return extract.SubjectsFromBuildArtifact(ctx, results)
 }
