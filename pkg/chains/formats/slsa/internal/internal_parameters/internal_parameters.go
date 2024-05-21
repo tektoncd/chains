@@ -17,6 +17,9 @@ limitations under the License.
 package internalparameters
 
 import (
+	"fmt"
+
+	buildtypes "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/build_types"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 )
@@ -39,4 +42,20 @@ func TektonInternalParameters(tko objects.TektonObject) map[string]any {
 	internalParams["labels"] = tko.GetLabels()
 	internalParams["annotations"] = tko.GetAnnotations()
 	return internalParams
+}
+
+// GetInternalParamters returns the internal parameters for the given tekton object based on the build type.
+func GetInternalParamters(obj objects.TektonObject, buildDefinitionType string) (map[string]any, error) {
+	var internalParameters map[string]any
+
+	switch buildDefinitionType {
+	case buildtypes.SlsaBuildType:
+		internalParameters = SLSAInternalParameters(obj)
+	case buildtypes.TektonBuildType:
+		internalParameters = TektonInternalParameters(obj)
+	default:
+		return nil, fmt.Errorf("unsupported buildType %v", buildDefinitionType)
+	}
+
+	return internalParameters, nil
 }

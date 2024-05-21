@@ -74,7 +74,8 @@ func PipelineMaterials(ctx context.Context, pro *objects.PipelineRunObjectV1Beta
 	}
 	pSpec := pro.Status.PipelineSpec
 	if pSpec != nil {
-		pipelineTasks := append(pSpec.Tasks, pSpec.Finally...)
+		pipelineTasks := pSpec.Tasks
+		pipelineTasks = append(pipelineTasks, pSpec.Finally...)
 		for _, t := range pipelineTasks {
 			tr := pro.GetTaskRunFromTask(t.Name)
 			// Ignore Tasks that did not execute during the PipelineRun.
@@ -250,7 +251,7 @@ func FromTaskParamsAndResults(ctx context.Context, tro *objects.TaskRunObjectV1B
 		})
 	}
 
-	sms := artifacts.RetrieveMaterialsFromStructuredResults(ctx, tro, artifacts.ArtifactsInputsResultName)
+	sms := artifacts.RetrieveMaterialsFromStructuredResults(ctx, tro.GetResults())
 	mats = artifact.AppendMaterials(mats, sms...)
 
 	return mats
@@ -259,7 +260,7 @@ func FromTaskParamsAndResults(ctx context.Context, tro *objects.TaskRunObjectV1B
 // FromPipelineParamsAndResults extracts type hinted params and results and adds the url and digest to materials.
 func FromPipelineParamsAndResults(ctx context.Context, pro *objects.PipelineRunObjectV1Beta1, slsaconfig *slsaconfig.SlsaConfig) []common.ProvenanceMaterial {
 	mats := []common.ProvenanceMaterial{}
-	sms := artifacts.RetrieveMaterialsFromStructuredResults(ctx, pro, artifacts.ArtifactsInputsResultName)
+	sms := artifacts.RetrieveMaterialsFromStructuredResults(ctx, pro.GetResults())
 	mats = artifact.AppendMaterials(mats, sms...)
 
 	var commit, url string
@@ -269,7 +270,8 @@ func FromPipelineParamsAndResults(ctx context.Context, pro *objects.PipelineRunO
 		// search type hinting param/results from each individual taskruns
 		if slsaconfig.DeepInspectionEnabled {
 			logger := logging.FromContext(ctx)
-			pipelineTasks := append(pSpec.Tasks, pSpec.Finally...)
+			pipelineTasks := pSpec.Tasks
+			pipelineTasks = append(pipelineTasks, pSpec.Finally...)
 			for _, t := range pipelineTasks {
 				tr := pro.GetTaskRunFromTask(t.Name)
 				// Ignore Tasks that did not execute during the PipelineRun.

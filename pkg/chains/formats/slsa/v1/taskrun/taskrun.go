@@ -16,16 +16,19 @@ package taskrun
 import (
 	"context"
 
-	intoto "github.com/in-toto/in-toto-golang/in_toto"
+	intoto "github.com/in-toto/attestation/go/v1"
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/attest"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
 	materialv1beta1 "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/material/v1beta1"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v1/internal/protos"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 )
+
+const statementInTotoV01 = "https://in-toto.io/Statement/v0.1"
 
 func GenerateAttestation(ctx context.Context, tro *objects.TaskRunObjectV1Beta1, slsaConfig *slsaconfig.SlsaConfig) (interface{}, error) {
 	subjects := extract.SubjectDigests(ctx, tro, slsaConfig)
@@ -34,24 +37,29 @@ func GenerateAttestation(ctx context.Context, tro *objects.TaskRunObjectV1Beta1,
 	if err != nil {
 		return nil, err
 	}
-	att := intoto.ProvenanceStatement{
-		StatementHeader: intoto.StatementHeader{
-			Type:          intoto.StatementInTotoV01,
-			PredicateType: slsa.PredicateSLSAProvenance,
-			Subject:       subjects,
+
+	predicate := &slsa.ProvenancePredicate{
+		Builder: common.ProvenanceBuilder{
+			ID: slsaConfig.BuilderID,
 		},
-		Predicate: slsa.ProvenancePredicate{
-			Builder: common.ProvenanceBuilder{
-				ID: slsaConfig.BuilderID,
-			},
-			BuildType:   tro.GetGVK(),
-			Invocation:  invocation(tro),
-			BuildConfig: buildConfig(tro),
-			Metadata:    Metadata(tro),
-			Materials:   mat,
-		},
+		BuildType:   tro.GetGVK(),
+		Invocation:  invocation(tro),
+		BuildConfig: buildConfig(tro),
+		Metadata:    Metadata(tro),
+		Materials:   mat,
 	}
-	return att, nil
+
+	predicateStruct, err := protos.GetPredicateStruct(predicate)
+	if err != nil {
+		return nil, err
+	}
+
+	return &intoto.Statement{
+		Type:          statementInTotoV01,
+		PredicateType: slsa.PredicateSLSAProvenance,
+		Subject:       subjects,
+		Predicate:     predicateStruct,
+	}, nil
 }
 
 // invocation describes the event that kicked off the build

@@ -23,12 +23,13 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	intoto "github.com/in-toto/in-toto-golang/in_toto"
+	intoto "github.com/in-toto/attestation/go/v1"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/compare"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
+	"google.golang.org/protobuf/testing/protocmp"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logtesting "knative.dev/pkg/logging/testing"
 )
@@ -45,7 +46,7 @@ func TestSubjectDigestsAndRetrieveAllArtifactURIs(t *testing.T) {
 		name string
 		// a map of url:digest pairs for type hinting results
 		results      map[string]string
-		wantSubjects []intoto.Subject
+		wantSubjects []*intoto.ResourceDescriptor
 		wantFullURLs []string
 	}{
 		{
@@ -54,7 +55,7 @@ func TestSubjectDigestsAndRetrieveAllArtifactURIs(t *testing.T) {
 				artifactURL1: "sha256:" + artifactDigest1,
 				artifactURL2: "sha256:" + artifactDigest2,
 			},
-			wantSubjects: []intoto.Subject{
+			wantSubjects: []*intoto.ResourceDescriptor{
 				{
 					Name: artifactURL1,
 					Digest: map[string]string{
@@ -110,7 +111,7 @@ func TestSubjectDigestsAndRetrieveAllArtifactURIs(t *testing.T) {
 			}
 			for _, o := range runObjects {
 				gotSubjects := extract.SubjectDigests(ctx, o, &slsaconfig.SlsaConfig{DeepInspectionEnabled: false})
-				if diff := cmp.Diff(tc.wantSubjects, gotSubjects, compare.SubjectCompareOption()); diff != "" {
+				if diff := cmp.Diff(tc.wantSubjects, gotSubjects, compare.SubjectCompareOption(), protocmp.Transform()); diff != "" {
 					t.Errorf("Wrong subjects extracted, diff=%s", diff)
 				}
 
@@ -119,7 +120,6 @@ func TestSubjectDigestsAndRetrieveAllArtifactURIs(t *testing.T) {
 					t.Errorf("Wrong URIs extracted, diff=%s", diff)
 				}
 			}
-
 		})
 	}
 }
@@ -129,14 +129,14 @@ func TestPipelineRunObserveModeForSubjects(t *testing.T) {
 		name                  string
 		pro                   objects.TektonObject
 		deepInspectionEnabled bool
-		wantSubjects          []intoto.Subject
+		wantSubjects          []*intoto.ResourceDescriptor
 		wantFullURLs          []string
 	}{
 		{
 			name:                  "deep inspection disabled",
 			pro:                   createProWithPipelineResults(map[string]string{artifactURL1: "sha256:" + artifactDigest1}),
 			deepInspectionEnabled: false,
-			wantSubjects: []intoto.Subject{
+			wantSubjects: []*intoto.ResourceDescriptor{
 				{
 					Name: artifactURL1,
 					Digest: map[string]string{
@@ -150,7 +150,7 @@ func TestPipelineRunObserveModeForSubjects(t *testing.T) {
 			name:                  "deep inspection enabled: no duplication",
 			pro:                   createProWithTaskRunResults(nil, []artifact{{uri: artifactURL2, digest: "sha256:" + artifactDigest2}}),
 			deepInspectionEnabled: true,
-			wantSubjects: []intoto.Subject{
+			wantSubjects: []*intoto.ResourceDescriptor{
 				{
 					Name: artifactURL2,
 					Digest: map[string]string{
@@ -167,7 +167,7 @@ func TestPipelineRunObserveModeForSubjects(t *testing.T) {
 				{uri: artifactURL2, digest: "sha256:" + artifactDigest2},
 			}),
 			deepInspectionEnabled: true,
-			wantSubjects: []intoto.Subject{
+			wantSubjects: []*intoto.ResourceDescriptor{
 				{
 					Name: artifactURL2,
 					Digest: map[string]string{
@@ -193,7 +193,7 @@ func TestPipelineRunObserveModeForSubjects(t *testing.T) {
 				{uri: artifactURL2, digest: "sha256:" + artifactDigest2},
 			}),
 			deepInspectionEnabled: true,
-			wantSubjects: []intoto.Subject{
+			wantSubjects: []*intoto.ResourceDescriptor{
 				{
 					Name: artifactURL2,
 					Digest: map[string]string{
@@ -208,12 +208,12 @@ func TestPipelineRunObserveModeForSubjects(t *testing.T) {
 		{
 			name: "deep inspection enabled: pipelinerun and taskrun have duplicated results",
 			pro: createProWithTaskRunResults(
-				createProWithPipelineResults(map[string]string{artifactURL1: "sha256:" + artifactDigest1}).(*objects.PipelineRunObjectV1),
+				createProWithPipelineResults(map[string]string{artifactURL1: "sha256:" + artifactDigest1}),
 				[]artifact{
 					{uri: artifactURL1, digest: "sha256:" + artifactDigest1},
 				}),
 			deepInspectionEnabled: true,
-			wantSubjects: []intoto.Subject{
+			wantSubjects: []*intoto.ResourceDescriptor{
 				{
 					Name: artifactURL1,
 					Digest: map[string]string{
@@ -228,12 +228,12 @@ func TestPipelineRunObserveModeForSubjects(t *testing.T) {
 		{
 			name: "deep inspection enabled: pipelinerun and taskrun have different results",
 			pro: createProWithTaskRunResults(
-				createProWithPipelineResults(map[string]string{artifactURL1: "sha256:" + artifactDigest1}).(*objects.PipelineRunObjectV1),
+				createProWithPipelineResults(map[string]string{artifactURL1: "sha256:" + artifactDigest1}),
 				[]artifact{
 					{uri: artifactURL2, digest: "sha256:" + artifactDigest2},
 				}),
 			deepInspectionEnabled: true,
-			wantSubjects: []intoto.Subject{
+			wantSubjects: []*intoto.ResourceDescriptor{
 				{
 					Name: artifactURL1,
 					Digest: map[string]string{
@@ -259,7 +259,7 @@ func TestPipelineRunObserveModeForSubjects(t *testing.T) {
 			ctx := logtesting.TestContextWithLogger(t)
 
 			gotSubjects := extract.SubjectDigests(ctx, tc.pro, &slsaconfig.SlsaConfig{DeepInspectionEnabled: tc.deepInspectionEnabled})
-			if diff := cmp.Diff(tc.wantSubjects, gotSubjects, compare.SubjectCompareOption()); diff != "" {
+			if diff := cmp.Diff(tc.wantSubjects, gotSubjects, compare.SubjectCompareOption(), protocmp.Transform()); diff != "" {
 				t.Errorf("Wrong subjects extracted, diff=%s, %s", diff, gotSubjects)
 			}
 
@@ -271,7 +271,176 @@ func TestPipelineRunObserveModeForSubjects(t *testing.T) {
 	}
 }
 
-func createTaskRunObjectWithResults(results map[string]string) objects.TektonObject {
+func TestSubjectsFromBuildArtifact(t *testing.T) {
+	tests := []struct {
+		name             string
+		results          []objects.Result
+		expectedSubjects []*intoto.ResourceDescriptor
+	}{
+		{
+			name: "no type-hinted build artifacts",
+			results: []objects.Result{
+				{
+					Name:  "result2_ARTIFACT_URL",
+					Value: *v1.NewStructuredValues("gcr.io/test/img4"),
+				},
+				{
+					Name:  "result2_ARTIFACT_DIGEST",
+					Value: *v1.NewStructuredValues("sha256:jh5f72309sf937b16a914eea7cb81ebaa8f2b0a13833797acd26dty46529ihm"),
+				},
+				{
+					Name: "result3_ARTIFACT_OUTPUTS",
+					Value: *v1.NewObject(map[string]string{
+						"uri":    "gcr.io/img5",
+						"digest": "sha256:7492314e32aa75ff1f2cfea35b7dda85d8831929d076aab52420c3400c8c65d8",
+					}),
+				},
+			},
+		},
+		{
+			name: "type-hinted build artifacts",
+			results: []objects.Result{
+				{
+					Name:  "result1_IMAGE_URL",
+					Value: *v1.NewStructuredValues("gcr.io/test/img1"),
+				},
+				{
+					Name:  "result1_IMAGE_DIGEST",
+					Value: *v1.NewStructuredValues("sha256:52e18b100a8da6e191a1955913ba127b75a8b38146cd9b0f573ec1d8e8ecd135"),
+				},
+				{
+					Name: "IMAGES",
+					Value: *v1.NewStructuredValues(
+						"gcr.io/test/img2@sha256:2996854378975c2f8011ddf0526975d1aaf1790b404da7aad4bf25293055bc8b, " +
+							"gcr.io/test/img3@sha256:ef334b5d9704da9b325ed6d4e3e5327863847e2da6d43f81831fd1decbdb2213",
+					),
+				},
+				{
+					Name: "result2_ARTIFACT_OUTPUTS",
+					Value: *v1.NewObject(map[string]string{
+						"uri":             "gcr.io/test/img4",
+						"digest":          "sha256:910700c5ace59f70588c4e2a38ed131146c9f65c94379dfe12376075fc2f338f",
+						"isBuildArtifact": "true",
+					}),
+				},
+				{
+					Name: "result3_ARTIFACT_OUTPUTS",
+					Value: *v1.NewObject(map[string]string{
+						"uri":             "gcr.io/test/img5",
+						"digest":          "sha256:7492314e32aa75ff1f2cfea35b7dda85d8831929d076aab52420c3400c8c65d8",
+						"isBuildArtifact": "true",
+					}),
+				},
+			},
+			expectedSubjects: []*intoto.ResourceDescriptor{
+				{
+					Name: "gcr.io/test/img4",
+					Digest: map[string]string{
+						"sha256": "910700c5ace59f70588c4e2a38ed131146c9f65c94379dfe12376075fc2f338f",
+					},
+				},
+				{
+					Name: "gcr.io/test/img5",
+					Digest: map[string]string{
+						"sha256": "7492314e32aa75ff1f2cfea35b7dda85d8831929d076aab52420c3400c8c65d8",
+					},
+				},
+				{
+					Name: "gcr.io/test/img1",
+					Digest: map[string]string{
+						"sha256": "52e18b100a8da6e191a1955913ba127b75a8b38146cd9b0f573ec1d8e8ecd135",
+					},
+				},
+				{
+					Name: "gcr.io/test/img2",
+					Digest: map[string]string{
+						"sha256": "2996854378975c2f8011ddf0526975d1aaf1790b404da7aad4bf25293055bc8b",
+					},
+				},
+				{
+					Name: "gcr.io/test/img3",
+					Digest: map[string]string{
+						"sha256": "ef334b5d9704da9b325ed6d4e3e5327863847e2da6d43f81831fd1decbdb2213",
+					},
+				},
+			},
+		},
+		{
+			name: "no repetead type-hinted build artifacts",
+			results: []objects.Result{
+				{
+					Name: "result1_ARTIFACT_OUTPUTS",
+					Value: *v1.NewObject(map[string]string{
+						"uri":             "gcr.io/test/img1",
+						"digest":          "sha256:8b7b3e8b124f937b16a914eea7cb81ebaa8f2b0a13833797acd26d67edf4e056",
+						"isBuildArtifact": "true",
+					}),
+				},
+				{
+					Name: "result2_ARTIFACT_OUTPUTS",
+					Value: *v1.NewObject(map[string]string{
+						"uri":             "gcr.io/test/img1",
+						"digest":          "sha256:8b7b3e8b124f937b16a914eea7cb81ebaa8f2b0a13833797acd26d67edf4e056",
+						"isBuildArtifact": "true",
+					}),
+				},
+				{
+					Name: "IMAGES",
+					Value: *v1.NewStructuredValues(
+						"gcr.io/test/img1@sha256:8b7b3e8b124f937b16a914eea7cb81ebaa8f2b0a13833797acd26d67edf4e056",
+					),
+				},
+			},
+			expectedSubjects: []*intoto.ResourceDescriptor{
+				{
+					Name: "gcr.io/test/img1",
+					Digest: map[string]string{
+						"sha256": "8b7b3e8b124f937b16a914eea7cb81ebaa8f2b0a13833797acd26d67edf4e056",
+					},
+				},
+			},
+		},
+		{
+			name: "malformed digests",
+			results: []objects.Result{
+				{
+					Name:  "result1_IMAGE_URL",
+					Value: *v1.NewStructuredValues("gcr.io/test/img1"),
+				},
+				{
+					Name:  "result1_IMAGE_DIGEST",
+					Value: *v1.NewStructuredValues("sha256@52e18b100a8da6e191a1955913ba127b75a8b38146cd9b0f573ec1d8e8ecd135"),
+				},
+				{
+					Name: "IMAGES",
+					Value: *v1.NewStructuredValues(
+						"gcr.io/test/img2@sha256@2996854378975c2f8011ddf0526975d1aaf1790b404da7aad4bf25293055bc8b",
+					),
+				},
+				{
+					Name: "result2_ARTIFACT_OUTPUTS",
+					Value: *v1.NewObject(map[string]string{
+						"uri":             "gcr.io/test/img5",
+						"digest":          "sha256@7492314e32aa75ff1f2cfea35b7dda85d8831929d076aab52420c3400c8c65d8",
+						"isBuildArtifact": "true",
+					}),
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := logtesting.TestContextWithLogger(t)
+			got := extract.SubjectsFromBuildArtifact(ctx, test.results)
+			if diff := cmp.Diff(test.expectedSubjects, got, protocmp.Transform()); diff != "" {
+				t.Errorf("Wrong subjects from build artifacts, +got -want, diff=%s", diff)
+			}
+		})
+	}
+}
+
+func createTaskRunObjectWithResults(results map[string]string) *objects.TaskRunObjectV1 {
 	trResults := []v1.TaskRunResult{}
 	prefix := 0
 	for url, digest := range results {
@@ -293,7 +462,7 @@ func createTaskRunObjectWithResults(results map[string]string) objects.TektonObj
 	)
 }
 
-func createProWithPipelineResults(results map[string]string) objects.TektonObject {
+func createProWithPipelineResults(results map[string]string) *objects.PipelineRunObjectV1 {
 	prResults := []v1.PipelineRunResult{}
 	prefix := 0
 	for url, digest := range results {

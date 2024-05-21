@@ -27,7 +27,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 	"testing"
@@ -37,6 +36,7 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	intoto "github.com/in-toto/attestation/go/v1"
 	"github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
@@ -49,6 +49,7 @@ import (
 	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
+	"google.golang.org/protobuf/encoding/protojson"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logtesting "knative.dev/pkg/logging/testing"
 )
@@ -396,6 +397,7 @@ func TestFulcio(t *testing.T) {
 }
 
 func base64Decode(t *testing.T, s string) []byte {
+	t.Helper()
 	b, err := base64.StdEncoding.DecodeString(s)
 	if err != nil {
 		b, err = base64.URLEncoding.DecodeString(s)
@@ -404,17 +406,6 @@ func base64Decode(t *testing.T, s string) []byte {
 		}
 	}
 	return b
-}
-
-// DSSE messages contain the signature and payload in one object, but our interface expects a signature and payload
-// This means we need to use one field and ignore the other. The DSSE verifier upstream uses the signature field and ignores
-// The message field, but we want the reverse here.
-type reverseDSSEVerifier struct {
-	signature.Verifier
-}
-
-func (w *reverseDSSEVerifier) VerifySignature(s io.Reader, m io.Reader, opts ...signature.VerifyOption) error {
-	return w.Verifier.VerifySignature(m, nil, opts...)
 }
 
 func TestOCIStorage(t *testing.T) {
@@ -691,14 +682,6 @@ func getTaskRunObjectV1(ns string) objects.TektonObject {
 	return o
 }
 
-func getTaskRunObjectV1WithParams(ns string, params []v1.Param) objects.TektonObject {
-	tr, _ := taskRunFromFile("testdata/type-hinting/taskrun.json")
-	o := objects.NewTaskRunObjectV1(tr)
-	o.Namespace = ns
-	o.Spec.Params = params
-	return o
-}
-
 var imagePipelineRun = v1.PipelineRun{
 	ObjectMeta: metav1.ObjectMeta{
 		GenerateName: "image-pipelinerun",
@@ -804,11 +787,16 @@ func TestProvenanceMaterials(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			var actualProvenance in_toto.Statement
+			var actualProvenance intoto.Statement
 			if err := json.Unmarshal(bodyBytes, &actualProvenance); err != nil {
 				t.Error(err)
 			}
-			predicateBytes, err := json.Marshal(actualProvenance.Predicate)
+
+			predicateBytes, err := protojson.Marshal(actualProvenance.Predicate)
+			if err != nil {
+				t.Fatal(err)
+			}
+
 			if err := json.Unmarshal(bodyBytes, &actualProvenance); err != nil {
 				t.Error(err)
 			}

@@ -38,7 +38,7 @@ The following shows the mapping between slsa version and formatter name.
 
 | SLSA Version | Formatter Name         |
 | ------------ | ---------------------- |
-| v1.0         | `slsa/v2alpha3`        |
+| v1.0         | `slsa/v2alpha3` and `slsa/v2alpha4`        |
 | v0.2         | `slsa/v1` or `in-toto` |
 
 To configure Task-level provenance version
@@ -318,6 +318,105 @@ spec:
 ```
 
 </details>
+
+## `v2alpha4` formatter
+
+Starting with version `v2alpha4`, the type-hinted object results value now can include a new boolean flag called `isBuildArtifact`. When set to `true`, this flag indicates the output artifact should be considered as `subject` in the executed TaskRun/PipelineRun.
+
+The `isBuildArtifact` can be set in results whose type-hint uses the `*ARTIFACT_OUTPUTS` format. Results using the `IMAGES` and `*IMAGE_URL` / `*IMAGE_DIGEST` type-hint format will still be considered as `subject` automatically; all other results will be clasified as `byProduct`
+
+For instance, in the following TaskRun:
+
+```yaml
+apiVersion: tekton.dev/v1
+kind: TaskRun
+metadata:
+  name: image-build
+spec:
+  taskSpec:
+    results:
+      - name: first-ARTIFACT_OUTPUTS
+        description: The first artifact built
+        type: object
+        properties:
+          uri: {}
+          digest: {}
+      
+      - name: second-ARTIFACT_OUTPUTS
+        description: The second artifact built
+        type: object
+        properties:
+          uri: {}
+          digest: {}
+          isBuildArtifact: {}
+      
+      - name: third-IMAGE_URL
+        type: string
+      - name: third-IMAGE_DIGEST
+        type: string
+
+      - name: IMAGES
+        type: string
+    steps:
+      - name: dummy-build
+        image: bash:latest
+        script: |
+          echo -n "{\"uri\":\"gcr.io/foo/img1\", \"digest\":\"sha256:586789aa031fafc7d78a5393cdc772e0b55107ea54bb8bcf3f2cdac6c6da51ee\"}" > $(results.first-ARTIFACT_OUTPUTS.path)
+
+          echo -n "{\"uri\":\"gcr.io/foo/img2\", \"digest\":\"sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5\", \"isBuildArtifact\":\"true\"}" > $(results.second-ARTIFACT_OUTPUTS.path)
+
+          echo -n "gcr.io/foo/bar" | tee $(results.third-IMAGE_URL.path)
+          echo -n "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b6" | tee $(results.third-IMAGE_DIGEST.path)
+
+          echo -n "gcr.io/test/img3@sha256:2996854378975c2f8011ddf0526975d1aaf1790b404da7aad4bf25293055bc8b, gcr.io/test/img4@sha256:ef334b5d9704da9b325ed6d4e3e5327863847e2da6d43f81831fd1decbdb2213" | tee $(results.IMAGES.path)
+```
+
+`second-ARTIFACT_OUTPUTS`, `third-IMAGE_URL`/`third-IMAGE_DIGEST`, and `IMAGES` will be considered as `subject`. `first-ARTIFACT_OUTPUTS` doesn't specify `isBuildArtifact: true` so it is not count as `subject`.
+
+Chains' `v2alpha4` formatter now automatically reads type-hinted results from StepActions associated to the executed TaskRun; users no longer need to manually surface these results from the StepActions when the appropriate type hints are in place. For instance, with the following TaskRun:
+
+```yaml
+apiVersion: tekton.dev/v1alpha1
+kind: StepAction
+metadata:
+  name: img-builder
+spec:
+  image: busybox:glibc
+
+  results:
+    - name: first-ARTIFACT_OUTPUTS
+      description: The first artifact built
+      type: object
+      properties:
+        uri: {}
+        digest: {}
+        isBuildArtifact: {}
+
+    - name: second-IMAGE_URL
+      type: string
+    - name: second-IMAGE_DIGEST
+      type: string
+
+  script: |
+    echo -n "{\"uri\":\"gcr.io/foo/img1\", \"digest\":\"sha256:586789aa031fafc7d78a5393cdc772e0b55107ea54bb8bcf3f2cdac6c6da51ee\", \"isBuildArtifact\": \"true\" }" > $(step.results.first-ARTIFACT_OUTPUTS.path)
+
+    echo -n "gcr.io/foo/bar" > $(step.results.second-IMAGE_URL.path)
+    echo -n "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b6" > $(step.results.second-IMAGE_DIGEST.path)
+---
+apiVersion: tekton.dev/v1
+kind: TaskRun
+metadata:
+  name: taskrun
+spec:
+  taskSpec:
+    steps:
+      - name: action-runner
+        ref:
+          name: img-builder
+```
+
+Chains Will read `first-ARTIFACT_OUTPUTS` and `second-IMAGE_URL/second-IMAGE_DIGEST` from the StepAction and clasify them as a `subject`.
+
 
 ## Besides inputs/outputs
 

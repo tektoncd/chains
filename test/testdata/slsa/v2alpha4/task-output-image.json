@@ -1,0 +1,62 @@
+{
+    "type": "https://in-toto.io/Statement/v1",
+    "predicate_type": "https://slsa.dev/provenance/v1",
+    "subject": [
+        {
+            "name": "gcr.io/foo/bar",
+            "digest": {
+                "sha256": "05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5"
+            }
+        }
+    ],
+    "predicate": {
+	"buildDefinition": {
+            "buildType": "https://tekton.dev/chains/v2/slsa",
+	    "externalParameters": {
+                "runSpec": {
+                    "serviceAccountName": "default",
+                    "taskSpec": {
+                        "steps": [
+                            {
+                                "name": "create-image",
+                                "image": "busybox",
+                                "computeResources": {},
+                                "script": "#!/usr/bin/env sh\necho 'gcr.io/foo/bar' | tee $(results.IMAGE_URL.path)\necho 'sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5' | tee $(results.IMAGE_DIGEST.path)"
+                            }
+                        ],
+			"results": [
+                            {
+                                "name": "IMAGE_URL",
+                                "type": "string"
+                            },{
+                                "name": "IMAGE_DIGEST",
+                                "type": "string"
+                            }
+			]
+        	    },
+		    "timeout": "1h0m0s"
+		}
+	    },
+	    "resolvedDependencies": [
+	        {{range .URIDigest}}
+	        {
+	    	"uri": "{{.URI}}",
+	    	"digest": {
+	    	    "sha256": "{{.Digest}}"
+	    	}
+	        }
+	        {{end}}
+            ]
+	},
+        "runDetails": {
+	    "builder": {
+                "id": "https://tekton.dev/chains/v2"
+	    },
+	    "metadata": {
+                "invocationId": "{{.UID}}",
+                "startedOn": "{{index .BuildStartTimes 0}}",
+                "finishedOn": "{{index .BuildFinishedTimes 0}}"
+	    }
+	}
+    }
+}

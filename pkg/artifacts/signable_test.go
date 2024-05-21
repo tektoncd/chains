@@ -46,7 +46,6 @@ const (
 var ignore = []cmp.Option{cmpopts.IgnoreUnexported(name.Registry{}, name.Repository{}, name.Digest{})}
 
 func TestOCIArtifact_ExtractObjects(t *testing.T) {
-
 	tests := []struct {
 		name string
 		obj  objects.TektonObject
@@ -328,32 +327,26 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 }
 
 func TestExtractOCIImagesFromResults(t *testing.T) {
-	tr := &v1.TaskRun{
-		Status: v1.TaskRunStatus{
-			TaskRunStatusFields: v1.TaskRunStatusFields{
-				Results: []v1.TaskRunResult{
-					{Name: "img1_IMAGE_URL", Value: *v1.NewStructuredValues("img1")},
-					{Name: "img1_IMAGE_DIGEST", Value: *v1.NewStructuredValues(digest1)},
-					{Name: "img2_IMAGE_URL", Value: *v1.NewStructuredValues("img2")},
-					{Name: "img2_IMAGE_DIGEST", Value: *v1.NewStructuredValues(digest2)},
-					{Name: "IMAGE_URL", Value: *v1.NewStructuredValues("img3")},
-					{Name: "IMAGE_DIGEST", Value: *v1.NewStructuredValues(digest1)},
-					{Name: "img4_IMAGE_URL", Value: *v1.NewStructuredValues("img4")},
-					{Name: "img5_IMAGE_DIGEST", Value: *v1.NewStructuredValues("sha123:abc")},
-					{Name: "empty_str_IMAGE_DIGEST", Value: *v1.NewStructuredValues("")},
-					{Name: "empty_str_IMAGE_URL", Value: *v1.NewStructuredValues("")},
-				},
-			},
-		},
+	results := []objects.Result{
+		{Name: "img1_IMAGE_URL", Value: *v1.NewStructuredValues("img1")},
+		{Name: "img1_IMAGE_DIGEST", Value: *v1.NewStructuredValues(digest1)},
+		{Name: "img2_IMAGE_URL", Value: *v1.NewStructuredValues("img2")},
+		{Name: "img2_IMAGE_DIGEST", Value: *v1.NewStructuredValues(digest2)},
+		{Name: "IMAGE_URL", Value: *v1.NewStructuredValues("img3")},
+		{Name: "IMAGE_DIGEST", Value: *v1.NewStructuredValues(digest1)},
+		{Name: "img4_IMAGE_URL", Value: *v1.NewStructuredValues("img4")},
+		{Name: "img5_IMAGE_DIGEST", Value: *v1.NewStructuredValues("sha123:abc")},
+		{Name: "empty_str_IMAGE_DIGEST", Value: *v1.NewStructuredValues("")},
+		{Name: "empty_str_IMAGE_URL", Value: *v1.NewStructuredValues("")},
 	}
-	obj := objects.NewTaskRunObjectV1(tr)
+
 	want := []interface{}{
 		createDigest(t, fmt.Sprintf("img1@%s", digest1)),
 		createDigest(t, fmt.Sprintf("img2@%s", digest2)),
 		createDigest(t, fmt.Sprintf("img3@%s", digest1)),
 	}
 	ctx := logtesting.TestContextWithLogger(t)
-	got := ExtractOCIImagesFromResults(ctx, obj)
+	got := ExtractOCIImagesFromResults(ctx, results)
 	sort.Slice(got, func(i, j int) bool {
 		a := got[i].(name.Digest)
 		b := got[j].(name.Digest)
@@ -495,7 +488,7 @@ func TestExtractStructuredTargetFromResults(t *testing.T) {
 		{URI: "gcr.io/foo/bar", Digest: digest_sha512},
 	}
 	ctx := logtesting.TestContextWithLogger(t)
-	gotInputs := ExtractStructuredTargetFromResults(ctx, objects.NewTaskRunObjectV1(tr), ArtifactsInputsResultName)
+	gotInputs := ExtractStructuredTargetFromResults(ctx, objects.NewTaskRunObjectV1(tr).GetResults(), ArtifactsInputsResultName)
 	if diff := cmp.Diff(gotInputs, wantInputs, cmpopts.SortSlices(func(x, y *StructuredSignable) bool { return x.Digest < y.Digest })); diff != "" {
 		t.Errorf("Inputs are not as expected: %v", diff)
 	}
@@ -504,7 +497,7 @@ func TestExtractStructuredTargetFromResults(t *testing.T) {
 		{URI: "projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/com.google.guava:guava:31.0-jre", Digest: digest1},
 		{URI: "com.google.guava:guava:31.0-jre.pom", Digest: digest2},
 	}
-	gotOutputs := ExtractStructuredTargetFromResults(ctx, objects.NewTaskRunObjectV1(tr), ArtifactsOutputsResultName)
+	gotOutputs := ExtractStructuredTargetFromResults(ctx, objects.NewTaskRunObjectV1(tr).GetResults(), ArtifactsOutputsResultName)
 	opts := append(ignore, cmpopts.SortSlices(func(x, y *StructuredSignable) bool { return x.Digest < y.Digest }))
 	if diff := cmp.Diff(gotOutputs, wantOutputs, opts...); diff != "" {
 		t.Error(diff)
@@ -548,7 +541,7 @@ func TestRetrieveMaterialsFromStructuredResults(t *testing.T) {
 		},
 	}
 	ctx := logtesting.TestContextWithLogger(t)
-	gotMaterials := RetrieveMaterialsFromStructuredResults(ctx, objects.NewTaskRunObjectV1(tr), ArtifactsInputsResultName)
+	gotMaterials := RetrieveMaterialsFromStructuredResults(ctx, objects.NewTaskRunObjectV1(tr).GetResults())
 
 	if diff := cmp.Diff(gotMaterials, wantMaterials, ignore...); diff != "" {
 		t.Fatalf("Materials not the same %s", diff)
@@ -654,7 +647,167 @@ func TestValidateResults(t *testing.T) {
 	}
 }
 
+func TestExtractBuildArtifactsFromResults(t *testing.T) {
+	tests := []struct {
+		name                   string
+		results                []objects.Result
+		expectedBuildArtifacts []*StructuredSignable
+	}{
+		{
+			name: "structured result without isBuildArtifact property",
+			results: []objects.Result{
+				{
+					Name: "result-ARTIFACT_OUTPUTS",
+
+					Value: v1.ParamValue{
+						ObjectVal: map[string]string{
+							"uri":    "gcr.io/foo/bar",
+							"digest": digest1,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "structured result without expected schema",
+			results: []objects.Result{
+				{
+					Name: "bad-type-ARTIFACT_OUTPUTS",
+					Value: v1.ParamValue{
+						StringVal: "not-expected-type-value",
+					},
+				},
+				{
+					Name: "bad-url-field-ARTIFACT_OUTPUTS",
+					Value: v1.ParamValue{
+						ObjectVal: map[string]string{
+							"url":                "foo.com",
+							isBuildArtifactField: "true",
+						},
+					},
+				},
+				{
+					Name: "bad-commit-field-ARTIFACT_OUTPUTS",
+					Value: v1.ParamValue{
+						ObjectVal: map[string]string{
+							"uri":                "gcr.io/foo/bar",
+							"commit":             digest1,
+							isBuildArtifactField: "true",
+						},
+					},
+				},
+				{
+					Name: "bad-digest-value-ARTIFACT_OUTPUTS",
+					Value: v1.ParamValue{
+						ObjectVal: map[string]string{
+							"uri":                "gcr.io/foo/bar",
+							"digest":             "sha512:baddigestvalue",
+							isBuildArtifactField: "true",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "structured result without expected type-hint",
+			results: []objects.Result{
+				{
+					Name: "result-ARTIFACT_OBJ",
+					Value: v1.ParamValue{
+						ObjectVal: map[string]string{
+							"uri":                "gcr.io/foo/bar",
+							"digest":             digest1,
+							isBuildArtifactField: "true",
+						},
+					},
+				},
+				{
+					Name: "result-ARTIFACT_URI",
+					Value: v1.ParamValue{
+						StringVal: "gcr.io/foo/bar",
+					},
+				},
+				{
+					Name: "result-ARTIFACT_DIGEST",
+					Value: v1.ParamValue{
+						StringVal: digest1,
+					},
+				},
+				{
+					Name: "result-IMAGE_URL",
+					Value: v1.ParamValue{
+						StringVal: "gcr.io/foo/bar",
+					},
+				},
+				{
+					Name: "result-IMAGE_DIGEST",
+					Value: v1.ParamValue{
+						StringVal: digest1,
+					},
+				},
+				{
+					Name: "IMAGES",
+					Value: v1.ParamValue{
+						ArrayVal: []string{
+							fmt.Sprintf("img1@sha256:%v", digest1),
+							fmt.Sprintf("img2@sha256:%v", digest2),
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "structured result mark as build artifact",
+			results: []objects.Result{
+				{
+					Name: "result-1-ARTIFACT_OUTPUTS",
+					Value: v1.ParamValue{
+						ObjectVal: map[string]string{
+							"uri":                "gcr.io/foo/bar",
+							"digest":             digest1,
+							isBuildArtifactField: "true",
+						},
+					},
+				},
+				{
+					Name: "result-2-ARTIFACT_OUTPUTS",
+					Value: v1.ParamValue{
+						ObjectVal: map[string]string{
+							"uri":                "gcr.io/bar/foo",
+							"digest":             digest2,
+							isBuildArtifactField: "false",
+						},
+					},
+				},
+				{
+					Name: "result-3-ARTIFACT_OUTPUTS",
+					Value: v1.ParamValue{
+						ObjectVal: map[string]string{
+							"uri":    "gcr.io/repo/test",
+							"digest": digest3,
+						},
+					},
+				},
+			},
+			expectedBuildArtifacts: []*StructuredSignable{
+				{URI: "gcr.io/foo/bar", Digest: digest1},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := logtesting.TestContextWithLogger(t)
+			gotBuildArtifacts := ExtractBuildArtifactsFromResults(ctx, test.results)
+			if diff := cmp.Diff(gotBuildArtifacts, test.expectedBuildArtifacts); diff != "" {
+				t.Fatalf("Materials not the same %s", diff)
+			}
+		})
+	}
+}
+
 func createDigest(t *testing.T, dgst string) name.Digest {
+	t.Helper()
 	result, err := name.NewDigest(dgst)
 	if err != nil {
 		t.Fatal(err)

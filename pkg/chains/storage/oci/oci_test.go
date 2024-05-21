@@ -25,11 +25,14 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/formats/simple"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
+	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/registry"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
+	intoto "github.com/in-toto/attestation/go/v1"
 	"github.com/in-toto/in-toto-golang/in_toto"
+
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/sigstore/sigstore/pkg/signature/payload"
@@ -84,20 +87,18 @@ func TestBackend_StorePayload(t *testing.T) {
 		},
 	}
 
-	intotoStatement := in_toto.ProvenanceStatement{
-		StatementHeader: in_toto.StatementHeader{
-			Type:          in_toto.StatementInTotoV01,
-			PredicateType: slsa.PredicateSLSAProvenance,
-			Subject: []in_toto.Subject{
-				{
-					Name: u.Host + "/task/" + tr.Name,
-					Digest: common.DigestSet{
-						algo: hex,
-					},
+	intotoStatement := &intoto.Statement{
+		Type:          in_toto.StatementInTotoV01,
+		PredicateType: slsa.PredicateSLSAProvenance,
+		Subject: []*intoto.ResourceDescriptor{
+			{
+				Name: u.Host + "/task/" + tr.Name,
+				Digest: common.DigestSet{
+					algo: hex,
 				},
 			},
 		},
-		Predicate: slsa.ProvenancePredicate{},
+		Predicate: &structpb.Struct{},
 	}
 
 	type fields struct {
@@ -145,7 +146,7 @@ func TestBackend_StorePayload(t *testing.T) {
 			object: objects.NewTaskRunObjectV1Beta1(tr),
 		},
 		args: args{
-			payload:   in_toto.Statement{},
+			payload:   intoto.Statement{},
 			signature: "",
 			storageOpts: config.StorageOpts{
 				PayloadFormat: formats.PayloadTypeSlsav1,
@@ -210,7 +211,7 @@ func TestBackend_StorePayload(t *testing.T) {
 			object: objects.NewPipelineRunObjectV1Beta1(pr),
 		},
 		args: args{
-			payload:   in_toto.Statement{},
+			payload:   intoto.Statement{},
 			signature: "",
 			storageOpts: config.StorageOpts{
 				PayloadFormat: formats.PayloadTypeSlsav1,

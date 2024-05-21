@@ -1,0 +1,155 @@
+{
+    "type": "https://in-toto.io/Statement/v1",
+    "predicate_type": "https://slsa.dev/provenance/v1",
+    "subject": [
+        {
+            "name": "gcr.io/foo/img2",
+            "digest": {
+                "sha256": "05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5"
+            }
+        },
+        {
+            "name": "gcr.io/foo/bar",
+            "digest": {
+                "sha256": "05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b6"
+            }
+        },
+        {
+            "name": "gcr.io/test/img3",
+            "digest": {
+                "sha256": "2996854378975c2f8011ddf0526975d1aaf1790b404da7aad4bf25293055bc8b"
+            }
+        }
+    ],
+    "predicate": {
+        "buildDefinition": {
+            "buildType": "https://tekton.dev/chains/v2/slsa",
+            "externalParameters": {
+                "runSpec": {
+                    "serviceAccountName": "default",
+                    "taskSpec": {
+                        "steps": [
+                            {
+                                "name": "dummy-build",
+                                "image": "bash:latest",
+                                "computeResources": {},
+                                "script": "echo -n \"{\\\"uri\\\":\\\"gcr.io/foo/img1\\\", \\\"digest\\\":\\\"sha256:586789aa031fafc7d78a5393cdc772e0b55107ea54bb8bcf3f2cdac6c6da51ee\\\"}\" \u003e $(results.first-ARTIFACT_OUTPUTS.path)\n\necho -n \"{\\\"uri\\\":\\\"gcr.io/foo/img2\\\", \\\"digest\\\":\\\"sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5\\\", \\\"isBuildArtifact\\\":\\\"true\\\"}\" \u003e $(results.second-ARTIFACT_OUTPUTS.path)\n\necho -n \"gcr.io/foo/bar\" | tee $(results.third-IMAGE_URL.path)\necho -n \"sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b6\" | tee $(results.third-IMAGE_DIGEST.path)\n\necho -n \"gcr.io/test/img3@sha256:2996854378975c2f8011ddf0526975d1aaf1790b404da7aad4bf25293055bc8b\" | tee $(results.IMAGES.path)\n\necho -n \"{\\\"uri\\\":\\\"gcr.io/test/img4\\\", \\\"digest\\\":\\\"sha256:basd-sha\\\", \\\"isBuildArtifact\\\":\\\"true\\\"}\" \u003e $(results.fourth-ARTIFACT_OUTPUTS.path)"
+                            }
+                        ],
+                        "results": [
+                            {
+                                "name": "first-ARTIFACT_OUTPUTS",
+                                "type": "object",
+                                "properties": {
+                                    "digest": {
+                                        "type": "string"
+                                    },
+                                    "uri": {
+                                        "type": "string"
+                                    }
+                                },
+                                "description": "The first artifact built"
+                            },
+                            {
+                                "name": "second-ARTIFACT_OUTPUTS",
+                                "type": "object",
+                                "properties": {
+                                    "digest": {
+                                        "type": "string"
+                                    },
+                                    "isBuildArtifact": {
+                                        "type": "string"
+                                    },
+                                    "uri": {
+                                        "type": "string"
+                                    }
+                                },
+                                "description": "The second artifact built"
+                            },
+                            {
+                                "name": "third-IMAGE_URL",
+                                "type": "string"
+                            },
+                            {
+                                "name": "third-IMAGE_DIGEST",
+                                "type": "string"
+                            },
+                            {
+                                "name": "IMAGES",
+                                "type": "string"
+                            },
+                            {
+                                "name": "fourth-ARTIFACT_OUTPUTS",
+                                "type": "object",
+                                "properties": {
+                                    "digest": {
+                                        "type": "string"
+                                    },
+                                    "isBuildArtifact": {
+                                        "type": "string"
+                                    },
+                                    "uri": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        ]
+                    },
+                    "timeout": "1h0m0s"
+                }
+            },
+            "internalParameters": {
+                "tekton-pipelines-feature-flags": {
+                    "DisableAffinityAssistant": false,
+                    "DisableCredsInit": false,
+                    "RunningInEnvWithInjectedSidecars": true,
+                    "RequireGitSSHSecretKnownHosts": false,
+                    "EnableTektonOCIBundles": false,
+                    "ScopeWhenExpressionsToTask": false,
+                    "EnableAPIFields": "beta",
+                    "SendCloudEventsForRuns": false,
+                    "AwaitSidecarReadiness": true,
+                    "EnforceNonfalsifiability": "none",
+                    "EnableKeepPodOnCancel": false,
+                    "VerificationNoMatchPolicy": "ignore",
+                    "EnableProvenanceInStatus": true,
+                    "ResultExtractionMethod": "termination-message",
+                    "MaxResultSize": 4096,
+                    "SetSecurityContext": false,
+                    "Coschedule": "workspaces",
+                    "EnableCELInWhenExpression": false,
+                    "EnableStepActions": true,
+                    "EnableParamEnum": false,
+                    "EnableArtifacts": false
+                }
+            },
+            "resolvedDependencies": [
+                {{range .URIDigest}}
+                {
+                "uri": "{{.URI}}",
+                "digest": {
+                    "sha256": "{{.Digest}}"
+                }
+                }
+                {{end}}
+            ]
+        },
+        "runDetails": {
+            "builder": {
+                "id": "https://tekton.dev/chains/v2"
+            },
+            "metadata": {
+                "invocationId": "{{.UID}}",
+                "startedOn": "{{index .BuildStartTimes 0}}",
+                "finishedOn": "{{index .BuildFinishedTimes 0}}"
+	        },
+            "byproducts": [
+                {
+                    "name": "taskRunResults/first-ARTIFACT_OUTPUTS",
+                    "mediaType": "application/json",
+                    "content": "eyJkaWdlc3QiOiJzaGEyNTY6NTg2Nzg5YWEwMzFmYWZjN2Q3OGE1MzkzY2RjNzcyZTBiNTUxMDdlYTU0YmI4YmNmM2YyY2RhYzZjNmRhNTFlZSIsInVyaSI6Imdjci5pby9mb28vaW1nMSJ9"
+                }
+            ]
+        }
+    }
+}
