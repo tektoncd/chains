@@ -294,16 +294,6 @@ func (pro *PipelineRunObjectV1) GetResults() []Result {
 	return res
 }
 
-// GetTaskAndStepResults returns the results of the associated TaskRuns of the PipelineRun.
-func (pro *PipelineRunObjectV1) GetTaskAndStepResults() (results []Result) {
-	execTasks := pro.GetExecutedTasks()
-	for _, task := range execTasks {
-		results = append(results, task.GetResults()...)
-		results = append(results, task.GetStepResults()...)
-	}
-	return
-}
-
 // Get the ServiceAccount declared in the PipelineRun
 func (pro *PipelineRunObjectV1) GetServiceAccountName() string {
 	return pro.Spec.TaskRunTemplate.ServiceAccountName

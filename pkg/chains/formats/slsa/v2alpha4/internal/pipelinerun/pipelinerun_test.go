@@ -80,14 +80,32 @@ func TestGenerateAttestation(t *testing.T) {
 	e1BuildStart := time.Unix(1617011400, 0)
 	e1BuildFinished := time.Unix(1617011415, 0)
 
-	predicate := &slsa.Provenance{
-		BuildDefinition: &slsa.BuildDefinition{
-			BuildType: "https://tekton.dev/chains/v2/slsa",
-			ExternalParameters: getStruct(t, map[string]any{
-				"runSpec": pr.Spec,
-			}),
-			InternalParameters: getStruct(t, map[string]any{}),
-			ResolvedDependencies: []*intoto.ResourceDescriptor{
+	tests := []struct {
+		name                         string
+		expectedStatement            *intoto.Statement
+		expectedPredicate            *slsa.Provenance
+		expectedSubjects             []*intoto.ResourceDescriptor
+		expectedResolvedDependencies []*intoto.ResourceDescriptor
+		expectedByProducts           []*intoto.ResourceDescriptor
+		withDeepInspection           bool
+	}{
+		{
+			name: "attestation without deepinspection",
+			expectedSubjects: []*intoto.ResourceDescriptor{
+				{
+					Name: "abc",
+					Digest: common.DigestSet{
+						"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7",
+					},
+				},
+				{
+					Name: "test.io/test/image",
+					Digest: common.DigestSet{
+						"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7",
+					},
+				},
+			},
+			expectedResolvedDependencies: []*intoto.ResourceDescriptor{
 				{
 					Uri:    "git+https://github.com/test",
 					Digest: common.DigestSet{"sha1": "28b123"},
@@ -126,17 +144,7 @@ func TestGenerateAttestation(t *testing.T) {
 					Digest: common.DigestSet{"sha1": "abcd"},
 				},
 			},
-		},
-		RunDetails: &slsa.RunDetails{
-			Builder: &slsa.Builder{
-				Id: "test_builder-1",
-			},
-			Metadata: &slsa.BuildMetadata{
-				InvocationId: "abhhf-12354-asjsdbjs23-3435353n",
-				StartedOn:    timestamppb.New(e1BuildStart),
-				FinishedOn:   timestamppb.New(e1BuildFinished),
-			},
-			Byproducts: []*intoto.ResourceDescriptor{
+			expectedByProducts: []*intoto.ResourceDescriptor{
 				{
 					Name:      "pipelineRunResults/CHAINS-GIT_COMMIT",
 					Content:   []uint8(`"abcd"`),
@@ -156,45 +164,178 @@ func TestGenerateAttestation(t *testing.T) {
 				},
 			},
 		},
-	}
-
-	predicateStruct := getPredicateStruct(t, predicate)
-
-	want := &intoto.Statement{
-		Type:          intoto.StatementTypeUri,
-		PredicateType: slsaprov.PredicateSLSAProvenance,
-		Subject: []*intoto.ResourceDescriptor{
-			{
-				Name: "abc",
-				Digest: common.DigestSet{
-					"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7",
+		{
+			name:               "attestation with deepinspection",
+			withDeepInspection: true,
+			expectedSubjects: []*intoto.ResourceDescriptor{
+				{
+					Name: "abc",
+					Digest: common.DigestSet{
+						"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7",
+					},
+				},
+				{
+					Name: "test.io/test/image",
+					Digest: common.DigestSet{
+						"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7",
+					},
+				},
+				{
+					Name: "gcr.io/my/image/fromstep3",
+					Digest: common.DigestSet{
+						"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7",
+					},
+				},
+				{
+					Name: "gcr.io/my/image",
+					Digest: common.DigestSet{
+						"sha256": "d31cc8328054de2bd93735f9cbf0ccfb6e0ee8f4c4225da7d8f8cb3900eaf466",
+					},
 				},
 			},
-			{
-				Name: "test.io/test/image",
-				Digest: common.DigestSet{
-					"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7",
+			expectedResolvedDependencies: []*intoto.ResourceDescriptor{
+				{
+					Uri:    "git+https://github.com/test",
+					Digest: common.DigestSet{"sha1": "28b123"},
+					Name:   "pipeline",
+				},
+				{
+					Uri:    "git+https://github.com/catalog",
+					Digest: common.DigestSet{"sha1": "x123"},
+					Name:   "pipelineTask",
+				},
+				{
+					Uri:    "oci://gcr.io/test1/test1",
+					Digest: common.DigestSet{"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"},
+				},
+				{
+					Uri:    "git+https://github.com/test",
+					Digest: common.DigestSet{"sha1": "ab123"},
+					Name:   "pipelineTask",
+				},
+				{
+					Uri:    "oci://gcr.io/test2/test2",
+					Digest: common.DigestSet{"sha256": "4d6dd704ef58cb214dd826519929e92a978a57cdee43693006139c0080fd6fac"},
+				},
+				{
+					Uri:    "oci://gcr.io/test3/test3",
+					Digest: common.DigestSet{"sha256": "f1a8b8549c179f41e27ff3db0fe1a1793e4b109da46586501a8343637b1d0478"},
+				},
+				{
+					Name:   "inputs/result",
+					Uri:    "https://github.com/tektoncd/pipeline",
+					Digest: common.DigestSet{"sha1": "7f2f46e1b97df36b2b82d1b1d87c81b8b3d21601"},
+				},
+				{
+					Uri:    "abc",
+					Digest: common.DigestSet{"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"},
+					Name:   "inputs/result",
+				},
+				{
+					Name:   "inputs/result",
+					Uri:    "git+https://git.test.com.git",
+					Digest: common.DigestSet{"sha1": "sha:taskdefault"},
+				},
+				{
+					Name:   "inputs/result",
+					Uri:    "git+https://git.test.com.git",
+					Digest: common.DigestSet{"sha1": "taskrun"},
+				},
+				{
+					Name:   "inputs/result",
+					Uri:    "git+https://git.test.com.git",
+					Digest: common.DigestSet{"sha1": "abcd"},
+				},
+			},
+			expectedByProducts: []*intoto.ResourceDescriptor{
+				{
+					Name:      "pipelineRunResults/CHAINS-GIT_COMMIT",
+					Content:   []uint8(`"abcd"`),
+					MediaType: JSONMediaType,
+				}, {
+					Name:      "pipelineRunResults/CHAINS-GIT_URL",
+					Content:   []uint8(`"https://git.test.com"`),
+					MediaType: JSONMediaType,
+				}, {
+					Name:      "pipelineRunResults/img-ARTIFACT_INPUTS",
+					Content:   []uint8(`{"digest":"sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7","uri":"abc"}`),
+					MediaType: JSONMediaType,
+				}, {
+					Name:      "pipelineRunResults/img_no_uri-ARTIFACT_OUTPUTS",
+					Content:   []uint8(`{"digest":"sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"}`),
+					MediaType: JSONMediaType,
+				}, {
+					Name:      "taskRunResults/some-uri_DIGEST",
+					Content:   []uint8(`"sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"`),
+					MediaType: JSONMediaType,
+				}, {
+					Name:      "taskRunResults/some-uri",
+					Content:   []uint8(`"pkg:deb/debian/curl@7.50.3-1"`),
+					MediaType: JSONMediaType,
+				}, {
+					Name:      "stepResults/step1_result1-ARTIFACT_INPUTS",
+					Content:   []uint8(`{"digest":"sha1:7f2f46e1b97df36b2b82d1b1d87c81b8b3d21601","uri":"https://github.com/tektoncd/pipeline"}`),
+					MediaType: JSONMediaType,
+				}, {
+					Name:      "stepResults/step1_result1",
+					Content:   []uint8(`"result-value"`),
+					MediaType: JSONMediaType,
+				}, {
+					Name:      "stepResults/step1_result1-ARTIFACT_OUTPUTS",
+					Content:   []uint8(`{"digest":"sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7","uri":"gcr.io/my/image/fromstep2"}`),
+					MediaType: JSONMediaType,
 				},
 			},
 		},
-		Predicate: predicateStruct,
 	}
 
-	got, err := GenerateAttestation(ctx, pr, &slsaconfig.SlsaConfig{
-		BuilderID:             "test_builder-1",
-		DeepInspectionEnabled: false,
-		BuildType:             "https://tekton.dev/chains/v2/slsa",
-	})
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got, err := GenerateAttestation(ctx, pr, &slsaconfig.SlsaConfig{
+				BuilderID:             "test_builder-1",
+				DeepInspectionEnabled: test.withDeepInspection,
+				BuildType:             "https://tekton.dev/chains/v2/slsa",
+			})
 
-	if err != nil {
-		t.Errorf("unwant error: %s", err.Error())
-	}
+			if err != nil {
+				t.Errorf("unwant error: %s", err.Error())
+			}
 
-	opts := compare.SLSAV1CompareOptions()
-	opts = append(opts, protocmp.Transform())
+			expectedPredicate := &slsa.Provenance{
+				BuildDefinition: &slsa.BuildDefinition{
+					BuildType: "https://tekton.dev/chains/v2/slsa",
+					ExternalParameters: getStruct(t, map[string]any{
+						"runSpec": pr.Spec,
+					}),
+					InternalParameters:   getStruct(t, map[string]any{}),
+					ResolvedDependencies: test.expectedResolvedDependencies,
+				},
+				RunDetails: &slsa.RunDetails{
+					Builder: &slsa.Builder{
+						Id: "test_builder-1",
+					},
+					Metadata: &slsa.BuildMetadata{
+						InvocationId: "abhhf-12354-asjsdbjs23-3435353n",
+						StartedOn:    timestamppb.New(e1BuildStart),
+						FinishedOn:   timestamppb.New(e1BuildFinished),
+					},
+					Byproducts: test.expectedByProducts,
+				},
+			}
+			expectedStatement := &intoto.Statement{
+				Type:          intoto.StatementTypeUri,
+				PredicateType: slsaprov.PredicateSLSAProvenance,
+				Subject:       test.expectedSubjects,
+				Predicate:     getPredicateStruct(t, expectedPredicate),
+			}
 
-	if diff := cmp.Diff(want, got, opts...); diff != "" {
-		t.Errorf("GenerateAttestation(): -want +got: %s", diff)
+			opts := compare.SLSAV1CompareOptions()
+			opts = append(opts, protocmp.Transform())
+
+			if diff := cmp.Diff(expectedStatement, got, opts...); diff != "" {
+				t.Errorf("GenerateAttestation(): -want +got: %s", diff)
+			}
+		})
 	}
 }
 

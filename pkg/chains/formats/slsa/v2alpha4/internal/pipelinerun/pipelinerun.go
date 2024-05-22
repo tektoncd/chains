@@ -51,23 +51,18 @@ func GenerateAttestation(ctx context.Context, pro *objects.PipelineRunObjectV1, 
 	return provenance.GetSLSA1Statement(pro, sub, &bd, bp, slsaconfig)
 }
 
-// byproducts contains the pipelineRunResults
+// byproducts contains the pipelineRunResults that are not subjects.
 func byproducts(pro *objects.PipelineRunObjectV1, slsaconfig *slsaconfig.SlsaConfig) ([]*intoto.ResourceDescriptor, error) {
-	byProd := []*intoto.ResourceDescriptor{}
-
-	res, err := results.GetResultsWithoutBuildArtifacts(pro.GetResults(), pipelineRunResults)
+	byProd, err := results.GetResultsWithoutBuildArtifacts(pro.GetResults(), pipelineRunResults)
 	if err != nil {
 		return nil, err
 	}
-	byProd = append(byProd, res...)
 
 	if !slsaconfig.DeepInspectionEnabled {
 		return byProd, nil
 	}
 
-	tros := pro.GetExecutedTasks()
-
-	for _, tro := range tros {
+	for _, tro := range pro.GetExecutedTasks() {
 		taskProds, err := taskrun.ByProducts(tro)
 		if err != nil {
 			return nil, err
@@ -79,11 +74,15 @@ func byproducts(pro *objects.PipelineRunObjectV1, slsaconfig *slsaconfig.SlsaCon
 }
 
 func subjectDigests(ctx context.Context, pro *objects.PipelineRunObjectV1, slsaconfig *slsaconfig.SlsaConfig) []*intoto.ResourceDescriptor {
-	results := pro.GetResults()
+	subjects := extract.SubjectsFromBuildArtifact(ctx, pro.GetResults())
 
-	if slsaconfig.DeepInspectionEnabled {
-		results = append(results, pro.GetTaskAndStepResults()...)
+	if !slsaconfig.DeepInspectionEnabled {
+		return subjects
 	}
 
-	return extract.SubjectsFromBuildArtifact(ctx, results)
+	for _, task := range pro.GetExecutedTasks() {
+		subjects = append(subjects, taskrun.SubjectDigests(ctx, task)...)
+	}
+
+	return subjects
 }

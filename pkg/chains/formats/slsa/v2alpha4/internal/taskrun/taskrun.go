@@ -18,12 +18,14 @@ import (
 
 	intoto "github.com/in-toto/attestation/go/v1"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/artifact"
 	builddefinition "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/build_definition"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/provenance"
 	resolveddependencies "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/resolved_dependencies"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/results"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/objects"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 )
 
 const (
@@ -44,8 +46,7 @@ func GenerateAttestation(ctx context.Context, tro *objects.TaskRunObjectV1, slsa
 		return nil, err
 	}
 
-	results := append(tro.GetResults(), tro.GetStepResults()...)
-	sub := extract.SubjectsFromBuildArtifact(ctx, results)
+	sub := SubjectDigests(ctx, tro)
 
 	return provenance.GetSLSA1Statement(tro, sub, &bd, bp, slsaConfig)
 }
@@ -67,4 +68,29 @@ func ByProducts(tro *objects.TaskRunObjectV1) ([]*intoto.ResourceDescriptor, err
 	byProd = append(byProd, res...)
 
 	return byProd, nil
+}
+
+// SubjectDigests returns the subjects detected in the given TaskRun. It takes into account taskrun and step results.
+func SubjectDigests(ctx context.Context, tro *objects.TaskRunObjectV1) []*intoto.ResourceDescriptor {
+	var subjects []*intoto.ResourceDescriptor
+	for _, step := range tro.Status.Steps {
+		res := getObjectResults(step.Results)
+		stepSubjects := extract.SubjectsFromBuildArtifact(ctx, res)
+		subjects = artifact.AppendSubjects(subjects, stepSubjects...)
+	}
+
+	taskSubjects := extract.SubjectsFromBuildArtifact(ctx, tro.GetResults())
+	subjects = artifact.AppendSubjects(subjects, taskSubjects...)
+
+	return subjects
+}
+
+func getObjectResults(tresults []v1.TaskRunResult) (res []objects.Result) {
+	for _, r := range tresults {
+		res = append(res, objects.Result{
+			Name:  r.Name,
+			Value: r.Value,
+		})
+	}
+	return
 }
