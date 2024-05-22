@@ -373,7 +373,7 @@ spec:
 
 `second-ARTIFACT_OUTPUTS`, `third-IMAGE_URL`/`third-IMAGE_DIGEST`, and `IMAGES` will be considered as `subject`. `first-ARTIFACT_OUTPUTS` doesn't specify `isBuildArtifact: true` so it is not count as `subject`.
 
-Chains' `v2alpha4` formatter now automatically reads type-hinted results from StepActions associated to the executed TaskRun; users no longer need to manually surface these results from the StepActions when the appropriate type hints are in place. For instance, with the following TaskRun:
+Chains' `v2alpha4` formatter now automatically reads type-hinted results from StepActions associated to the executed TaskRun/PipelineRun; users no longer need to manually surface these results from the StepActions when the appropriate type hints are in place. PipelineRuns require `artifacts.pipelinerun.enable-deep-inspection: true` for this functionality to work. For instance, with the following TaskRun:
 
 ```yaml
 apiVersion: tekton.dev/v1alpha1

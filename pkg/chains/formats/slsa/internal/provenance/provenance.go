@@ -16,6 +16,7 @@ package provenance
 import (
 	slsa "github.com/in-toto/attestation/go/predicates/provenance/v1"
 	intoto "github.com/in-toto/attestation/go/v1"
+	slsaprov "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/metadata"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/objects"
@@ -43,7 +44,7 @@ func GetSLSA1Statement(obj objects.TektonObject, sub []*intoto.ResourceDescripto
 
 	return intoto.Statement{
 		Type:          intoto.StatementTypeUri,
-		PredicateType: "https://slsa.dev/provenance/v1",
+		PredicateType: slsaprov.PredicateSLSAProvenance,
 		Subject:       sub,
 		Predicate:     predicateStruct,
 	}, nil

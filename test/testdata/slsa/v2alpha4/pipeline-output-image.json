@@ -1,0 +1,114 @@
+{
+    "type": "https://in-toto.io/Statement/v1",
+    "predicate_type": "https://slsa.dev/provenance/v1",
+    "subject": [
+        {
+            "name": "gcr.io/foo/bar",
+            "digest": {
+                "sha256": "05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5"
+            }
+        }
+    ],
+    "predicate": {
+	"buildDefinition": {
+            "buildType": "https://tekton.dev/chains/v2/slsa",
+	    "externalParameters": {
+                "runSpec": {
+                    "taskRunTemplate": {
+                        "serviceAccountName": "default"
+                    },
+		    "params": [
+                        {
+                            "name": "CHAINS-GIT_COMMIT",
+                            "value": "my-git-commit"
+                        },{
+                            "name": "CHAINS-GIT_URL",
+                            "value": "https://my-git-url"
+                        }
+		    ],
+                    "pipelineSpec": {
+                        "results": [
+                            {
+                                "name": "IMAGE_URL",
+                                "description": "",
+                                "value": "$(tasks.buildimage.results.IMAGE_URL)"
+                            },
+                            {
+                                "name": "IMAGE_DIGEST",
+                                "description": "",
+                                "value": "$(tasks.buildimage.results.IMAGE_DIGEST)"
+                            }
+                        ],
+                        "tasks": [
+                            {
+                                "name": "buildimage",
+                                "taskSpec": {
+                                    "metadata": {},
+                                    "steps": [
+                                        {
+                                            "name": "create-dockerfile",
+                                            "image": "distroless.dev/busybox@sha256:186312fcf3f381b5fc1dd80b1afc0d316f3ed39fb4add8ff900d1f0c7c49a92c",
+                                            "computeResources": {},
+                                            "script": "#!/usr/bin/env sh\necho 'gcr.io/foo/bar' | tee $(results.IMAGE_URL.path)\necho 'sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5' | tee $(results.IMAGE_DIGEST.path)",
+                                            "volumeMounts": [
+                                                {
+                                                    "mountPath": "/dockerfile",
+                                                    "name": "dockerfile"
+						}
+                                            ]
+                                        }
+                                    ],
+                                    "spec": null,
+			            "results": [
+                                        {
+                                            "name": "IMAGE_URL",
+                                            "type": "string"
+                                        },{
+                                            "name": "IMAGE_DIGEST",
+                                            "type": "string"
+                                        }
+			            ],
+			            "volumes": [
+                                        {
+                                            "emptyDir": {},
+                                            "name": "dockerfile"
+                                        }
+			            ]
+
+                                }
+                            }
+                        ]
+        	    },
+            "timeouts": {
+                "pipeline": "1h0m0s"
+            }
+		}
+	    },
+	    "resolvedDependencies": [
+	        {{range .URIDigest}}
+	        {
+	    	    "uri": "{{.URI}}",
+	    	    "digest": {
+	    	        "sha256": "{{.Digest}}"
+	    	    }
+	        },
+	        {{end}}
+                {
+                    "uri":    "git+https://my-git-url.git",
+                    "digest": {"sha1": "my-git-commit"},
+                    "name":   "inputs/result"
+                }
+            ]
+	},
+        "runDetails": {
+	    "builder": {
+                "id": "https://tekton.dev/chains/v2"
+	    },
+	    "metadata": {
+                "invocationId": "{{.UID}}",
+                "startedOn": "{{.PipelineStartedOn}}",
+                "finishedOn": "{{.PipelineFinishedOn}}"
+	    }
+	}
+    }
+}

@@ -22,6 +22,7 @@ import (
 	externalparameters "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/external_parameters"
 	internalparameters "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/internal_parameters"
 	resolveddependencies "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/resolved_dependencies"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -46,6 +47,46 @@ func GetTaskRunBuildDefinition(ctx context.Context, tro *objects.TaskRunObjectV1
 	}
 
 	internalParams, err := internalparameters.GetInternalParamters(tro, buildDefinitionType)
+	if err != nil {
+		return slsa.BuildDefinition{}, err
+	}
+	structInternalParams, err := getStruct(internalParams)
+	if err != nil {
+		return slsa.BuildDefinition{}, err
+	}
+
+	return slsa.BuildDefinition{
+		BuildType:            buildDefinitionType,
+		ExternalParameters:   structExternalParams,
+		InternalParameters:   structInternalParams,
+		ResolvedDependencies: rd,
+	}, nil
+}
+
+// GetPipelineRunBuildDefinition returns the buildDefinition for the given PipelineRun based on the configured buildType. This will default to the slsa buildType
+func GetPipelineRunBuildDefinition(ctx context.Context, pro *objects.PipelineRunObjectV1, slsaconfig *slsaconfig.SlsaConfig, resolveOpts resolveddependencies.ResolveOptions) (slsa.BuildDefinition, error) {
+	buildDefinitionType := slsaconfig.BuildType
+	if slsaconfig.BuildType == "" {
+		buildDefinitionType = buildtypes.SlsaBuildType
+	}
+
+	td, err := resolveddependencies.GetTaskDescriptor(buildDefinitionType)
+	if err != nil {
+		return slsa.BuildDefinition{}, err
+	}
+
+	rd, err := resolveddependencies.PipelineRun(ctx, pro, slsaconfig, resolveOpts, td)
+	if err != nil {
+		return slsa.BuildDefinition{}, err
+	}
+
+	externalParams := externalparameters.PipelineRun(pro)
+	structExternalParams, err := getStruct(externalParams)
+	if err != nil {
+		return slsa.BuildDefinition{}, err
+	}
+
+	internalParams, err := internalparameters.GetInternalParamters(pro, buildDefinitionType)
 	if err != nil {
 		return slsa.BuildDefinition{}, err
 	}

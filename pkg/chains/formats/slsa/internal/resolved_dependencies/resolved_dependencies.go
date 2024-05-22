@@ -23,6 +23,7 @@ import (
 
 	intoto "github.com/in-toto/attestation/go/v1"
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
+	buildtypes "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/build_types"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/material"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/objects"
@@ -48,9 +49,8 @@ const (
 	v1beta1SpecResourceLabel = "tekton.dev/v1beta1-spec-resources"
 )
 
-// used to toggle the fields in  see AddTektonTaskDescriptor
-// and AddSLSATaskDescriptor
-type addTaskDescriptorContent func(*objects.TaskRunObjectV1) (*intoto.ResourceDescriptor, error)
+// AddTaskDescriptorContent is used to toggle the fields in  see AddTektonTaskDescriptor and AddSLSATaskDescriptor
+type AddTaskDescriptorContent func(*objects.TaskRunObjectV1) (*intoto.ResourceDescriptor, error)
 
 // ResolveOptions represents the configuration to be use to resolve dependencies.
 type ResolveOptions struct {
@@ -143,7 +143,7 @@ func AddSLSATaskDescriptor(tr *objects.TaskRunObjectV1) (*intoto.ResourceDescrip
 
 // fromPipelineTask adds the resolved dependencies from pipeline tasks
 // such as pipeline task uri/digest for remote pipeline tasks and step and sidecar images.
-func fromPipelineTask(logger *zap.SugaredLogger, pro *objects.PipelineRunObjectV1, addTasks addTaskDescriptorContent) ([]*intoto.ResourceDescriptor, error) {
+func fromPipelineTask(logger *zap.SugaredLogger, pro *objects.PipelineRunObjectV1, addTasks AddTaskDescriptorContent) ([]*intoto.ResourceDescriptor, error) {
 	pSpec := pro.Status.PipelineSpec
 	resolvedDependencies := []*intoto.ResourceDescriptor{}
 	if pSpec != nil {
@@ -276,7 +276,7 @@ func TaskRun(ctx context.Context, opts ResolveOptions, tro *objects.TaskRunObjec
 }
 
 // PipelineRun constructs `predicate.resolvedDependencies` section by collecting all the artifacts that influence a pipeline run such as source code repo and step&sidecar base images.
-func PipelineRun(ctx context.Context, pro *objects.PipelineRunObjectV1, slsaconfig *slsaconfig.SlsaConfig, addTasks addTaskDescriptorContent) ([]*intoto.ResourceDescriptor, error) {
+func PipelineRun(ctx context.Context, pro *objects.PipelineRunObjectV1, slsaconfig *slsaconfig.SlsaConfig, opts ResolveOptions, addTasks AddTaskDescriptorContent) ([]*intoto.ResourceDescriptor, error) {
 	var err error
 	var resolvedDependencies []*intoto.ResourceDescriptor
 	logger := logging.FromContext(ctx)
@@ -298,6 +298,14 @@ func PipelineRun(ctx context.Context, pro *objects.PipelineRunObjectV1, slsaconf
 	}
 	resolvedDependencies = append(resolvedDependencies, rds...)
 
+	if slsaconfig.DeepInspectionEnabled && opts.WithStepActionsResults {
+		execTasks := pro.GetExecutedTasks()
+		for _, task := range execTasks {
+			stepActionMat := material.FromStepActionsResults(ctx, task)
+			resolvedDependencies = append(resolvedDependencies, ConvertMaterialsToResolvedDependencies(stepActionMat, InputResultName)...)
+		}
+	}
+
 	// add resolved dependencies from pipeline results
 	mats := material.FromPipelineParamsAndResults(ctx, pro, slsaconfig)
 	// convert materials to resolved dependencies
@@ -309,4 +317,16 @@ func PipelineRun(ctx context.Context, pro *objects.PipelineRunObjectV1, slsaconf
 		return nil, err
 	}
 	return resolvedDependencies, nil
+}
+
+// GetTaskDescriptor returns the conrresponding addTaskDescriptor function according to the given build type.
+func GetTaskDescriptor(buildDefinition string) (AddTaskDescriptorContent, error) {
+	switch buildDefinition {
+	case buildtypes.SlsaBuildType:
+		return AddSLSATaskDescriptor, nil
+	case buildtypes.TektonBuildType:
+		return AddTektonTaskDescriptor, nil
+	default:
+		return nil, fmt.Errorf("unsupported buildType %v", buildDefinition)
+	}
 }

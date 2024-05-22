@@ -25,6 +25,7 @@ import (
 	slsa "github.com/in-toto/attestation/go/predicates/provenance/v1"
 	intoto "github.com/in-toto/attestation/go/v1"
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
+	slsaprov "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
 
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 
@@ -67,7 +68,7 @@ func TestByProducts(t *testing.T) {
 			MediaType: jsonMediaType,
 		},
 	}
-	got, err := byproducts(objects.NewTaskRunObjectV1(tr))
+	got, err := ByProducts(objects.NewTaskRunObjectV1(tr))
 	if err != nil {
 		t.Fatalf("Could not extract byproducts: %s", err)
 	}
@@ -150,7 +151,7 @@ func TestTaskRunGenerateAttestation(t *testing.T) {
 
 	want := intoto.Statement{
 		Type:          intoto.StatementTypeUri,
-		PredicateType: "https://slsa.dev/provenance/v1",
+		PredicateType: slsaprov.PredicateSLSAProvenance,
 		Subject: []*intoto.ResourceDescriptor{
 			{
 				Name: "gcr.io/my/image/fromstep3",

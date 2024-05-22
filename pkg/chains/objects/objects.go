@@ -379,6 +379,27 @@ func (pro *PipelineRunObjectV1) GetCompletitionTime() *time.Time {
 	return utc
 }
 
+// GetExecutedTasks returns the tasks that were executed during the pipeline run.
+func (pro *PipelineRunObjectV1) GetExecutedTasks() (tro []*TaskRunObjectV1) {
+	pSpec := pro.Status.PipelineSpec
+	if pSpec == nil {
+		return
+	}
+	tasks := pSpec.Tasks
+	tasks = append(tasks, pSpec.Finally...)
+	for _, task := range tasks {
+		tr := pro.GetTaskRunFromTask(task.Name)
+
+		if tr == nil || tr.Status.CompletionTime == nil {
+			continue
+		}
+
+		tro = append(tro, tr)
+	}
+
+	return
+}
+
 // Get the imgPullSecrets from a pod template, if they exist
 func getPodPullSecrets(podTemplate *pod.Template) []string {
 	imgPullSecrets := []string{}

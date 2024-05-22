@@ -299,14 +299,7 @@ func ExtractStructuredTargetFromResults(ctx context.Context, objResults []object
 	}
 
 	// TODO(#592): support structured results using Run
-	results := []objects.Result{}
 	for _, res := range objResults {
-		results = append(results, objects.Result{
-			Name:  res.Name,
-			Value: res.Value,
-		})
-	}
-	for _, res := range results {
 		if strings.HasSuffix(res.Name, categoryMarker) {
 			valid, err := isStructuredResult(res, categoryMarker)
 			if err != nil {

@@ -35,6 +35,7 @@ import (
 	slsa "github.com/in-toto/attestation/go/predicates/provenance/v1"
 	intoto "github.com/in-toto/attestation/go/v1"
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
+	slsaprov "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
 	pipelineConfig "github.com/tektoncd/pipeline/pkg/apis/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	logtesting "knative.dev/pkg/logging/testing"
@@ -183,7 +184,7 @@ func TestTaskRunCreatePayload1(t *testing.T) {
 
 	expected := &intoto.Statement{
 		Type:          intoto.StatementTypeUri,
-		PredicateType: "https://slsa.dev/provenance/v1",
+		PredicateType: slsaprov.PredicateSLSAProvenance,
 		Subject: []*intoto.ResourceDescriptor{
 			{
 				Name: "gcr.io/my/image",
@@ -285,7 +286,7 @@ func TestTaskRunCreatePayload2(t *testing.T) {
 
 	expected := &intoto.Statement{
 		Type:          intoto.StatementTypeUri,
-		PredicateType: "https://slsa.dev/provenance/v1",
+		PredicateType: slsaprov.PredicateSLSAProvenance,
 		Subject:       nil,
 		Predicate:     predicateStruct,
 	}
@@ -359,7 +360,7 @@ func TestMultipleSubjects(t *testing.T) {
 	expected := &intoto.Statement{
 
 		Type:          intoto.StatementTypeUri,
-		PredicateType: "https://slsa.dev/provenance/v1",
+		PredicateType: slsaprov.PredicateSLSAProvenance,
 		Subject: []*intoto.ResourceDescriptor{
 			{
 				Name: "gcr.io/myimage1",
@@ -510,7 +511,7 @@ func TestPipelineRunCreatePayload1(t *testing.T) {
 
 	expected := &intoto.Statement{
 		Type:          intoto.StatementTypeUri,
-		PredicateType: "https://slsa.dev/provenance/v1",
+		PredicateType: slsaprov.PredicateSLSAProvenance,
 		Subject: []*intoto.ResourceDescriptor{
 			{
 				Name: "test.io/test/image",

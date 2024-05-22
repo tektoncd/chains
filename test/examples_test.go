@@ -150,6 +150,33 @@ func TestExamples(t *testing.T) {
 			outputLocation:    "slsa/v2alpha4",
 			predicate:         "slsav1.0",
 		},
+		{
+			name: "pipelinerun-examples-slsa-v2alpha4",
+			cm: map[string]string{
+				"artifacts.pipelinerun.format": "slsa/v2alpha4",
+				"artifacts.oci.storage":        "tekton",
+			},
+			getExampleObjects: getPipelineRunExamples,
+			payloadKey:        "chains.tekton.dev/payload-pipelinerun-%s",
+			signatureKey:      "chains.tekton.dev/signature-pipelinerun-%s",
+			outputLocation:    "slsa/v2alpha4",
+			predicate:         "slsav1.0",
+		},
+		{
+			name: "pipelinerun-type-hinted-results-v2alpha4",
+			cm: map[string]string{
+				"artifacts.pipelinerun.format": "slsa/v2alpha4",
+				"artifacts.oci.storage":        "tekton",
+			},
+			pipelinesCm: map[string]string{
+				"enable-api-fields": "alpha",
+			},
+			getExampleObjects: getPipelineRunWithTypeHintedResultsExamples,
+			payloadKey:        "chains.tekton.dev/payload-pipelinerun-%s",
+			signatureKey:      "chains.tekton.dev/signature-pipelinerun-%s",
+			outputLocation:    "slsa/v2alpha4",
+			predicate:         "slsav1.0",
+		},
 	}
 
 	for _, test := range tests {
@@ -490,6 +517,14 @@ func getTaskRunWithTypeHintedResultsExamples(t *testing.T, ns string) map[string
 	trs := make(map[string]objects.TektonObject)
 	trs[path] = taskRunFromExample(t, ns, path)
 	return trs
+}
+
+func getPipelineRunWithTypeHintedResultsExamples(t *testing.T, ns string) map[string]objects.TektonObject {
+	t.Helper()
+	path := "../examples/v2alpha4/pipeline-with-object-type-hinting.yaml"
+	prs := make(map[string]objects.TektonObject)
+	prs[path] = pipelineRunFromExample(t, ns, path)
+	return prs
 }
 
 func getPipelineRunExamples(t *testing.T, ns string) map[string]objects.TektonObject {
