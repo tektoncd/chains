@@ -100,6 +100,12 @@ deprecation window timers begin from when the release is published.
 
 ## Current Releases
 
+### v0.21 (LTS)
+- **Latest Release**: [v0.21.0][v0-21-0] (2024-05-23)
+- **Initial Release**: [v0.21.0][v0-21-0] (2024-05-23)
+
+[v0-21-0]: https://github.com/tektoncd/chains/releases/tag/v0.21.0
+
 ### v0.20 (LTS)
 
 - **Latest Release**: [v0.20.0][v0-20-0] (2024-01-31)
@@ -113,14 +119,6 @@ deprecation window timers begin from when the release is published.
 - **Initial Release**: [v0.19.0][v0-19-0] (2023-10-26)
 
 [v0-19-0]: https://github.com/tektoncd/chains/releases/tag/v0.19.0
-
-### v0.16 (LTS)
-
-- **Latest Release**: [v0.16.1][v0-16-1] (2023-10-18)
-- **Initial Release**: [v0.16.0][v0-16-0] (2022-12-20)
-
-[v0-16-1]: https://github.com/tektoncd/chains/releases/tag/v0.16.1
-[v0-16-0]: https://github.com/tektoncd/chains/releases/tag/v0.16.0
 
 ## Older Releases
 
