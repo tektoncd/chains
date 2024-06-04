@@ -1,0 +1,64 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  name: pipeline-test-run
+spec:
+  pipelineSpec:
+    results:
+    - name: output1-ARTIFACT_OUTPUTS
+      value: $(tasks.t1.results.output1-ARTIFACT_OUTPUTS)
+    - name: output2-ARTIFACT_OUTPUTS
+      value: $(tasks.t1.results.output2)
+    - name: output3-ARTIFACT_OUTPUTS
+      value: $(tasks.t2.results.output3-ARTIFACT_OUTPUTS)
+    tasks:
+      - name: t1
+        taskSpec:
+          results:
+          - name: output1-ARTIFACT_OUTPUTS
+            type: object
+            properties:
+              uri: {}
+              digest: {}
+              isBuildArtifact: {}
+          
+          - name: output2
+            type: object
+            properties:
+              uri: {}
+              digest: {}
+
+          steps:
+            - name: step1
+              image: busybox:glibc
+              script: |
+                echo -n "Hello!"
+                echo -n "{\"uri\":\"gcr.io/foo/img1\", \"digest\":\"sha256:586789aa031fafc7d78a5393cdc772e0b55107ea54bb8bcf3f2cdac6c6da51ee\", \"isBuildArtifact\": \"true\" }" > $(results.output1-ARTIFACT_OUTPUTS.path)
+                echo -n "{\"uri\":\"gcr.io/foo/img2\", \"digest\":\"sha256:586789aa031fafc7d78a5393cdc772e0b55107ea54bb8bcf3f2cdac6c6da51ee\"}" > $(results.output2.path)
+
+      - name: t2
+        taskSpec:
+          results:
+          - name: output3-ARTIFACT_OUTPUTS
+            type: object
+            properties:
+              uri: {}
+              digest: {}
+              isBuildArtifact: {}
+          steps:
+            - name: step1
+              image: busybox:glibc
+              script: |
+                echo -n "Hello!"
+                echo -n "{\"uri\":\"gcr.io/foo/img1\", \"digest\":\"sha256:586789aa031fafc7d78a5393cdc772e0b55107ea54bb8bcf3f2cdac6c6da51ee\", \"isBuildArtifact\": \"true\" }" > $(results.output3-ARTIFACT_OUTPUTS.path)
+
+      - name: t3
+        taskSpec:
+          results:
+          - name: IMAGES
+            type: string
+          steps:
+            - name: step1
+              image: busybox:glibc
+              script: |
+                echo -n "gcr.io/foo/img1@sha256:586789aa031fafc7d78a5393cdc772e0b55107ea54bb8bcf3f2cdac6c6da51ee" > $(results.IMAGES.path)

@@ -1,0 +1,133 @@
+{
+    "metadata": {
+        "name": "git-clone",
+        "labels": {
+            "tekton.dev/pipelineTask": "git-clone"
+        },
+	"uid": "abhhf-12354-asjsdbjs23-3435353n"
+    },
+    "spec": {
+        "params": [],
+        "taskRef": {
+            "name": "git-clone",
+            "kind": "Task"
+        },
+        "serviceAccountName": "default"
+    },
+    "status": {
+        "startTime": "2021-03-29T09:50:00Z",
+        "completionTime": "2021-03-29T09:50:15Z",
+        "conditions": [
+            {
+                "type": "Succeeded",
+                "status": "True",
+                "lastTransitionTime": "2021-03-29T09:50:15Z",
+                "reason": "Succeeded",
+                "message": "All Steps have completed executing"
+            }
+        ],
+        "podName": "test-pod-name",
+        "steps": [
+            {
+                "name": "step1",
+                "container": "step-step1",
+                "imageID": "docker-pullable://gcr.io/test1/test1@sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6",
+                "results": [
+                    {
+                        "name": "step1_result1-ARTIFACT_INPUTS",
+                        "value": {
+                            "uri": "https://github.com/tektoncd/pipeline",
+                            "digest": "sha1:7f2f46e1b97df36b2b82d1b1d87c81b8b3d21601"
+                        }
+                    }
+                ]
+            },
+            {
+                "name": "step3",
+                "container": "step-step3",
+                "imageID": "docker-pullable://gcr.io/test1/test1@sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6",
+                "results": [
+                    {
+                        "name": "step3_result1-ARTIFACT_OUTPUTS",
+                        "value": {
+                            "uri": "gcr.io/task2/step/artifact",
+                            "digest": "sha256:cb06e289303c9529cd980657a5b1a2c8a146c1b13ca08a2bbedb72ec4b7573b9",
+                            "isBuildArtifact": "true"
+                        }
+                    }
+                ]
+            },
+            {
+                "name": "step4",
+                "container": "step-step4",
+                "imageID": "docker-pullable://gcr.io/test1/test1@sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6",
+                "results": [
+                    {
+                        "name": "step4_result1-ARTIFACT_OUTPUTS",
+                        "value": {
+                            "uri": "gcr.io/common/image",
+                            "digest": "sha256:33e7e52645f4859622e282167d9200da9861b3d0a6e9c93b85e9cae5526ffc0a",
+                            "isBuildArtifact": "true"
+                        }
+                    }
+                ]
+            }
+        ],
+        "results": [
+            {
+                "name": "some-uri_DIGEST",
+                "value": "sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"
+            },
+            {
+                "name": "some-uri",
+                "value": "pkg:deb/debian/curl@7.50.3-1"
+            },
+            {
+                "name": "task2-ARTIFACT_OUTPUTS",
+                "value": {
+                    "uri": "gcr.io/common/image",
+                    "digest": "sha256:33e7e52645f4859622e282167d9200da9861b3d0a6e9c93b85e9cae5526ffc0a",
+                    "isBuildArtifact": "true"
+                }
+            }
+        ],
+        "taskSpec": {
+            "steps": [
+                {
+                    "env": [
+                    {
+                      "name": "HOME",
+                      "value": "$(params.userHome)"
+                    },
+                    {
+                      "name": "PARAM_URL",
+                      "value": "$(params.url)"
+                    }
+                  ],
+                    "name": "step1",
+                    "script": "git clone"
+                }
+            ],
+            "params": [],
+            "results": [
+                {
+                    "name": "some-uri_DIGEST",
+                    "description": "Digest of a file to push."
+                },
+                {
+                    "name": "some-uri",
+                    "description": "some calculated uri"
+                }
+            ]
+        },
+        "provenance": {
+          "refSource": {
+            "uri": "git+https://github.com/catalog",
+            "digest": {
+              "sha1": "x123"
+            },
+            "entryPoint": "git-clone.yaml"
+          }
+        }
+    }
+}
