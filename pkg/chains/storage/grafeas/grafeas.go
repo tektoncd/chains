@@ -253,7 +253,7 @@ func (b *Backend) createOccurrence(ctx context.Context, obj objects.TektonObject
 	}
 
 	// create Occurrence_Build for TaskRun
-	allURIs := extract.RetrieveAllArtifactURIs(ctx, obj, b.cfg.Artifacts.PipelineRuns.DeepInspectionEnabled)
+	allURIs := b.getAllArtifactURIs(ctx, opts.PayloadFormat, obj)
 	for _, uri := range allURIs {
 		occ, err := b.createBuildOccurrence(ctx, obj, payload, signature, uri)
 		if err != nil {
@@ -262,6 +262,19 @@ func (b *Backend) createOccurrence(ctx context.Context, obj objects.TektonObject
 		occs = append(occs, occ)
 	}
 	return occs, nil
+}
+
+func (b *Backend) getAllArtifactURIs(ctx context.Context, payloadFormat config.PayloadType, obj objects.TektonObject) []string {
+	payloader, err := formats.GetPayloader(payloadFormat, b.cfg)
+	if err != nil {
+		return extract.RetrieveAllArtifactURIs(ctx, obj, b.cfg.Artifacts.PipelineRuns.DeepInspectionEnabled)
+	}
+
+	if uris, err := payloader.RetrieveAllArtifactURIs(ctx, obj); err == nil {
+		return uris
+	}
+
+	return extract.RetrieveAllArtifactURIs(ctx, obj, b.cfg.Artifacts.PipelineRuns.DeepInspectionEnabled)
 }
 
 func (b *Backend) createAttestationOccurrence(ctx context.Context, payload []byte, signature string, uri string) (*pb.Occurrence, error) {

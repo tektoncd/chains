@@ -69,3 +69,7 @@ func (i SimpleContainerImage) ImageName() string {
 func (i *SimpleSigning) Type() config.PayloadType {
 	return formats.PayloadTypeSimpleSigning
 }
+
+func (i *SimpleSigning) RetrieveAllArtifactURIs(ctx context.Context, obj interface{}) ([]string, error) {
+	return nil, fmt.Errorf("RetrieveAllArtifactURIs not supported for simeplesining formatter")
+}
