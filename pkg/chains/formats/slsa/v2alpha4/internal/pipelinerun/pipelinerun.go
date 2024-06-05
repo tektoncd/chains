@@ -18,6 +18,7 @@ import (
 
 	intoto "github.com/in-toto/attestation/go/v1"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/artifact"
 	builddefinition "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/build_definition"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/provenance"
 	resolveddependencies "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/resolved_dependencies"
@@ -81,7 +82,7 @@ func subjectDigests(ctx context.Context, pro *objects.PipelineRunObjectV1, slsac
 	}
 
 	for _, task := range pro.GetExecutedTasks() {
-		subjects = append(subjects, taskrun.SubjectDigests(ctx, task)...)
+		subjects = artifact.AppendSubjects(subjects, taskrun.SubjectDigests(ctx, task)...)
 	}
 
 	return subjects

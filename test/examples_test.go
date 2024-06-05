@@ -177,6 +177,22 @@ func TestExamples(t *testing.T) {
 			outputLocation:    "slsa/v2alpha4",
 			predicate:         "slsav1.0",
 		},
+		{
+			name: "pipelinerun-no-repeated-subjects-v2alpha4",
+			cm: map[string]string{
+				"artifacts.pipelinerun.format":                 "slsa/v2alpha4",
+				"artifacts.oci.storage":                        "tekton",
+				"artifacts.pipelinerun.enable-deep-inspection": "true",
+			},
+			pipelinesCm: map[string]string{
+				"enable-api-fields": "alpha",
+			},
+			getExampleObjects: getPipelineRunWithRepeatedBuildArtifacts,
+			payloadKey:        "chains.tekton.dev/payload-pipelinerun-%s",
+			signatureKey:      "chains.tekton.dev/signature-pipelinerun-%s",
+			outputLocation:    "slsa/v2alpha4",
+			predicate:         "slsav1.0",
+		},
 	}
 
 	for _, test := range tests {
@@ -522,6 +538,14 @@ func getTaskRunWithTypeHintedResultsExamples(t *testing.T, ns string) map[string
 func getPipelineRunWithTypeHintedResultsExamples(t *testing.T, ns string) map[string]objects.TektonObject {
 	t.Helper()
 	path := "../examples/v2alpha4/pipeline-with-object-type-hinting.yaml"
+	prs := make(map[string]objects.TektonObject)
+	prs[path] = pipelineRunFromExample(t, ns, path)
+	return prs
+}
+
+func getPipelineRunWithRepeatedBuildArtifacts(t *testing.T, ns string) map[string]objects.TektonObject {
+	t.Helper()
+	path := "../examples/v2alpha4/pipeline-with-repeated-results.yaml"
 	prs := make(map[string]objects.TektonObject)
 	prs[path] = pipelineRunFromExample(t, ns, path)
 	return prs
