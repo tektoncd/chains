@@ -14,12 +14,16 @@ limitations under the License.
 package chains
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	intoto "github.com/in-toto/attestation/go/v1"
 	"github.com/sigstore/rekor/pkg/generated/models"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/chains/signing"
@@ -403,6 +407,84 @@ func TestSigningObjects(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGetRawPayload(t *testing.T) {
+	tests := []struct {
+		name     string
+		payload  interface{}
+		expected string
+	}{
+		{
+			name: "intoto.Statement object",
+			payload: intoto.Statement{
+				Type:          "type1",
+				PredicateType: "predicate-type1",
+			},
+			expected: compactJSON(t, []byte(`{"_type":"type1","predicateType":"predicate-type1"}`)),
+		},
+		{
+			name: "*intoto.Statement object",
+			payload: &intoto.Statement{
+				Type:          "type1",
+				PredicateType: "predicate-type1",
+			},
+			expected: compactJSON(t, []byte(`{"_type":"type1","predicateType":"predicate-type1"}`)),
+		},
+		{
+			name:     "*intoto.Statement object - nil",
+			payload:  (func() *intoto.Statement { return nil })(),
+			expected: "null",
+		},
+		{
+			name:     "other object - nil",
+			payload:  nil,
+			expected: "null",
+		},
+		{
+			name: "other object with value",
+			payload: struct {
+				Name  string
+				ID    int
+				Inner any
+			}{
+				Name: "wrapper",
+				ID:   1,
+				Inner: struct {
+					InnerID     int
+					Description string
+					IsArtifact  bool
+				}{
+					InnerID:     2,
+					Description: "some description",
+					IsArtifact:  true,
+				},
+			},
+			expected: compactJSON(t, []byte(`{"Name":"wrapper","ID":1,"Inner": {"InnerID":2,"Description":"some description","IsArtifact":true}}`)),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got, err := getRawPayload(test.payload)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			compactExpected := compactJSON(t, got)
+			if diff := cmp.Diff(test.expected, compactExpected); diff != "" {
+				t.Errorf("getRawPayload(), -want +got, diff = %s", diff)
+			}
+		})
+	}
+}
+
+func compactJSON(t *testing.T, jsonString []byte) string {
+	t.Helper()
+	dst := &bytes.Buffer{}
+	if err := json.Compact(dst, jsonString); err != nil {
+		t.Fatalf("error getting compact JSON: %v", err)
+	}
+	return dst.String()
 }
 
 func fakeAllBackends(backends []*mockBackend) map[string]storage.Backend {

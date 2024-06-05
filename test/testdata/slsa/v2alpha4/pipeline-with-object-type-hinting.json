@@ -1,6 +1,6 @@
 {
-    "type": "https://in-toto.io/Statement/v1",
-    "predicate_type": "https://slsa.dev/provenance/v1",
+    "_type": "https://in-toto.io/Statement/v1",
+    "predicateType": "https://slsa.dev/provenance/v1",
     "subject": [
         {
             "name": "gcr.io/foo/img1",
