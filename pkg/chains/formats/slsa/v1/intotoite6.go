@@ -96,6 +96,7 @@ func (i *InTotoIte6) Type() config.PayloadType {
 	return formats.PayloadTypeSlsav1
 }
 
+// RetrieveAllArtifactURIs returns the full URI of all artifacts detected as subjects.
 func (i *InTotoIte6) RetrieveAllArtifactURIs(ctx context.Context, obj interface{}) ([]string, error) {
 	tkObj, ok := obj.(objects.TektonObject)
 	if !ok {

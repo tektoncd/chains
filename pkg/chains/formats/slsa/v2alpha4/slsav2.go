@@ -76,6 +76,7 @@ func (s *Slsa) Type() config.PayloadType {
 	return payloadTypeSlsav2alpha4
 }
 
+// RetrieveAllArtifactURIs returns the full URI of all artifacts detected as subjects.
 func (s *Slsa) RetrieveAllArtifactURIs(ctx context.Context, obj interface{}) ([]string, error) {
 	var subjects []*intoto.ResourceDescriptor
 	var fullURIs []string

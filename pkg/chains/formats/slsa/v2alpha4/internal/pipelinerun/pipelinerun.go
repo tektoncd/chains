@@ -74,6 +74,7 @@ func byproducts(pro *objects.PipelineRunObjectV1, slsaconfig *slsaconfig.SlsaCon
 	return byProd, nil
 }
 
+// SubjectDigests calculates the subjects associated with the given PipelineRun.
 func SubjectDigests(ctx context.Context, pro *objects.PipelineRunObjectV1, slsaconfig *slsaconfig.SlsaConfig) []*intoto.ResourceDescriptor {
 	subjects := extract.SubjectsFromBuildArtifact(ctx, pro.GetResults())
 

@@ -70,6 +70,7 @@ func (s *Slsa) Type() config.PayloadType {
 	return formats.PayloadTypeSlsav2alpha3
 }
 
+// RetrieveAllArtifactURIs returns the full URI of all artifacts detected as subjects.
 func (s *Slsa) RetrieveAllArtifactURIs(ctx context.Context, obj interface{}) ([]string, error) {
 	tkObj, ok := obj.(objects.TektonObject)
 	if !ok {

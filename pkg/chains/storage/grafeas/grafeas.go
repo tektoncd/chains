@@ -265,8 +265,10 @@ func (b *Backend) createOccurrence(ctx context.Context, obj objects.TektonObject
 }
 
 func (b *Backend) getAllArtifactURIs(ctx context.Context, payloadFormat config.PayloadType, obj objects.TektonObject) []string {
+	logger := logging.FromContext(ctx)
 	payloader, err := formats.GetPayloader(payloadFormat, b.cfg)
 	if err != nil {
+		logger.Infof("couldn't get payloader for %v format, will use extract.RetrieveAllArtifactURIs method instead", payloadFormat)
 		return extract.RetrieveAllArtifactURIs(ctx, obj, b.cfg.Artifacts.PipelineRuns.DeepInspectionEnabled)
 	}
 
@@ -274,6 +276,7 @@ func (b *Backend) getAllArtifactURIs(ctx context.Context, payloadFormat config.P
 		return uris
 	}
 
+	logger.Infof("couldn't get URIs from payloader %v, will use extract.RetrieveAllArtifactURIs method instead", payloadFormat)
 	return extract.RetrieveAllArtifactURIs(ctx, obj, b.cfg.Artifacts.PipelineRuns.DeepInspectionEnabled)
 }
 
@@ -377,7 +380,7 @@ func (b *Backend) getBuildNotePath(obj objects.TektonObject) string {
 func (b *Backend) getAllOccurrences(ctx context.Context, obj objects.TektonObject, opts config.StorageOpts) ([]*pb.Occurrence, error) {
 	result := []*pb.Occurrence{}
 	// step 1: get all resource URIs created under the taskrun
-	uriFilters := extract.RetrieveAllArtifactURIs(ctx, obj, b.cfg.Artifacts.PipelineRuns.DeepInspectionEnabled)
+	uriFilters := b.getAllArtifactURIs(ctx, opts.PayloadFormat, obj)
 
 	// step 2: find all build occurrences
 	if _, ok := formats.IntotoAttestationSet[opts.PayloadFormat]; ok {
