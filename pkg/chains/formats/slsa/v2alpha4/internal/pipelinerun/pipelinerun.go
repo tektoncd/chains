@@ -47,7 +47,7 @@ func GenerateAttestation(ctx context.Context, pro *objects.PipelineRunObjectV1, 
 		return nil, err
 	}
 
-	sub := subjectDigests(ctx, pro, slsaconfig)
+	sub := SubjectDigests(ctx, pro, slsaconfig)
 
 	return provenance.GetSLSA1Statement(pro, sub, &bd, bp, slsaconfig)
 }
@@ -74,7 +74,8 @@ func byproducts(pro *objects.PipelineRunObjectV1, slsaconfig *slsaconfig.SlsaCon
 	return byProd, nil
 }
 
-func subjectDigests(ctx context.Context, pro *objects.PipelineRunObjectV1, slsaconfig *slsaconfig.SlsaConfig) []*intoto.ResourceDescriptor {
+// SubjectDigests calculates the subjects associated with the given PipelineRun.
+func SubjectDigests(ctx context.Context, pro *objects.PipelineRunObjectV1, slsaconfig *slsaconfig.SlsaConfig) []*intoto.ResourceDescriptor {
 	subjects := extract.SubjectsFromBuildArtifact(ctx, pro.GetResults())
 
 	if !slsaconfig.DeepInspectionEnabled {

@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 
+	intoto "github.com/in-toto/attestation/go/v1"
 	"github.com/tektoncd/chains/pkg/chains/formats"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha4/internal/pipelinerun"
@@ -73,4 +74,26 @@ func (s *Slsa) CreatePayload(ctx context.Context, obj interface{}) (interface{},
 // Type returns the version of this payloader.
 func (s *Slsa) Type() config.PayloadType {
 	return payloadTypeSlsav2alpha4
+}
+
+// RetrieveAllArtifactURIs returns the full URI of all artifacts detected as subjects.
+func (s *Slsa) RetrieveAllArtifactURIs(ctx context.Context, obj interface{}) ([]string, error) {
+	var subjects []*intoto.ResourceDescriptor
+	var fullURIs []string
+
+	switch v := obj.(type) {
+	case *objects.TaskRunObjectV1:
+		subjects = taskrun.SubjectDigests(ctx, v)
+	case *objects.PipelineRunObjectV1:
+		subjects = pipelinerun.SubjectDigests(ctx, v, s.slsaConfig)
+	default:
+		return nil, fmt.Errorf("intoto does not support type: %s", v)
+	}
+
+	for _, s := range subjects {
+		for algo, digest := range s.Digest {
+			fullURIs = append(fullURIs, fmt.Sprintf("%s@%s:%s", s.Name, algo, digest))
+		}
+	}
+	return fullURIs, nil
 }
