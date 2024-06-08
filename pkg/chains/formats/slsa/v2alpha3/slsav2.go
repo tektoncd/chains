@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"github.com/tektoncd/chains/pkg/chains/formats"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha3/internal/pipelinerun"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha3/internal/taskrun"
@@ -67,4 +68,13 @@ func (s *Slsa) CreatePayload(ctx context.Context, obj interface{}) (interface{},
 
 func (s *Slsa) Type() config.PayloadType {
 	return formats.PayloadTypeSlsav2alpha3
+}
+
+// RetrieveAllArtifactURIs returns the full URI of all artifacts detected as subjects.
+func (s *Slsa) RetrieveAllArtifactURIs(ctx context.Context, obj interface{}) ([]string, error) {
+	tkObj, ok := obj.(objects.TektonObject)
+	if !ok {
+		return nil, fmt.Errorf("intoto does not support type")
+	}
+	return extract.RetrieveAllArtifactURIs(ctx, tkObj, s.slsaConfig.DeepInspectionEnabled), nil
 }
