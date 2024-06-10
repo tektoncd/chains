@@ -18,6 +18,7 @@ import (
 
 	intoto "github.com/in-toto/attestation/go/v1"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/artifact"
 	builddefinition "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/build_definition"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/provenance"
 	resolveddependencies "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/resolved_dependencies"
@@ -46,7 +47,7 @@ func GenerateAttestation(ctx context.Context, pro *objects.PipelineRunObjectV1, 
 		return nil, err
 	}
 
-	sub := subjectDigests(ctx, pro, slsaconfig)
+	sub := SubjectDigests(ctx, pro, slsaconfig)
 
 	return provenance.GetSLSA1Statement(pro, sub, &bd, bp, slsaconfig)
 }
@@ -73,7 +74,8 @@ func byproducts(pro *objects.PipelineRunObjectV1, slsaconfig *slsaconfig.SlsaCon
 	return byProd, nil
 }
 
-func subjectDigests(ctx context.Context, pro *objects.PipelineRunObjectV1, slsaconfig *slsaconfig.SlsaConfig) []*intoto.ResourceDescriptor {
+// SubjectDigests calculates the subjects associated with the given PipelineRun.
+func SubjectDigests(ctx context.Context, pro *objects.PipelineRunObjectV1, slsaconfig *slsaconfig.SlsaConfig) []*intoto.ResourceDescriptor {
 	subjects := extract.SubjectsFromBuildArtifact(ctx, pro.GetResults())
 
 	if !slsaconfig.DeepInspectionEnabled {
@@ -81,7 +83,7 @@ func subjectDigests(ctx context.Context, pro *objects.PipelineRunObjectV1, slsac
 	}
 
 	for _, task := range pro.GetExecutedTasks() {
-		subjects = append(subjects, taskrun.SubjectDigests(ctx, task)...)
+		subjects = artifact.AppendSubjects(subjects, taskrun.SubjectDigests(ctx, task)...)
 	}
 
 	return subjects
