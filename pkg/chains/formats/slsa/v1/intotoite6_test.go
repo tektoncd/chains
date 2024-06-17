@@ -572,9 +572,10 @@ func getBuildPipelineRun() pipelinerun.BuildConfig {
 					Name: "git-clone",
 					Kind: "ClusterTask",
 				},
-				StartedOn:  e1BuildStart,
-				FinishedOn: e1BuildFinished,
-				Status:     "Succeeded",
+				StartedOn:          e1BuildStart,
+				FinishedOn:         e1BuildFinished,
+				ServiceAccountName: "pipeline",
+				Status:             "Succeeded",
 				Steps: []attest.StepAttestation{
 					{
 						EntryPoint: "git clone",
@@ -626,9 +627,10 @@ func getBuildPipelineRun() pipelinerun.BuildConfig {
 					Name: "build",
 					Kind: "ClusterTask",
 				},
-				StartedOn:  e1BuildStart,
-				FinishedOn: e1BuildFinished,
-				Status:     "Succeeded",
+				StartedOn:          e1BuildStart,
+				FinishedOn:         e1BuildFinished,
+				ServiceAccountName: "pipeline",
+				Status:             "Succeeded",
 				Steps: []attest.StepAttestation{
 					{
 						EntryPoint: "",
