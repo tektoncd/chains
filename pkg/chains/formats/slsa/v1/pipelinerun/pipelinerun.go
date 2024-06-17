@@ -36,15 +36,16 @@ type BuildConfig struct {
 }
 
 type TaskAttestation struct {
-	Name       string                    `json:"name,omitempty"`
-	After      []string                  `json:"after,omitempty"`
-	Ref        v1beta1.TaskRef           `json:"ref,omitempty"`
-	StartedOn  time.Time                 `json:"startedOn,omitempty"`
-	FinishedOn time.Time                 `json:"finishedOn,omitempty"`
-	Status     string                    `json:"status,omitempty"`
-	Steps      []attest.StepAttestation  `json:"steps,omitempty"`
-	Invocation slsa.ProvenanceInvocation `json:"invocation,omitempty"`
-	Results    []v1beta1.TaskRunResult   `json:"results,omitempty"`
+	Name               string                    `json:"name,omitempty"`
+	After              []string                  `json:"after,omitempty"`
+	Ref                v1beta1.TaskRef           `json:"ref,omitempty"`
+	StartedOn          time.Time                 `json:"startedOn,omitempty"`
+	FinishedOn         time.Time                 `json:"finishedOn,omitempty"`
+	ServiceAccountName string                    `json:"serviceAccountName,omitempty"`
+	Status             string                    `json:"status,omitempty"`
+	Steps              []attest.StepAttestation  `json:"steps,omitempty"`
+	Invocation         slsa.ProvenanceInvocation `json:"invocation,omitempty"`
+	Results            []v1beta1.TaskRunResult   `json:"results,omitempty"`
 }
 
 func GenerateAttestation(ctx context.Context, pro *objects.PipelineRunObjectV1Beta1, slsaConfig *slsaconfig.SlsaConfig) (interface{}, error) {
@@ -140,14 +141,15 @@ func buildConfig(ctx context.Context, pro *objects.PipelineRunObjectV1Beta1) Bui
 		}
 
 		task := TaskAttestation{
-			Name:       t.Name,
-			After:      after,
-			StartedOn:  tr.Status.StartTime.Time.UTC(),
-			FinishedOn: tr.Status.CompletionTime.Time.UTC(),
-			Status:     getStatus(tr.Status.Conditions),
-			Steps:      steps,
-			Invocation: attest.Invocation(tr, params, paramSpecs),
-			Results:    tr.Status.TaskRunResults,
+			Name:               t.Name,
+			After:              after,
+			StartedOn:          tr.Status.StartTime.Time.UTC(),
+			FinishedOn:         tr.Status.CompletionTime.Time.UTC(),
+			ServiceAccountName: pro.Spec.ServiceAccountName,
+			Status:             getStatus(tr.Status.Conditions),
+			Steps:              steps,
+			Invocation:         attest.Invocation(tr, params, paramSpecs),
+			Results:            tr.Status.TaskRunResults,
 		}
 
 		if t.TaskRef != nil {

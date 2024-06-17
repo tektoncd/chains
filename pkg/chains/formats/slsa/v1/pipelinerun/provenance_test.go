@@ -93,9 +93,10 @@ func TestBuildConfig(t *testing.T) {
 					Name: "git-clone",
 					Kind: "ClusterTask",
 				},
-				StartedOn:  e1BuildStart,
-				FinishedOn: e1BuildFinished,
-				Status:     "Succeeded",
+				ServiceAccountName: "pipeline",
+				StartedOn:          e1BuildStart,
+				FinishedOn:         e1BuildFinished,
+				Status:             "Succeeded",
 				Steps: []attest.StepAttestation{
 					{
 						EntryPoint: "git clone",
@@ -147,9 +148,10 @@ func TestBuildConfig(t *testing.T) {
 					Name: "build",
 					Kind: "ClusterTask",
 				},
-				StartedOn:  e1BuildStart,
-				FinishedOn: e1BuildFinished,
-				Status:     "Succeeded",
+				StartedOn:          e1BuildStart,
+				FinishedOn:         e1BuildFinished,
+				ServiceAccountName: "pipeline",
+				Status:             "Succeeded",
 				Steps: []attest.StepAttestation{
 					{
 						EntryPoint: "",
@@ -284,9 +286,10 @@ func TestBuildConfigTaskOrder(t *testing.T) {
 							Name: "git-clone",
 							Kind: "ClusterTask",
 						},
-						StartedOn:  e1BuildStart,
-						FinishedOn: e1BuildFinished,
-						Status:     "Succeeded",
+						StartedOn:          e1BuildStart,
+						FinishedOn:         e1BuildFinished,
+						ServiceAccountName: "pipeline",
+						Status:             "Succeeded",
 						Steps: []attest.StepAttestation{
 							{
 								EntryPoint: "git clone",
@@ -340,9 +343,10 @@ func TestBuildConfigTaskOrder(t *testing.T) {
 							Name: "build",
 							Kind: "ClusterTask",
 						},
-						StartedOn:  e1BuildStart,
-						FinishedOn: e1BuildFinished,
-						Status:     "Succeeded",
+						StartedOn:          e1BuildStart,
+						FinishedOn:         e1BuildFinished,
+						ServiceAccountName: "pipeline",
+						Status:             "Succeeded",
 						Steps: []attest.StepAttestation{
 							{
 								EntryPoint: "",

@@ -224,9 +224,10 @@ func TestPipelineRunCreatePayload(t *testing.T) {
 							Name: "git-clone",
 							Kind: "ClusterTask",
 						},
-						StartedOn:  e1BuildStart,
-						FinishedOn: e1BuildFinished,
-						Status:     "Succeeded",
+						StartedOn:          e1BuildStart,
+						FinishedOn:         e1BuildFinished,
+						ServiceAccountName: "pipeline",
+						Status:             "Succeeded",
 						Steps: []attest.StepAttestation{
 							{
 								EntryPoint: "git clone",
@@ -278,9 +279,10 @@ func TestPipelineRunCreatePayload(t *testing.T) {
 							Name: "build",
 							Kind: "ClusterTask",
 						},
-						StartedOn:  e1BuildStart,
-						FinishedOn: e1BuildFinished,
-						Status:     "Succeeded",
+						StartedOn:          e1BuildStart,
+						FinishedOn:         e1BuildFinished,
+						ServiceAccountName: "pipeline",
+						Status:             "Succeeded",
 						Steps: []attest.StepAttestation{
 							{
 								EntryPoint: "",
@@ -442,9 +444,10 @@ func TestPipelineRunCreatePayloadChildRefs(t *testing.T) {
 							Name: "git-clone",
 							Kind: "ClusterTask",
 						},
-						StartedOn:  e1BuildStart,
-						FinishedOn: e1BuildFinished,
-						Status:     "Succeeded",
+						StartedOn:          e1BuildStart,
+						FinishedOn:         e1BuildFinished,
+						ServiceAccountName: "pipeline",
+						Status:             "Succeeded",
 						Steps: []attest.StepAttestation{
 							{
 								EntryPoint: "git clone",
@@ -496,9 +499,10 @@ func TestPipelineRunCreatePayloadChildRefs(t *testing.T) {
 							Name: "build",
 							Kind: "ClusterTask",
 						},
-						StartedOn:  e1BuildStart,
-						FinishedOn: e1BuildFinished,
-						Status:     "Succeeded",
+						StartedOn:          e1BuildStart,
+						FinishedOn:         e1BuildFinished,
+						ServiceAccountName: "pipeline",
+						Status:             "Succeeded",
 						Steps: []attest.StepAttestation{
 							{
 								EntryPoint: "",
