@@ -17,13 +17,14 @@ import (
 	"context"
 	"time"
 
-	intoto "github.com/in-toto/in-toto-golang/in_toto"
+	intoto "github.com/in-toto/attestation/go/v1"
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/attest"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
 	materialv1beta1 "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/material/v1beta1"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v1/internal/protos"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -36,17 +37,18 @@ type BuildConfig struct {
 }
 
 type TaskAttestation struct {
-	Name               string                    `json:"name,omitempty"`
-	After              []string                  `json:"after,omitempty"`
-	Ref                v1beta1.TaskRef           `json:"ref,omitempty"`
-	StartedOn          time.Time                 `json:"startedOn,omitempty"`
-	FinishedOn         time.Time                 `json:"finishedOn,omitempty"`
-	ServiceAccountName string                    `json:"serviceAccountName,omitempty"`
-	Status             string                    `json:"status,omitempty"`
-	Steps              []attest.StepAttestation  `json:"steps,omitempty"`
-	Invocation         slsa.ProvenanceInvocation `json:"invocation,omitempty"`
-	Results            []v1beta1.TaskRunResult   `json:"results,omitempty"`
+	Name       string                    `json:"name,omitempty"`
+	After      []string                  `json:"after,omitempty"`
+	Ref        v1beta1.TaskRef           `json:"ref,omitempty"`
+	StartedOn  time.Time                 `json:"startedOn,omitempty"`
+	FinishedOn time.Time                 `json:"finishedOn,omitempty"`
+	Status     string                    `json:"status,omitempty"`
+	Steps      []attest.StepAttestation  `json:"steps,omitempty"`
+	Invocation slsa.ProvenanceInvocation `json:"invocation,omitempty"`
+	Results    []v1beta1.TaskRunResult   `json:"results,omitempty"`
 }
+
+const statementInTotoV01 = "https://in-toto.io/Statement/v0.1"
 
 func GenerateAttestation(ctx context.Context, pro *objects.PipelineRunObjectV1Beta1, slsaConfig *slsaconfig.SlsaConfig) (interface{}, error) {
 	subjects := extract.SubjectDigests(ctx, pro, slsaConfig)
@@ -55,22 +57,28 @@ func GenerateAttestation(ctx context.Context, pro *objects.PipelineRunObjectV1Be
 	if err != nil {
 		return nil, err
 	}
-	att := intoto.ProvenanceStatement{
-		StatementHeader: intoto.StatementHeader{
-			Type:          intoto.StatementInTotoV01,
-			PredicateType: slsa.PredicateSLSAProvenance,
-			Subject:       subjects,
+
+	predicate := &slsa.ProvenancePredicate{
+		Builder: common.ProvenanceBuilder{
+			ID: slsaConfig.BuilderID,
 		},
-		Predicate: slsa.ProvenancePredicate{
-			Builder: common.ProvenanceBuilder{
-				ID: slsaConfig.BuilderID,
-			},
-			BuildType:   pro.GetGVK(),
-			Invocation:  invocation(pro),
-			BuildConfig: buildConfig(ctx, pro),
-			Metadata:    metadata(pro),
-			Materials:   mat,
-		},
+		BuildType:   pro.GetGVK(),
+		Invocation:  invocation(pro),
+		BuildConfig: buildConfig(ctx, pro),
+		Metadata:    metadata(pro),
+		Materials:   mat,
+	}
+
+	predicateStruct, err := protos.GetPredicateStruct(predicate)
+	if err != nil {
+		return nil, err
+	}
+
+	att := &intoto.Statement{
+		Type:          statementInTotoV01,
+		PredicateType: slsa.PredicateSLSAProvenance,
+		Subject:       subjects,
+		Predicate:     predicateStruct,
 	}
 	return att, nil
 }
@@ -141,15 +149,14 @@ func buildConfig(ctx context.Context, pro *objects.PipelineRunObjectV1Beta1) Bui
 		}
 
 		task := TaskAttestation{
-			Name:               t.Name,
-			After:              after,
-			StartedOn:          tr.Status.StartTime.Time.UTC(),
-			FinishedOn:         tr.Status.CompletionTime.Time.UTC(),
-			ServiceAccountName: pro.Spec.ServiceAccountName,
-			Status:             getStatus(tr.Status.Conditions),
-			Steps:              steps,
-			Invocation:         attest.Invocation(tr, params, paramSpecs),
-			Results:            tr.Status.TaskRunResults,
+			Name:       t.Name,
+			After:      after,
+			StartedOn:  tr.Status.StartTime.Time.UTC(),
+			FinishedOn: tr.Status.CompletionTime.Time.UTC(),
+			Status:     getStatus(tr.Status.Conditions),
+			Steps:      steps,
+			Invocation: attest.Invocation(tr, params, paramSpecs),
+			Results:    tr.Status.TaskRunResults,
 		}
 
 		if t.TaskRef != nil {

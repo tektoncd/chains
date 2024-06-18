@@ -20,7 +20,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/go-containerregistry/pkg/name"
-	intoto "github.com/in-toto/in-toto-golang/in_toto"
+	intoto "github.com/in-toto/attestation/go/v1"
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/tektoncd/chains/pkg/artifacts"
@@ -31,6 +31,7 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/internal/objectloader"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	"google.golang.org/protobuf/testing/protocmp"
 	"k8s.io/apimachinery/pkg/selection"
 	logtesting "knative.dev/pkg/logging/testing"
 )
@@ -93,10 +94,9 @@ func TestBuildConfig(t *testing.T) {
 					Name: "git-clone",
 					Kind: "ClusterTask",
 				},
-				ServiceAccountName: "pipeline",
-				StartedOn:          e1BuildStart,
-				FinishedOn:         e1BuildFinished,
-				Status:             "Succeeded",
+				StartedOn:  e1BuildStart,
+				FinishedOn: e1BuildFinished,
+				Status:     "Succeeded",
 				Steps: []attest.StepAttestation{
 					{
 						EntryPoint: "git clone",
@@ -148,10 +148,9 @@ func TestBuildConfig(t *testing.T) {
 					Name: "build",
 					Kind: "ClusterTask",
 				},
-				StartedOn:          e1BuildStart,
-				FinishedOn:         e1BuildFinished,
-				ServiceAccountName: "pipeline",
-				Status:             "Succeeded",
+				StartedOn:  e1BuildStart,
+				FinishedOn: e1BuildFinished,
+				Status:     "Succeeded",
 				Steps: []attest.StepAttestation{
 					{
 						EntryPoint: "",
@@ -286,10 +285,9 @@ func TestBuildConfigTaskOrder(t *testing.T) {
 							Name: "git-clone",
 							Kind: "ClusterTask",
 						},
-						StartedOn:          e1BuildStart,
-						FinishedOn:         e1BuildFinished,
-						ServiceAccountName: "pipeline",
-						Status:             "Succeeded",
+						StartedOn:  e1BuildStart,
+						FinishedOn: e1BuildFinished,
+						Status:     "Succeeded",
 						Steps: []attest.StepAttestation{
 							{
 								EntryPoint: "git clone",
@@ -343,10 +341,9 @@ func TestBuildConfigTaskOrder(t *testing.T) {
 							Name: "build",
 							Kind: "ClusterTask",
 						},
-						StartedOn:          e1BuildStart,
-						FinishedOn:         e1BuildFinished,
-						ServiceAccountName: "pipeline",
-						Status:             "Succeeded",
+						StartedOn:  e1BuildStart,
+						FinishedOn: e1BuildFinished,
+						Status:     "Succeeded",
 						Steps: []attest.StepAttestation{
 							{
 								EntryPoint: "",
@@ -478,7 +475,7 @@ func TestMetadataInTimeZone(t *testing.T) {
 var ignore = []cmp.Option{cmpopts.IgnoreUnexported(name.Registry{}, name.Repository{}, name.Digest{})}
 
 func TestSubjectDigests(t *testing.T) {
-	wantSubjects := []intoto.Subject{
+	wantSubjects := []*intoto.ResourceDescriptor{
 		{
 			Name:   "test.io/test/image",
 			Digest: common.DigestSet{"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"},
@@ -487,7 +484,8 @@ func TestSubjectDigests(t *testing.T) {
 
 	ctx := logtesting.TestContextWithLogger(t)
 	gotSubjects := extract.SubjectDigests(ctx, pro, &slsaconfig.SlsaConfig{DeepInspectionEnabled: false})
-	opts := append(ignore, compare.SubjectCompareOption())
+	opts := ignore
+	opts = append(opts, compare.SubjectCompareOption(), protocmp.Transform())
 	if diff := cmp.Diff(gotSubjects, wantSubjects, opts...); diff != "" {
 		t.Errorf("Differences in subjects: -want +got: %s", diff)
 	}
