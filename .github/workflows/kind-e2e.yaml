@@ -18,11 +18,10 @@ jobs:
       matrix:
         # Keep in sync with the list of supported releases: https://kubernetes.io/releases/
         k8s-version:
-        - v1.25.x
-        - v1.26.x
         - v1.27.x
-        # Needs https://github.com/sigstore/scaffolding/pull/756
-        # - v1.28.x
+        - v1.28.x
+        - v1.29.x
+        - v1.30.x
     uses: ./.github/workflows/reusable-e2e.yaml
     with:
       k8s-version: ${{ matrix.k8s-version }}
@@ -38,5 +37,5 @@ jobs:
         - v0.51.0
     uses: ./.github/workflows/reusable-e2e.yaml
     with:
-      k8s-version: v1.26.x
+      k8s-version: v1.27.x
       pipelines-release: ${{ matrix.pipelines-release }}
