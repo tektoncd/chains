@@ -28,6 +28,7 @@
                     "ref": {},
                     "startedOn": "{{index .BuildStartTimes 0}}",
                     "finishedOn": "{{index .BuildFinishedTimes 0}}",
+                    "serviceAccountName": "default",
                     "status": "Succeeded",
                     "steps": [
                         {
