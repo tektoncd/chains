@@ -122,7 +122,9 @@ type TektonStorageConfig struct {
 }
 
 type DocDBStorageConfig struct {
-	URL string
+	URL               string
+	MongoServerURL    string
+	MongoServerURLDir string
 }
 
 type GrafeasConfig struct {
@@ -165,13 +167,16 @@ const (
 	ociStorageKey = "artifacts.oci.storage"
 	ociSignerKey  = "artifacts.oci.signer"
 
-	gcsBucketKey             = "storage.gcs.bucket"
-	ociRepositoryKey         = "storage.oci.repository"
-	ociRepositoryInsecureKey = "storage.oci.repository.insecure"
-	docDBUrlKey              = "storage.docdb.url"
-	grafeasProjectIDKey      = "storage.grafeas.projectid"
-	grafeasNoteIDKey         = "storage.grafeas.noteid"
-	grafeasNoteHint          = "storage.grafeas.notehint"
+	gcsBucketKey              = "storage.gcs.bucket"
+	ociRepositoryKey          = "storage.oci.repository"
+	ociRepositoryInsecureKey  = "storage.oci.repository.insecure"
+	docDBUrlKey               = "storage.docdb.url"
+	docDBMongoServerURLKey    = "storage.docdb.mongo-server-url"
+	docDBMongoServerURLDirKey = "storage.docdb.mongo-server-url-dir"
+
+	grafeasProjectIDKey = "storage.grafeas.projectid"
+	grafeasNoteIDKey    = "storage.grafeas.noteid"
+	grafeasNoteHint     = "storage.grafeas.notehint"
 
 	// PubSub - General
 	pubsubProvider = "storage.pubsub.provider"
@@ -293,6 +298,8 @@ func NewConfigFromMap(data map[string]string) (*Config, error) {
 		asString(ociRepositoryKey, &cfg.Storage.OCI.Repository),
 		asBool(ociRepositoryInsecureKey, &cfg.Storage.OCI.Insecure),
 		asString(docDBUrlKey, &cfg.Storage.DocDB.URL),
+		asString(docDBMongoServerURLKey, &cfg.Storage.DocDB.MongoServerURL),
+		asString(docDBMongoServerURLDirKey, &cfg.Storage.DocDB.MongoServerURLDir),
 		asString(grafeasProjectIDKey, &cfg.Storage.Grafeas.ProjectID),
 		asString(grafeasNoteIDKey, &cfg.Storage.Grafeas.NoteID),
 		asString(grafeasNoteHint, &cfg.Storage.Grafeas.NoteHint),
