@@ -4,9 +4,7 @@ linkTitle: "Chains Configuration"
 weight: 20
 ---
 -->
-
 # Chains Configuration
-
 `Chains` works by observing `TaskRun` and `PipelineRun` executions, capturing relevant information, and storing it in a cryptographically-signed format.
 
 `TaskRuns` and `PipelineRuns` can indicate inputs and outputs which are then captured and surfaced in the `Chains` payload formats, where relevant.
@@ -140,3 +138,12 @@ chains.tekton.dev/transparency-upload: "true"
 | `signers.kms.auth.oidc.role`      | Role used for OIDC authentication                                                           |                  |
 | `signers.kms.auth.spire.sock`     | URI of the Spire socket used for KMS token (e.g. `unix:///tmp/spire-agent/public/api.sock`) |                  |
 | `signers.kms.auth.spire.audience` | Audience for requesting a SVID from Spire                                                   |                  |
+
+## Supporting Namespace Restrictions in Chains Controller
+The Chains Controller now supports the ability to restrict its scope to specific namespaces. This feature allows you to specify a list of namespaces that the controller should watch, providing more granular control over its operation. If no namespaces are specified, the controller will monitor all namespaces by default.
+
+Usage
+To utilize this feature, you need to pass a comma-separated list of namespaces as an argument to the controller. The controller will then limit its watch to the specified namespaces, filtering the PipelineRun and TaskRun objects accordingly.
+
+Argument Description
+--namespaces: A comma-separated list of namespaces that the controller should monitor. If this argument is not provided or is left empty, the controller will watch all namespaces by default.

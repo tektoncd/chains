@@ -15,6 +15,9 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"regexp"
+	"strings"
 
 	"github.com/tektoncd/chains/pkg/reconciler/pipelinerun"
 	"github.com/tektoncd/chains/pkg/reconciler/taskrun"
@@ -41,7 +44,18 @@ import (
 
 func main() {
 	flag.IntVar(&controller.DefaultThreadsPerController, "threads-per-controller", controller.DefaultThreadsPerController, "Threads (goroutines) to create per controller")
-	namespace := flag.String("namespace", "", "Namespace to restrict informer to. Optional, defaults to all namespaces.")
+	namespaceList := flag.String("namespaces", "", "Comma-separated list of namespaces to restrict informer to. Optional, if empty defaults to all namespaces.")
+	flag.Parse()
+
+	var namespaces []string
+	if *namespaceList != "" {
+		// Remove any whitespace from the namespaces string
+		space := regexp.MustCompile(`\s+`)
+		namespaces = strings.Split(space.ReplaceAllString(*namespaceList, ""), ",")
+		fmt.Printf("controller is scopped to the following namespaces: %s\n", namespaces)
+	} else {
+		namespaces = nil // Default to all namespaces if the list is empty
+	}
 
 	// This also calls flag.Parse().
 	cfg := injection.ParseAndGetRESTConfigOrDie()
@@ -57,8 +71,7 @@ func main() {
 	cfg.QPS = 2 * cfg.QPS
 	cfg.Burst = 2 * cfg.Burst
 
-	flag.Parse()
-	ctx := injection.WithNamespaceScope(signals.NewContext(), *namespace)
+	ctx := injection.WithNamespaceScope(signals.NewContext(), "")
 
-	sharedmain.MainWithConfig(ctx, "watcher", cfg, taskrun.NewController, pipelinerun.NewController)
+	sharedmain.MainWithConfig(ctx, "watcher", cfg, taskrun.NewNamespacesScoppedController(namespaces), pipelinerun.NewNamespacesScoppedController(namespaces))
 }
