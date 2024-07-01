@@ -15,6 +15,7 @@ package main
 
 import (
 	"flag"
+	"strings"
 
 	"github.com/tektoncd/chains/pkg/reconciler/pipelinerun"
 	"github.com/tektoncd/chains/pkg/reconciler/taskrun"
@@ -24,6 +25,7 @@ import (
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/injection"
 	"knative.dev/pkg/injection/sharedmain"
+	"knative.dev/pkg/logging"
 	"knative.dev/pkg/signals"
 
 	// Run with all of the upstream providers.
@@ -41,10 +43,20 @@ import (
 
 func main() {
 	flag.IntVar(&controller.DefaultThreadsPerController, "threads-per-controller", controller.DefaultThreadsPerController, "Threads (goroutines) to create per controller")
-	namespace := flag.String("namespace", "", "Namespace to restrict informer to. Optional, defaults to all namespaces.")
+	namespaceList := flag.String("namespace", "", "Comma-separated list of namespaces to restrict informer to. Optional, if empty defaults to all namespaces.")
 
 	// This also calls flag.Parse().
 	cfg := injection.ParseAndGetRESTConfigOrDie()
+
+	ctx := signals.NewContext()
+	logger := logging.FromContext(ctx)
+
+	var namespaces []string
+	if *namespaceList != "" {
+		// Remove any whitespace from the namespaces string and split it
+		namespaces = strings.Split(strings.ReplaceAll(*namespaceList, " ", ""), ",")
+		logger.Infof("controller is scoped to the following namespaces: %s\n", namespaces)
+	}
 
 	if cfg.QPS == 0 {
 		cfg.QPS = 2 * rest.DefaultQPS
@@ -57,8 +69,5 @@ func main() {
 	cfg.QPS = 2 * cfg.QPS
 	cfg.Burst = 2 * cfg.Burst
 
-	flag.Parse()
-	ctx := injection.WithNamespaceScope(signals.NewContext(), *namespace)
-
-	sharedmain.MainWithConfig(ctx, "watcher", cfg, taskrun.NewController, pipelinerun.NewController)
+	sharedmain.MainWithConfig(ctx, "watcher", cfg, taskrun.NewNamespacesScopedController(namespaces), pipelinerun.NewNamespacesScopedController(namespaces))
 }
