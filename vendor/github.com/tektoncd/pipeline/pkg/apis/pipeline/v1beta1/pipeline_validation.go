@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/tektoncd/pipeline/pkg/apis/config"
 	"github.com/tektoncd/pipeline/pkg/apis/validate"
 	"github.com/tektoncd/pipeline/pkg/internal/resultref"
@@ -31,12 +30,15 @@ import (
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation"
+	"k8s.io/utils/strings/slices"
 	"knative.dev/pkg/apis"
 	"knative.dev/pkg/webhook/resourcesemantics"
 )
 
-var _ apis.Validatable = (*Pipeline)(nil)
-var _ resourcesemantics.VerbLimited = (*Pipeline)(nil)
+var (
+	_ apis.Validatable              = (*Pipeline)(nil)
+	_ resourcesemantics.VerbLimited = (*Pipeline)(nil)
+)
 
 const (
 	taskRef      = "taskRef"
@@ -150,10 +152,10 @@ func (l PipelineTaskList) Validate(ctx context.Context, taskNames sets.String, p
 }
 
 // validateUsageOfDeclaredPipelineTaskParameters validates that all parameters referenced in the pipeline Task are declared by the pipeline Task.
-func (l PipelineTaskList) validateUsageOfDeclaredPipelineTaskParameters(ctx context.Context, path string) (errs *apis.FieldError) {
+func (l PipelineTaskList) validateUsageOfDeclaredPipelineTaskParameters(ctx context.Context, additionalParams []ParamSpec, path string) (errs *apis.FieldError) {
 	for i, t := range l {
 		if t.TaskSpec != nil {
-			errs = errs.Also(ValidateUsageOfDeclaredParameters(ctx, t.TaskSpec.Steps, t.TaskSpec.Params).ViaFieldIndex(path, i))
+			errs = errs.Also(ValidateUsageOfDeclaredParameters(ctx, t.TaskSpec.Steps, append(t.TaskSpec.Params, additionalParams...)).ViaFieldIndex(path, i))
 		}
 	}
 	return errs
@@ -176,6 +178,8 @@ func (pt PipelineTask) ValidateName() *apis.FieldError {
 // calls the validation routine based on the type of the task
 func (pt PipelineTask) Validate(ctx context.Context) (errs *apis.FieldError) {
 	errs = errs.Also(pt.validateRefOrSpec(ctx))
+
+	errs = errs.Also(pt.validateEnabledInlineSpec(ctx))
 
 	errs = errs.Also(pt.validateEmbeddedOrType())
 
@@ -200,7 +204,6 @@ func (pt PipelineTask) Validate(ctx context.Context) (errs *apis.FieldError) {
 		}
 	}
 
-	cfg := config.FromContextOrDefaults(ctx)
 	// Pipeline task having taskRef/taskSpec with APIVersion is classified as custom task
 	switch {
 	case pt.TaskRef != nil && !taskKinds[pt.TaskRef.Kind]:
@@ -211,13 +214,28 @@ func (pt PipelineTask) Validate(ctx context.Context) (errs *apis.FieldError) {
 		errs = errs.Also(pt.validateCustomTask())
 	case pt.TaskSpec != nil && pt.TaskSpec.APIVersion != "":
 		errs = errs.Also(pt.validateCustomTask())
-		// If EnableTektonOCIBundles feature flag is on, validate bundle specifications
-	case cfg.FeatureFlags.EnableTektonOCIBundles && pt.TaskRef != nil && pt.TaskRef.Bundle != "":
-		errs = errs.Also(pt.validateBundle())
 	default:
 		errs = errs.Also(pt.validateTask(ctx))
 	}
 	return //nolint:nakedret
+}
+
+// validateEnabledInlineSpec validates that pipelineSpec or taskSpec is allowed by checking
+// disable-inline-spec field
+func (pt PipelineTask) validateEnabledInlineSpec(ctx context.Context) (errs *apis.FieldError) {
+	if pt.TaskSpec != nil {
+		if slices.Contains(strings.Split(
+			config.FromContextOrDefaults(ctx).FeatureFlags.DisableInlineSpec, ","), "pipeline") {
+			errs = errs.Also(apis.ErrDisallowedFields("taskSpec"))
+		}
+	}
+	if pt.PipelineSpec != nil {
+		if slices.Contains(strings.Split(
+			config.FromContextOrDefaults(ctx).FeatureFlags.DisableInlineSpec, ","), "pipeline") {
+			errs = errs.Also(apis.ErrDisallowedFields("pipelineSpec"))
+		}
+	}
+	return errs
 }
 
 func (pt *PipelineTask) validateMatrix(ctx context.Context) (errs *apis.FieldError) {
@@ -333,21 +351,6 @@ func (pt PipelineTask) validateCustomTask() (errs *apis.FieldError) {
 	return errs
 }
 
-// validateBundle validates bundle specifications - checking name and bundle
-func (pt PipelineTask) validateBundle() (errs *apis.FieldError) {
-	// bundle requires a TaskRef to be specified
-	if (pt.TaskRef != nil && pt.TaskRef.Bundle != "") && pt.TaskRef.Name == "" {
-		errs = errs.Also(apis.ErrMissingField("taskRef.name"))
-	}
-	// If a bundle url is specified, ensure it is parsable
-	if pt.TaskRef != nil && pt.TaskRef.Bundle != "" {
-		if _, err := name.ParseReference(pt.TaskRef.Bundle); err != nil {
-			errs = errs.Also(apis.ErrInvalidValue(fmt.Sprintf("invalid bundle reference (%s)", err.Error()), "taskRef.bundle"))
-		}
-	}
-	return errs
-}
-
 // validateTask validates a pipeline task or a final task for taskRef and taskSpec
 func (pt PipelineTask) validateTask(ctx context.Context) (errs *apis.FieldError) {
 	if pt.TaskSpec != nil {
@@ -380,8 +383,8 @@ func validatePipelineWorkspacesDeclarations(wss []PipelineWorkspaceDeclaration) 
 
 // validatePipelineParameterUsage validates that parameters referenced in the Pipeline are declared by the Pipeline
 func (ps *PipelineSpec) validatePipelineParameterUsage(ctx context.Context) (errs *apis.FieldError) {
-	errs = errs.Also(PipelineTaskList(ps.Tasks).validateUsageOfDeclaredPipelineTaskParameters(ctx, "tasks"))
-	errs = errs.Also(PipelineTaskList(ps.Finally).validateUsageOfDeclaredPipelineTaskParameters(ctx, "finally"))
+	errs = errs.Also(PipelineTaskList(ps.Tasks).validateUsageOfDeclaredPipelineTaskParameters(ctx, ps.Params, "tasks"))
+	errs = errs.Also(PipelineTaskList(ps.Finally).validateUsageOfDeclaredPipelineTaskParameters(ctx, ps.Params, "finally"))
 	errs = errs.Also(validatePipelineTaskParameterUsage(ps.Tasks, ps.Params).ViaField("tasks"))
 	errs = errs.Also(validatePipelineTaskParameterUsage(ps.Finally, ps.Params).ViaField("finally"))
 	return errs
@@ -539,8 +542,8 @@ func (pt *PipelineTask) validateExecutionStatusVariablesDisallowed() (errs *apis
 
 func validateContainsExecutionStatusVariablesDisallowed(expressions []string, path string) (errs *apis.FieldError) {
 	if containsExecutionStatusReferences(expressions) {
-		errs = errs.Also(apis.ErrInvalidValue(fmt.Sprintf("pipeline tasks can not refer to execution status"+
-			" of any other pipeline task or aggregate status of tasks"), path))
+		errs = errs.Also(apis.ErrInvalidValue("pipeline tasks can not refer to execution status"+
+			" of any other pipeline task or aggregate status of tasks", path))
 	}
 	return errs
 }
@@ -796,7 +799,7 @@ func validateMatrixedPipelineTaskConsumed(expressions []string, taskMapping map[
 		taskConsumed := taskMapping[pipelineTask]
 		if taskConsumed.IsMatrixed() {
 			if !strings.HasSuffix(expression, "[*]") {
-				errs = errs.Also(apis.ErrGeneric(fmt.Sprintf("A matrixed pipelineTask can only be consumed in aggregate using [*] notation, but is currently set to %s", expression)))
+				errs = errs.Also(apis.ErrGeneric("A matrixed pipelineTask can only be consumed in aggregate using [*] notation, but is currently set to " + expression))
 			}
 			filteredExpressions = append(filteredExpressions, expression)
 		}
