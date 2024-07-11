@@ -71,7 +71,7 @@ func (c FakeClient) Send(ctx context.Context, event cloudevents.Event) protocol.
 func (c FakeClient) Request(ctx context.Context, event cloudevents.Event) (*cloudevents.Event, protocol.Result) {
 	if c.behaviour.SendSuccessfully {
 		if len(c.events) < cap(c.events) {
-			c.events <- fmt.Sprintf("%v", event.String())
+			c.events <- event.String()
 			return &event, nil
 		}
 		return nil, fmt.Errorf("channel is full of size:%v, but extra event wants to be sent:%v", cap(c.events), event)
@@ -111,7 +111,7 @@ func (c *FakeClient) CheckCloudEventsUnordered(t *testing.T, testName string, wa
 	// extra events are prevented in FakeClient's Send function.
 	// fewer events are detected because we collect all events from channel and compare with wantEvents
 
-	for eventCount := 0; eventCount < channelEvents; eventCount++ {
+	for range channelEvents {
 		event := <-c.events
 		if len(expected) == 0 {
 			t.Errorf("extra event received: %q", event)
