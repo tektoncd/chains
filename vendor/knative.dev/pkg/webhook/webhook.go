@@ -38,7 +38,6 @@ import (
 	admissionv1 "k8s.io/api/admission/v1"
 	"knative.dev/pkg/logging"
 	"knative.dev/pkg/system"
-	certresources "knative.dev/pkg/webhook/certificates/resources"
 )
 
 // Options contains the configuration for the webhook
@@ -58,10 +57,21 @@ type Options struct {
 	// If no SecretName is provided, then the webhook serves without TLS.
 	SecretName string
 
+	// ServerPrivateKeyName is the name for the webhook secret's data key e.g. `tls.key`.
+	// Default value is `server-key.pem` if no value is passed.
+	ServerPrivateKeyName string
+
+	// ServerCertificateName is the name for the webhook secret's ca data key e.g. `tls.crt`.
+	// Default value is `server-cert.pem` if no value is passed.
+	ServerCertificateName string
+
 	// Port where the webhook is served. Per k8s admission
 	// registration requirements this should be 443 unless there is
 	// only a single port for the service.
 	Port int
+
+	// StatsReporterOptions are the options used to initialize the default StatsReporter
+	StatsReporterOptions []StatsReporterOption
 
 	// StatsReporter reports metrics about the webhook.
 	// This will be automatically initialized by the constructor if left uninitialized.
@@ -137,7 +147,7 @@ func New(
 	logger := logging.FromContext(ctx)
 
 	if opts.StatsReporter == nil {
-		reporter, err := NewStatsReporter()
+		reporter, err := NewStatsReporter(opts.StatsReporterOptions...)
 		if err != nil {
 			return nil, err
 		}
@@ -180,13 +190,14 @@ func New(
 					logger.Errorw("failed to fetch secret", zap.Error(err))
 					return nil, nil
 				}
-
-				serverKey, ok := secret.Data[certresources.ServerKey]
+				webOpts := GetOptions(ctx)
+				sKey, sCert := getSecretDataKeyNamesOrDefault(webOpts.ServerPrivateKeyName, webOpts.ServerCertificateName)
+				serverKey, ok := secret.Data[sKey]
 				if !ok {
 					logger.Warn("server key missing")
 					return nil, nil
 				}
-				serverCert, ok := secret.Data[certresources.ServerCert]
+				serverCert, ok := secret.Data[sCert]
 				if !ok {
 					logger.Warn("server cert missing")
 					return nil, nil
