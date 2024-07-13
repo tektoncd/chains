@@ -49,7 +49,16 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		Pipelineclientset: pipelineClient,
 	}
 	impl := taskrunreconciler.NewImpl(ctx, c, func(impl *controller.Impl) controller.Options {
+		watcherStop := make(chan bool)
+
 		cfgStore := config.NewConfigStore(logger, func(name string, value interface{}) {
+			select {
+			case watcherStop <- true:
+				logger.Info("sent close event to WatchBackends()...")
+			default:
+				logger.Info("could not send close event to WatchBackends()...")
+			}
+
 			// get updated config
 			cfg := *value.(*config.Config)
 
@@ -59,6 +68,10 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 				logger.Error(err)
 			}
 			tsSigner.Backends = backends
+
+			if err := storage.WatchBackends(ctx, watcherStop, tsSigner.Backends, cfg); err != nil {
+				logger.Error(err)
+			}
 		})
 
 		// setup watches for the config names provided by client
