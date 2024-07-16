@@ -147,7 +147,15 @@ chains.tekton.dev/transparency-upload: "true"
 | :-------------------------------- | :------------------------------------------------------------------------------------------ | :--------------- | :------ |
 | `signers.kms.auth.address`        | URI of KMS server (e.g. the value of `VAULT_ADDR`)                                          |                  |
 | `signers.kms.auth.token`          | Auth token KMS server (e.g. the value of `VAULT_TOKEN`)                                     |                  |
+| `signers.kms.auth.token-dir`      | Path to store KMS server Auth token (e.g. `/etc/kms-secrets`)                               |                  |
 | `signers.kms.auth.oidc.path`      | Path used for OIDC authentication (e.g. `jwt` for Vault)                                    |                  |
 | `signers.kms.auth.oidc.role`      | Role used for OIDC authentication                                                           |                  |
 | `signers.kms.auth.spire.sock`     | URI of the Spire socket used for KMS token (e.g. `unix:///tmp/spire-agent/public/api.sock`) |                  |
 | `signers.kms.auth.spire.audience` | Audience for requesting a SVID from Spire                                                   |                  |
+> NOTE:
+>
+> If `signers.kms.auth.token-dir` is set, create a secret with the key `KMS_AUTH_TOKEN` and ensure the Chains deployment mounts this secret to 
+> the path specified by `signers.kms.auth.token-dir`. 
+
+> [!IMPORTANT]
+> To project the latest token values without needing to recreate the pod, avoid using `subPath` in volume mount.

@@ -20,6 +20,9 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/sigstore/sigstore/pkg/signature"
@@ -95,12 +98,26 @@ func NewSigner(ctx context.Context, cfg config.KMSSigner) (*Signer, error) {
 	// pass through configuration options to RPCAuth used by KMS in sigstore
 	rpcAuth := options.RPCAuth{
 		Address: cfg.Auth.Address,
-		Token:   cfg.Auth.Token,
 		OIDC: options.RPCAuthOIDC{
 			Role: cfg.Auth.OIDC.Role,
 			Path: cfg.Auth.OIDC.Path,
 		},
 	}
+
+	// get token from file KMS_AUTH_TOKEN, a mounted secret at signers.kms.auth.token-dir or
+	// as direct value set from signers.kms.auth.token.
+	// If both values are set, priority will be given to token-dir.
+
+	if cfg.Auth.TokenDir != "" {
+		rpcAuthToken, err := getKMSAuthToken(cfg.Auth.TokenDir)
+		if err != nil {
+			return nil, err
+		}
+		rpcAuth.Token = rpcAuthToken
+	} else {
+		rpcAuth.Token = cfg.Auth.Token
+	}
+
 	// get token from spire
 	if cfg.Auth.Spire.Sock != "" {
 		token, err := newSpireToken(ctx, cfg)
@@ -118,6 +135,23 @@ func NewSigner(ctx context.Context, cfg config.KMSSigner) (*Signer, error) {
 	return &Signer{
 		SignerVerifier: k,
 	}, nil
+}
+
+// getKMSAuthToken retreives token from the given mount path
+func getKMSAuthToken(dir string) (string, error) {
+	tokenEnv := "KMS_AUTH_TOKEN" // #nosec G101
+
+	// Cocatenate secret mount path specified in signers.kms.auth.token-dir and
+	// secret key name KMS_AUTH_TOKEN
+	filePath := filepath.Join(dir, tokenEnv)
+	fileData, err := os.ReadFile(filePath)
+	if err != nil {
+		return "", fmt.Errorf("reading file %q in directory %q: %w", tokenEnv, dir, err)
+	}
+
+	// A trailing newline is fairly common in mounted files, so remove it.
+	fileDataNormalized := strings.TrimSuffix(string(fileData), "\n")
+	return fileDataNormalized, nil
 }
 
 // newSpireToken retrieves an SVID token from Spire
