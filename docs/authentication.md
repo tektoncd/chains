@@ -50,7 +50,7 @@ Create a secret with config.json:
 ```shell
 kubectl create secret generic docker-registry \
     --from-file=.dockerconfigjson=<path/to/.docker/config.json> \
-    --type=kubernetes.io/dockerconfigjson
+    --type=kubernetes.io/dockerconfigjson \
     -n $NAMESPACE
 ```
 
