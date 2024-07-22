@@ -380,8 +380,6 @@ func TestWatchBackend(t *testing.T) {
 			// Let's wait for the event to be read by fsnotify
 			time.Sleep(500 * time.Millisecond)
 
-			// Empty the channel now
-			<-backendChan
 			currentEnv = os.Getenv("MONGO_SERVER_URL")
 			if currentEnv != testEnv {
 				t.Errorf("expected MONGO_SERVER_URL: %s, but got %s", testEnv, currentEnv)
