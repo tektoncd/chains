@@ -91,10 +91,11 @@ type KMSSigner struct {
 
 // KMSAuth configures authentication to the KMS server
 type KMSAuth struct {
-	Address string
-	Token   string
-	OIDC    KMSAuthOIDC
-	Spire   KMSAuthSpire
+	Address  string
+	Token    string
+	TokenDir string
+	OIDC     KMSAuthOIDC
+	Spire    KMSAuthSpire
 }
 
 // KMSAuthOIDC configures settings to authenticate with OIDC
@@ -192,6 +193,7 @@ const (
 	kmsAuthAddress       = "signers.kms.auth.address"
 	kmsAuthToken         = "signers.kms.auth.token"
 	kmsAuthOIDCPath      = "signers.kms.auth.oidc.path"
+	kmsAuthTokenDir      = "signers.kms.auth.token-dir" // #nosec G101
 	kmsAuthOIDCRole      = "signers.kms.auth.oidc.role"
 	kmsAuthSpireSock     = "signers.kms.auth.spire.sock"
 	kmsAuthSpireAudience = "signers.kms.auth.spire.audience"
@@ -311,6 +313,7 @@ func NewConfigFromMap(data map[string]string) (*Config, error) {
 		asString(kmsSignerKMSRef, &cfg.Signers.KMS.KMSRef),
 		asString(kmsAuthAddress, &cfg.Signers.KMS.Auth.Address),
 		asString(kmsAuthToken, &cfg.Signers.KMS.Auth.Token),
+		asString(kmsAuthTokenDir, &cfg.Signers.KMS.Auth.TokenDir),
 		asString(kmsAuthOIDCPath, &cfg.Signers.KMS.Auth.OIDC.Path),
 		asString(kmsAuthOIDCRole, &cfg.Signers.KMS.Auth.OIDC.Role),
 		asString(kmsAuthSpireSock, &cfg.Signers.KMS.Auth.Spire.Sock),

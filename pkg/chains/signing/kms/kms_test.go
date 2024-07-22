@@ -20,8 +20,11 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/tektoncd/chains/pkg/config"
 )
 
@@ -125,4 +128,36 @@ func TestValidVaultAddressConnection(t *testing.T) {
 			t.Errorf("Expected error message '%s', but got '%s'", expectedErrorMessage, err.Error())
 		}
 	})
+}
+
+// Test for getKMSAuthToken with non-directory path
+func TestGetKMSAuthToken_NotADirectory(t *testing.T) {
+	tempFile, err := os.CreateTemp("", "not-a-dir")
+	assert.NoError(t, err)
+	defer os.Remove(tempFile.Name())
+
+	token, err := getKMSAuthToken(tempFile.Name())
+	assert.Error(t, err)
+	assert.Equal(t, "", token)
+}
+
+// Test for getKMSAuthToken with missing token file
+func TestGetKMSAuthToken_FileNotFound(t *testing.T) {
+	tempDir := t.TempDir() // Creates a temporary directory
+	token, err := getKMSAuthToken(tempDir)
+	assert.Error(t, err)
+	assert.Equal(t, "", token)
+}
+
+// Test for verifying return value of getKMSAuthToken
+func TestGetKMSAuthToken_ValidToken(t *testing.T) {
+	tempDir := t.TempDir() // Creates a temporary directory
+	tokenPath := filepath.Join(tempDir, "KMS_AUTH_TOKEN")
+
+	err := os.WriteFile(tokenPath, []byte("test-token"), 0644) // write a sample token "test-token"
+	assert.NoError(t, err)
+
+	token, err := getKMSAuthToken(tempDir)
+	assert.NoError(t, err)
+	assert.Equal(t, "test-token", token) // verify the value returned by getKMSAuthToken matches "test-token"
 }
