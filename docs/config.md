@@ -4,9 +4,7 @@ linkTitle: "Chains Configuration"
 weight: 20
 ---
 -->
-
 # Chains Configuration
-
 `Chains` works by observing `TaskRun` and `PipelineRun` executions, capturing relevant information, and storing it in a cryptographically-signed format.
 
 `TaskRuns` and `PipelineRuns` can indicate inputs and outputs which are then captured and surfaced in the `Chains` payload formats, where relevant.
@@ -159,3 +157,16 @@ chains.tekton.dev/transparency-upload: "true"
 
 > [!IMPORTANT]
 > To project the latest token values without needing to recreate the pod, avoid using `subPath` in volume mount.
+
+## Namespaces Restrictions in Chains Controller
+This feature allows you to specify a list of namespaces for the controller to monitor, providing granular control over its operation. If no namespaces are specified, the controller defaults to monitoring all namespaces.
+
+### Usage
+To restrict the Chains Controller to specific namespaces, pass a comma-separated list of namespaces as an argument to the controller using the --namespace flag.
+
+### Example
+To restrict the controller to the dev and test namespaces, you would start the controller with the following argument:
+```shell
+--namespace=dev,test
+```
+In this example, the controller will only monitor resources (pipelinesruns and taskruns) within the dev and test namespaces.

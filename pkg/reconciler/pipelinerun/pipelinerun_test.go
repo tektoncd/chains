@@ -78,7 +78,8 @@ func TestReconciler_Reconcile(t *testing.T) {
 					Name:      config.ChainsConfig,
 				},
 			})
-			ctl := NewController(ctx, configMapWatcher)
+			namespacedScopedController := NewNamespacesScopedController(nil)
+			ctl := namespacedScopedController(ctx, configMapWatcher)
 
 			if la, ok := ctl.Reconciler.(pkgreconciler.LeaderAware); ok {
 				if err := la.Promote(pkgreconciler.UniversalBucket(), func(pkgreconciler.Bucket, types.NamespacedName) {}); err != nil {
