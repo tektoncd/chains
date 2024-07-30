@@ -104,70 +104,74 @@ func buildConfig(ctx context.Context, pro *objects.PipelineRunObjectV1Beta1) Bui
 
 	var last string
 	for i, t := range pipelineTasks {
-		tr := pro.GetTaskRunFromTask(t.Name)
-
-		// Ignore Tasks that did not execute during the PipelineRun.
-		if tr == nil || tr.Status.CompletionTime == nil {
-			logger.Infof("taskrun status not found for task %s", t.Name)
+		taskRuns := pro.GetTaskRunsFromTask(t.Name)
+		if len(taskRuns) == 0 {
+			logger.Infof("no taskruns found for task %s", t.Name)
 			continue
 		}
-		steps := []attest.StepAttestation{}
-		for i, stepState := range tr.Status.Steps {
-			step := tr.Status.TaskSpec.Steps[i]
-			steps = append(steps, attest.Step(&step, &stepState))
-		}
-		after := t.RunAfter
+		for _, tr := range taskRuns {
+			// Ignore Tasks that did not execute during the PipelineRun.
+			if tr.Status.CompletionTime == nil {
+				logger.Infof("taskrun status not complete for task %s", tr.Name)
+				continue
+			}
 
-		// Establish task order by retrieving all task's referenced
-		// in the "when" and "params" fields
-		refs := v1beta1.PipelineTaskResultRefs(&t)
-		for _, ref := range refs {
+			steps := []attest.StepAttestation{}
+			for i, stepState := range tr.Status.Steps {
+				step := tr.Status.TaskSpec.Steps[i]
+				steps = append(steps, attest.Step(&step, &stepState))
+			}
 
-			// Ensure task doesn't already exist in after
-			found := false
-			for _, at := range after {
-				if at == ref.PipelineTask {
-					found = true
+			after := t.RunAfter
+			// Establish task order by retrieving all task's referenced
+			// in the "when" and "params" fields
+			refs := v1beta1.PipelineTaskResultRefs(&t)
+			for _, ref := range refs {
+				// Ensure task doesn't already exist in after
+				found := false
+				for _, at := range after {
+					if at == ref.PipelineTask {
+						found = true
+					}
+				}
+				if !found {
+					after = append(after, ref.PipelineTask)
 				}
 			}
-			if !found {
-				after = append(after, ref.PipelineTask)
+
+			// tr is a finally task without an explicit runAfter value. It must have executed
+			// after the last non-finally task, if any non-finally tasks were executed.
+			if len(after) == 0 && i >= len(pSpec.Tasks) && last != "" {
+				after = append(after, last)
 			}
+
+			params := tr.Spec.Params
+			var paramSpecs []v1beta1.ParamSpec
+			if tr.Status.TaskSpec != nil {
+				paramSpecs = tr.Status.TaskSpec.Params
+			} else {
+				paramSpecs = []v1beta1.ParamSpec{}
+			}
+
+			task := TaskAttestation{
+				Name:               t.Name,
+				After:              after,
+				StartedOn:          tr.Status.StartTime.Time.UTC(),
+				FinishedOn:         tr.Status.CompletionTime.Time.UTC(),
+				ServiceAccountName: pro.Spec.ServiceAccountName,
+				Status:             getStatus(tr.Status.Conditions),
+				Steps:              steps,
+				Invocation:         attest.Invocation(tr, params, paramSpecs),
+				Results:            tr.Status.TaskRunResults,
+			}
+			if t.TaskRef != nil {
+				task.Ref = *t.TaskRef
+			}
+			tasks = append(tasks, task)
 		}
 
-		// tr is a finally task without an explicit runAfter value. It must have executed
-		// after the last non-finally task, if any non-finally tasks were executed.
-		if len(after) == 0 && i >= len(pSpec.Tasks) && last != "" {
-			after = append(after, last)
-		}
-
-		params := tr.Spec.Params
-		var paramSpecs []v1beta1.ParamSpec
-		if tr.Status.TaskSpec != nil {
-			paramSpecs = tr.Status.TaskSpec.Params
-		} else {
-			paramSpecs = []v1beta1.ParamSpec{}
-		}
-
-		task := TaskAttestation{
-			Name:               t.Name,
-			After:              after,
-			StartedOn:          tr.Status.StartTime.Time.UTC(),
-			FinishedOn:         tr.Status.CompletionTime.Time.UTC(),
-			ServiceAccountName: pro.Spec.ServiceAccountName,
-			Status:             getStatus(tr.Status.Conditions),
-			Steps:              steps,
-			Invocation:         attest.Invocation(tr, params, paramSpecs),
-			Results:            tr.Status.TaskRunResults,
-		}
-
-		if t.TaskRef != nil {
-			task.Ref = *t.TaskRef
-		}
-
-		tasks = append(tasks, task)
 		if i < len(pSpec.Tasks) {
-			last = task.Name
+			last = t.Name
 		}
 	}
 	return BuildConfig{Tasks: tasks}

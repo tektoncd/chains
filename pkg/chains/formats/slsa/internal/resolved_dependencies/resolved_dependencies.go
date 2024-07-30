@@ -150,40 +150,46 @@ func fromPipelineTask(logger *zap.SugaredLogger, pro *objects.PipelineRunObjectV
 		pipelineTasks := pSpec.Tasks
 		pipelineTasks = append(pipelineTasks, pSpec.Finally...)
 		for _, t := range pipelineTasks {
-			tr := pro.GetTaskRunFromTask(t.Name)
-			// Ignore Tasks that did not execute during the PipelineRun.
-			if tr == nil || tr.Status.CompletionTime == nil {
-				logger.Infof("taskrun status not found for task %s", t.Name)
+			taskRuns := pro.GetTaskRunsFromTask(t.Name)
+			if len(taskRuns) == 0 {
+				logger.Infof("no taskruns found for task %s", t.Name)
 				continue
 			}
-			rd, err := addTasks(tr)
-			if err != nil {
-				logger.Errorf("error storing taskRun %s, error: %s", t.Name, err)
-				continue
+			for _, tr := range taskRuns {
+				// Ignore Tasks that did not execute during the PipelineRun.
+				if tr == nil || tr.Status.CompletionTime == nil {
+					logger.Infof("taskrun status not found for task %s", t.Name)
+					continue
+				}
+				rd, err := addTasks(tr)
+				if err != nil {
+					logger.Errorf("error storing taskRun %s, error: %s", t.Name, err)
+					continue
+				}
+				if rd != nil {
+					resolvedDependencies = append(resolvedDependencies, rd)
+				}
+
+				mats := []common.ProvenanceMaterial{}
+
+				// add step images
+				stepMaterials, err := material.FromStepImages(tr)
+				if err != nil {
+					return nil, err
+				}
+				mats = append(mats, stepMaterials...)
+
+				// add sidecar images
+				sidecarMaterials, err := material.FromSidecarImages(tr)
+				if err != nil {
+					return nil, err
+				}
+				mats = append(mats, sidecarMaterials...)
+
+				// convert materials to resolved dependencies
+				resolvedDependencies = append(resolvedDependencies, ConvertMaterialsToResolvedDependencies(mats, "")...)
+
 			}
-
-			if rd != nil {
-				resolvedDependencies = append(resolvedDependencies, rd)
-			}
-
-			mats := []common.ProvenanceMaterial{}
-
-			// add step images
-			stepMaterials, err := material.FromStepImages(tr)
-			if err != nil {
-				return nil, err
-			}
-			mats = append(mats, stepMaterials...)
-
-			// add sidecar images
-			sidecarMaterials, err := material.FromSidecarImages(tr)
-			if err != nil {
-				return nil, err
-			}
-			mats = append(mats, sidecarMaterials...)
-
-			// convert materials to resolved dependencies
-			resolvedDependencies = append(resolvedDependencies, ConvertMaterialsToResolvedDependencies(mats, "")...)
 		}
 	}
 	return resolvedDependencies, nil
