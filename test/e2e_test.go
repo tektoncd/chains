@@ -152,7 +152,10 @@ func TestRekor(t *testing.T) {
 				"artifacts.oci.format":      "simplesigning",
 				"artifacts.oci.signer":      "x509",
 				"artifacts.oci.storage":     "tekton",
-				"transparency.enabled":      "manual",
+				// TODO: revert back to manual once we get the fix in tektoncd/pipeline
+				// Chains issue: https://github.com/tektoncd/chains/issues/1117
+				// Pipelines issue: https://github.com/tektoncd/pipeline/issues/7291
+				"transparency.enabled": "true",
 			},
 			getObject: getTaskRunObject,
 		},
@@ -165,7 +168,10 @@ func TestRekor(t *testing.T) {
 				"artifacts.oci.format":          "simplesigning",
 				"artifacts.oci.signer":          "x509",
 				"artifacts.oci.storage":         "tekton",
-				"transparency.enabled":          "manual",
+				// TODO: revert back to manual once we get the fix in tektoncd/pipeline
+				// Chains issue: https://github.com/tektoncd/chains/issues/1117
+				// Pipelines issue: https://github.com/tektoncd/pipeline/issues/7291
+				"transparency.enabled": "true",
 			},
 			getObject: getPipelineRunObject,
 		},

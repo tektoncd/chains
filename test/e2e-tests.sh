@@ -31,7 +31,7 @@ header "Setting up environment"
 # Test against nightly instead of latest.
 install_tkn
 
-export RELEASE_YAML="https://storage.googleapis.com/tekton-releases/pipeline/previous/v0.45.0/release.yaml"
+export RELEASE_YAML="https://storage.googleapis.com/tekton-releases/pipeline/previous/v0.59.2/release.yaml"
 install_pipeline_crd
 
 install_chains
