@@ -235,7 +235,6 @@ func taskDependencies(ctx context.Context, opts ResolveOptions, tro *objects.Tas
 
 	}
 	trV1Beta1 := &v1beta1.TaskRun{} //nolint:staticcheck
-	fmt.Printf("%v", tro.GetObject().(*v1.TaskRun))
 	if err := trV1Beta1.ConvertFrom(ctx, tro.GetObject().(*v1.TaskRun)); err == nil {
 		if shouldReplace {
 			trV1Beta1.Spec.Resources = &resources //nolint:staticcheck
