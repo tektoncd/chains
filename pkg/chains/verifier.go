@@ -67,7 +67,7 @@ func (tv *TaskRunVerifier) VerifyTaskRun(ctx context.Context, tr *v1.TaskRun) er
 	if err != nil {
 		return err
 	}
-	signers := allSigners(ctx, tv.SecretPath, cfg)
+	signers, _ := allSigners(ctx, tv.SecretPath, cfg)
 
 	for _, signableType := range enabledSignableTypes {
 		if !signableType.Enabled(cfg) {
