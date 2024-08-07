@@ -21,7 +21,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -137,7 +136,7 @@ func TestGetKMSAuthToken_NotADirectory(t *testing.T) {
 	defer os.Remove(tempFile.Name())
 
 	token, err := getKMSAuthToken(tempFile.Name())
-	assert.Error(t, err)
+	assert.Equal(t, err, nil)
 	assert.Equal(t, "", token)
 }
 
@@ -151,13 +150,14 @@ func TestGetKMSAuthToken_FileNotFound(t *testing.T) {
 
 // Test for verifying return value of getKMSAuthToken
 func TestGetKMSAuthToken_ValidToken(t *testing.T) {
-	tempDir := t.TempDir() // Creates a temporary directory
-	tokenPath := filepath.Join(tempDir, "KMS_AUTH_TOKEN")
+	tempFile, err := os.CreateTemp("", "vault-token")
+	assert.NoError(t, err)
+	defer os.Remove(tempFile.Name())
 
-	err := os.WriteFile(tokenPath, []byte("test-token"), 0644) // write a sample token "test-token"
+	err = os.WriteFile(tempFile.Name(), []byte("test-token"), 0644) // write a sample token "test-token"
 	assert.NoError(t, err)
 
-	token, err := getKMSAuthToken(tempDir)
+	token, err := getKMSAuthToken(tempFile.Name())
 	assert.NoError(t, err)
 	assert.Equal(t, "test-token", token) // verify the value returned by getKMSAuthToken matches "test-token"
 }

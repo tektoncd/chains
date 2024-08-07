@@ -21,7 +21,6 @@ import (
 	"net"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -108,8 +107,8 @@ func NewSigner(ctx context.Context, cfg config.KMSSigner) (*Signer, error) {
 	// as direct value set from signers.kms.auth.token.
 	// If both values are set, priority will be given to token-dir.
 
-	if cfg.Auth.TokenDir != "" {
-		rpcAuthToken, err := getKMSAuthToken(cfg.Auth.TokenDir)
+	if cfg.Auth.TokenPath != "" {
+		rpcAuthToken, err := getKMSAuthToken(cfg.Auth.TokenPath)
 		if err != nil {
 			return nil, err
 		}
@@ -138,15 +137,10 @@ func NewSigner(ctx context.Context, cfg config.KMSSigner) (*Signer, error) {
 }
 
 // getKMSAuthToken retreives token from the given mount path
-func getKMSAuthToken(dir string) (string, error) {
-	tokenEnv := "KMS_AUTH_TOKEN" // #nosec G101
-
-	// Cocatenate secret mount path specified in signers.kms.auth.token-dir and
-	// secret key name KMS_AUTH_TOKEN
-	filePath := filepath.Join(dir, tokenEnv)
-	fileData, err := os.ReadFile(filePath)
+func getKMSAuthToken(path string) (string, error) {
+	fileData, err := os.ReadFile(path)
 	if err != nil {
-		return "", fmt.Errorf("reading file %q in directory %q: %w", tokenEnv, dir, err)
+		return "", fmt.Errorf("reading file in %q: %w", path, err)
 	}
 
 	// A trailing newline is fairly common in mounted files, so remove it.
