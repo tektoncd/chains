@@ -391,7 +391,6 @@ func schema_pkg_apis_pipeline_v1alpha1_EmbeddedRunSpec(ref common.ReferenceCallb
 					"spec": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Spec is a specification of a custom task",
-							Default:     map[string]interface{}{},
 							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
 						},
 					},
@@ -754,6 +753,13 @@ func schema_pkg_apis_pipeline_v1alpha1_StepActionSpec(ref common.ReferenceCallba
 				Description: "StepActionSpec contains the actionable components of a step.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
+					"description": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Description is a user-facing description of the stepaction that may be used to populate a UI.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"image": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Image reference name to run for this StepAction. More info: https://kubernetes.io/docs/concepts/containers/images",

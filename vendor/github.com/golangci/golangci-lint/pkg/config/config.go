@@ -9,7 +9,7 @@ import (
 	"github.com/ldez/gomoddirectives"
 )
 
-// Config encapsulates the config data specified in the golangci-lint yaml config file.
+// Config encapsulates the config data specified in the golangci-lint YAML config file.
 type Config struct {
 	cfgDir string // The directory containing the golangci-lint config file.
 
@@ -33,12 +33,12 @@ func (c *Config) GetConfigDir() string {
 
 func (c *Config) Validate() error {
 	validators := []func() error{
-		c.Issues.Validate,
-		c.Severity.Validate,
+		c.Run.Validate,
+		c.Output.Validate,
 		c.LintersSettings.Validate,
 		c.Linters.Validate,
-		c.Output.Validate,
-		c.Run.Validate,
+		c.Issues.Validate,
+		c.Severity.Validate,
 	}
 
 	for _, v := range validators {

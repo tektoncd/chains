@@ -19,19 +19,24 @@ package v1
 import (
 	"context"
 	"fmt"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/tektoncd/pipeline/pkg/apis/config"
 	"github.com/tektoncd/pipeline/pkg/apis/validate"
 	"github.com/tektoncd/pipeline/pkg/internal/resultref"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"knative.dev/pkg/apis"
 	"knative.dev/pkg/webhook/resourcesemantics"
 )
 
-var _ apis.Validatable = (*PipelineRun)(nil)
-var _ resourcesemantics.VerbLimited = (*PipelineRun)(nil)
+var (
+	_ apis.Validatable              = (*PipelineRun)(nil)
+	_ resourcesemantics.VerbLimited = (*PipelineRun)(nil)
+)
 
 // SupportedVerbs returns the operations that validation should be called for
 func (pr *PipelineRun) SupportedVerbs() []admissionregistrationv1.OperationType {
@@ -51,6 +56,9 @@ func (pr *PipelineRun) Validate(ctx context.Context) *apis.FieldError {
 
 // Validate pipelinerun spec
 func (ps *PipelineRunSpec) Validate(ctx context.Context) (errs *apis.FieldError) {
+	// Validate the spec changes
+	errs = errs.Also(ps.ValidateUpdate(ctx))
+
 	// Must have exactly one of pipelineRef and pipelineSpec.
 	if ps.PipelineRef == nil && ps.PipelineSpec == nil {
 		errs = errs.Also(apis.ErrMissingOneOf("pipelineRef", "pipelineSpec"))
@@ -66,6 +74,10 @@ func (ps *PipelineRunSpec) Validate(ctx context.Context) (errs *apis.FieldError)
 
 	// Validate PipelineSpec if it's present
 	if ps.PipelineSpec != nil {
+		if slices.Contains(strings.Split(
+			config.FromContextOrDefaults(ctx).FeatureFlags.DisableInlineSpec, ","), "pipelinerun") {
+			errs = errs.Also(apis.ErrDisallowedFields("pipelineSpec"))
+		}
 		errs = errs.Also(ps.PipelineSpec.Validate(ctx).ViaField("pipelineSpec"))
 	}
 
@@ -114,6 +126,31 @@ func (ps *PipelineRunSpec) Validate(ctx context.Context) (errs *apis.FieldError)
 	}
 
 	return errs
+}
+
+// ValidateUpdate validates the update of a PipelineRunSpec
+func (ps *PipelineRunSpec) ValidateUpdate(ctx context.Context) (errs *apis.FieldError) {
+	if !apis.IsInUpdate(ctx) {
+		return
+	}
+	oldObj, ok := apis.GetBaseline(ctx).(*PipelineRun)
+	if !ok || oldObj == nil {
+		return
+	}
+	old := &oldObj.Spec
+
+	// If already in the done state, the spec cannot be modified. Otherwise, only the status field can be modified.
+	tips := "Once the PipelineRun is complete, no updates are allowed"
+	if !oldObj.IsDone() {
+		old = old.DeepCopy()
+		old.Status = ps.Status
+		tips = "Once the PipelineRun has started, only status updates are allowed"
+	}
+	if !equality.Semantic.DeepEqual(old, ps) {
+		errs = errs.Also(apis.ErrInvalidValue(tips, ""))
+	}
+
+	return
 }
 
 func (ps *PipelineRunSpec) validatePipelineRunParameters(ctx context.Context) (errs *apis.FieldError) {
@@ -230,8 +267,8 @@ func validateSpecStatus(status PipelineRunSpecStatus) *apis.FieldError {
 
 func validateTimeoutDuration(field string, d *metav1.Duration) (errs *apis.FieldError) {
 	if d != nil && d.Duration < 0 {
-		fieldPath := fmt.Sprintf("timeouts.%s", field)
-		return errs.Also(apis.ErrInvalidValue(fmt.Sprintf("%s should be >= 0", d.Duration.String()), fieldPath))
+		fieldPath := "timeouts." + field
+		return errs.Also(apis.ErrInvalidValue(d.Duration.String()+" should be >= 0", fieldPath))
 	}
 	return nil
 }
@@ -278,11 +315,11 @@ func (ps *PipelineRunSpec) validatePipelineTimeout(timeout time.Duration, errorM
 
 func validateTaskRunSpec(ctx context.Context, trs PipelineTaskRunSpec) (errs *apis.FieldError) {
 	if trs.StepSpecs != nil {
-		errs = errs.Also(config.ValidateEnabledAPIFields(ctx, "stepSpecs", config.AlphaAPIFields).ViaField("stepSpecs"))
+		errs = errs.Also(config.ValidateEnabledAPIFields(ctx, "stepSpecs", config.BetaAPIFields).ViaField("stepSpecs"))
 		errs = errs.Also(validateStepSpecs(trs.StepSpecs).ViaField("stepSpecs"))
 	}
 	if trs.SidecarSpecs != nil {
-		errs = errs.Also(config.ValidateEnabledAPIFields(ctx, "sidecarSpecs", config.AlphaAPIFields).ViaField("sidecarSpecs"))
+		errs = errs.Also(config.ValidateEnabledAPIFields(ctx, "sidecarSpecs", config.BetaAPIFields).ViaField("sidecarSpecs"))
 		errs = errs.Also(validateSidecarSpecs(trs.SidecarSpecs).ViaField("sidecarSpecs"))
 	}
 	if trs.ComputeResources != nil {
