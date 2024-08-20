@@ -352,10 +352,7 @@ func TestWatchBackend(t *testing.T) {
 				return
 			}
 
-			currentEnv := os.Getenv("MONGO_SERVER_URL")
-			if currentEnv != testEnv {
-				t.Errorf("expected MONGO_SERVER_URL: %s, but got %s", testEnv, currentEnv)
-			}
+			waitForMongoServerURLEnv(t, testEnv)
 
 			// Updating file now
 			if err := os.WriteFile(filepath.Join(tt.cfg.Storage.DocDB.MongoServerURLDir, "MONGO_SERVER_URL"), []byte(tt.expectedMongoEnv), 0644); err != nil {
@@ -363,14 +360,10 @@ func TestWatchBackend(t *testing.T) {
 			}
 
 			// Let's wait for the event to be read by fsnotify
-			time.Sleep(500 * time.Millisecond)
+			waitForMongoServerURLEnv(t, tt.expectedMongoEnv)
 
 			// Empty the channel now
 			<-backendChan
-			currentEnv = os.Getenv("MONGO_SERVER_URL")
-			if currentEnv != tt.expectedMongoEnv {
-				t.Errorf("expected MONGO_SERVER_URL: %s, but got %s", tt.expectedMongoEnv, currentEnv)
-			}
 
 			// Let's go back to older env (env rotation) and test again
 			if err := os.WriteFile(filepath.Join(tt.cfg.Storage.DocDB.MongoServerURLDir, "MONGO_SERVER_URL"), []byte(testEnv), 0644); err != nil {
@@ -378,12 +371,25 @@ func TestWatchBackend(t *testing.T) {
 			}
 
 			// Let's wait for the event to be read by fsnotify
-			time.Sleep(500 * time.Millisecond)
-
-			currentEnv = os.Getenv("MONGO_SERVER_URL")
-			if currentEnv != testEnv {
-				t.Errorf("expected MONGO_SERVER_URL: %s, but got %s", testEnv, currentEnv)
-			}
+			waitForMongoServerURLEnv(t, testEnv)
 		})
+	}
+}
+
+func waitForMongoServerURLEnv(t *testing.T, expectedEnv string) {
+	t.Helper()
+	attempts := 10
+	for i := 1; i <= attempts; i++ {
+		currentEnv := os.Getenv("MONGO_SERVER_URL")
+		if currentEnv == expectedEnv {
+			break
+		}
+
+		if i == attempts {
+			t.Errorf("MONGO_SERVER_URL: want %s, got %s", expectedEnv, currentEnv)
+		}
+
+		t.Logf("MONGO_SERVER_URL: want %s, got %s, attempt: %d", expectedEnv, currentEnv, i)
+		time.Sleep(500 * time.Millisecond)
 	}
 }
