@@ -15,7 +15,6 @@ package v1
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/tektoncd/pipeline/pkg/apis/config"
@@ -44,6 +43,8 @@ type TaskRunSpec struct {
 	// no more than one of the TaskRef and TaskSpec may be specified.
 	// +optional
 	TaskRef *TaskRef `json:"taskRef,omitempty"`
+	// Specifying PipelineSpec can be disabled by setting
+	// `disable-inline-spec` feature flag..
 	// +optional
 	TaskSpec *TaskSpec `json:"taskSpec,omitempty"`
 	// Used for cancelling a TaskRun (and maybe more later on)
@@ -278,6 +279,11 @@ type TaskRunStatusFields struct {
 	// +listType=atomic
 	Results []TaskRunResult `json:"results,omitempty"`
 
+	// Artifacts are the list of artifacts written out by the task's containers
+	// +optional
+	// +listType=atomic
+	Artifacts Artifacts `json:"artifacts,omitempty"`
+
 	// The list has one entry per sidecar in the manifest. Each entry is
 	// represents the imageid of the corresponding sidecar.
 	// +listType=atomic
@@ -358,6 +364,7 @@ type StepState struct {
 	Container             string                `json:"container,omitempty"`
 	ImageID               string                `json:"imageID,omitempty"`
 	Results               []TaskRunStepResult   `json:"results,omitempty"`
+	Provenance            *Provenance           `json:"provenance,omitempty"`
 	TerminationReason     string                `json:"terminationReason,omitempty"`
 	Inputs                []TaskRunStepArtifact `json:"inputs,omitempty"`
 	Outputs               []TaskRunStepArtifact `json:"outputs,omitempty"`
@@ -408,7 +415,7 @@ func (tr *TaskRun) GetPipelineRunPVCName() string {
 	}
 	for _, ref := range tr.GetOwnerReferences() {
 		if ref.Kind == pipeline.PipelineRunControllerName {
-			return fmt.Sprintf("%s-pvc", ref.Name)
+			return ref.Name + "-pvc"
 		}
 	}
 	return ""
