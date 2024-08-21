@@ -1,6 +1,7 @@
 module github.com/tektoncd/chains
 
-go 1.22
+go 1.22.5
+
 require (
 	cloud.google.com/go/compute/metadata v0.5.0
 	cloud.google.com/go/storage v1.43.0

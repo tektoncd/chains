@@ -17,8 +17,8 @@ jobs:
       fail-fast: false # Keep running if one leg fails.
       matrix:
         # Keep in sync with the list of supported releases: https://kubernetes.io/releases/
+        # TODO: add 1.31.x once it is added in https://github.com/sigstore/scaffolding/releases
         k8s-version:
-        - v1.27.x
         - v1.28.x
         - v1.29.x
         - v1.30.x
@@ -31,11 +31,12 @@ jobs:
       fail-fast: false # Keep running if one leg fails.
       matrix:
         pipelines-release:
-        - v0.44.4  # LTS
-        - v0.47.3  # LTS
-        - v0.50.1  # LTS
-        - v0.51.0
+        # This should follow the list of versions from https://github.com/tektoncd/pipeline/blob/main/releases.md#release
+        - v0.50.5  # LTS
+        - v0.53.5  # LTS
+        - v0.56.3  # LTS
+        - v0.59.2  # LTS
     uses: ./.github/workflows/reusable-e2e.yaml
     with:
-      k8s-version: v1.27.x
+      k8s-version: v1.28.x
       pipelines-release: ${{ matrix.pipelines-release }}
