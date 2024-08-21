@@ -69,7 +69,7 @@ run:
   issues-exit-code: 1
   build-tags:
     - e2e
-  # skip-dirs:
-  #   - vendor
+  skip-dirs:
+    - vendor
   timeout: 20m
   modules-download-mode: vendor
