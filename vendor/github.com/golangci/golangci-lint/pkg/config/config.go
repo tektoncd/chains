@@ -1,15 +1,18 @@
 package config
 
 import (
+	"fmt"
+	"go/version"
 	"os"
 	"regexp"
+	"runtime"
 	"strings"
 
 	hcversion "github.com/hashicorp/go-version"
 	"github.com/ldez/gomoddirectives"
 )
 
-// Config encapsulates the config data specified in the golangci-lint yaml config file.
+// Config encapsulates the config data specified in the golangci-lint YAML config file.
 type Config struct {
 	cfgDir string // The directory containing the golangci-lint config file.
 
@@ -33,12 +36,12 @@ func (c *Config) GetConfigDir() string {
 
 func (c *Config) Validate() error {
 	validators := []func() error{
-		c.Issues.Validate,
-		c.Severity.Validate,
+		c.Run.Validate,
+		c.Output.Validate,
 		c.LintersSettings.Validate,
 		c.Linters.Validate,
-		c.Output.Validate,
-		c.Run.Validate,
+		c.Issues.Validate,
+		c.Severity.Validate,
 	}
 
 	for _, v := range validators {
@@ -107,4 +110,38 @@ func trimGoVersion(v string) string {
 	}
 
 	return v
+}
+
+func getRuntimeGoVersion() string {
+	goVersion := runtime.Version()
+
+	parts := strings.Fields(goVersion)
+
+	if len(parts) == 0 {
+		return goVersion
+	}
+
+	// When using GOEXPERIMENT, the version returned might look something like "go1.23.0 X:boringcrypto".
+	return parts[0]
+}
+
+func checkGoVersion(goVersion string) error {
+	langVersion := version.Lang(getRuntimeGoVersion())
+
+	runtimeVersion, err := hcversion.NewVersion(strings.TrimPrefix(langVersion, "go"))
+	if err != nil {
+		return err
+	}
+
+	targetedVersion, err := hcversion.NewVersion(trimGoVersion(goVersion))
+	if err != nil {
+		return err
+	}
+
+	if runtimeVersion.LessThan(targetedVersion) {
+		return fmt.Errorf("the Go language version (%s) used to build golangci-lint is lower than the targeted Go version (%s)",
+			langVersion, goVersion)
+	}
+
+	return nil
 }
