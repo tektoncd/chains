@@ -15,6 +15,7 @@ package pipelinerun
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	intoto "github.com/in-toto/attestation/go/v1"
@@ -112,14 +113,39 @@ func buildConfig(ctx context.Context, pro *objects.PipelineRunObjectV1Beta1) Bui
 		for _, tr := range taskRuns {
 			// Ignore Tasks that did not execute during the PipelineRun.
 			if tr.Status.CompletionTime == nil {
-				logger.Infof("taskrun status not complete for task %s", tr.Name)
+				logger.Warnf("taskrun status not complete for task %s", tr.Name)
 				continue
 			}
 
 			steps := []attest.StepAttestation{}
-			for i, stepState := range tr.Status.Steps {
-				step := tr.Status.TaskSpec.Steps[i]
-				steps = append(steps, attest.Step(&step, &stepState))
+			// tr.Status.TaskSpec.Steps and tr.Status.Steps should be sime size
+			if len(tr.Status.TaskSpec.Steps) != len(tr.Status.Steps) {
+				logger.Errorf("Mismatch in number of steps for task run %s. TaskSpec steps: %d, Status steps: %d",
+					tr.Name, len(tr.Status.TaskSpec.Steps), len(tr.Status.Steps))
+				continue // Skip this task run entirely
+			}
+
+			// Validate and process steps
+			valid := true
+			for i, step := range tr.Status.TaskSpec.Steps {
+				stepState := tr.Status.Steps[i]
+
+				// Check if unnamed step matches empty name in the other list
+				if strings.HasPrefix(stepState.Name, "unnamed-") && step.Name != "" {
+					logger.Errorf("Mismatch in step names for task run %s. Step %d: %s, StepState %d: %s",
+						tr.Name, i, step.Name, i, stepState.Name)
+					valid = false
+					break
+				}
+
+				if valid {
+					steps = append(steps, attest.Step(&step, &stepState))
+				}
+			}
+
+			if !valid {
+				logger.Errorf("Skipping task run %s due to step name mismatch", tr.Name)
+				continue
 			}
 
 			after := t.RunAfter
