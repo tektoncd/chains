@@ -18,6 +18,7 @@ package test
 
 import (
 	"fmt"
+	"os/exec"
 	"testing"
 
 	"github.com/google/go-containerregistry/pkg/name"
@@ -129,6 +130,19 @@ func kanikoTask(t *testing.T, namespace, destinationImage string) *v1.Task {
 			}},
 		},
 	}
+}
+
+func assignSCC(namespace string) error {
+	// Construct the `oc` command with the necessary arguments
+	cmd := exec.Command("oc", "adm", "policy", "add-scc-to-user", "anyuid", "-z", "default", "-n", namespace)
+
+	// Execute the command and capture the output
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to assign SCC: %w, output: %s", err, output)
+	}
+
+	return nil
 }
 
 func verifyKanikoTaskRun(namespace, destinationImage, publicKey string) objects.TektonObject {
