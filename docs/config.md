@@ -159,6 +159,11 @@ chains.tekton.dev/transparency-upload: "true"
 > [!IMPORTANT]
 > To project the latest token values without needing to recreate the pod, avoid using `subPath` in volume mount.
 
+### Visual Guide: ConfigMap Configuration Options
+Refer the diagram below to explore the pictorial representation of signing and storage configuration options, and their usage in the context of chains artifacts.
+
+![ConfigMap Configuration Diagram](../images/signing-storage-config-diagram.drawio.svg)
+
 ## Namespaces Restrictions in Chains Controller
 This feature allows you to specify a list of namespaces for the controller to monitor, providing granular control over its operation. If no namespaces are specified, the controller defaults to monitoring all namespaces.
 
