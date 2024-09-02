@@ -28,6 +28,10 @@
             "default": ""
           }
         },
+        "securityContext": {
+          "description": "SecurityContext sets the security context for the pod",
+          "$ref": "#/definitions/v1.PodSecurityContext"
+        },
         "tolerations": {
           "description": "If specified, the pod's tolerations.",
           "type": "array",
@@ -155,11 +159,16 @@
       "description": "TaskRunStepArtifact represents an artifact produced or used by a step within a task run. It directly uses the Artifact type for its structure.",
       "type": "object",
       "properties": {
+        "buildOutput": {
+          "description": "Indicate if the artifact is a build output or a by-product",
+          "type": "boolean"
+        },
         "name": {
+          "description": "The artifact's identifying category name",
           "type": "string"
         },
         "values": {
-          "description": "The artifact's identifying category name",
+          "description": "A collection of values related to the artifact",
           "type": "array",
           "items": {
             "default": {},
@@ -182,6 +191,26 @@
         "uri": {
           "description": "Algorithm-specific digests for verifying the content (e.g., SHA256)",
           "type": "string"
+        }
+      }
+    },
+    "v1.Artifacts": {
+      "description": "Artifacts represents the collection of input and output artifacts associated with a task run or a similar process. Artifacts in this context are units of data or resources that the process either consumes as input or produces as output.",
+      "type": "object",
+      "properties": {
+        "inputs": {
+          "type": "array",
+          "items": {
+            "default": {},
+            "$ref": "#/definitions/v1.Artifact"
+          }
+        },
+        "outputs": {
+          "type": "array",
+          "items": {
+            "default": {},
+            "$ref": "#/definitions/v1.Artifact"
+          }
         }
       }
     },
@@ -269,7 +298,6 @@
         },
         "spec": {
           "description": "Spec is a specification of a custom task",
-          "default": {},
           "$ref": "#/definitions/k8s.io.apimachinery.pkg.runtime.RawExtension"
         },
         "stepTemplate": {
@@ -361,7 +389,6 @@
           "default": ""
         },
         "value": {
-          "default": {},
           "$ref": "#/definitions/v1.ParamValue"
         }
       }
@@ -533,7 +560,6 @@
         },
         "value": {
           "description": "Value the expression used to retrieve the value",
-          "default": {},
           "$ref": "#/definitions/v1.ParamValue"
         }
       }
@@ -604,7 +630,6 @@
         },
         "value": {
           "description": "Value is the result returned from the execution of this PipelineRun",
-          "default": {},
           "$ref": "#/definitions/v1.ParamValue"
         }
       }
@@ -649,6 +674,7 @@
           "$ref": "#/definitions/v1.PipelineRef"
         },
         "pipelineSpec": {
+          "description": "Specifying PipelineSpec can be disabled by setting `disable-inline-spec` feature flag..",
           "$ref": "#/definitions/v1.PipelineSpec"
         },
         "status": {
@@ -949,7 +975,7 @@
           "$ref": "#/definitions/v1.PipelineRef"
         },
         "pipelineSpec": {
-          "description": "PipelineSpec is a specification of a pipeline Note: PipelineSpec is in preview mode and not yet supported",
+          "description": "PipelineSpec is a specification of a pipeline Note: PipelineSpec is in preview mode and not yet supported Specifying PipelineSpec can be disabled by setting `disable-inline-spec` feature flag..",
           "$ref": "#/definitions/v1.PipelineSpec"
         },
         "retries": {
@@ -971,7 +997,7 @@
           "$ref": "#/definitions/v1.TaskRef"
         },
         "taskSpec": {
-          "description": "TaskSpec is a specification of a task",
+          "description": "TaskSpec is a specification of a task Specifying TaskSpec can be disabled by setting `disable-inline-spec` feature flag..",
           "$ref": "#/definitions/v1.EmbeddedTask"
         },
         "timeout": {
@@ -1308,6 +1334,10 @@
           "description": "Periodic probe of Sidecar service readiness. Container will be removed from service endpoints if the probe fails. Cannot be updated. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes",
           "$ref": "#/definitions/v1.Probe"
         },
+        "restartPolicy": {
+          "description": "RestartPolicy refers to kubernetes RestartPolicy. It can only be set for an initContainer and must have it's policy set to \"Always\". It is currently left optional to help support Kubernetes versions prior to 1.29 when this feature was introduced.",
+          "type": "string"
+        },
         "script": {
           "description": "Script is the contents of an executable file to execute.\n\nIf Script is not empty, the Step cannot have an Command or Args.",
           "type": "string"
@@ -1564,6 +1594,14 @@
           "x-kubernetes-patch-merge-key": "mountPath",
           "x-kubernetes-patch-strategy": "merge"
         },
+        "when": {
+          "description": "When is a list of when expressions that need to be true for the task to run",
+          "type": "array",
+          "items": {
+            "default": {},
+            "$ref": "#/definitions/v1.WhenExpression"
+          }
+        },
         "workingDir": {
           "description": "Step's working directory. If not specified, the container runtime's default will be used, which might be configured in the container image. Cannot be updated.",
           "type": "string"
@@ -1590,7 +1628,7 @@
       }
     },
     "v1.StepResult": {
-      "description": "StepResult used to describe the Results of a Step.\n\nThis is field is at an ALPHA stability level and gated by \"enable-step-actions\" feature flag.",
+      "description": "StepResult used to describe the Results of a Step.\n\nThis is field is at an BETA stability level and gated by \"enable-step-actions\" feature flag.",
       "type": "object",
       "required": [
         "name"
@@ -1645,6 +1683,9 @@
             "default": {},
             "$ref": "#/definitions/v1.Artifact"
           }
+        },
+        "provenance": {
+          "$ref": "#/definitions/v1.Provenance"
         },
         "results": {
           "type": "array",
@@ -1784,6 +1825,14 @@
       "description": "TaskBreakpoints defines the breakpoint config for a particular Task",
       "type": "object",
       "properties": {
+        "beforeSteps": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "default": ""
+          },
+          "x-kubernetes-list-type": "atomic"
+        },
         "onFailure": {
           "description": "if enabled, pause TaskRun on failure of a step failed step will not exit",
           "type": "string"
@@ -1966,7 +2015,6 @@
         },
         "value": {
           "description": "Value the given value of the result",
-          "default": {},
           "$ref": "#/definitions/v1.ParamValue"
         }
       }
@@ -2054,6 +2102,7 @@
           "$ref": "#/definitions/v1.TaskRef"
         },
         "taskSpec": {
+          "description": "Specifying PipelineSpec can be disabled by setting `disable-inline-spec` feature flag..",
           "$ref": "#/definitions/v1.TaskSpec"
         },
         "timeout": {
@@ -2085,6 +2134,11 @@
             "type": "string",
             "default": ""
           }
+        },
+        "artifacts": {
+          "description": "Artifacts are the list of artifacts written out by the task's containers",
+          "$ref": "#/definitions/v1.Artifacts",
+          "x-kubernetes-list-type": "atomic"
         },
         "completionTime": {
           "description": "CompletionTime is the time the build completed.",
@@ -2175,6 +2229,11 @@
         "podName"
       ],
       "properties": {
+        "artifacts": {
+          "description": "Artifacts are the list of artifacts written out by the task's containers",
+          "$ref": "#/definitions/v1.Artifacts",
+          "x-kubernetes-list-type": "atomic"
+        },
         "completionTime": {
           "description": "CompletionTime is the time the build completed.",
           "$ref": "#/definitions/v1.Time"
