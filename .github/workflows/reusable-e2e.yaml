@@ -34,26 +34,12 @@ jobs:
       TEKTON_CLI_RELEASE: "0.30.0"
 
     steps:
-    # https://github.com/mvdan/github-actions-golang#how-do-i-set-up-caching-between-builds
-    - uses: actions/cache@v2
-      with:
-        # In order:
-        # * Module download cache
-        # * Build cache (Linux)
-        path: |
-          ~/go/pkg/mod
-          ~/.cache/go-build
-          ${{ env.KOCACHE }}
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-
-
     - name: Set up Go
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
       with:
         go-version: 1.22.x
 
-    - uses: imjasonh/setup-ko@v0.6
+    - uses: ko-build/setup-ko@v0.7
       with:
         version: tip
 
@@ -64,7 +50,7 @@ jobs:
         chmod u+x ./tkn
 
     - name: Check out our repo
-      uses: actions/checkout@v2
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
       with:
         path: ./src/github.com/tektoncd/chains
 
@@ -140,7 +126,7 @@ jobs:
 
     - name: Collect diagnostics
       if: ${{ failure() }}
-      uses: chainguard-dev/actions/kind-diag@84c993eaf02da1c325854fb272a4df9184bd80fc # main
+      uses: chainguard-dev/actions/kind-diag@9ba949ac63357c725a9438f3e05a1e33d313498e # main
       with:
         cluster-resources: nodes
         namespace-resources: pods,taskruns,jobs

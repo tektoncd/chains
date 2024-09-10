@@ -10,3 +10,17 @@ updates:
       all:
         patterns:
           - "*"
+    labels:
+    - "ok-to-test"
+    - "dependencies"
+    - "release-note-none"
+    - "kind/misc"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+    - "ok-to-test"
+    - "dependencies"
+    - "release-note-none"
+    - "kind/misc"
