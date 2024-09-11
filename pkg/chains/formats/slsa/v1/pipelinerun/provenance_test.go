@@ -90,6 +90,7 @@ func TestInvocation(t *testing.T) {
 }
 
 func TestBuildConfig(t *testing.T) {
+	//nolint:dupl
 	expected := BuildConfig{
 		Tasks: []TaskAttestation{
 			{
@@ -296,6 +297,230 @@ func TestBuildConfig(t *testing.T) {
 		},
 	}
 	ctx := logtesting.TestContextWithLogger(t)
+	got := buildConfig(ctx, pro)
+	if diff := cmp.Diff(expected, got); diff != "" {
+		t.Errorf("buildConfig(): -want +got: %s", diff)
+	}
+}
+
+func TestBuildConfigMismatchStatusStepsAndTaskSpec(t *testing.T) {
+	//nolint:dupl
+	expected := BuildConfig{
+		Tasks: []TaskAttestation{
+			{
+				Name:  "git-clone",
+				After: nil,
+				Ref: v1beta1.TaskRef{
+					Name: "git-clone",
+					Kind: "ClusterTask",
+				},
+				ServiceAccountName: "pipeline",
+				StartedOn:          e1BuildStart,
+				FinishedOn:         e1BuildFinished,
+				Status:             "Succeeded",
+				Steps: []attest.StepAttestation{
+					{
+						EntryPoint: "git clone",
+						Arguments:  []string(nil),
+						Environment: map[string]interface{}{
+							"container": "step1",
+							"image":     artifacts.OCIScheme + "gcr.io/test1/test1@sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6",
+						},
+						Annotations: nil,
+					},
+				},
+				Invocation: slsa.ProvenanceInvocation{
+					ConfigSource: slsa.ConfigSource{
+						URI:        "github.com/catalog",
+						Digest:     common.DigestSet{"sha1": "x123"},
+						EntryPoint: "git-clone.yaml",
+					},
+					Parameters: map[string]v1beta1.ParamValue{
+						"CHAINS-GIT_COMMIT": {Type: "string", StringVal: "sha:taskdefault"},
+						"CHAINS-GIT_URL":    {Type: "string", StringVal: "https://git.test.com"},
+						"revision":          {Type: "string", StringVal: ""},
+						"url":               {Type: "string", StringVal: "https://git.test.com"},
+					},
+					Environment: map[string]map[string]string{
+						"labels": {"tekton.dev/pipelineTask": "git-clone"},
+					},
+				},
+				Results: []v1beta1.TaskRunResult{
+					{
+						Name: "some-uri_DIGEST",
+						Value: v1beta1.ParamValue{
+							Type:      v1beta1.ParamTypeString,
+							StringVal: "sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6",
+						},
+					},
+					{
+						Name: "some-uri",
+						Value: v1beta1.ParamValue{
+							Type:      v1beta1.ParamTypeString,
+							StringVal: "pkg:deb/debian/curl@7.50.3-1",
+						},
+					},
+				},
+			},
+			//nolint:dupl
+			{
+				Name:  "build",
+				After: []string{"git-clone"},
+				Ref: v1beta1.TaskRef{
+					Name: "build",
+					Kind: "ClusterTask",
+				},
+				StartedOn:          e1BuildStart,
+				FinishedOn:         e1BuildFinished,
+				ServiceAccountName: "pipeline",
+				Status:             "Succeeded",
+				Steps: []attest.StepAttestation{
+					{
+						EntryPoint: "",
+						Arguments:  []string(nil),
+						Environment: map[string]interface{}{
+							"image":     artifacts.OCIScheme + "gcr.io/test1/test1@sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6",
+							"container": "step1",
+						},
+						Annotations: nil,
+					},
+					{
+						EntryPoint: "",
+						Arguments:  []string(nil),
+						Environment: map[string]interface{}{
+							"image":     artifacts.OCIScheme + "gcr.io/test2/test2@sha256:4d6dd704ef58cb214dd826519929e92a978a57cdee43693006139c0080fd6fac",
+							"container": "step2",
+						},
+						Annotations: nil,
+					},
+					{
+						EntryPoint: "",
+						Arguments:  []string(nil),
+						Environment: map[string]interface{}{
+							"image":     artifacts.OCIScheme + "gcr.io/test3/test3@sha256:f1a8b8549c179f41e27ff3db0fe1a1793e4b109da46586501a8343637b1d0478",
+							"container": "step3",
+						},
+						Annotations: nil,
+					},
+				},
+				Invocation: slsa.ProvenanceInvocation{
+					ConfigSource: slsa.ConfigSource{
+						URI:        "github.com/test",
+						Digest:     map[string]string{"sha1": "ab123"},
+						EntryPoint: "build.yaml",
+					},
+					Parameters: map[string]v1beta1.ParamValue{
+						"CHAINS-GIT_COMMIT": {Type: "string", StringVal: "sha:taskrun"},
+						"CHAINS-GIT_URL":    {Type: "string", StringVal: "https://git.test.com"},
+						"IMAGE":             {Type: "string", StringVal: "test.io/test/image"},
+					},
+					Environment: map[string]map[string]string{
+						"labels": {"tekton.dev/pipelineTask": "build"},
+					},
+				},
+				Results: []v1beta1.TaskRunResult{
+					{
+						Name: "IMAGE_DIGEST",
+						Value: v1beta1.ParamValue{
+							Type:      v1beta1.ParamTypeString,
+							StringVal: "sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7",
+						},
+					},
+					{
+						Name: "IMAGE_URL",
+						Value: v1beta1.ParamValue{
+							Type:      v1beta1.ParamTypeString,
+							StringVal: "gcr.io/my/image",
+						},
+					},
+				},
+			},
+			//nolint:dupl
+			{
+				Name:  "build",
+				After: []string{"git-clone"},
+				Ref: v1beta1.TaskRef{
+					Name: "build",
+					Kind: "ClusterTask",
+				},
+				StartedOn:          e1BuildStart,
+				FinishedOn:         e1BuildFinished,
+				ServiceAccountName: "pipeline",
+				Status:             "Succeeded",
+				Steps: []attest.StepAttestation{
+					{
+						EntryPoint: "",
+						Arguments:  []string(nil),
+						Environment: map[string]interface{}{
+							"image":     artifacts.OCIScheme + "gcr.io/test4/test4@sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6",
+							"container": "step1",
+						},
+						Annotations: nil,
+					},
+					{
+						EntryPoint: "",
+						Arguments:  []string(nil),
+						Environment: map[string]interface{}{
+							"image":     artifacts.OCIScheme + "gcr.io/test5/test5@sha256:4d6dd704ef58cb214dd826519929e92a978a57cdee43693006139c0080fd6fac",
+							"container": "step2",
+						},
+						Annotations: nil,
+					},
+					{
+						EntryPoint: "",
+						Arguments:  []string(nil),
+						Environment: map[string]interface{}{
+							"image":     artifacts.OCIScheme + "gcr.io/test6/test6@sha256:f1a8b8549c179f41e27ff3db0fe1a1793e4b109da46586501a8343637b1d0478",
+							"container": "step3",
+						},
+						Annotations: nil,
+					},
+				},
+				Invocation: slsa.ProvenanceInvocation{
+					ConfigSource: slsa.ConfigSource{
+						URI:        "github.com/test",
+						Digest:     map[string]string{"sha1": "ab123"},
+						EntryPoint: "build.yaml",
+					},
+					Parameters: map[string]v1beta1.ParamValue{
+						"CHAINS-GIT_COMMIT": {Type: "string", StringVal: "sha:taskrun"},
+						"CHAINS-GIT_URL":    {Type: "string", StringVal: "https://git.test.com"},
+						"IMAGE":             {Type: "string", StringVal: "test.io/test/image"},
+					},
+					Environment: map[string]map[string]string{
+						"labels": {"tekton.dev/pipelineTask": "build"},
+					},
+				},
+				Results: []v1beta1.TaskRunResult{
+					{
+						Name: "IMAGE_DIGEST",
+						Value: v1beta1.ParamValue{
+							Type:      v1beta1.ParamTypeString,
+							StringVal: "sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7",
+						},
+					},
+					{
+						Name: "IMAGE_URL",
+						Value: v1beta1.ParamValue{
+							Type:      v1beta1.ParamTypeString,
+							StringVal: "gcr.io/my/image",
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := logtesting.TestContextWithLogger(t)
+	tr4, err := objectloader.TaskRunV1Beta1FromFile("../../testdata/pipeline-v1beta1/taskrun4.json")
+	if err != nil {
+		panic(err)
+	}
+	tr5, err := objectloader.TaskRunV1Beta1FromFile("../../testdata/pipeline-v1beta1/taskrun5.json")
+	if err != nil {
+		panic(err)
+	}
+	pro.AppendTaskRun(tr4)
+	pro.AppendTaskRun(tr5)
 	got := buildConfig(ctx, pro)
 	if diff := cmp.Diff(expected, got); diff != "" {
 		t.Errorf("buildConfig(): -want +got: %s", diff)
