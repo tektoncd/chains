@@ -1,0 +1,4 @@
+---
+# The default base image, cgr.dev/chainguard/static, no longer provides all the platforms the Chains
+# controller claims support for.
+defaultBaseImage: ghcr.io/wolfi-dev/static:alpine
