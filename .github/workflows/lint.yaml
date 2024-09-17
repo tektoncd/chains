@@ -14,6 +14,11 @@ permissions:
   pull-requests: read
 jobs:
   golangci:
+    # Because this repository uses vendored dependencies, and grouping for dependabot updates, the
+    # PRs created by dependabot are huge. This causes issues for the linter:
+    #   https://github.com/golangci/golangci-lint-action/issues/996
+    # The chances of dependabot creating new linting issues are minimal.
+    if: github.actor != 'dependabot[bot]'
     name: lint
     runs-on: ubuntu-latest
     steps:
