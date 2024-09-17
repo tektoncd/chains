@@ -92,9 +92,9 @@ func header(t *testing.T, text string) {
 	right := " ###"
 	txt := left + text + right
 	bar := strings.Repeat("#", len(txt))
-	t.Logf(bar)
-	t.Logf(txt)
-	t.Logf(bar)
+	t.Log(bar)
+	t.Log(txt)
+	t.Log(bar)
 }
 
 func tearDown(ctx context.Context, t *testing.T, cs *clients, namespace string) {
@@ -103,14 +103,14 @@ func tearDown(ctx context.Context, t *testing.T, cs *clients, namespace string) 
 		return
 	}
 	if t.Failed() {
-		header(t, fmt.Sprintf("Dumping objects from %s", namespace))
+		header(t, "Dumping objects from "+namespace)
 		bs, err := getCRDYaml(ctx, cs, namespace)
 		if err != nil {
 			t.Error(err)
 		} else {
 			t.Log(string(bs))
 		}
-		header(t, fmt.Sprintf("Dumping logs from Pods in the %s", namespace))
+		header(t, "Dumping logs from Pods in the "+namespace)
 		taskRuns, err := cs.V1TaskRunClient.List(ctx, metav1.ListOptions{})
 		if err != nil {
 			t.Errorf("Error listing TaskRuns: %s", err)
