@@ -37,7 +37,7 @@ type Template struct {
 	// +patchMergeKey=name
 	// +patchStrategy=merge
 	// +listType=atomic
-	Env []corev1.EnvVar `json:"env,omitempty" patchStrategy:"merge" patchMergeKey:"name" protobuf:"bytes,7,rep,name=env"`
+	Env []corev1.EnvVar `json:"env,omitempty" patchMergeKey:"name" patchStrategy:"merge" protobuf:"bytes,7,rep,name=env"`
 
 	// If specified, the pod's tolerations.
 	// +optional
@@ -59,7 +59,7 @@ type Template struct {
 	// +patchMergeKey=name
 	// +patchStrategy=merge,retainKeys
 	// +listType=atomic
-	Volumes []corev1.Volume `json:"volumes,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name" protobuf:"bytes,1,rep,name=volumes"`
+	Volumes []corev1.Volume `json:"volumes,omitempty" patchMergeKey:"name" patchStrategy:"merge,retainKeys" protobuf:"bytes,1,rep,name=volumes"`
 
 	// RuntimeClassName refers to a RuntimeClass object in the node.k8s.io
 	// group, which should be used to run this pod. If no RuntimeClass resource
@@ -151,6 +151,7 @@ func (tpl *Template) ToAffinityAssistantTemplate() *AffinityAssistantTemplate {
 		NodeSelector:     tpl.NodeSelector,
 		Tolerations:      tpl.Tolerations,
 		ImagePullSecrets: tpl.ImagePullSecrets,
+		SecurityContext:  tpl.SecurityContext,
 	}
 }
 
@@ -247,6 +248,10 @@ func MergeAAPodTemplateWithDefault(tpl, defaultTpl *AAPodTemplate) *AAPodTemplat
 		if tpl.ImagePullSecrets == nil {
 			tpl.ImagePullSecrets = defaultTpl.ImagePullSecrets
 		}
+		if tpl.SecurityContext == nil {
+			tpl.SecurityContext = defaultTpl.SecurityContext
+		}
+
 		return tpl
 	}
 }
