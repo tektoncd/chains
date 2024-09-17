@@ -72,7 +72,7 @@ type Step struct {
 	// +patchMergeKey=name
 	// +patchStrategy=merge
 	// +listType=atomic
-	Env []corev1.EnvVar `json:"env,omitempty" patchStrategy:"merge" patchMergeKey:"name" protobuf:"bytes,7,rep,name=env"`
+	Env []corev1.EnvVar `json:"env,omitempty" patchMergeKey:"name" patchStrategy:"merge" protobuf:"bytes,7,rep,name=env"`
 	// ComputeResources required by this Step.
 	// Cannot be updated.
 	// More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
@@ -84,13 +84,13 @@ type Step struct {
 	// +patchMergeKey=mountPath
 	// +patchStrategy=merge
 	// +listType=atomic
-	VolumeMounts []corev1.VolumeMount `json:"volumeMounts,omitempty" patchStrategy:"merge" patchMergeKey:"mountPath" protobuf:"bytes,9,rep,name=volumeMounts"`
+	VolumeMounts []corev1.VolumeMount `json:"volumeMounts,omitempty" patchMergeKey:"mountPath" patchStrategy:"merge" protobuf:"bytes,9,rep,name=volumeMounts"`
 	// volumeDevices is the list of block devices to be used by the Step.
 	// +patchMergeKey=devicePath
 	// +patchStrategy=merge
 	// +optional
 	// +listType=atomic
-	VolumeDevices []corev1.VolumeDevice `json:"volumeDevices,omitempty" patchStrategy:"merge" patchMergeKey:"devicePath" protobuf:"bytes,21,rep,name=volumeDevices"`
+	VolumeDevices []corev1.VolumeDevice `json:"volumeDevices,omitempty" patchMergeKey:"devicePath" patchStrategy:"merge" protobuf:"bytes,21,rep,name=volumeDevices"`
 	// Image pull policy.
 	// One of Always, Never, IfNotPresent.
 	// Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
@@ -152,6 +152,10 @@ type Step struct {
 	// +optional
 	// +listType=atomic
 	Results []StepResult `json:"results,omitempty"`
+
+	// When is a list of when expressions that need to be true for the task to run
+	// +optional
+	When StepWhenExpressions `json:"when,omitempty"`
 }
 
 // Ref can be used to refer to a specific instance of a StepAction.
@@ -294,7 +298,7 @@ type StepTemplate struct {
 	// +patchMergeKey=name
 	// +patchStrategy=merge
 	// +listType=atomic
-	Env []corev1.EnvVar `json:"env,omitempty" patchStrategy:"merge" patchMergeKey:"name" protobuf:"bytes,7,rep,name=env"`
+	Env []corev1.EnvVar `json:"env,omitempty" patchMergeKey:"name" patchStrategy:"merge" protobuf:"bytes,7,rep,name=env"`
 	// ComputeResources required by this Step.
 	// Cannot be updated.
 	// More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
@@ -306,13 +310,13 @@ type StepTemplate struct {
 	// +patchMergeKey=mountPath
 	// +patchStrategy=merge
 	// +listType=atomic
-	VolumeMounts []corev1.VolumeMount `json:"volumeMounts,omitempty" patchStrategy:"merge" patchMergeKey:"mountPath" protobuf:"bytes,9,rep,name=volumeMounts"`
+	VolumeMounts []corev1.VolumeMount `json:"volumeMounts,omitempty" patchMergeKey:"mountPath" patchStrategy:"merge" protobuf:"bytes,9,rep,name=volumeMounts"`
 	// volumeDevices is the list of block devices to be used by the Step.
 	// +patchMergeKey=devicePath
 	// +patchStrategy=merge
 	// +optional
 	// +listType=atomic
-	VolumeDevices []corev1.VolumeDevice `json:"volumeDevices,omitempty" patchStrategy:"merge" patchMergeKey:"devicePath" protobuf:"bytes,21,rep,name=volumeDevices"`
+	VolumeDevices []corev1.VolumeDevice `json:"volumeDevices,omitempty" patchMergeKey:"devicePath" patchStrategy:"merge" protobuf:"bytes,21,rep,name=volumeDevices"`
 	// Image pull policy.
 	// One of Always, Never, IfNotPresent.
 	// Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
@@ -410,7 +414,7 @@ type Sidecar struct {
 	// +listType=map
 	// +listMapKey=containerPort
 	// +listMapKey=protocol
-	Ports []corev1.ContainerPort `json:"ports,omitempty" patchStrategy:"merge" patchMergeKey:"containerPort" protobuf:"bytes,6,rep,name=ports"`
+	Ports []corev1.ContainerPort `json:"ports,omitempty" patchMergeKey:"containerPort" patchStrategy:"merge" protobuf:"bytes,6,rep,name=ports"`
 	// List of sources to populate environment variables in the Sidecar.
 	// The keys defined within a source must be a C_IDENTIFIER. All invalid keys
 	// will be reported as an event when the container is starting. When a key exists in multiple
@@ -426,7 +430,7 @@ type Sidecar struct {
 	// +patchMergeKey=name
 	// +patchStrategy=merge
 	// +listType=atomic
-	Env []corev1.EnvVar `json:"env,omitempty" patchStrategy:"merge" patchMergeKey:"name" protobuf:"bytes,7,rep,name=env"`
+	Env []corev1.EnvVar `json:"env,omitempty" patchMergeKey:"name" patchStrategy:"merge" protobuf:"bytes,7,rep,name=env"`
 	// ComputeResources required by this Sidecar.
 	// Cannot be updated.
 	// More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
@@ -438,13 +442,13 @@ type Sidecar struct {
 	// +patchMergeKey=mountPath
 	// +patchStrategy=merge
 	// +listType=atomic
-	VolumeMounts []corev1.VolumeMount `json:"volumeMounts,omitempty" patchStrategy:"merge" patchMergeKey:"mountPath" protobuf:"bytes,9,rep,name=volumeMounts"`
+	VolumeMounts []corev1.VolumeMount `json:"volumeMounts,omitempty" patchMergeKey:"mountPath" patchStrategy:"merge" protobuf:"bytes,9,rep,name=volumeMounts"`
 	// volumeDevices is the list of block devices to be used by the Sidecar.
 	// +patchMergeKey=devicePath
 	// +patchStrategy=merge
 	// +optional
 	// +listType=atomic
-	VolumeDevices []corev1.VolumeDevice `json:"volumeDevices,omitempty" patchStrategy:"merge" patchMergeKey:"devicePath" protobuf:"bytes,21,rep,name=volumeDevices"`
+	VolumeDevices []corev1.VolumeDevice `json:"volumeDevices,omitempty" patchMergeKey:"devicePath" patchStrategy:"merge" protobuf:"bytes,21,rep,name=volumeDevices"`
 	// Periodic probe of Sidecar liveness.
 	// Container will be restarted if the probe fails.
 	// Cannot be updated.
@@ -539,10 +543,43 @@ type Sidecar struct {
 	// +optional
 	// +listType=atomic
 	Workspaces []WorkspaceUsage `json:"workspaces,omitempty"`
+
+	// RestartPolicy refers to kubernetes RestartPolicy. It can only be set for an
+	// initContainer and must have it's policy set to "Always". It is currently
+	// left optional to help support Kubernetes versions prior to 1.29 when this feature
+	// was introduced.
+	// +optional
+	RestartPolicy *corev1.ContainerRestartPolicy `json:"restartPolicy,omitempty"`
 }
 
 // ToK8sContainer converts the Sidecar to a Kubernetes Container struct
 func (s *Sidecar) ToK8sContainer() *corev1.Container {
+	if s.RestartPolicy == nil {
+		return &corev1.Container{
+			Name:                     s.Name,
+			Image:                    s.Image,
+			Command:                  s.Command,
+			Args:                     s.Args,
+			WorkingDir:               s.WorkingDir,
+			Ports:                    s.Ports,
+			EnvFrom:                  s.EnvFrom,
+			Env:                      s.Env,
+			Resources:                s.ComputeResources,
+			VolumeMounts:             s.VolumeMounts,
+			VolumeDevices:            s.VolumeDevices,
+			LivenessProbe:            s.LivenessProbe,
+			ReadinessProbe:           s.ReadinessProbe,
+			StartupProbe:             s.StartupProbe,
+			Lifecycle:                s.Lifecycle,
+			TerminationMessagePath:   s.TerminationMessagePath,
+			TerminationMessagePolicy: s.TerminationMessagePolicy,
+			ImagePullPolicy:          s.ImagePullPolicy,
+			SecurityContext:          s.SecurityContext,
+			Stdin:                    s.Stdin,
+			StdinOnce:                s.StdinOnce,
+			TTY:                      s.TTY,
+		}
+	}
 	return &corev1.Container{
 		Name:                     s.Name,
 		Image:                    s.Image,
@@ -557,6 +594,7 @@ func (s *Sidecar) ToK8sContainer() *corev1.Container {
 		VolumeDevices:            s.VolumeDevices,
 		LivenessProbe:            s.LivenessProbe,
 		ReadinessProbe:           s.ReadinessProbe,
+		RestartPolicy:            s.RestartPolicy,
 		StartupProbe:             s.StartupProbe,
 		Lifecycle:                s.Lifecycle,
 		TerminationMessagePath:   s.TerminationMessagePath,
@@ -593,6 +631,7 @@ func (s *Sidecar) SetContainerFields(c corev1.Container) {
 	s.Stdin = c.Stdin
 	s.StdinOnce = c.StdinOnce
 	s.TTY = c.TTY
+	s.RestartPolicy = c.RestartPolicy
 }
 
 // GetVarSubstitutionExpressions walks all the places a substitution reference can be used
