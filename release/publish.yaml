@@ -76,7 +76,7 @@ spec:
   steps:
 
   - name: container-registy-auth
-    image: gcr.io/go-containerregistry/crane:debug
+    image: gcr.io/go-containerregistry/crane:debug@sha256:ff0e08eeae8097d28b2381c7f7123bf542757abc68d11bff58fb882b72843785
     script: |
       #!/busybox/sh
       set -ex
@@ -95,7 +95,7 @@ spec:
       cp ${DOCKER_CONFIG} /workspace/docker-config.json
 
   - name: run-ko
-    image: gcr.io/tekton-releases/dogfooding/ko:latest
+    image: gcr.io/tekton-releases/dogfooding/ko:v20240926-3daa55a03e@sha256:393155dbdd7c8d920925b202c88e4846f46a70c1e1dc218b0ea5e2d7e388b576
     env:
     - name: KO_DOCKER_REPO
       value: $(params.imageRegistry)/$(params.imageRegistryPath)
@@ -145,7 +145,7 @@ spec:
 
 
   - name: koparse
-    image: gcr.io/tekton-releases/dogfooding/koparse:latest
+    image: gcr.io/tekton-releases/dogfooding/koparse:v20240910-ec3cf3c749@sha256:5e8a522fc1e587fc00b69a6d73e0bfdf7a29ca143537a5542eb224680d2dbf2f
     script: |
       set -ex
 
@@ -162,7 +162,7 @@ spec:
         --base ${IMAGES_PATH} --images ${IMAGES} > /workspace/built_images
 
   - name: tag-images
-    image: gcr.io/go-containerregistry/crane:debug
+    image: gcr.io/go-containerregistry/crane:debug@sha256:ff0e08eeae8097d28b2381c7f7123bf542757abc68d11bff58fb882b72843785
     script: |
       #!/busybox/sh
       set -ex
