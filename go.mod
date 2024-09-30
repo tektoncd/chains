@@ -28,7 +28,7 @@ require (
 	github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.8.9
 	github.com/spiffe/go-spiffe/v2 v2.3.0
 	github.com/stretchr/testify v1.9.0
-	github.com/tektoncd/pipeline v0.63.0
+	github.com/tektoncd/pipeline v0.64.0
 	github.com/tektoncd/plumbing v0.0.0-20230907180608-5625252a2de1
 	go.opencensus.io v0.24.0
 	go.uber.org/zap v1.27.0
