@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Modifed for chains from tekton triggers: https://github.com/tektoncd/triggers/blob/main/tekton/publish.yaml
+# Modified for chains from tekton triggers: https://github.com/tektoncd/triggers/blob/main/tekton/publish.yaml
 apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
@@ -27,6 +27,9 @@ spec:
   - name: images
     description: List of cmd/* paths to be published as images in release manifest release.yaml
     default: "controller"
+  - name: koExtraArgs
+    description: Extra args to be passed to ko
+    default: "--preserve-import-paths"
   - name: versionTag
     description: The vX.Y.Z version that the artifacts should be tagged with (including `v`)
   - name: imageRegistry
@@ -37,6 +40,9 @@ spec:
   - name: imageRegistryRegions
     description: The target image registry regions
     default: "us eu asia"
+  - name: imageRegistryUser
+    description: Username to be used to login to the container registry
+    default: "_json_key"
   - name: releaseAsLatest
     description: Whether to tag and publish this release as chainss' latest
     default: "true"
@@ -65,37 +71,43 @@ spec:
     env:
     - name: "PROJECT_ROOT"
       value: "$(workspaces.source.path)"
-    - name: CONTAINER_REGISTY_CREDENTIALS
+    - name: CONTAINER_REGISTRY_CREDENTIALS
       value: "$(workspaces.release-secret.path)/$(params.serviceAccountPath)"
     - name: CONTAINER_REGISTRY
       value: "$(params.imageRegistry)/$(params.imageRegistryPath)"
+    - name: IMAGE_REGISTRY_PATH
+      value: "$(params.imageRegistryPath)"
+    - name: CONTAINER_REGISTRY_USER
+      value: "$(params.imageRegistryUser)"
     - name: REGIONS
       value: "$(params.imageRegistryRegions)"
     - name: OUTPUT_RELEASE_DIR
       value: "$(workspaces.output.path)/$(params.versionTag)"
+    - name: KO_EXTRA_ARGS
+      value: "$(params.koExtraArgs)"
   steps:
 
-  - name: container-registy-auth
-    image: gcr.io/go-containerregistry/crane:debug@sha256:ff0e08eeae8097d28b2381c7f7123bf542757abc68d11bff58fb882b72843785
+  - name: container-registry-auth
+    image: cgr.dev/chainguard/crane:latest-dev@sha256:cdb799cd2e649a2c9a52e1115453b9e2fce6546505f3836628816bf5c6ce8f6e
     script: |
-      #!/busybox/sh
+      #!/bin/sh
       set -ex
 
       # Login to the container registry
-      DOCKER_CONFIG=$(cat ${CONTAINER_REGISTY_CREDENTIALS} | \
-        crane auth login -u _json_key --password-stdin $(params.imageRegistry) 2>&1 | \
+      DOCKER_CONFIG=$(cat ${CONTAINER_REGISTRY_CREDENTIALS} | \
+        crane auth login -u ${CONTAINER_REGISTRY_USER} --password-stdin $(params.imageRegistry) 2>&1 | \
         sed 's,^.*logged in via \(.*\)$,\1,g')
 
       # Auth with account credentials for all regions.
       for region in ${REGIONS}
       do
         HOSTNAME=${region}.$(params.imageRegistry)
-        cat ${CONTAINER_REGISTY_CREDENTIALS} | crane auth login -u _json_key --password-stdin ${HOSTNAME}
+        cat ${CONTAINER_REGISTRY_CREDENTIALS} | crane auth login -u ${CONTAINER_REGISTRY_USER} --password-stdin ${HOSTNAME}
       done
       cp ${DOCKER_CONFIG} /workspace/docker-config.json
 
   - name: run-ko
-    image: gcr.io/tekton-releases/dogfooding/ko:v20240926-3daa55a03e@sha256:393155dbdd7c8d920925b202c88e4846f46a70c1e1dc218b0ea5e2d7e388b576
+    image: gcr.io/tekton-releases/dogfooding/ko@sha256:9f261a80343b3637c88c77d2e8b081079faa28911c5cad945ae52fd9cf25f396
     env:
     - name: KO_DOCKER_REPO
       value: $(params.imageRegistry)/$(params.imageRegistryPath)
@@ -118,7 +130,7 @@ spec:
       # For each cmd/* directory, include a full gzipped tar of all source in
       # vendor/. This is overkill. Some deps' licenses require the source to be
       # included in the container image when they're used as a dependency.
-      # Rather than trying to determine which deps have this requirement (an(params.imageRegistryd
+      # Rather than trying to determine which deps have this requirement (and
       # probably get it wrong), we'll just targz up the whole vendor tree and
       # include it. As of 9/20/2019, this amounts to about 11MB of additional
       # data in each image.
@@ -130,49 +142,73 @@ spec:
         fi
       done
 
-      # Rewrite "devel" to params.versionTag
-      sed -i -e 's/\(chains.tekton.dev\/release\): "devel"/\1: "$(params.versionTag)"/g' -e 's/\(app.kubernetes.io\/version\): "devel"/\1: "$(params.versionTag)"/g' -e 's/\(version\): "devel"/\1: "$(params.versionTag)"/g' ${PROJECT_ROOT}/config/*.yaml
-
       # Publish images and create release.yaml
       mkdir -p $OUTPUT_RELEASE_DIR
 
-      ko resolve --platform=$(params.platforms) --preserve-import-paths -t $(params.versionTag) -f ${PROJECT_ROOT}/config/ > $OUTPUT_RELEASE_DIR/release.yaml
+      # Make a local git tag to make git status happy :)
+      # The real "tagging" will happen with the "create-release" pipeline.
+      git tag $(params.versionTag)
 
+      ko resolve \
+        --image-label=org.opencontainers.image.source=https://$(params.package) \
+        --platform=$(params.platforms) \
+        -t $(params.versionTag) \
+        ${KO_EXTRA_ARGS} -f ${PROJECT_ROOT}/config/ > $OUTPUT_RELEASE_DIR/release.yaml
       # Publish images and create release.notags.yaml
       # This is useful if your container runtime doesn't support the `image-reference:tag@digest` notation
       # This is currently the case for `cri-o` (and most likely others)
-      ko resolve --platform=$(params.platforms) --preserve-import-paths -t $(params.versionTag) -f ${PROJECT_ROOT}/config/ > $OUTPUT_RELEASE_DIR/release.notags.yaml
+      ko resolve \
+        --image-label=org.opencontainers.image.source=https://$(params.package) \
+        --platform=$(params.platforms) \
+        ${KO_EXTRA_ARGS} -f ${PROJECT_ROOT}/config/ > $OUTPUT_RELEASE_DIR/release.yaml
 
-
+      # Rewrite "devel" to params.versionTag
+      sed -i -e 's/\(pipeline.tekton.dev\/release\): "devel"/\1: "$(params.versionTag)"/g' -e 's/\(app.kubernetes.io\/version\): "devel"/\1: "$(params.versionTag)"/g' -e 's/\(version\): "devel"/\1: "$(params.versionTag)"/g' ${OUTPUT_RELEASE_DIR}/release.yaml
+      sed -i -e 's/\(pipeline.tekton.dev\/release\): "devel"/\1: "$(params.versionTag)"/g' -e 's/\(app.kubernetes.io\/version\): "devel"/\1: "$(params.versionTag)"/g' -e 's/\(version\): "devel"/\1: "$(params.versionTag)"/g' ${OUTPUT_RELEASE_DIR}/release.notags.yaml
   - name: koparse
-    image: gcr.io/tekton-releases/dogfooding/koparse:v20240910-ec3cf3c749@sha256:5e8a522fc1e587fc00b69a6d73e0bfdf7a29ca143537a5542eb224680d2dbf2f
+    image: gcr.io/tekton-releases/dogfooding/koparse@sha256:6a3c7deeff8701a7c919ecc539e3d9fce9412dcbb9175738dfe07e3ba7d8caeb
     script: |
       set -ex
 
-      IMAGES_PATH=${CONTAINER_REGISTRY}/$(params.package)
+      # Find "--preserve-import-paths" in a list of args
+      function find_preserve_import_path() {
+        for arg in $@; do
+          if [[ "$arg" == "--preserve-import-paths" ]]; then
+            return 0
+          fi
+        done
+        return 1
+      }
+
+      # If "--preserve-import-paths" is used, include "package" in the expected path
+      find_preserve_import_path \
+        $(echo $KO_EXTRA_ARGS) && \
+        PRESERVE_IMPORT_PATH="--preserve-path" || \
+        PRESERVE_IMPORT_PATH="--no-preserve-path"
 
       for cmd in $(params.images)
       do
-        IMAGES="${IMAGES} ${IMAGES_PATH}/cmd/${cmd}:$(params.versionTag)"
+        IMAGES="${IMAGES} $(params.package)/cmd/${cmd}:$(params.versionTag)"
       done
 
       # Parse the built images from the release.yaml generated by ko
       koparse \
         --path $OUTPUT_RELEASE_DIR/release.yaml \
-        --base ${IMAGES_PATH} --images ${IMAGES} > /workspace/built_images
+        --base $(params.package) \
+        --container-registry ${CONTAINER_REGISTRY} \
+        --images ${IMAGES} \
+        ${PRESERVE_IMPORT_PATH} > /workspace/built_images
 
   - name: tag-images
-    image: gcr.io/go-containerregistry/crane:debug@sha256:ff0e08eeae8097d28b2381c7f7123bf542757abc68d11bff58fb882b72843785
+    image: cgr.dev/chainguard/crane:latest-dev@sha256:cdb799cd2e649a2c9a52e1115453b9e2fce6546505f3836628816bf5c6ce8f6e
     script: |
-      #!/busybox/sh
+      #!/bin/sh
       set -ex
 
       # Setup docker-auth
       DOCKER_CONFIG=~/.docker
       mkdir -p ${DOCKER_CONFIG}
       cp /workspace/docker-config.json ${DOCKER_CONFIG}/config.json
-
-      REGIONS="us eu asia"
 
       # Tag the images and put them in all the regions
       for IMAGE in $(cat /workspace/built_images)
