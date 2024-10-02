@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Modifed for chains from tekton triggers: https://github.com/tektoncd/triggers/blob/main/tekton/release-pipeline.yaml
+# Modified for chains from tekton triggers: https://github.com/tektoncd/triggers/blob/main/tekton/release-pipeline.yaml
 ---
 apiVersion: tekton.dev/v1beta1
 kind: Pipeline
@@ -33,6 +33,12 @@ spec:
   - name: imageRegistryPath
     description: The path (project) in the image registry
     default: tekton-releases
+  - name: imageRegistryRegions
+    description: The target image registry regions
+    default: "us eu asia"
+  - name: imageRegistryUser
+    description: The user for the image registry credentials
+    default: _json_key
   - name: versionTag
     description: The X.Y.Z version that the artifacts should be tagged with
   - name: releaseBucket
@@ -44,13 +50,23 @@ spec:
   - name: platforms
     description: Platforms to publish for the images (e.g. linux/amd64,linux/arm64)
     default: linux/amd64,linux/arm64,linux/ppc64le,linux/s390x
+  - name: koExtraArgs
+    description: Extra args to be passed to ko
+    default: "--preserve-import-paths"
   - name: serviceAccountPath
     description: The path to the service account file within the release-secret workspace
+  - name: serviceAccountImagesPath
+    description: The path to the service account file or credentials within the release-images-secret workspace
+  - name: runTests
+    description: If set to something other than "true", skip the build and test tasks
+    default: "true"
   workspaces:
   - name: workarea
     description: The workspace where the repo will be cloned.
   - name: release-secret
-    description: The secret that contains a service account authorized to push to the imageRegistry and to the output bucket
+    description: The secret that contains a service account authorized to push to the output bucket
+  - name: release-images-secret
+    description: The secret that contains a service account authorized to push to the imageRegistry
   results:
   - name: commit-sha
     description: the sha of the commit that was released
@@ -64,7 +80,12 @@ spec:
   tasks:
   - name: git-clone
     taskRef:
-      name: git-clone
+      resolver: hub
+      params:
+        - name: name
+          value: git-clone
+        - name: version
+          value: "0.7"
     workspaces:
     - name: output
       workspace: workarea
@@ -77,7 +98,16 @@ spec:
   - name: precheck
     runAfter: [git-clone]
     taskRef:
-      name: prerelease-checks
+      resolver: git
+      params:
+        - name: repo
+          value: plumbing
+        - name: org
+          value: tektoncd
+        - name: revision
+          value: aeed19e5a36f335ebfdc4b96fa78d1ce5bb4f7b8
+        - name: pathInRepo
+          value: tekton/resources/release/base/prerelease_checks.yaml
     params:
     - name: package
       value: $(params.package)
@@ -91,8 +121,17 @@ spec:
       subpath: git
   - name: unit-tests
     runAfter: [precheck]
+    when:
+      - cel: "'$(params.runTests)' == 'true'"
     taskRef:
-      name: golang-test
+      resolver: bundles
+      params:
+        - name: bundle
+          value: gcr.io/tekton-releases/catalog/upstream/golang-test:0.2
+        - name: name
+          value: golang-test
+        - name: kind
+          value: task
     params:
     - name: package
       value: $(params.package)
@@ -104,8 +143,17 @@ spec:
       subpath: git
   - name: build
     runAfter: [precheck]
+    when:
+      - cel: "'$(params.runTests)' == 'true'"
     taskRef:
-      name: golang-build
+      resolver: bundles
+      params:
+        - name: bundle
+          value: gcr.io/tekton-releases/catalog/upstream/golang-build:0.3
+        - name: name
+          value: golang-build
+        - name: kind
+          value: task
     params:
     - name: package
       value: $(params.package)
@@ -118,7 +166,16 @@ spec:
   - name: publish-images
     runAfter: [build, unit-tests]
     taskRef:
-      name: publish-chains-release
+      resolver: git
+      params:
+        - name: repo
+          value: pipeline
+        - name: org
+          value: tektoncd
+        - name: revision
+          value: $(params.gitRevision)
+        - name: pathInRepo
+          value: tekton/publish.yaml
     params:
     - name: package
       value: $(params.package)
@@ -128,12 +185,18 @@ spec:
       value: $(params.imageRegistry)
     - name: imageRegistryPath
       value: $(params.imageRegistryPath)
+    - name: imageRegistryUser
+      value: $(params.imageRegistryUser)
+    - name: imageRegistryRegions
+      value: $(params.imageRegistryRegions)
     - name: releaseAsLatest
       value: $(params.releaseAsLatest)
+    - name: serviceAccountPath
+      value: $(params.serviceAccountImagesPath)
     - name: platforms
       value: $(params.platforms)
-    - name: serviceAccountPath
-      value: $(params.serviceAccountPath)
+        - name: koExtraArgs
+          value: $(params.koExtraArgs)
     - name: CHAINS-GIT_COMMIT
       value: $(tasks.git-clone.results.commit)
     - name: CHAINS-GIT_URL
@@ -146,11 +209,18 @@ spec:
       workspace: workarea
       subpath: bucket
     - name: release-secret
-      workspace: release-secret
+      workspace: release-images-secret
   - name: publish-to-bucket
     runAfter: [publish-images]
     taskRef:
-      name: gcs-upload
+      resolver: bundles
+      params:
+        - name: bundle
+          value: gcr.io/tekton-releases/catalog/upstream/gcs-upload:0.3
+        - name: name
+          value: gcs-upload
+        - name: kind
+          value: task
     workspaces:
     - name: credentials
       workspace: release-secret
@@ -171,7 +241,14 @@ spec:
       operator: in
       values: ["true"]
     taskRef:
-      name: gcs-upload
+      resolver: bundles
+      params:
+        - name: bundle
+          value: gcr.io/tekton-releases/catalog/upstream/gcs-upload:0.3
+        - name: name
+          value: gcs-upload
+        - name: kind
+          value: task
     workspaces:
     - name: credentials
       workspace: release-secret
@@ -185,6 +262,8 @@ spec:
       value: $(params.versionTag)
     - name: serviceAccountPath
       value: $(params.serviceAccountPath)
+    - name: deleteExtraFiles
+      value: "true" # Uses rsync to copy content into latest
   - name: report-bucket
     runAfter: [publish-to-bucket]
     params:
@@ -204,8 +283,13 @@ spec:
       steps:
       - name: create-results
         image: docker.io/library/alpine:3.20.3@sha256:beefdbd8a1da6d2915566fde36db9db0b524eb737fc57cd1367effd16dc0d06d
+        env:
+          - name: RELEASE_BUCKET
+            value: $(params.releaseBucket)
+          - name: VERSION_TAG
+            value: $(params.versionTag)
         script: |
-          BASE_URL=$(echo "$(params.releaseBucket)/previous/$(params.versionTag)")
+          BASE_URL=$(echo "${RELEASE_BUCKET}/previous/${VERSION_TAG}")
           # If the bucket is in the gs:// return the corresponding public https URL
           BASE_URL=$(echo ${BASE_URL} | sed 's,gs://,https://storage.googleapis.com/,g')
           echo "${BASE_URL}/release.yaml" > $(results.release.path)
