@@ -195,8 +195,8 @@ spec:
       value: $(params.serviceAccountImagesPath)
     - name: platforms
       value: $(params.platforms)
-        - name: koExtraArgs
-          value: $(params.koExtraArgs)
+    - name: koExtraArgs
+      value: $(params.koExtraArgs)
     - name: CHAINS-GIT_COMMIT
       value: $(tasks.git-clone.results.commit)
     - name: CHAINS-GIT_URL
