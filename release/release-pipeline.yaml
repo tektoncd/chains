@@ -169,7 +169,7 @@ spec:
       resolver: git
       params:
         - name: repo
-          value: pipeline
+          value: chains
         - name: org
           value: tektoncd
         - name: revision
