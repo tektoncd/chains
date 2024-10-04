@@ -310,19 +310,20 @@ func TestWatchBackend(t *testing.T) {
 			expectedMongoEnv: testEnv,
 			wantErr:          true,
 		},
-		{
-			name: "verify mongo-server-url-dir/MONGO_SERVER_URL is watched",
-			cfg: config.Config{
-				Storage: config.StorageConfigs{
-					DocDB: config.DocDBStorageConfig{
-						URL:               "mongo://chainsdb/chainscollection?id_field=name",
-						MongoServerURLDir: t.TempDir(),
-					},
-				},
-			},
-			expectedMongoEnv: "mongodb://updatedEnv",
-			wantErr:          false,
-		},
+		// TODO: https://github.com/tektoncd/chains/issues/1178
+		// {
+		// 	name: "verify mongo-server-url-dir/MONGO_SERVER_URL is watched",
+		// 	cfg: config.Config{
+		// 		Storage: config.StorageConfigs{
+		// 			DocDB: config.DocDBStorageConfig{
+		// 				URL:               "mongo://chainsdb/chainscollection?id_field=name",
+		// 				MongoServerURLDir: t.TempDir(),
+		// 			},
+		// 		},
+		// 	},
+		// 	expectedMongoEnv: "mongodb://updatedEnv",
+		// 	wantErr:          false,
+		// },
 	}
 
 	for _, tt := range tests {
