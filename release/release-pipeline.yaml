@@ -169,13 +169,13 @@ spec:
       resolver: git
       params:
         - name: repo
-          value: pipeline
+          value: chains
         - name: org
           value: tektoncd
         - name: revision
           value: $(params.gitRevision)
         - name: pathInRepo
-          value: tekton/publish.yaml
+          value: release/publish.yaml
     params:
     - name: package
       value: $(params.package)
@@ -195,8 +195,8 @@ spec:
       value: $(params.serviceAccountImagesPath)
     - name: platforms
       value: $(params.platforms)
-        - name: koExtraArgs
-          value: $(params.koExtraArgs)
+    - name: koExtraArgs
+      value: $(params.koExtraArgs)
     - name: CHAINS-GIT_COMMIT
       value: $(tasks.git-clone.results.commit)
     - name: CHAINS-GIT_URL
