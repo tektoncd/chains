@@ -19,7 +19,7 @@ defaults:
 jobs:
   e2e-test:
     name: e2e test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     env:
       GOPATH: ${{ github.workspace }}
