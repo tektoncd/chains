@@ -56,9 +56,10 @@ type ExponentialBackOff struct {
 	RandomizationFactor float64
 	Multiplier          float64
 	MaxInterval         time.Duration
-	// After MaxElapsedTime the ExponentialBackOff stops.
+	// After MaxElapsedTime the ExponentialBackOff returns Stop.
 	// It never stops if MaxElapsedTime == 0.
 	MaxElapsedTime time.Duration
+	Stop           time.Duration
 	Clock          Clock
 
 	currentInterval time.Duration
@@ -70,6 +71,9 @@ type Clock interface {
 	Now() time.Time
 }
 
+// ExponentialBackOffOpts is a function type used to configure ExponentialBackOff options.
+type ExponentialBackOffOpts func(*ExponentialBackOff)
+
 // Default values for ExponentialBackOff.
 const (
 	DefaultInitialInterval     = 500 * time.Millisecond
@@ -80,17 +84,70 @@ const (
 )
 
 // NewExponentialBackOff creates an instance of ExponentialBackOff using default values.
-func NewExponentialBackOff() *ExponentialBackOff {
+func NewExponentialBackOff(opts ...ExponentialBackOffOpts) *ExponentialBackOff {
 	b := &ExponentialBackOff{
 		InitialInterval:     DefaultInitialInterval,
 		RandomizationFactor: DefaultRandomizationFactor,
 		Multiplier:          DefaultMultiplier,
 		MaxInterval:         DefaultMaxInterval,
 		MaxElapsedTime:      DefaultMaxElapsedTime,
+		Stop:                Stop,
 		Clock:               SystemClock,
+	}
+	for _, fn := range opts {
+		fn(b)
 	}
 	b.Reset()
 	return b
+}
+
+// WithInitialInterval sets the initial interval between retries.
+func WithInitialInterval(duration time.Duration) ExponentialBackOffOpts {
+	return func(ebo *ExponentialBackOff) {
+		ebo.InitialInterval = duration
+	}
+}
+
+// WithRandomizationFactor sets the randomization factor to add jitter to intervals.
+func WithRandomizationFactor(randomizationFactor float64) ExponentialBackOffOpts {
+	return func(ebo *ExponentialBackOff) {
+		ebo.RandomizationFactor = randomizationFactor
+	}
+}
+
+// WithMultiplier sets the multiplier for increasing the interval after each retry.
+func WithMultiplier(multiplier float64) ExponentialBackOffOpts {
+	return func(ebo *ExponentialBackOff) {
+		ebo.Multiplier = multiplier
+	}
+}
+
+// WithMaxInterval sets the maximum interval between retries.
+func WithMaxInterval(duration time.Duration) ExponentialBackOffOpts {
+	return func(ebo *ExponentialBackOff) {
+		ebo.MaxInterval = duration
+	}
+}
+
+// WithMaxElapsedTime sets the maximum total time for retries.
+func WithMaxElapsedTime(duration time.Duration) ExponentialBackOffOpts {
+	return func(ebo *ExponentialBackOff) {
+		ebo.MaxElapsedTime = duration
+	}
+}
+
+// WithRetryStopDuration sets the duration after which retries should stop.
+func WithRetryStopDuration(duration time.Duration) ExponentialBackOffOpts {
+	return func(ebo *ExponentialBackOff) {
+		ebo.Stop = duration
+	}
+}
+
+// WithClockProvider sets the clock used to measure time.
+func WithClockProvider(clock Clock) ExponentialBackOffOpts {
+	return func(ebo *ExponentialBackOff) {
+		ebo.Clock = clock
+	}
 }
 
 type systemClock struct{}
@@ -113,11 +170,13 @@ func (b *ExponentialBackOff) Reset() {
 // 	Randomized interval = RetryInterval * (1 ± RandomizationFactor)
 func (b *ExponentialBackOff) NextBackOff() time.Duration {
 	// Make sure we have not gone over the maximum elapsed time.
-	if b.MaxElapsedTime != 0 && b.GetElapsedTime() > b.MaxElapsedTime {
-		return Stop
+	elapsed := b.GetElapsedTime()
+	next := getRandomValueFromInterval(b.RandomizationFactor, rand.Float64(), b.currentInterval)
+	b.incrementCurrentInterval()
+	if b.MaxElapsedTime != 0 && elapsed+next > b.MaxElapsedTime {
+		return b.Stop
 	}
-	defer b.incrementCurrentInterval()
-	return getRandomValueFromInterval(b.RandomizationFactor, rand.Float64(), b.currentInterval)
+	return next
 }
 
 // GetElapsedTime returns the elapsed time since an ExponentialBackOff instance
@@ -141,8 +200,11 @@ func (b *ExponentialBackOff) incrementCurrentInterval() {
 }
 
 // Returns a random value from the following interval:
-// 	[randomizationFactor * currentInterval, randomizationFactor * currentInterval].
+// 	[currentInterval - randomizationFactor * currentInterval, currentInterval + randomizationFactor * currentInterval].
 func getRandomValueFromInterval(randomizationFactor, random float64, currentInterval time.Duration) time.Duration {
+	if randomizationFactor == 0 {
+		return currentInterval // make sure no randomness is used when randomizationFactor is 0.
+	}
 	var delta = randomizationFactor * float64(currentInterval)
 	var minInterval = float64(currentInterval) - delta
 	var maxInterval = float64(currentInterval) + delta
