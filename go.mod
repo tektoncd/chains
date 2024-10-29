@@ -4,7 +4,7 @@ go 1.22.8
 
 require (
 	cloud.google.com/go/compute/metadata v0.5.2
-	cloud.google.com/go/storage v1.44.0
+	cloud.google.com/go/storage v1.45.0
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/golangci/golangci-lint v1.61.0
 	github.com/google/addlicense v1.1.1
@@ -28,7 +28,7 @@ require (
 	github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.8.10
 	github.com/spiffe/go-spiffe/v2 v2.4.0
 	github.com/stretchr/testify v1.9.0
-	github.com/tektoncd/pipeline v0.64.0
+	github.com/tektoncd/pipeline v0.65.0
 	github.com/tektoncd/plumbing v0.0.0-20230907180608-5625252a2de1
 	go.opencensus.io v0.24.0
 	go.uber.org/zap v1.27.0
@@ -39,10 +39,10 @@ require (
 	golang.org/x/exp v0.0.0-20240904232852-e7e105dedf7e
 	google.golang.org/grpc v1.67.1
 	google.golang.org/protobuf v1.35.1
-	k8s.io/api v0.31.1
-	k8s.io/apimachinery v0.31.1
-	k8s.io/client-go v0.31.1
-	k8s.io/code-generator v0.31.1
+	k8s.io/api v0.31.2
+	k8s.io/apimachinery v0.31.2
+	k8s.io/client-go v0.31.2
+	k8s.io/code-generator v0.31.2
 	knative.dev/pkg v0.0.0-20240416145024-0f34a8815650
 	sigs.k8s.io/yaml v1.4.0
 )
