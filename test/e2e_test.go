@@ -56,6 +56,8 @@ import (
 
 var namespace string
 
+const localhost string = "localhost"
+
 func init() {
 	namespace = os.Getenv("namespace")
 	if namespace == "" {
@@ -229,6 +231,13 @@ func TestOCISigning(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			ctx := logtesting.TestContextWithLogger(t)
 			c, ns, cleanup := setup(ctx, t, test.opts)
+			OPENSHIFT := os.Getenv("OPENSHIFT")
+			if OPENSHIFT == localhost {
+				if err := assignSCC(ns); err != nil {
+					t.Fatalf("error creating scc: %s", err)
+				}
+			}
+
 			t.Cleanup(cleanup)
 
 			// Setup the right config.
@@ -434,6 +443,13 @@ func TestOCIStorage(t *testing.T) {
 	// create necessary resources
 	imageName := "chains-test-oci-storage"
 	image := fmt.Sprintf("%s/%s", c.internalRegistry, imageName)
+
+	OPENSHIFT := os.Getenv("OPENSHIFT")
+	if OPENSHIFT == localhost {
+		if err := assignSCC(ns); err != nil {
+			t.Fatalf("error creating scc: %s", err)
+		}
+	}
 	task := kanikoTask(t, ns, image)
 	if _, err := c.PipelineClient.TektonV1().Tasks(ns).Create(ctx, task, metav1.CreateOptions{}); err != nil {
 		t.Fatalf("error creating task: %s", err)
@@ -505,6 +521,13 @@ func TestMultiBackendStorage(t *testing.T) {
 				registry:        true,
 				kanikoTaskImage: image,
 			})
+
+			OPENSHIFT := os.Getenv("OPENSHIFT")
+			if OPENSHIFT == localhost {
+				if err := assignSCC(ns); err != nil {
+					t.Fatalf("error creating scc: %s", err)
+				}
+			}
 			t.Cleanup(cleanup)
 
 			resetConfig := setConfigMap(ctx, t, c, test.cm)
@@ -579,6 +602,14 @@ func TestRetryFailed(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			ctx := logtesting.TestContextWithLogger(t)
 			c, ns, cleanup := setup(ctx, t, test.opts)
+
+			OPENSHIFT := os.Getenv("OPENSHIFT")
+			if OPENSHIFT == localhost {
+				if err := assignSCC(ns); err != nil {
+					t.Fatalf("error creating scc: %s", err)
+				}
+			}
+
 			t.Cleanup(cleanup)
 
 			resetConfig := setConfigMap(ctx, t, c, test.cm)
@@ -859,8 +890,18 @@ func TestProvenanceMaterials(t *testing.T) {
 }
 
 func TestVaultKMSSpire(t *testing.T) {
+	OPENSHIFT := os.Getenv("OPENSHIFT")
+	if OPENSHIFT == localhost {
+		t.Skip("Skipping, vault kms spire integration tests .")
+	}
 	ctx := logtesting.TestContextWithLogger(t)
 	c, ns, cleanup := setup(ctx, t, setupOpts{})
+	if OPENSHIFT == localhost {
+		if err := assignSCC(ns); err != nil {
+			t.Fatalf("error creating scc: %s", err)
+		}
+	}
+
 	t.Cleanup(cleanup)
 
 	resetConfig := setConfigMap(ctx, t, c, map[string]string{
