@@ -29,20 +29,21 @@ spec:
     default: "controller"
   - name: koExtraArgs
     description: Extra args to be passed to ko
-    default: "--preserve-import-paths"
+    default: ""
   - name: versionTag
     description: The vX.Y.Z version that the artifacts should be tagged with (including `v`)
   - name: imageRegistry
     description: The target image registry
-    default: gcr.io
+    default: ghcr.io
   - name: imageRegistryPath
     description: The path (project) in the image registry
+    default: tektoncd/chains
   - name: imageRegistryRegions
     description: The target image registry regions
-    default: "us eu asia"
+    default: ""
   - name: imageRegistryUser
     description: Username to be used to login to the container registry
-    default: "_json_key"
+    default: "tekton-robot"
   - name: releaseAsLatest
     description: Whether to tag and publish this release as chainss' latest
     default: "true"

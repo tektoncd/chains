@@ -14,7 +14,7 @@ follows:
   - The first Tekton Chains LTS release will be **v0.13.0** in October 2022
 
 Tekton Chains produces nightly builds, publicly available on
-`gcr.io/tekton-nightly`.
+[ghcr.io/tektoncd/chains/controller-92006fd957c0afd31de6a40b3e33b39f](https://github.com/tektoncd/chains/pkgs/container/chains%2Fcontroller-92006fd957c0afd31de6a40b3e33b39f).
 
 ### Transition Process
 
