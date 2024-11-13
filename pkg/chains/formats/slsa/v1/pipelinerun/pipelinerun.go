@@ -111,6 +111,11 @@ func buildConfig(ctx context.Context, pro *objects.PipelineRunObjectV1Beta1) Bui
 			continue
 		}
 		for _, tr := range taskRuns {
+			// Ignore malformed tasks that have a nil status.
+			if tr.Status == nil {
+				logger.Errorf("taskrun status is nil for task run %s. Skipping this task run.", tr.Name)
+				continue
+			}
 			// Ignore Tasks that did not execute during the PipelineRun.
 			if tr.Status.CompletionTime == nil {
 				logger.Warnf("taskrun status not complete for task %s", tr.Name)
