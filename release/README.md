@@ -63,8 +63,10 @@ text editor.
      --param=gitRevision="${CHAINS_RELEASE_GIT_SHA}" \
      --param=versionTag="${CHAINS_VERSION_TAG}" \
      --param=serviceAccountPath=release.json \
+     --param=serviceAccountImagesPath=credentials \
      --param=releaseBucket=gs://tekton-releases/chains \
      --workspace name=release-secret,secret=release-secret \
+     --workspace name=release-images-secret,secret=ghcr-creds \
      --use-param-defaults \
      --workspace name=workarea,volumeClaimTemplateFile=workspace-template.yaml
    ```
@@ -97,7 +99,7 @@ text editor.
 
       ```bash
       RELEASE_FILE=https://storage.googleapis.com/tekton-releases/chains/previous/${CHAINS_VERSION_TAG}/release.yaml
-      CONTROLLER_IMAGE_SHA=$(curl $RELEASE_FILE | egrep 'gcr.io.*controller' | cut -d'@' -f2)
+      CONTROLLER_IMAGE_SHA=$(curl $RELEASE_FILE | egrep 'ghcr.io.*controller' | cut -d'@' -f2)
       REKOR_UUID=$(rekor-cli search --sha $CONTROLLER_IMAGE_SHA | grep -v Found | head -1)
       echo -e "CONTROLLER_IMAGE_SHA: ${CONTROLLER_IMAGE_SHA}\nREKOR_UUID: ${REKOR_UUID}"
       ```
