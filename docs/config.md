@@ -146,7 +146,7 @@ chains.tekton.dev/transparency-upload: "true"
 | Key                                | Description                                                   | Supported Values                           | Default                                            |
 | :--------------------------------- | :------------------------------------------------------------ | :----------------------------------------- | :------------------------------------------------- |
 | `signers.x509.fulcio.enabled`      | Whether to enable automatic certificates from fulcio.         | `true`, `false`                            | `false`                                            |
-| `signers.x509.fulcio.address`      | Fulcio address to request certificate from, if enabled        |                                            | `https://v1.fulcio.sigstore.dev`                   |
+| `signers.x509.fulcio.address`      | Fulcio address to request certificate from, if enabled        |                                            | `https://fulcio.sigstore.dev`                   |
 | `signers.x509.fulcio.issuer`       | Expected OIDC issuer.                                         |                                            | `https://oauth2.sigstore.dev/auth`                 |
 | `signers.x509.fulcio.provider`     | Provider to request ID Token from                             | `google`, `spiffe`, `github`, `filesystem` | Unset, each provider will be attempted.            |
 | `signers.x509.identity.token.file` | Path to file containing ID Token.                             |                                            |
