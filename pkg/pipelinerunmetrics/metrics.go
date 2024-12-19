@@ -23,8 +23,10 @@ import (
 	"github.com/tektoncd/chains/pkg/chains"
 	"go.opencensus.io/stats"
 	"go.opencensus.io/stats/view"
+	"go.opencensus.io/tag"
 	"knative.dev/pkg/logging"
 	"knative.dev/pkg/metrics"
+	"knative.dev/pkg/metrics/metricskey"
 )
 
 var (
@@ -51,6 +53,35 @@ var (
 		stats.UnitDimensionless)
 
 	mrCountView *view.View
+
+	sgCountNS = stats.Float64(chains.PipelineRunSignedMsgPerNamespace,
+		chains.PipelineRunSignedMsgDescPerNamespace,
+		stats.UnitDimensionless)
+
+	sgCountViewNS *view.View
+
+	plCountNS = stats.Float64(chains.PipelineRunUplPayloadPerNamespace,
+		chains.PipelineRunUplPayloadDescPerNamespace,
+		stats.UnitDimensionless)
+
+	plCountViewNS *view.View
+
+	stCountNS = stats.Float64(chains.PipelineRunPayloadStoredPerNamespace,
+		chains.PipelineRunPayloadStoredDescPerNamespace,
+		stats.UnitDimensionless)
+
+	stCountViewNS *view.View
+
+	mrCountNS = stats.Float64(chains.PipelineRunMarkedSignedPerNamespace,
+		chains.PipelineRunMarkedDSigneDescPerNamespace,
+		stats.UnitDimensionless)
+
+	mrCountViewNS *view.View
+
+	// NamespaceTagKey marks metrics with a namespace.
+	NamespaceTagKey = tag.MustNewKey(metricskey.LabelNamespaceName)
+
+	successTagKey = tag.MustNewKey("success")
 )
 
 // Recorder holds keys for Tekton metrics
@@ -71,6 +102,7 @@ var (
 func NewRecorder(ctx context.Context) (*Recorder, error) {
 	var errRegistering error
 	logger := logging.FromContext(ctx)
+
 	once.Do(func() {
 		r = &Recorder{
 			initialized: true,
@@ -110,11 +142,44 @@ func viewRegister() error {
 		Measure:     mrCount,
 		Aggregation: view.Count(),
 	}
+
+	sgCountViewNS = &view.View{
+		Description: sgCountNS.Description(),
+		Measure:     sgCountNS,
+		Aggregation: view.Count(),
+		TagKeys:     []tag.Key{NamespaceTagKey, successTagKey},
+	}
+
+	plCountViewNS = &view.View{
+		Description: plCountNS.Description(),
+		Measure:     plCountNS,
+		Aggregation: view.Count(),
+		TagKeys:     []tag.Key{NamespaceTagKey, successTagKey},
+	}
+
+	stCountViewNS = &view.View{
+		Description: stCountNS.Description(),
+		Measure:     stCountNS,
+		Aggregation: view.Count(),
+		TagKeys:     []tag.Key{NamespaceTagKey, successTagKey},
+	}
+
+	mrCountViewNS = &view.View{
+		Description: mrCountNS.Description(),
+		Measure:     mrCountNS,
+		Aggregation: view.Count(),
+		TagKeys:     []tag.Key{NamespaceTagKey, successTagKey},
+	}
+
 	return view.Register(
 		sgCountView,
 		plCountView,
 		stCountView,
 		mrCountView,
+		sgCountViewNS,
+		plCountViewNS,
+		stCountViewNS,
+		mrCountViewNS,
 	)
 }
 
@@ -133,6 +198,14 @@ func (r *Recorder) RecordCountMetrics(ctx context.Context, metricType string) {
 		r.countMetrics(ctx, stCount)
 	case chains.MarkedAsSignedCount:
 		r.countMetrics(ctx, mrCount)
+	case chains.SignedMessagesCountPerNamespace:
+		r.countMetrics(ctx, sgCountNS)
+	case chains.PayloadUploadeCountPerNamespace:
+		r.countMetrics(ctx, plCountNS)
+	case chains.SignsStoredCountPerNamespace:
+		r.countMetrics(ctx, stCountNS)
+	case chains.MarkedAsSignedCountPerNamespace:
+		r.countMetrics(ctx, mrCountNS)
 	default:
 		logger.Errorf("Ignoring the metrics recording as valid Metric type matching %v was not found", mt)
 	}
