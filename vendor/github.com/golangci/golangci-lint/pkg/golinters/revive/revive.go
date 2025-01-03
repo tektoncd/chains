@@ -2,6 +2,7 @@ package revive
 
 import (
 	"bytes"
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"go/token"
@@ -164,7 +165,7 @@ func toIssue(pass *analysis.Pass, object *jsonObject) goanalysis.Issue {
 		lineRangeTo = object.Position.Start.Line
 	}
 
-	return goanalysis.NewIssue(&result.Issue{
+	issue := &result.Issue{
 		Severity: string(object.Severity),
 		Text:     fmt.Sprintf("%s: %s", object.RuleName, object.Failure.Failure),
 		Pos: token.Position{
@@ -178,7 +179,25 @@ func toIssue(pass *analysis.Pass, object *jsonObject) goanalysis.Issue {
 			To:   lineRangeTo,
 		},
 		FromLinter: linterName,
-	}, pass)
+	}
+
+	if object.ReplacementLine != "" {
+		f := pass.Fset.File(token.Pos(object.Position.Start.Offset))
+
+		start := f.LineStart(object.Position.Start.Line)
+
+		end := goanalysis.EndOfLinePos(f, object.Position.End.Line)
+
+		issue.SuggestedFixes = []analysis.SuggestedFix{{
+			TextEdits: []analysis.TextEdit{{
+				Pos:     start,
+				End:     end,
+				NewText: []byte(object.ReplacementLine),
+			}},
+		}}
+	}
+
+	return goanalysis.NewIssue(issue, pass)
 }
 
 // This function mimics the GetConfig function of revive.
@@ -379,12 +398,8 @@ const defaultConfidence = 0.8
 func normalizeConfig(cfg *lint.Config) {
 	// NOTE(ldez): this custom section for golangci-lint should be kept.
 	// ---
-	if cfg.Confidence == 0 {
-		cfg.Confidence = defaultConfidence
-	}
-	if cfg.Severity == "" {
-		cfg.Severity = lint.SeverityWarning
-	}
+	cfg.Confidence = cmp.Or(cfg.Confidence, defaultConfidence)
+	cfg.Severity = cmp.Or(cfg.Severity, lint.SeverityWarning)
 	// ---
 
 	if len(cfg.Rules) == 0 {
