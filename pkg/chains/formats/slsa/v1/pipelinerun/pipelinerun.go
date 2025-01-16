@@ -119,12 +119,16 @@ func buildConfig(ctx context.Context, pro *objects.PipelineRunObjectV1Beta1) Bui
 
 			steps := []attest.StepAttestation{}
 			// tr.Status.TaskSpec.Steps and tr.Status.Steps should be sime size
-			if tr.Status.TaskSpec == nil || len(tr.Status.TaskSpec.Steps) != len(tr.Status.Steps) {
-				logger.Errorf("Mismatch in number of steps for task run %s. TaskSpec steps: %d, Status steps: %d",
-					tr.Name, len(tr.Status.TaskSpec.Steps), len(tr.Status.Steps))
-				continue // Skip this task run entirely
+			if tr.Status.TaskSpec == nil {
+				logger.Errorf("TaskSpec is nil for task run %s. Skipping this task run.", tr.Name)
+				continue
 			}
 
+			if len(tr.Status.TaskSpec.Steps) != len(tr.Status.Steps) {
+				logger.Errorf("Mismatch in number of steps for task run %s. TaskSpec steps: %d, Status steps: %d",
+					tr.Name, len(tr.Status.TaskSpec.Steps), len(tr.Status.Steps))
+				continue
+			}
 			// Validate and process steps
 			valid := true
 			for i, step := range tr.Status.TaskSpec.Steps {
