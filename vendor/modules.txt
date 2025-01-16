@@ -2091,8 +2091,8 @@ github.com/tektoncd/pipeline/pkg/result
 github.com/tektoncd/pipeline/pkg/spire/config
 github.com/tektoncd/pipeline/pkg/substitution
 github.com/tektoncd/pipeline/test
-# github.com/tektoncd/plumbing v0.0.0-20230907180608-5625252a2de1
-## explicit; go 1.19
+# github.com/tektoncd/plumbing v0.0.0-20250115133002-f515628dffea
+## explicit; go 1.22
 github.com/tektoncd/plumbing
 github.com/tektoncd/plumbing/scripts
 # github.com/tetafro/godot v1.4.18
