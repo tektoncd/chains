@@ -56,6 +56,13 @@ text editor.
    EOF
    ```
 
+1. Decide if new release will be latest release.
+
+   ```bash
+   CHAINS_LATEST_RELEASE='true' # Set to 'false' if not latest release
+
+   ```
+
 1. Execute the release pipeline.
 
    ```bash
@@ -65,6 +72,7 @@ text editor.
      --param=serviceAccountPath=release.json \
      --param=serviceAccountImagesPath=credentials \
      --param=releaseBucket=gs://tekton-releases/chains \
+     --param=releaseAsLatest="${CHAINS_LATEST_RELEASE}" \
      --workspace name=release-secret,secret=release-secret \
      --workspace name=release-images-secret,secret=ghcr-creds \
      --use-param-defaults \
