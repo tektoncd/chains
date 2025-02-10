@@ -477,4 +477,7 @@ require (
 
 // Replace glog to fix flag collision between klog and glog.
 // See https://github.com/sigstore/policy-controller/pull/112
-replace github.com/golang/glog => github.com/jdolitsky/glog v0.0.0-20220729172235-78744e90d087
+replace (
+	github.com/alibabacloud-go/cr-20160607 => github.com/vdemeester/cr-20160607 v1.0.1
+	github.com/golang/glog => github.com/jdolitsky/glog v0.0.0-20220729172235-78744e90d087
+)
