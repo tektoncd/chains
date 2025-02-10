@@ -1,6 +1,7 @@
 module github.com/tektoncd/chains
 
-go 1.23.2
+go 1.23.4
+
 toolchain go1.23.6
 
 require (
