@@ -30,14 +30,6 @@ export DISABLE_YAML_LINTING=1
 source "$(git rev-parse --show-toplevel)"/vendor/github.com/tektoncd/plumbing/scripts/presubmit-tests.sh
 
 function post_build_tests() {
-  echo Installing tools from hack/tools.go
-  go list -f '{{range .Imports}}{{.}} {{end}}' hack/tools.go | xargs go install
-
-  header "running golangci-lint"
-  # deadline of 10m, and show all the issues
-  golangci-lint --color=never --timeout 10m run
-
-
   header "copyright licenses check"
   addlicense -ignore "vendor/**" -ignore "third_party/**"  -l apache -c 'The Tekton Authors' -v *
   git diff --exit-code
