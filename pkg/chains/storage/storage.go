@@ -18,6 +18,7 @@ import (
 	"errors"
 
 	"github.com/tektoncd/chains/pkg/chains/objects"
+	"github.com/tektoncd/chains/pkg/chains/storage/archivista"
 	"github.com/tektoncd/chains/pkg/chains/storage/docdb"
 	"github.com/tektoncd/chains/pkg/chains/storage/gcs"
 	"github.com/tektoncd/chains/pkg/chains/storage/grafeas"
@@ -58,9 +59,9 @@ func InitializeBackends(ctx context.Context, ps versioned.Interface, kc kubernet
 	if cfg.Artifacts.PipelineRuns.Enabled() {
 		configuredBackends = append(configuredBackends, sets.List[string](cfg.Artifacts.PipelineRuns.StorageBackend)...)
 	}
-	if cfg.Artifacts.Archivista.Enabled() {
-		configuredBackends = append(configuredBackends, sets.List[string](cfg.Artifacts.Archivista.StorageBackend)...)
-	}
+	// if cfg.Artifacts.Archivista.Enabled() {
+	// 	configuredBackends = append(configuredBackends, sets.List[string](cfg.Artifacts.Archivista.StorageBackend)...)
+	// }
 	logger.Infof("configured backends from config: %v", configuredBackends)
 
 	// Now only initialize and return the configured ones.
@@ -96,17 +97,14 @@ func InitializeBackends(ctx context.Context, ps versioned.Interface, kc kubernet
 				return nil, err
 			}
 			backends[backendType] = pubsubBackend
-		}
-
 		case archivista.StorageBackendArchivista:
 			archivistaBackend, err := archivista.NewArchivistaStorage(cfg)
 			if err != nil {
 				return nil, err
 			}
 			backends[backendType] = archivistaBackend
-
+		}
 	}
-
 	logger.Infof("successfully initialized backends: %v", maps.Keys(backends))
 	return backends, nil
 }
