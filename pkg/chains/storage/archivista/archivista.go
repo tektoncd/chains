@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/in-toto/archivista/pkg/api"
+	"github.com/in-toto/go-witness/dsse"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
 	"knative.dev/pkg/logging"
@@ -25,11 +26,29 @@ type Backend interface {
 }
 
 // ArchivistaClient defines the subset of methods used from the Archivista API client.
+// Note that Upload now accepts a DSSE envelope instead of the previous UploadRequest.
 type ArchivistaClient interface {
-	Upload(ctx context.Context, req *api.UploadRequest) (*api.UploadResponse, error)
+	Upload(ctx context.Context, envelope dsse.Envelope) (*api.UploadResponse, error)
 	GetArtifact(ctx context.Context, key string) (*api.Artifact, error)
 }
 
+// ---
+// archivistaClientWrapper wraps an *api.Client and adapts its UploadDSSE method
+// to satisfy the ArchivistaClient interface.
+type archivistaClientWrapper struct {
+	client *api.Client
+}
+
+func (w *archivistaClientWrapper) Upload(ctx context.Context, envelope dsse.Envelope) (*api.UploadResponse, error) {
+	// Call the DSSE-specific upload method on the underlying client.
+	return w.client.UploadDSSE(ctx, envelope)
+}
+
+func (w *archivistaClientWrapper) GetArtifact(ctx context.Context, key string) (*api.Artifact, error) {
+	return w.client.GetArtifact(ctx, key)
+}
+
+// ---
 // ArchivistaStorage implements the Backend interface for Archivista.
 type ArchivistaStorage struct {
 	client ArchivistaClient
@@ -45,13 +64,17 @@ func NewArchivistaStorage(cfg config.Config) (*ArchivistaStorage, error) {
 		return nil, fmt.Errorf("missing archivista URL in storage configuration")
 	}
 
+	// Create the underlying API client.
 	client, err := api.NewClient(archCfg.URL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create archivista client: %w", err)
 	}
 
+	// Wrap the api.Client so it satisfies ArchivistaClient.
+	wrappedClient := &archivistaClientWrapper{client: client}
+
 	return &ArchivistaStorage{
-		client: client,
+		client: wrappedClient,
 		url:    archCfg.URL,
 		cfg:    archCfg,
 	}, nil
@@ -59,6 +82,7 @@ func NewArchivistaStorage(cfg config.Config) (*ArchivistaStorage, error) {
 
 // StorePayload uploads the payload and signature to Archivista.
 // It expects opts.ShortKey (a string) to be set and uses that as the key.
+// Instead of the old UploadRequest, we now construct a DSSE envelope.
 func (a *ArchivistaStorage) StorePayload(ctx context.Context, obj objects.TektonObject, rawPayload []byte, signature string, opts config.StorageOpts) error {
 	logger := logging.FromContext(ctx)
 	key := opts.ShortKey
@@ -66,20 +90,27 @@ func (a *ArchivistaStorage) StorePayload(ctx context.Context, obj objects.Tekton
 		return fmt.Errorf("missing key in storage options (opts.ShortKey)")
 	}
 
-	uploadReq := &api.UploadRequest{
-		Payload:   rawPayload,
-		Signature: []byte(signature),
-		KeyID:     key,
+	// Construct a DSSE envelope using the raw payload and signature.
+	// The PayloadType can be hard-coded (e.g. "tekton-chains") or made configurable.
+	env := dsse.Envelope{
+		Payload:     rawPayload,
+		PayloadType: "tekton-chains",
+		Signatures: []dsse.Signature{
+			{
+				KeyID:     key,
+				Signature: []byte(signature),
+			},
+		},
 	}
 
-	logger.Infof("Uploading payload to Archivista for key %q", key)
-	uploadResp, err := a.client.Upload(ctx, uploadReq)
+	logger.Infof("Uploading DSSE envelope to Archivista for key %q", key)
+	uploadResp, err := a.client.Upload(ctx, env)
 	if err != nil {
-		logger.Errorw("Failed to upload payload to Archivista", "key", key, "error", err)
+		logger.Errorw("Failed to upload DSSE envelope to Archivista", "key", key, "error", err)
 		return fmt.Errorf("failed to upload to archivista: %w", err)
 	}
 
-	logger.Infof("Successfully uploaded to Archivista")
+	logger.Infof("Successfully uploaded DSSE envelope to Archivista")
 	_ = uploadResp // suppress unused variable warning
 
 	return nil

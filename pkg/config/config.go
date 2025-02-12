@@ -27,6 +27,7 @@ import (
 	cm "knative.dev/pkg/configmap"
 )
 
+// Config is the overall configuration for Chains.
 type Config struct {
 	Artifacts       ArtifactConfigs
 	Storage         StorageConfigs
@@ -36,14 +37,14 @@ type Config struct {
 	BuildDefinition BuildDefinitionConfig
 }
 
-// ArtifactConfigs contains the configuration for how to sign/store/format the signatures for each artifact type
+// ArtifactConfigs contains the configuration for how to sign/store/format the signatures for each artifact type.
 type ArtifactConfigs struct {
 	OCI          Artifact
 	PipelineRuns Artifact
 	TaskRuns     Artifact
 }
 
-// Artifact contains the configuration for how to sign/store/format the signatures for a single artifact
+// Artifact contains the configuration for how to sign/store/format the signatures for a single artifact.
 type Artifact struct {
 	Format                string
 	StorageBackend        sets.Set[string]
@@ -51,17 +52,18 @@ type Artifact struct {
 	DeepInspectionEnabled bool
 }
 
-// StorageConfigs contains the configuration to instantiate different storage providers
+// StorageConfigs contains the configuration to instantiate different storage providers.
 type StorageConfigs struct {
-	GCS     GCSStorageConfig
-	OCI     OCIStorageConfig
-	Tekton  TektonStorageConfig
-	DocDB   DocDBStorageConfig
-	Grafeas GrafeasConfig
-	PubSub  PubSubStorageConfig
+	GCS        GCSStorageConfig
+	OCI        OCIStorageConfig
+	Tekton     TektonStorageConfig
+	DocDB      DocDBStorageConfig
+	Grafeas    GrafeasConfig
+	PubSub     PubSubStorageConfig
+	Archivista ArchivistaStorageConfig // <-- New field for Archivista configuration.
 }
 
-// SignerConfigs contains the configuration to instantiate different signers
+// SignerConfigs contains the configuration to instantiate different signers.
 type SignerConfigs struct {
 	X509 X509Signer
 	KMS  KMSSigner
@@ -89,7 +91,7 @@ type KMSSigner struct {
 	Auth   KMSAuth
 }
 
-// KMSAuth configures authentication to the KMS server
+// KMSAuth configures authentication to the KMS server.
 type KMSAuth struct {
 	Address   string
 	Token     string
@@ -98,13 +100,13 @@ type KMSAuth struct {
 	Spire     KMSAuthSpire
 }
 
-// KMSAuthOIDC configures settings to authenticate with OIDC
+// KMSAuthOIDC configures settings to authenticate with OIDC.
 type KMSAuthOIDC struct {
 	Path string
 	Role string
 }
 
-// KMSAuthSpire configures settings to get an auth token from spire
+// KMSAuthSpire configures settings to get an auth token from spire.
 type KMSAuthSpire struct {
 	Sock     string
 	Audience string
@@ -120,6 +122,7 @@ type OCIStorageConfig struct {
 }
 
 type TektonStorageConfig struct {
+	// Currently no fields.
 }
 
 type DocDBStorageConfig struct {
@@ -130,12 +133,12 @@ type DocDBStorageConfig struct {
 }
 
 type GrafeasConfig struct {
-	// project id that is used to store notes and occurences
+	// Project id that is used to store notes and occurrences.
 	ProjectID string
-	// note id used to create a note that an occurrence will be attached to
+	// Note id used to create a note that an occurrence will be attached to.
 	NoteID string
 
-	// NoteHint is used to set the attestation note
+	// NoteHint is used to set the attestation note.
 	NoteHint string
 }
 
@@ -154,6 +157,16 @@ type TransparencyConfig struct {
 	VerifyAnnotation bool
 	URL              string
 }
+
+// ----------------------- New Archivista configuration -----------------------
+
+// ArchivistaStorageConfig holds configuration for the Archivista storage backend.
+type ArchivistaStorageConfig struct {
+	// URL is the endpoint for the Archivista service.
+	URL string `json:"url,omitempty"`
+}
+
+// ----------------------- Constants -----------------------
 
 const (
 	taskrunFormatKey  = "artifacts.taskrun.format"
@@ -177,6 +190,9 @@ const (
 	docDBMongoServerURLDirKey  = "storage.docdb.mongo-server-url-dir"
 	docDBMongoServerURLPathKey = "storage.docdb.mongo-server-url-path"
 
+	// New Archivista constant:
+	archivistaURLKey = "storage.archivista.url"
+
 	grafeasProjectIDKey = "storage.grafeas.projectid"
 	grafeasNoteIDKey    = "storage.grafeas.noteid"
 	grafeasNoteHint     = "storage.grafeas.notehint"
@@ -185,8 +201,6 @@ const (
 	pubsubProvider = "storage.pubsub.provider"
 	pubsubTopic    = "storage.pubsub.topic"
 
-	// No config for PubSub - In-Memory
-
 	// PubSub - Kafka
 	pubsubKafkaBootstrapServer = "storage.pubsub.kafka.bootstrap.servers"
 
@@ -194,8 +208,8 @@ const (
 	kmsSignerKMSRef      = "signers.kms.kmsref"
 	kmsAuthAddress       = "signers.kms.auth.address"
 	kmsAuthToken         = "signers.kms.auth.token"
-	kmsAuthOIDCPath      = "signers.kms.auth.oidc.path"
 	kmsAuthTokenPath     = "signers.kms.auth.token-path" // #nosec G101
+	kmsAuthOIDCPath      = "signers.kms.auth.oidc.path"
 	kmsAuthOIDCRole      = "signers.kms.auth.oidc.role"
 	kmsAuthSpireSock     = "signers.kms.auth.spire.sock"
 	kmsAuthSpireAudience = "signers.kms.auth.spire.audience"
@@ -219,6 +233,8 @@ const (
 
 	ChainsConfig = "chains-config"
 )
+
+// ----------------------- Helper functions for parsing -----------------------
 
 func (artifact *Artifact) Enabled() bool {
 	return !(artifact.StorageBackend.Len() == 1 && artifact.StorageBackend.Has(""))
@@ -258,6 +274,7 @@ func defaultConfig() *Config {
 			Grafeas: GrafeasConfig{
 				NoteHint: "This attestation note was generated by Tekton Chains",
 			},
+			// Archivista configuration is empty by default. Users must set storage.archivista.url.
 		},
 		Builder: BuilderConfig{
 			ID: "https://tekton.dev/chains/v2",
@@ -268,7 +285,7 @@ func defaultConfig() *Config {
 	}
 }
 
-// NewConfigFromMap creates a Config from the supplied map
+// NewConfigFromMap creates a Config from the supplied map.
 func NewConfigFromMap(data map[string]string) (*Config, error) {
 	cfg := defaultConfig()
 
@@ -305,6 +322,8 @@ func NewConfigFromMap(data map[string]string) (*Config, error) {
 		asString(docDBMongoServerURLKey, &cfg.Storage.DocDB.MongoServerURL),
 		asString(docDBMongoServerURLDirKey, &cfg.Storage.DocDB.MongoServerURLDir),
 		asString(docDBMongoServerURLPathKey, &cfg.Storage.DocDB.MongoServerURLPath),
+		// New Archivista parser.
+		asString(archivistaURLKey, &cfg.Storage.Archivista.URL),
 		asString(grafeasProjectIDKey, &cfg.Storage.Grafeas.ProjectID),
 		asString(grafeasNoteIDKey, &cfg.Storage.Grafeas.NoteID),
 		asString(grafeasNoteHint, &cfg.Storage.Grafeas.NoteHint),
@@ -342,12 +361,12 @@ func NewConfigFromMap(data map[string]string) (*Config, error) {
 	return cfg, nil
 }
 
-// NewConfigFromConfigMap creates a Config from the supplied ConfigMap
+// NewConfigFromConfigMap creates a Config from the supplied ConfigMap.
 func NewConfigFromConfigMap(configMap *corev1.ConfigMap) (*Config, error) {
 	return NewConfigFromMap(configMap.Data)
 }
 
-// oneOf sets target to true if it maches any of the values
+// oneOf sets target to true if it matches any of the values.
 func oneOf(key string, target *bool, values ...string) cm.ParseFunc {
 	return func(data map[string]string) error {
 		raw, ok := data[key]
@@ -366,8 +385,7 @@ func oneOf(key string, target *bool, values ...string) cm.ParseFunc {
 	}
 }
 
-// allow additional supported values for a "true" decision
-// in additional to the usual ones provided by strconv.ParseBool
+// asBool passes the value at key through into the target.
 func asBool(key string, target *bool) cm.ParseFunc {
 	return func(data map[string]string) error {
 		raw, ok := data[key]
@@ -383,8 +401,7 @@ func asBool(key string, target *bool) cm.ParseFunc {
 	}
 }
 
-// asString passes the value at key through into the target, if it exists.
-// TODO(mattmoor): This might be a nice variation on cm.AsString to upstream.
+// asString passes the value at key into the target, if it exists.
 func asString(key string, target *string, values ...string) cm.ParseFunc {
 	return func(data map[string]string) error {
 		raw, ok := data[key]
@@ -402,7 +419,7 @@ func asString(key string, target *string, values ...string) cm.ParseFunc {
 	}
 }
 
-// asStringSet parses the value at key as a sets.Set[string] (split by ',') into the target, if it exists.
+// asStringSet parses the value at key as a set (split by ',') into the target, if it exists.
 func asStringSet(key string, target *sets.Set[string], allowed sets.Set[string]) cm.ParseFunc {
 	return func(data map[string]string) error {
 		if raw, ok := data[key]; ok {

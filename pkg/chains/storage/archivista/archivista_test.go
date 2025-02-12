@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/in-toto/archivista/pkg/api"
+	"github.com/in-toto/go-witness/dsse"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
 
@@ -17,16 +18,18 @@ import (
 
 // fakeArchivistaClient is a fake implementation of ArchivistaClient for testing.
 type fakeArchivistaClient struct {
-	uploadReq  *api.UploadRequest
-	uploadResp *api.UploadResponse
-	uploadErr  error
+	// uploadEnvelope records the envelope passed to Upload.
+	uploadEnvelope dsse.Envelope
+	uploadErr      error
+	uploadResp     *api.UploadResponse
 
 	artifact *api.Artifact
 	getErr   error
 }
 
-func (f *fakeArchivistaClient) Upload(ctx context.Context, req *api.UploadRequest) (*api.UploadResponse, error) {
-	f.uploadReq = req
+// Upload implements ArchivistaClient.Upload, accepting a dsse.Envelope.
+func (f *fakeArchivistaClient) Upload(ctx context.Context, envelope dsse.Envelope) (*api.UploadResponse, error) {
+	f.uploadEnvelope = envelope
 	if f.uploadErr != nil {
 		return nil, f.uploadErr
 	}
@@ -37,6 +40,7 @@ func (f *fakeArchivistaClient) Upload(ctx context.Context, req *api.UploadReques
 	return &api.UploadResponse{}, nil
 }
 
+// GetArtifact implements ArchivistaClient.GetArtifact.
 func (f *fakeArchivistaClient) GetArtifact(ctx context.Context, key string) (*api.Artifact, error) {
 	if f.getErr != nil {
 		return nil, f.getErr
@@ -92,17 +96,21 @@ func TestStorePayload(t *testing.T) {
 	}
 
 	// Verify that the fake client's Upload method was called with the expected values.
-	if fakeClient.uploadReq == nil {
-		t.Fatal("Upload was not called on the fake client")
+	// The DSSE envelope should have been recorded.
+	env := fakeClient.uploadEnvelope
+	if len(env.Signatures) == 0 {
+		t.Fatal("Upload was not called on the fake client (no signatures in envelope)")
 	}
-	if string(fakeClient.uploadReq.Payload) != "test payload" {
-		t.Errorf("expected payload %q, got %q", "test payload", string(fakeClient.uploadReq.Payload))
+	if string(env.Payload) != "test payload" {
+		t.Errorf("expected payload %q, got %q", "test payload", string(env.Payload))
 	}
-	if string(fakeClient.uploadReq.Signature) != "test signature" {
-		t.Errorf("expected signature %q, got %q", "test signature", string(fakeClient.uploadReq.Signature))
+	// In our StorePayload, we build the envelope with a single signature.
+	firstSig := env.Signatures[0]
+	if string(firstSig.Signature) != "test signature" {
+		t.Errorf("expected signature %q, got %q", "test signature", string(firstSig.Signature))
 	}
-	if fakeClient.uploadReq.KeyID != "test-key" {
-		t.Errorf("expected keyID %q, got %q", "test-key", fakeClient.uploadReq.KeyID)
+	if firstSig.KeyID != "test-key" {
+		t.Errorf("expected keyID %q, got %q", "test-key", firstSig.KeyID)
 	}
 }
 
