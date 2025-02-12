@@ -34,7 +34,7 @@ func NewClient(baseURL string) (*Client, error) {
 
 // UploadResponse represents the response from Archivista after a successful upload.
 
-// Upload uploads a DSSE envelope to Archivista.
+// UploadDSSE uploads a DSSE envelope to Archivista.
 // Note that this method now accepts a dsse.Envelope rather than a pointer to an UploadRequest.
 func (c *Client) UploadDSSE(ctx context.Context, envelope dsse.Envelope) (*UploadResponse, error) {
 	uploadURL, err := url.JoinPath(c.baseURL, "upload")
@@ -80,7 +80,9 @@ type Artifact struct {
 	Signature []byte `json:"signature"`
 }
 
-// GetArtifact retrieves an artifact by key.
+// GetArtifact retrieves a DSSE envelope by key from Archivista,
+// decodes it as a dsse.Envelope, and converts it into an Artifact.
+// It uses the envelope's payload and (if available) the first signature.
 func (c *Client) GetArtifact(ctx context.Context, key string) (*Artifact, error) {
 	downloadURL, err := url.JoinPath(c.baseURL, "download", key)
 	if err != nil {
@@ -104,9 +106,21 @@ func (c *Client) GetArtifact(ctx context.Context, key string) (*Artifact, error)
 		return nil, errors.New(string(respBytes))
 	}
 
-	var artifact Artifact
-	if err := json.NewDecoder(resp.Body).Decode(&artifact); err != nil {
+	// Decode the response into a DSSE envelope.
+	var envelope dsse.Envelope
+	if err := json.NewDecoder(resp.Body).Decode(&envelope); err != nil {
 		return nil, err
 	}
-	return &artifact, nil
+
+	// Ensure that at least one signature exists.
+	if len(envelope.Signatures) == 0 {
+		return nil, errors.New("no signatures in DSSE envelope")
+	}
+
+	// Create an Artifact using the envelope's payload and the first signature.
+	artifact := &Artifact{
+		Payload:   envelope.Payload,
+		Signature: envelope.Signatures[0].Signature,
+	}
+	return artifact, nil
 }
