@@ -2,10 +2,15 @@
 package archivista
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
 
-	"github.com/in-toto/archivista/pkg/api"
 	"github.com/in-toto/go-witness/dsse"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
@@ -16,83 +21,145 @@ const (
 	StorageBackendArchivista = "archivista"
 )
 
-// Backend is the interface that all storage backends must implement.
-// (This is the interface used by the Chains storage initializer.)
-type Backend interface {
-	StorePayload(ctx context.Context, obj objects.TektonObject, rawPayload []byte, signature string, opts config.StorageOpts) error
-	RetrievePayloads(ctx context.Context, obj objects.TektonObject, opts config.StorageOpts) (map[string]string, error)
-	RetrieveSignatures(ctx context.Context, obj objects.TektonObject, opts config.StorageOpts) (map[string][]string, error)
-	Type() string
+// --------------------------------------------------------------------------
+// API Types (these replace the types that were previously defined in client.go)
+// --------------------------------------------------------------------------
+
+// UploadRequest is the payload that Archivista expects when uploading an artifact.
+type UploadRequest struct {
+	ArtifactType string `json:"artifactType"`
+	Payload      []byte `json:"payload"`
+	Signature    []byte `json:"signature"`
+	KeyID        string `json:"keyID"`
 }
 
-// ArchivistaClient defines the subset of methods used from the Archivista API client.
-// Note that Upload now accepts a DSSE envelope instead of the previous UploadRequest.
+// UploadResponse represents the response returned by Archivista after a successful upload.
+type UploadResponse struct {
+	Gitoid string `json:"gitoid"`
+}
+
+// Artifact represents an artifact downloaded from Archivista.
+type Artifact struct {
+	Payload   []byte `json:"payload"`
+	Signature []byte `json:"signature"`
+}
+
+// --------------------------------------------------------------------------
+// ArchivistaClient Interface and HTTP Wrapper Implementation
+// --------------------------------------------------------------------------
+
+// ArchivistaClient defines the subset of methods we need to call the Archivista API.
 type ArchivistaClient interface {
-	Upload(ctx context.Context, envelope dsse.Envelope) (*api.UploadResponse, error)
-	GetArtifact(ctx context.Context, key string) (*api.Artifact, error)
+	Upload(ctx context.Context, req *UploadRequest) (*UploadResponse, error)
+	GetArtifact(ctx context.Context, key string) (*Artifact, error)
 }
 
-// ---
-// archivistaClientWrapper wraps an *api.Client and adapts its UploadDSSE method
-// to satisfy the ArchivistaClient interface.
-type archivistaClientWrapper struct {
-	client *api.Client
+// httpArchivistaClient is a thin HTTP wrapper that implements ArchivistaClient.
+type httpArchivistaClient struct {
+	baseURL    string
+	httpClient *http.Client
 }
 
-func (w *archivistaClientWrapper) Upload(ctx context.Context, envelope dsse.Envelope) (*api.UploadResponse, error) {
-	// Call the DSSE-specific upload method on the underlying client.
-	return w.client.UploadDSSE(ctx, envelope)
-}
-
-func (w *archivistaClientWrapper) GetArtifact(ctx context.Context, key string) (*api.Artifact, error) {
-	return w.client.GetArtifact(ctx, key)
-}
-
-// ---
-// ArchivistaStorage implements the Backend interface for Archivista.
-type ArchivistaStorage struct {
-	client ArchivistaClient
-	url    string
-	cfg    config.ArchivistaStorageConfig
-}
-
-// NewArchivistaStorage initializes a new ArchivistaStorage backend.
-// It extracts the Archivista-specific configuration from the top-level config.
-func NewArchivistaStorage(cfg config.Config) (*ArchivistaStorage, error) {
-	archCfg := cfg.Storage.Archivista
-	if archCfg.URL == "" {
-		return nil, fmt.Errorf("missing archivista URL in storage configuration")
-	}
-
-	// Create the underlying API client.
-	client, err := api.NewClient(archCfg.URL)
+// Upload sends the given UploadRequest to Archivista's /upload endpoint.
+func (c *httpArchivistaClient) Upload(ctx context.Context, req *UploadRequest) (*UploadResponse, error) {
+	uploadURL, err := url.JoinPath(c.baseURL, "upload")
 	if err != nil {
-		return nil, fmt.Errorf("failed to create archivista client: %w", err)
+		return nil, err
 	}
 
-	// Wrap the api.Client so it satisfies ArchivistaClient.
-	wrappedClient := &archivistaClientWrapper{client: client}
+	bodyBytes, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
 
-	return &ArchivistaStorage{
-		client: wrappedClient,
-		url:    archCfg.URL,
-		cfg:    archCfg,
-	}, nil
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, uploadURL, bytes.NewReader(bodyBytes))
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	respBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New(string(respBytes))
+	}
+
+	var uploadResp UploadResponse
+	if err := json.Unmarshal(respBytes, &uploadResp); err != nil {
+		return nil, err
+	}
+	return &uploadResp, nil
 }
 
-// StorePayload uploads the payload and signature to Archivista.
-// It expects opts.ShortKey (a string) to be set and uses that as the key.
-// Instead of the old UploadRequest, we now construct a DSSE envelope.
-func (a *ArchivistaStorage) StorePayload(ctx context.Context, obj objects.TektonObject, rawPayload []byte, signature string, opts config.StorageOpts) error {
-	logger := logging.FromContext(ctx)
-	key := opts.ShortKey
-	if key == "" {
-		return fmt.Errorf("missing key in storage options (opts.ShortKey)")
+// GetArtifact retrieves an artifact from Archivista by key using the /download endpoint.
+func (c *httpArchivistaClient) GetArtifact(ctx context.Context, key string) (*Artifact, error) {
+	downloadURL, err := url.JoinPath(c.baseURL, "download", key)
+	if err != nil {
+		return nil, err
 	}
 
-	// Construct a DSSE envelope using the raw payload and signature.
-	// The PayloadType can be hard-coded (e.g. "tekton-chains") or made configurable.
-	env := dsse.Envelope{
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		respBytes, _ := io.ReadAll(resp.Body)
+		return nil, errors.New(string(respBytes))
+	}
+
+	var artifact Artifact
+	if err := json.NewDecoder(resp.Body).Decode(&artifact); err != nil {
+		return nil, err
+	}
+	return &artifact, nil
+}
+
+// --------------------------------------------------------------------------
+// Helper Functions
+// --------------------------------------------------------------------------
+
+// dsseEnvelopeToUploadRequest converts a DSSE envelope into an UploadRequest.
+// It uses the envelope's PayloadType as the ArtifactType and the first signature.
+func dsseEnvelopeToUploadRequest(env dsse.Envelope) *UploadRequest {
+	var sig dsse.Signature
+	if len(env.Signatures) > 0 {
+		sig = env.Signatures[0]
+	}
+	return &UploadRequest{
+		ArtifactType: env.PayloadType,
+		Payload:      env.Payload,
+		Signature:    sig.Signature,
+		KeyID:        sig.KeyID,
+	}
+}
+
+// getKey extracts the key from the storage options.
+func getKey(opts config.StorageOpts) (string, error) {
+	if opts.ShortKey == "" {
+		return "", fmt.Errorf("missing key in storage options (opts.ShortKey)")
+	}
+	return opts.ShortKey, nil
+}
+
+// buildEnvelope constructs a DSSE envelope from the raw payload, signature, and key.
+func buildEnvelope(rawPayload []byte, signature, key string) dsse.Envelope {
+	return dsse.Envelope{
 		Payload:     rawPayload,
 		PayloadType: "tekton-chains",
 		Signatures: []dsse.Signature{
@@ -102,21 +169,70 @@ func (a *ArchivistaStorage) StorePayload(ctx context.Context, obj objects.Tekton
 			},
 		},
 	}
+}
+
+// --------------------------------------------------------------------------
+// ArchivistaStorage Implementation (Tekton Backend)
+// --------------------------------------------------------------------------
+
+// Backend is the interface that all storage backends must implement.
+type Backend interface {
+	StorePayload(ctx context.Context, obj objects.TektonObject, rawPayload []byte, signature string, opts config.StorageOpts) error
+	RetrievePayloads(ctx context.Context, obj objects.TektonObject, opts config.StorageOpts) (map[string]string, error)
+	RetrieveSignatures(ctx context.Context, obj objects.TektonObject, opts config.StorageOpts) (map[string][]string, error)
+	Type() string
+}
+
+// ArchivistaStorage implements the Backend interface for Archivista.
+type ArchivistaStorage struct {
+	client ArchivistaClient
+	url    string
+	cfg    config.ArchivistaStorageConfig
+}
+
+// NewArchivistaStorage initializes a new ArchivistaStorage backend by reading the Archivista URL
+// from the top-level config and creating an HTTP client wrapper.
+func NewArchivistaStorage(cfg config.Config) (*ArchivistaStorage, error) {
+	archCfg := cfg.Storage.Archivista
+	if archCfg.URL == "" {
+		return nil, fmt.Errorf("missing archivista URL in storage configuration")
+	}
+
+	client := &httpArchivistaClient{
+		baseURL:    archCfg.URL,
+		httpClient: &http.Client{},
+	}
+
+	return &ArchivistaStorage{
+		client: client,
+		url:    archCfg.URL,
+		cfg:    archCfg,
+	}, nil
+}
+
+// StorePayload builds a DSSE envelope from the raw payload and signature,
+// converts it to an UploadRequest, and uploads it via the underlying HTTP client.
+func (a *ArchivistaStorage) StorePayload(ctx context.Context, obj objects.TektonObject, rawPayload []byte, signature string, opts config.StorageOpts) error {
+	logger := logging.FromContext(ctx)
+	key, err := getKey(opts)
+	if err != nil {
+		return err
+	}
+
+	env := buildEnvelope(rawPayload, signature, key)
+	uploadReq := dsseEnvelopeToUploadRequest(env)
 
 	logger.Infof("Uploading DSSE envelope to Archivista for key %q", key)
-	uploadResp, err := a.client.Upload(ctx, env)
+	uploadResp, err := a.client.Upload(ctx, uploadReq)
 	if err != nil {
 		logger.Errorw("Failed to upload DSSE envelope to Archivista", "key", key, "error", err)
 		return fmt.Errorf("failed to upload to archivista: %w", err)
 	}
-
-	logger.Infof("Successfully uploaded DSSE envelope to Archivista")
-	_ = uploadResp // suppress unused variable warning
-
+	logger.Infof("Successfully uploaded DSSE envelope to Archivista, response: %+v", uploadResp)
 	return nil
 }
 
-// RetrievePayload is our internal method that retrieves a payload and signature from Archivista using the key.
+// RetrievePayload is an internal helper that retrieves an artifact from Archivista.
 func (a *ArchivistaStorage) RetrievePayload(ctx context.Context, key string) ([]byte, []byte, error) {
 	logger := logging.FromContext(ctx)
 	logger.Infof("Retrieving artifact from Archivista for key %q", key)
@@ -130,9 +246,13 @@ func (a *ArchivistaStorage) RetrievePayload(ctx context.Context, key string) ([]
 }
 
 // RetrievePayloads implements the Backend interface.
-// It calls the internal RetrievePayload and returns a map from key to payload (as a string).
+// It returns a map from the key to the artifact payload as a string.
 func (a *ArchivistaStorage) RetrievePayloads(ctx context.Context, obj objects.TektonObject, opts config.StorageOpts) (map[string]string, error) {
-	key := opts.ShortKey
+	key, err := getKey(opts)
+	if err != nil {
+		return nil, err
+	}
+
 	payload, _, err := a.RetrievePayload(ctx, key)
 	if err != nil {
 		return nil, err
@@ -141,14 +261,18 @@ func (a *ArchivistaStorage) RetrievePayloads(ctx context.Context, obj objects.Te
 }
 
 // RetrieveSignatures implements the Backend interface.
-// It calls the internal RetrievePayload and returns a map from key to a slice containing the signature.
+// It returns a map from the key to a slice containing the artifact signature as a string.
 func (a *ArchivistaStorage) RetrieveSignatures(ctx context.Context, obj objects.TektonObject, opts config.StorageOpts) (map[string][]string, error) {
-	key := opts.ShortKey
-	_, signature, err := a.RetrievePayload(ctx, key)
+	key, err := getKey(opts)
 	if err != nil {
 		return nil, err
 	}
-	return map[string][]string{key: {string(signature)}}, nil
+
+	_, sig, err := a.RetrievePayload(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	return map[string][]string{key: {string(sig)}}, nil
 }
 
 // Type returns the storage backend type.
