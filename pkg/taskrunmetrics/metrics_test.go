@@ -60,8 +60,31 @@ func TestCountMetrics(t *testing.T) {
 	metricstest.CheckCountData(t, chains.TaskRunMarkedName, map[string]string{}, 1)
 }
 
+func TestRecordErrorMetric(t *testing.T) {
+	unregisterMetrics()
+	ctx := context.Background()
+	ctx = WithClient(ctx)
+
+	rec := Get(ctx)
+	if rec == nil {
+		t.Fatal("Recorder not initialized")
+	}
+
+	// Record an error metric with a sample error type "signing"
+	rec.RecordErrorMetric(ctx, "signing")
+
+	// Verify that the error metric is recorded with the tag error_type=signing.
+	metricstest.CheckCountData(t, chains.TaskRunErrorCountName, map[string]string{"error_type": "signing"}, 1)
+}
+
 func unregisterMetrics() {
-	metricstest.Unregister(chains.TaskRunSignedName, chains.TaskRunUploadedName, chains.TaskRunStoredName, chains.TaskRunMarkedName)
+	metricstest.Unregister(
+		chains.TaskRunSignedName,
+		chains.TaskRunUploadedName,
+		chains.TaskRunStoredName,
+		chains.TaskRunMarkedName,
+		chains.TaskRunErrorCountName,
+	)
 	// Allow the recorder singleton to be recreated.
 	once = sync.Once{}
 	r = nil

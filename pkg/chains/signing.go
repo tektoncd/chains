@@ -42,6 +42,7 @@ type Signer interface {
 
 type MetricsRecorder interface {
 	RecordCountMetrics(ctx context.Context, MetricType string)
+	RecordErrorMetric(ctx context.Context, errType string)
 }
 
 type ObjectSigner struct {
@@ -53,6 +54,29 @@ type ObjectSigner struct {
 	Pipelineclientset versioned.Interface
 	// Metrics Recorder config
 	Recorder MetricsRecorder
+}
+
+type ErrorTypeMetricValue string
+
+const (
+	// PayloadCreationError is recorded when CreatePayload fails.
+	PayloadCreationError ErrorTypeMetricValue = "payload_creation"
+	MarshalPayloadError  ErrorTypeMetricValue = "marshal_payload"
+	SigningError         ErrorTypeMetricValue = "signing"
+	StorageError         ErrorTypeMetricValue = "storage"
+	TlogError            ErrorTypeMetricValue = "tlog"
+)
+
+// shouldRecordError returns true if the artifact type is TaskRunArtifact or PipelineRunArtifact.
+func (o *ObjectSigner) shouldRecordError(kind string) bool {
+	return kind == "TaskRunArtifact" || kind == "PipelineRunArtifact"
+}
+
+// recordError abstracts the check and calls RecordErrorMetric if appropriate.
+func (o *ObjectSigner) recordError(ctx context.Context, kind string, errType ErrorTypeMetricValue) {
+	if o.shouldRecordError(kind) && o.Recorder != nil {
+		o.Recorder.RecordErrorMetric(ctx, string(errType))
+	}
 }
 
 func allSigners(ctx context.Context, sp string, cfg config.Config) map[string]signing.Signer {
@@ -114,8 +138,8 @@ func getSignableTypes(ctx context.Context, obj objects.TektonObject) ([]artifact
 	return types, nil
 }
 
-// Signs TaskRun and PipelineRun objects, as well as generates attesations for each
-// Follows process of extract payload, sign payload, store payload and signature
+// Sign TaskRun and PipelineRun objects, as well as generates attestations for each.
+// Follows process of extract payload, sign payload, store payload and signature.
 func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject) error {
 	cfg := *config.FromContext(ctx)
 	logger := logging.FromContext(ctx)
@@ -150,6 +174,7 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 			payload, err := payloader.CreatePayload(ctx, obj)
 			if err != nil {
 				logger.Error(err)
+				o.recordError(ctx, signableType.Type(), PayloadCreationError)
 				continue
 			}
 			logger.Infof("Created payload of type %s for %s %s/%s", string(payloadFormat), tektonObj.GetGVK(), tektonObj.GetNamespace(), tektonObj.GetName())
@@ -174,13 +199,15 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 			logger.Infof("Signing object with %s", signerType)
 			rawPayload, err := getRawPayload(payload)
 			if err != nil {
-				logger.Warnf("Unable to marshal payload: %v", signerType, obj)
+				logger.Warnf("Unable to marshal payload for %s: %v", signerType, err)
+				o.recordError(ctx, signableType.Type(), MarshalPayloadError)
 				continue
 			}
 
 			signature, err := signer.SignMessage(bytes.NewReader(rawPayload))
 			if err != nil {
 				logger.Error(err)
+				o.recordError(ctx, signableType.Type(), SigningError)
 				continue
 			}
 			measureMetrics(ctx, SignedMessagesCount, o.Recorder)
@@ -191,6 +218,7 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 				if !ok {
 					backendErr := fmt.Errorf("could not find backend '%s' in configured backends (%v) while trying sign: %s/%s", backend, maps.Keys(o.Backends), tektonObj.GetKindName(), tektonObj.GetName())
 					logger.Error(backendErr)
+					o.recordError(ctx, signableType.Type(), StorageError)
 					merr = multierror.Append(merr, backendErr)
 					continue
 				}
@@ -204,6 +232,7 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 				}
 				if err := b.StorePayload(ctx, tektonObj, rawPayload, string(signature), storageOpts); err != nil {
 					logger.Error(err)
+					o.recordError(ctx, signableType.Type(), StorageError)
 					merr = multierror.Append(merr, err)
 				} else {
 					measureMetrics(ctx, SignsStoredCount, o.Recorder)
@@ -219,6 +248,7 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 				entry, err := rekorClient.UploadTlog(ctx, signer, signature, rawPayload, signer.Cert(), string(payloadFormat))
 				if err != nil {
 					logger.Warnf("error uploading entry to tlog: %v", err)
+					o.recordError(ctx, signableType.Type(), TlogError)
 					merr = multierror.Append(merr, err)
 				} else {
 					logger.Infof("Uploaded entry to %s with index %d", cfg.Transparency.URL, *entry.LogIndex)
@@ -229,9 +259,9 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 
 		}
 		if merr.ErrorOrNil() != nil {
-			if err := HandleRetry(ctx, tektonObj, o.Pipelineclientset, extraAnnotations); err != nil {
-				logger.Warnf("error handling retry: %v", err)
-				merr = multierror.Append(merr, err)
+			if retryErr := HandleRetry(ctx, tektonObj, o.Pipelineclientset, extraAnnotations); retryErr != nil {
+				logger.Warnf("error handling retry: %v", retryErr)
+				merr = multierror.Append(merr, retryErr)
 			}
 			return merr
 		}
@@ -249,7 +279,6 @@ func measureMetrics(ctx context.Context, metrictype string, mtr MetricsRecorder)
 	if mtr != nil {
 		mtr.RecordCountMetrics(ctx, metrictype)
 	}
-
 }
 
 func HandleRetry(ctx context.Context, obj objects.TektonObject, ps versioned.Interface, annotations map[string]string) error {
