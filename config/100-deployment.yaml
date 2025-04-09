@@ -105,6 +105,8 @@ spec:
               value: tekton-chains-config-observability
             - name: CONFIG_LEADERELECTION_NAME
               value: tekton-chains-config-leader-election
+            - name: KUBERNETES_MIN_VERSION
+              value: "v1.28.0"
 
           ports:
             - name: metrics
