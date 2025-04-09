@@ -58,7 +58,7 @@ type ResolveOptions struct {
 	WithStepActionsResults bool
 }
 
-// ConvertMaterialToResolvedDependency converts a SLSAv0.2 Material to a resolved dependency
+// ConvertMaterialsToResolvedDependencies converts a SLSAv0.2 Material to a resolved dependency
 func ConvertMaterialsToResolvedDependencies(mats []common.ProvenanceMaterial, name string) []*intoto.ResourceDescriptor {
 	rds := []*intoto.ResourceDescriptor{}
 	for _, mat := range mats {
