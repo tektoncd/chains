@@ -10,6 +10,15 @@ cascade:
 ---
 -->
 
+> ℹ️ **Important**
+>
+> **Migrate Images from *gcr.io* to *ghcr.io*.**
+>
+> To reduce costs, we've migrated all our new and old Tekton releases to the free tier on [ghcr.io/tektoncd](https://github.com/orgs/tektoncd/packages?repo_name=dashboard). <br />
+> Read more [here](https://tekton.dev/blog/2025/04/03/migration-to-github-container-registry/).
+
+---
+
 # Tekton Chains
 
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/6408/badge)](https://bestpractices.coreinfrastructure.org/projects/6408)
