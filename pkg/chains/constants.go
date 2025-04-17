@@ -26,6 +26,8 @@ const (
 	PipelineRunStoredDesc   = "Total number of stored payloads for pipelineruns"
 	PipelineRunMarkedName   = "pipelinerun_marked_signed_total"
 	PipelineRunMarkedDesc   = "Total number of objects marked as signed for pipelineruns"
+	PipelineRunErrorCountName = "pipelinerun_signing_failures_total"
+	PipelineRunErrorCountDesc = "Total number of PipelineRun signing failures"
 	TaskRunSignedName       = "taskrun_sign_created_total"
 	TaskRunSignedDesc       = "Total number of signed messages for taskruns"
 	TaskRunUploadedName     = "taskrun_payload_uploaded_total"
@@ -34,4 +36,6 @@ const (
 	TaskRunStoredDesc       = "Total number of stored payloads for taskruns"
 	TaskRunMarkedName       = "taskrun_marked_signed_total"
 	TaskRunMarkedDesc       = "Total number of objects marked as signed for taskruns"
+	TaskRunErrorCountName 	= "taskrun_signing_failures_total"
+    TaskRunErrorCountDesc 	= "Total number of TaskRun signing failures"
 )
