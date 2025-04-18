@@ -34,7 +34,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -347,7 +346,7 @@ func TestBackend_ListOccurrences(t *testing.T) {
 				Name: occ.NoteName,
 			},
 		})
-		if err != nil && status.Code(err) != codes.AlreadyExists {
+		if err != nil && gstatus.Code(err) != codes.AlreadyExists {
 			t.Fatal("Failed to create notes in the server, err:", err)
 		}
 

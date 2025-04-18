@@ -37,7 +37,6 @@ import (
 	_ "knative.dev/pkg/client/injection/kube/client/fake"
 	"knative.dev/pkg/configmap"
 	pkgreconciler "knative.dev/pkg/reconciler"
-	reconcilertesting "knative.dev/pkg/reconciler/testing"
 	rtesting "knative.dev/pkg/reconciler/testing"
 	"knative.dev/pkg/system"
 )
@@ -307,7 +306,7 @@ func TestReconciler_handlePipelineRun(t *testing.T) {
 				PipelineRunSigner: signer,
 				Pipelineclientset: c,
 				TaskRunLister:     tri.Lister(),
-				Tracker:           &reconcilertesting.FakeTracker{},
+				Tracker:           &rtesting.FakeTracker{},
 			}
 
 			// Create mock taskruns
