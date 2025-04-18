@@ -29,9 +29,9 @@ linters:
     - asciicheck
     - dogsled
     - errorlint
-    - exportloopref
     - goconst
     - gosimple
+    - gofumpt
     - govet
     - ineffassign
     - misspell
