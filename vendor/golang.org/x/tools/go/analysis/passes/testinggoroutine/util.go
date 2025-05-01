@@ -7,6 +7,7 @@ package testinggoroutine
 import (
 	"go/ast"
 	"go/types"
+	"slices"
 
 	"golang.org/x/tools/internal/typeparams"
 )
@@ -36,6 +37,8 @@ func localFunctionDecls(info *types.Info, files []*ast.File) func(*types.Func) *
 
 // isMethodNamed returns true if f is a method defined
 // in package with the path pkgPath with a name in names.
+//
+// (Unlike [analysisinternal.IsMethodNamed], it ignores the receiver type name.)
 func isMethodNamed(f *types.Func, pkgPath string, names ...string) bool {
 	if f == nil {
 		return false
@@ -46,12 +49,7 @@ func isMethodNamed(f *types.Func, pkgPath string, names ...string) bool {
 	if f.Type().(*types.Signature).Recv() == nil {
 		return false
 	}
-	for _, n := range names {
-		if f.Name() == n {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(names, f.Name())
 }
 
 func funcIdent(fun ast.Expr) *ast.Ident {
