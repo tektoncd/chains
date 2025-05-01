@@ -19,10 +19,10 @@ limitations under the License.
 package v1alpha1
 
 import (
-	v1alpha1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/tools/cache"
+	pipelinev1alpha1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
+	labels "k8s.io/apimachinery/pkg/labels"
+	listers "k8s.io/client-go/listers"
+	cache "k8s.io/client-go/tools/cache"
 )
 
 // VerificationPolicyLister helps list VerificationPolicies.
@@ -30,7 +30,7 @@ import (
 type VerificationPolicyLister interface {
 	// List lists all VerificationPolicies in the indexer.
 	// Objects returned here must be treated as read-only.
-	List(selector labels.Selector) (ret []*v1alpha1.VerificationPolicy, err error)
+	List(selector labels.Selector) (ret []*pipelinev1alpha1.VerificationPolicy, err error)
 	// VerificationPolicies returns an object that can list and get VerificationPolicies.
 	VerificationPolicies(namespace string) VerificationPolicyNamespaceLister
 	VerificationPolicyListerExpansion
@@ -38,25 +38,17 @@ type VerificationPolicyLister interface {
 
 // verificationPolicyLister implements the VerificationPolicyLister interface.
 type verificationPolicyLister struct {
-	indexer cache.Indexer
+	listers.ResourceIndexer[*pipelinev1alpha1.VerificationPolicy]
 }
 
 // NewVerificationPolicyLister returns a new VerificationPolicyLister.
 func NewVerificationPolicyLister(indexer cache.Indexer) VerificationPolicyLister {
-	return &verificationPolicyLister{indexer: indexer}
-}
-
-// List lists all VerificationPolicies in the indexer.
-func (s *verificationPolicyLister) List(selector labels.Selector) (ret []*v1alpha1.VerificationPolicy, err error) {
-	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1alpha1.VerificationPolicy))
-	})
-	return ret, err
+	return &verificationPolicyLister{listers.New[*pipelinev1alpha1.VerificationPolicy](indexer, pipelinev1alpha1.Resource("verificationpolicy"))}
 }
 
 // VerificationPolicies returns an object that can list and get VerificationPolicies.
 func (s *verificationPolicyLister) VerificationPolicies(namespace string) VerificationPolicyNamespaceLister {
-	return verificationPolicyNamespaceLister{indexer: s.indexer, namespace: namespace}
+	return verificationPolicyNamespaceLister{listers.NewNamespaced[*pipelinev1alpha1.VerificationPolicy](s.ResourceIndexer, namespace)}
 }
 
 // VerificationPolicyNamespaceLister helps list and get VerificationPolicies.
@@ -64,36 +56,15 @@ func (s *verificationPolicyLister) VerificationPolicies(namespace string) Verifi
 type VerificationPolicyNamespaceLister interface {
 	// List lists all VerificationPolicies in the indexer for a given namespace.
 	// Objects returned here must be treated as read-only.
-	List(selector labels.Selector) (ret []*v1alpha1.VerificationPolicy, err error)
+	List(selector labels.Selector) (ret []*pipelinev1alpha1.VerificationPolicy, err error)
 	// Get retrieves the VerificationPolicy from the indexer for a given namespace and name.
 	// Objects returned here must be treated as read-only.
-	Get(name string) (*v1alpha1.VerificationPolicy, error)
+	Get(name string) (*pipelinev1alpha1.VerificationPolicy, error)
 	VerificationPolicyNamespaceListerExpansion
 }
 
 // verificationPolicyNamespaceLister implements the VerificationPolicyNamespaceLister
 // interface.
 type verificationPolicyNamespaceLister struct {
-	indexer   cache.Indexer
-	namespace string
-}
-
-// List lists all VerificationPolicies in the indexer for a given namespace.
-func (s verificationPolicyNamespaceLister) List(selector labels.Selector) (ret []*v1alpha1.VerificationPolicy, err error) {
-	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1alpha1.VerificationPolicy))
-	})
-	return ret, err
-}
-
-// Get retrieves the VerificationPolicy from the indexer for a given namespace and name.
-func (s verificationPolicyNamespaceLister) Get(name string) (*v1alpha1.VerificationPolicy, error) {
-	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
-	if err != nil {
-		return nil, err
-	}
-	if !exists {
-		return nil, errors.NewNotFound(v1alpha1.Resource("verificationpolicy"), name)
-	}
-	return obj.(*v1alpha1.VerificationPolicy), nil
+	listers.ResourceIndexer[*pipelinev1alpha1.VerificationPolicy]
 }

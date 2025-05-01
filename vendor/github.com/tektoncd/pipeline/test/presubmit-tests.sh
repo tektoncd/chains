@@ -51,11 +51,11 @@ function ko_resolve() {
     baseImageOverrides:
       # Use the combined base image for images that should include Windows support.
       # NOTE: Make sure this list of images to use the combined base image is in sync with what's in tekton/publish.yaml's 'create-ko-yaml' Task.
-      github.com/tektoncd/pipeline/cmd/entrypoint: gcr.io/tekton-releases/github.com/tektoncd/pipeline/combined-base-image:latest
-      github.com/tektoncd/pipeline/cmd/nop: gcr.io/tekton-releases/github.com/tektoncd/pipeline/combined-base-image:latest
-      github.com/tektoncd/pipeline/cmd/workingdirinit: gcr.io/tekton-releases/github.com/tektoncd/pipeline/combined-base-image:latest
+      github.com/tektoncd/pipeline/cmd/entrypoint: ghcr.io/tektoncd/pipeline/github.com/tektoncd/pipeline/combined-base-image:latest
+      github.com/tektoncd/pipeline/cmd/nop: ghcr.io/tektoncd/pipeline/github.com/tektoncd/pipeline/combined-base-image:latest
+      github.com/tektoncd/pipeline/cmd/workingdirinit: ghcr.io/tektoncd/pipeline/github.com/tektoncd/pipeline/combined-base-image:latest
 
-      github.com/tektoncd/pipeline/cmd/git-init: cgr.dev/chainguard/git
+      github.com/tektoncd/pipeline/cmd/resolvers: cgr.dev/chainguard/git@sha256:566235a8ef752f37d285042ee05fc37dbb04293e50f116a231984080fb835693
 EOF
 
   KO_DOCKER_REPO=example.com ko resolve -l 'app.kubernetes.io/component!=resolvers' --platform=all --push=false -R -f config 1>/dev/null
@@ -64,7 +64,7 @@ EOF
 
 function post_build_tests() {
   check_yaml_lint
-  ko_resolve
+  # ko_resolve
 }
 
 # We use the default build, unit and integration test runners.

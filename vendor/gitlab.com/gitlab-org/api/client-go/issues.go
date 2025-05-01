@@ -24,14 +24,42 @@ import (
 	"time"
 )
 
-// IssuesService handles communication with the issue related methods
-// of the GitLab API.
-//
-// GitLab API docs: https://docs.gitlab.com/ee/api/issues.html
-type IssuesService struct {
-	client    *Client
-	timeStats *timeStatsService
-}
+type (
+	IssuesServiceInterface interface {
+		ListIssues(opt *ListIssuesOptions, options ...RequestOptionFunc) ([]*Issue, *Response, error)
+		ListGroupIssues(pid interface{}, opt *ListGroupIssuesOptions, options ...RequestOptionFunc) ([]*Issue, *Response, error)
+		ListProjectIssues(pid interface{}, opt *ListProjectIssuesOptions, options ...RequestOptionFunc) ([]*Issue, *Response, error)
+		GetIssueByID(issue int, options ...RequestOptionFunc) (*Issue, *Response, error)
+		GetIssue(pid interface{}, issue int, options ...RequestOptionFunc) (*Issue, *Response, error)
+		CreateIssue(pid interface{}, opt *CreateIssueOptions, options ...RequestOptionFunc) (*Issue, *Response, error)
+		UpdateIssue(pid interface{}, issue int, opt *UpdateIssueOptions, options ...RequestOptionFunc) (*Issue, *Response, error)
+		DeleteIssue(pid interface{}, issue int, options ...RequestOptionFunc) (*Response, error)
+		ReorderIssue(pid interface{}, issue int, opt *ReorderIssueOptions, options ...RequestOptionFunc) (*Issue, *Response, error)
+		MoveIssue(pid interface{}, issue int, opt *MoveIssueOptions, options ...RequestOptionFunc) (*Issue, *Response, error)
+		SubscribeToIssue(pid interface{}, issue int, options ...RequestOptionFunc) (*Issue, *Response, error)
+		UnsubscribeFromIssue(pid interface{}, issue int, options ...RequestOptionFunc) (*Issue, *Response, error)
+		CreateTodo(pid interface{}, issue int, options ...RequestOptionFunc) (*Todo, *Response, error)
+		ListMergeRequestsClosingIssue(pid interface{}, issue int, opt *ListMergeRequestsClosingIssueOptions, options ...RequestOptionFunc) ([]*BasicMergeRequest, *Response, error)
+		ListMergeRequestsRelatedToIssue(pid interface{}, issue int, opt *ListMergeRequestsRelatedToIssueOptions, options ...RequestOptionFunc) ([]*BasicMergeRequest, *Response, error)
+		SetTimeEstimate(pid interface{}, issue int, opt *SetTimeEstimateOptions, options ...RequestOptionFunc) (*TimeStats, *Response, error)
+		ResetTimeEstimate(pid interface{}, issue int, options ...RequestOptionFunc) (*TimeStats, *Response, error)
+		AddSpentTime(pid interface{}, issue int, opt *AddSpentTimeOptions, options ...RequestOptionFunc) (*TimeStats, *Response, error)
+		ResetSpentTime(pid interface{}, issue int, options ...RequestOptionFunc) (*TimeStats, *Response, error)
+		GetTimeSpent(pid interface{}, issue int, options ...RequestOptionFunc) (*TimeStats, *Response, error)
+		GetParticipants(pid interface{}, issue int, options ...RequestOptionFunc) ([]*BasicUser, *Response, error)
+	}
+
+	// IssuesService handles communication with the issue related methods
+	// of the GitLab API.
+	//
+	// GitLab API docs: https://docs.gitlab.com/ee/api/issues.html
+	IssuesService struct {
+		client    *Client
+		timeStats *timeStatsService
+	}
+)
+
+var _ IssuesServiceInterface = (*IssuesService)(nil)
 
 // IssueAuthor represents a author of the issue.
 type IssueAuthor struct {
@@ -120,6 +148,7 @@ type Issue struct {
 	Epic                 *Epic                  `json:"epic"`
 	Iteration            *GroupIteration        `json:"iteration"`
 	TaskCompletionStatus *TasksCompletionStatus `json:"task_completion_status"`
+	ServiceDeskReplyTo   string                 `json:"service_desk_reply_to"`
 }
 
 func (i Issue) String() string {
@@ -246,29 +275,29 @@ type ListGroupIssuesOptions struct {
 	NotMilestone      *string       `url:"not[milestone],omitempty" json:"not[milestone],omitempty"`
 	Scope             *string       `url:"scope,omitempty" json:"scope,omitempty"`
 	AuthorID          *int          `url:"author_id,omitempty" json:"author_id,omitempty"`
-	NotAuthorID       *[]int        `url:"not[author_id],omitempty" json:"not[author_id],omitempty"`
+	NotAuthorID       *int          `url:"not[author_id],omitempty" json:"not[author_id],omitempty"`
 	AuthorUsername    *string       `url:"author_username,omitempty" json:"author_username,omitempty"`
 	NotAuthorUsername *string       `url:"not[author_username],omitempty" json:"not[author_username],omitempty"`
 
-	AssigneeID          *AssigneeIDValue `url:"assignee_id,omitempty" json:"assignee_id,omitempty"`
-	NotAssigneeID       *[]int           `url:"not[assignee_id],omitempty" json:"not[assignee_id],omitempty"`
-	AssigneeUsername    *string          `url:"assignee_username,omitempty" json:"assignee_username,omitempty"`
-	NotAssigneeUsername *string          `url:"not[assignee_username],omitempty" json:"not[assignee_username],omitempty"`
-	MyReactionEmoji     *string          `url:"my_reaction_emoji,omitempty" json:"my_reaction_emoji,omitempty"`
-	NotMyReactionEmoji  *[]string        `url:"not[my_reaction_emoji],omitempty" json:"not[my_reaction_emoji],omitempty"`
-	OrderBy             *string          `url:"order_by,omitempty" json:"order_by,omitempty"`
-	Sort                *string          `url:"sort,omitempty" json:"sort,omitempty"`
-	Search              *string          `url:"search,omitempty" json:"search,omitempty"`
-	NotSearch           *string          `url:"not[search],omitempty" json:"not[search],omitempty"`
-	In                  *string          `url:"in,omitempty" json:"in,omitempty"`
-	NotIn               *string          `url:"not[in],omitempty" json:"not[in],omitempty"`
-	CreatedAfter        *time.Time       `url:"created_after,omitempty" json:"created_after,omitempty"`
-	CreatedBefore       *time.Time       `url:"created_before,omitempty" json:"created_before,omitempty"`
-	DueDate             *string          `url:"due_date,omitempty" json:"due_date,omitempty"`
-	UpdatedAfter        *time.Time       `url:"updated_after,omitempty" json:"updated_after,omitempty"`
-	UpdatedBefore       *time.Time       `url:"updated_before,omitempty" json:"updated_before,omitempty"`
-	IssueType           *string          `url:"issue_type,omitempty" json:"issue_type,omitempty"`
-	IterationID         *int             `url:"iteration_id,omitempty" json:"iteration_id,omitempty"`
+	AssigneeID          *int       `url:"assignee_id,omitempty" json:"assignee_id,omitempty"`
+	NotAssigneeID       *int       `url:"not[assignee_id],omitempty" json:"not[assignee_id],omitempty"`
+	AssigneeUsername    *string    `url:"assignee_username,omitempty" json:"assignee_username,omitempty"`
+	NotAssigneeUsername *string    `url:"not[assignee_username],omitempty" json:"not[assignee_username],omitempty"`
+	MyReactionEmoji     *string    `url:"my_reaction_emoji,omitempty" json:"my_reaction_emoji,omitempty"`
+	NotMyReactionEmoji  *string    `url:"not[my_reaction_emoji],omitempty" json:"not[my_reaction_emoji],omitempty"`
+	OrderBy             *string    `url:"order_by,omitempty" json:"order_by,omitempty"`
+	Sort                *string    `url:"sort,omitempty" json:"sort,omitempty"`
+	Search              *string    `url:"search,omitempty" json:"search,omitempty"`
+	NotSearch           *string    `url:"not[search],omitempty" json:"not[search],omitempty"`
+	In                  *string    `url:"in,omitempty" json:"in,omitempty"`
+	NotIn               *string    `url:"not[in],omitempty" json:"not[in],omitempty"`
+	CreatedAfter        *time.Time `url:"created_after,omitempty" json:"created_after,omitempty"`
+	CreatedBefore       *time.Time `url:"created_before,omitempty" json:"created_before,omitempty"`
+	DueDate             *string    `url:"due_date,omitempty" json:"due_date,omitempty"`
+	UpdatedAfter        *time.Time `url:"updated_after,omitempty" json:"updated_after,omitempty"`
+	UpdatedBefore       *time.Time `url:"updated_before,omitempty" json:"updated_before,omitempty"`
+	IssueType           *string    `url:"issue_type,omitempty" json:"issue_type,omitempty"`
+	IterationID         *int       `url:"iteration_id,omitempty" json:"iteration_id,omitempty"`
 }
 
 // ListGroupIssues gets a list of group issues. This function accepts
@@ -668,7 +697,7 @@ type ListMergeRequestsClosingIssueOptions ListOptions
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/issues.html#list-merge-requests-that-close-a-particular-issue-on-merge
-func (s *IssuesService) ListMergeRequestsClosingIssue(pid interface{}, issue int, opt *ListMergeRequestsClosingIssueOptions, options ...RequestOptionFunc) ([]*MergeRequest, *Response, error) {
+func (s *IssuesService) ListMergeRequestsClosingIssue(pid interface{}, issue int, opt *ListMergeRequestsClosingIssueOptions, options ...RequestOptionFunc) ([]*BasicMergeRequest, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -680,7 +709,7 @@ func (s *IssuesService) ListMergeRequestsClosingIssue(pid interface{}, issue int
 		return nil, nil, err
 	}
 
-	var m []*MergeRequest
+	var m []*BasicMergeRequest
 	resp, err := s.client.Do(req, &m)
 	if err != nil {
 		return nil, resp, err
@@ -701,7 +730,7 @@ type ListMergeRequestsRelatedToIssueOptions ListOptions
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/issues.html#list-merge-requests-related-to-issue
-func (s *IssuesService) ListMergeRequestsRelatedToIssue(pid interface{}, issue int, opt *ListMergeRequestsRelatedToIssueOptions, options ...RequestOptionFunc) ([]*MergeRequest, *Response, error) {
+func (s *IssuesService) ListMergeRequestsRelatedToIssue(pid interface{}, issue int, opt *ListMergeRequestsRelatedToIssueOptions, options ...RequestOptionFunc) ([]*BasicMergeRequest, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -716,7 +745,7 @@ func (s *IssuesService) ListMergeRequestsRelatedToIssue(pid interface{}, issue i
 		return nil, nil, err
 	}
 
-	var m []*MergeRequest
+	var m []*BasicMergeRequest
 	resp, err := s.client.Do(req, &m)
 	if err != nil {
 		return nil, resp, err

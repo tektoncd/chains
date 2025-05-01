@@ -34,7 +34,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud"
 
-	"github.com/go-jose/go-jose/v3"
+	"github.com/go-jose/go-jose/v4"
 	"github.com/jellydator/ttlcache/v3"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
@@ -45,7 +45,7 @@ import (
 )
 
 func init() {
-	sigkms.AddProvider(ReferenceScheme, func(ctx context.Context, keyResourceID string, _ crypto.Hash, opts ...signature.RPCOption) (sigkms.SignerVerifier, error) {
+	sigkms.AddProvider(ReferenceScheme, func(ctx context.Context, keyResourceID string, _ crypto.Hash, _ ...signature.RPCOption) (sigkms.SignerVerifier, error) {
 		return LoadSignerVerifier(ctx, keyResourceID)
 	})
 }
@@ -201,7 +201,7 @@ func (a *azureVaultClient) getKey(ctx context.Context) (azkeys.KeyBundle, error)
 func (a *azureVaultClient) public(ctx context.Context) (crypto.PublicKey, error) {
 	var lerr error
 	loader := ttlcache.LoaderFunc[string, crypto.PublicKey](
-		func(c *ttlcache.Cache[string, crypto.PublicKey], key string) *ttlcache.Item[string, crypto.PublicKey] {
+		func(c *ttlcache.Cache[string, crypto.PublicKey], _ string) *ttlcache.Item[string, crypto.PublicKey] {
 			ttl := 300 * time.Second
 			var pubKey crypto.PublicKey
 			pubKey, lerr = a.fetchPublicKey(ctx)

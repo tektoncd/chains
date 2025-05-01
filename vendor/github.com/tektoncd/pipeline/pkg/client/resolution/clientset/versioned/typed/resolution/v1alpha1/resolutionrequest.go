@@ -19,15 +19,14 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"context"
-	"time"
+	context "context"
 
-	v1alpha1 "github.com/tektoncd/pipeline/pkg/apis/resolution/v1alpha1"
+	resolutionv1alpha1 "github.com/tektoncd/pipeline/pkg/apis/resolution/v1alpha1"
 	scheme "github.com/tektoncd/pipeline/pkg/client/resolution/clientset/versioned/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	rest "k8s.io/client-go/rest"
+	gentype "k8s.io/client-go/gentype"
 )
 
 // ResolutionRequestsGetter has a method to return a ResolutionRequestInterface.
@@ -38,158 +37,34 @@ type ResolutionRequestsGetter interface {
 
 // ResolutionRequestInterface has methods to work with ResolutionRequest resources.
 type ResolutionRequestInterface interface {
-	Create(ctx context.Context, resolutionRequest *v1alpha1.ResolutionRequest, opts v1.CreateOptions) (*v1alpha1.ResolutionRequest, error)
-	Update(ctx context.Context, resolutionRequest *v1alpha1.ResolutionRequest, opts v1.UpdateOptions) (*v1alpha1.ResolutionRequest, error)
-	UpdateStatus(ctx context.Context, resolutionRequest *v1alpha1.ResolutionRequest, opts v1.UpdateOptions) (*v1alpha1.ResolutionRequest, error)
+	Create(ctx context.Context, resolutionRequest *resolutionv1alpha1.ResolutionRequest, opts v1.CreateOptions) (*resolutionv1alpha1.ResolutionRequest, error)
+	Update(ctx context.Context, resolutionRequest *resolutionv1alpha1.ResolutionRequest, opts v1.UpdateOptions) (*resolutionv1alpha1.ResolutionRequest, error)
+	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
+	UpdateStatus(ctx context.Context, resolutionRequest *resolutionv1alpha1.ResolutionRequest, opts v1.UpdateOptions) (*resolutionv1alpha1.ResolutionRequest, error)
 	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
-	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.ResolutionRequest, error)
-	List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.ResolutionRequestList, error)
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*resolutionv1alpha1.ResolutionRequest, error)
+	List(ctx context.Context, opts v1.ListOptions) (*resolutionv1alpha1.ResolutionRequestList, error)
 	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.ResolutionRequest, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *resolutionv1alpha1.ResolutionRequest, err error)
 	ResolutionRequestExpansion
 }
 
 // resolutionRequests implements ResolutionRequestInterface
 type resolutionRequests struct {
-	client rest.Interface
-	ns     string
+	*gentype.ClientWithList[*resolutionv1alpha1.ResolutionRequest, *resolutionv1alpha1.ResolutionRequestList]
 }
 
 // newResolutionRequests returns a ResolutionRequests
 func newResolutionRequests(c *ResolutionV1alpha1Client, namespace string) *resolutionRequests {
 	return &resolutionRequests{
-		client: c.RESTClient(),
-		ns:     namespace,
+		gentype.NewClientWithList[*resolutionv1alpha1.ResolutionRequest, *resolutionv1alpha1.ResolutionRequestList](
+			"resolutionrequests",
+			c.RESTClient(),
+			scheme.ParameterCodec,
+			namespace,
+			func() *resolutionv1alpha1.ResolutionRequest { return &resolutionv1alpha1.ResolutionRequest{} },
+			func() *resolutionv1alpha1.ResolutionRequestList { return &resolutionv1alpha1.ResolutionRequestList{} },
+		),
 	}
-}
-
-// Get takes name of the resolutionRequest, and returns the corresponding resolutionRequest object, and an error if there is any.
-func (c *resolutionRequests) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.ResolutionRequest, err error) {
-	result = &v1alpha1.ResolutionRequest{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("resolutionrequests").
-		Name(name).
-		VersionedParams(&options, scheme.ParameterCodec).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// List takes label and field selectors, and returns the list of ResolutionRequests that match those selectors.
-func (c *resolutionRequests) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.ResolutionRequestList, err error) {
-	var timeout time.Duration
-	if opts.TimeoutSeconds != nil {
-		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
-	}
-	result = &v1alpha1.ResolutionRequestList{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("resolutionrequests").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Timeout(timeout).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Watch returns a watch.Interface that watches the requested resolutionRequests.
-func (c *resolutionRequests) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
-	var timeout time.Duration
-	if opts.TimeoutSeconds != nil {
-		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
-	}
-	opts.Watch = true
-	return c.client.Get().
-		Namespace(c.ns).
-		Resource("resolutionrequests").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Timeout(timeout).
-		Watch(ctx)
-}
-
-// Create takes the representation of a resolutionRequest and creates it.  Returns the server's representation of the resolutionRequest, and an error, if there is any.
-func (c *resolutionRequests) Create(ctx context.Context, resolutionRequest *v1alpha1.ResolutionRequest, opts v1.CreateOptions) (result *v1alpha1.ResolutionRequest, err error) {
-	result = &v1alpha1.ResolutionRequest{}
-	err = c.client.Post().
-		Namespace(c.ns).
-		Resource("resolutionrequests").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(resolutionRequest).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Update takes the representation of a resolutionRequest and updates it. Returns the server's representation of the resolutionRequest, and an error, if there is any.
-func (c *resolutionRequests) Update(ctx context.Context, resolutionRequest *v1alpha1.ResolutionRequest, opts v1.UpdateOptions) (result *v1alpha1.ResolutionRequest, err error) {
-	result = &v1alpha1.ResolutionRequest{}
-	err = c.client.Put().
-		Namespace(c.ns).
-		Resource("resolutionrequests").
-		Name(resolutionRequest.Name).
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(resolutionRequest).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *resolutionRequests) UpdateStatus(ctx context.Context, resolutionRequest *v1alpha1.ResolutionRequest, opts v1.UpdateOptions) (result *v1alpha1.ResolutionRequest, err error) {
-	result = &v1alpha1.ResolutionRequest{}
-	err = c.client.Put().
-		Namespace(c.ns).
-		Resource("resolutionrequests").
-		Name(resolutionRequest.Name).
-		SubResource("status").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(resolutionRequest).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Delete takes name of the resolutionRequest and deletes it. Returns an error if one occurs.
-func (c *resolutionRequests) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
-	return c.client.Delete().
-		Namespace(c.ns).
-		Resource("resolutionrequests").
-		Name(name).
-		Body(&opts).
-		Do(ctx).
-		Error()
-}
-
-// DeleteCollection deletes a collection of objects.
-func (c *resolutionRequests) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
-	var timeout time.Duration
-	if listOpts.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
-	}
-	return c.client.Delete().
-		Namespace(c.ns).
-		Resource("resolutionrequests").
-		VersionedParams(&listOpts, scheme.ParameterCodec).
-		Timeout(timeout).
-		Body(&opts).
-		Do(ctx).
-		Error()
-}
-
-// Patch applies the patch and returns the patched resolutionRequest.
-func (c *resolutionRequests) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.ResolutionRequest, err error) {
-	result = &v1alpha1.ResolutionRequest{}
-	err = c.client.Patch(pt).
-		Namespace(c.ns).
-		Resource("resolutionrequests").
-		Name(name).
-		SubResource(subresources...).
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(data).
-		Do(ctx).
-		Into(result)
-	return
 }
