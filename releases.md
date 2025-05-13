@@ -100,6 +100,13 @@ deprecation window timers begin from when the release is published.
 
 ## Current Releases
 
+### v0.25 (LTS)
+- **Latest Release**: [v0.25.0][v0-25-0] (2025-05-13)
+- **Initial Release**: [v0.25.0][v0-25-0] (2025-05-13)
+
+[v0-25-0]: https://github.com/tektoncd/chains/releases/tag/v0.25.0
+[v0-25-0]: https://github.com/tektoncd/chains/releases/tag/v0.25.0
+
 ### v0.24 (LTS)
 - **Latest Release**: [v0.24.0][v0-24-0] (2025-02-11)
 - **Initial Release**: [v0.24.0][v0-24-0] (2025-02-11)
