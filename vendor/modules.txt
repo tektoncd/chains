@@ -2419,8 +2419,8 @@ go.uber.org/zap/internal/stacktrace
 go.uber.org/zap/internal/ztest
 go.uber.org/zap/zapcore
 go.uber.org/zap/zaptest
-# gocloud.dev v0.41.0
-## explicit; go 1.24
+# gocloud.dev v0.40.0
+## explicit; go 1.21.0
 gocloud.dev/aws
 gocloud.dev/docstore
 gocloud.dev/docstore/awsdynamodb
@@ -2439,11 +2439,11 @@ gocloud.dev/pubsub
 gocloud.dev/pubsub/batcher
 gocloud.dev/pubsub/driver
 gocloud.dev/pubsub/mempubsub
-# gocloud.dev/docstore/mongodocstore v0.41.0
-## explicit; go 1.24
+# gocloud.dev/docstore/mongodocstore v0.40.0
+## explicit; go 1.22
 gocloud.dev/docstore/mongodocstore
-# gocloud.dev/pubsub/kafkapubsub v0.41.0
-## explicit; go 1.24
+# gocloud.dev/pubsub/kafkapubsub v0.40.0
+## explicit; go 1.21.0
 gocloud.dev/pubsub/kafkapubsub
 # golang.org/x/crypto v0.37.0
 ## explicit; go 1.23.0

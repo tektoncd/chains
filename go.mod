@@ -1,7 +1,6 @@
 module github.com/tektoncd/chains
 
 go 1.23.4
-toolchain go1.24.1
 
 require (
 	cloud.google.com/go/compute/metadata v0.6.0
@@ -35,9 +34,9 @@ require (
 	github.com/tektoncd/plumbing v0.0.0-20250115133002-f515628dffea
 	go.opencensus.io v0.24.0
 	go.uber.org/zap v1.27.0
-	gocloud.dev v0.41.0
-	gocloud.dev/docstore/mongodocstore v0.41.0
-	gocloud.dev/pubsub/kafkapubsub v0.41.0
+	gocloud.dev v0.40.0
+	gocloud.dev/docstore/mongodocstore v0.40.0
+	gocloud.dev/pubsub/kafkapubsub v0.40.0
 	golang.org/x/crypto v0.37.0
 	golang.org/x/exp v0.0.0-20250210185358-939b2ce775ac
 	google.golang.org/grpc v1.71.1
