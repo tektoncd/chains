@@ -23,6 +23,7 @@ import (
 	"github.com/tektoncd/chains/pkg/chains"
 	"go.opencensus.io/stats"
 	"go.opencensus.io/stats/view"
+	"go.opencensus.io/tag"
 	"knative.dev/pkg/logging"
 	"knative.dev/pkg/metrics"
 )
@@ -51,9 +52,22 @@ var (
 		stats.UnitDimensionless)
 
 	mrCountView *view.View
+
+	// New error metric for PipelineRun signing failures, defined as a Float64 measure.
+	pipelineRunErrorCount = stats.Float64(
+		chains.PipelineRunErrorCountName,
+		chains.PipelineRunErrorCountDesc,
+		stats.UnitDimensionless,
+	)
+
+	// Define a view for the PipelineRun error metric with an error_type tag.
+	pipelineErrorView *view.View
+
+	// Tag key for error type.
+	errorTypeKey, _ = tag.NewKey("error_type")
 )
 
-// Recorder holds keys for Tekton metrics
+// Recorder holds keys for PipelineRun metrics.
 type Recorder struct {
 	initialized bool
 }
@@ -67,7 +81,7 @@ var (
 )
 
 // NewRecorder creates a new metrics recorder instance
-// to log the PipelineRun related metrics
+// to log the PipelineRun related metrics.
 func NewRecorder(ctx context.Context) (*Recorder, error) {
 	var errRegistering error
 	logger := logging.FromContext(ctx)
@@ -110,11 +124,21 @@ func viewRegister() error {
 		Measure:     mrCount,
 		Aggregation: view.Count(),
 	}
+
+	pipelineErrorView = &view.View{
+		Name:        chains.PipelineRunErrorCountName,
+		Description: pipelineRunErrorCount.Description(),
+		Measure:     pipelineRunErrorCount,
+		TagKeys:     []tag.Key{errorTypeKey},
+		Aggregation: view.Count(),
+	}
+
 	return view.Register(
 		sgCountView,
 		plCountView,
 		stCountView,
 		mrCountView,
+		pipelineErrorView,
 	)
 }
 
@@ -136,9 +160,15 @@ func (r *Recorder) RecordCountMetrics(ctx context.Context, metricType string) {
 	default:
 		logger.Errorf("Ignoring the metrics recording as valid Metric type matching %v was not found", mt)
 	}
-
 }
 
 func (r *Recorder) countMetrics(ctx context.Context, measure *stats.Float64Measure) {
 	metrics.Record(ctx, measure.M(1))
+}
+
+// RecordErrorMetric records a PipelineRun signing failure with a given error type tag.
+func (r *Recorder) RecordErrorMetric(ctx context.Context, errType string) {
+	// Add the error_type tag to the context.
+	ctx, _ = tag.New(ctx, tag.Upsert(errorTypeKey, errType))
+	metrics.Record(ctx, pipelineRunErrorCount.M(1))
 }
