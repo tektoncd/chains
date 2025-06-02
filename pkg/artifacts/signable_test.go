@@ -14,7 +14,6 @@ limitations under the License.
 package artifacts
 
 import (
-	"encoding/json"
 	"fmt"
 	"sort"
 	"testing"
@@ -25,7 +24,6 @@ import (
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logtesting "knative.dev/pkg/logging/testing"
 )
@@ -52,145 +50,30 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 		want []interface{}
 	}{
 		{
-			name: "one image",
-			obj: objects.NewTaskRunObjectV1Beta1(&v1beta1.TaskRun{ //nolint:staticcheck
+			name: "one result",
+			obj: objects.NewTaskRunObjectV1(&v1.TaskRun{
 				TypeMeta: metav1.TypeMeta{
 					Kind: "TaskRun",
 				},
-				Status: v1beta1.TaskRunStatus{
-					TaskRunStatusFields: v1beta1.TaskRunStatusFields{
-						ResourcesResult: []v1beta1.PipelineResourceResult{
-							{
-								ResourceName: "my-image",
-								Key:          "url",
-								Value:        "gcr.io/foo/bar",
-							},
-							{
-								ResourceName: "my-image",
-								Key:          "digest",
-								Value:        digest1,
-							},
-						},
-						TaskSpec: &v1beta1.TaskSpec{
-							Resources: &v1beta1.TaskResources{ //nolint:staticcheck
-								Outputs: []v1beta1.TaskResource{ //nolint:staticcheck
-									{
-										ResourceDeclaration: v1beta1.ResourceDeclaration{ //nolint:staticcheck
-											Name: "my-image",
-											Type: "image",
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			}),
-			want: []interface{}{createDigest(t, "gcr.io/foo/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5")},
-		},
-		{
-			name: "two images",
-			obj: objects.NewTaskRunObjectV1Beta1(&v1beta1.TaskRun{ //nolint:staticcheck
-				TypeMeta: metav1.TypeMeta{
-					Kind: "TaskRun",
-				},
-				Status: v1beta1.TaskRunStatus{
-					TaskRunStatusFields: v1beta1.TaskRunStatusFields{
-						ResourcesResult: []v1beta1.PipelineResourceResult{
-							{
-								ResourceName: "my-image1",
-								Key:          "url",
-								Value:        "gcr.io/foo/bar",
-							},
-							{
-								ResourceName: "my-image1",
-								Key:          "digest",
-								Value:        digest1,
-							},
-							{
-								ResourceName: "my-image2",
-								Key:          "url",
-								Value:        "gcr.io/foo/baz",
-							},
-							{
-								ResourceName: "my-image2",
-								Key:          "digest",
-								Value:        digest2,
-							},
-						},
-						TaskSpec: &v1beta1.TaskSpec{
-							Resources: &v1beta1.TaskResources{ //nolint:staticcheck
-								Outputs: []v1beta1.TaskResource{ //nolint:staticcheck
-									{
-										ResourceDeclaration: v1beta1.ResourceDeclaration{ //nolint:staticcheck
-											Name: "my-image1",
-											Type: "image",
-										},
-									},
-									{
-										ResourceDeclaration: v1beta1.ResourceDeclaration{ //nolint:staticcheck
-											Name: "my-image2",
-											Type: "image",
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			}),
-			want: []interface{}{
-				createDigest(t, "gcr.io/foo/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5"),
-				createDigest(t, "gcr.io/foo/baz@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b6"),
-			},
-		},
-		{
-			name: "resource and result",
-			obj: objects.NewTaskRunObjectV1Beta1(&v1beta1.TaskRun{ //nolint:staticcheck
-				TypeMeta: metav1.TypeMeta{
-					Kind: "TaskRun",
-				},
-				Status: v1beta1.TaskRunStatus{
-					TaskRunStatusFields: v1beta1.TaskRunStatusFields{
-						ResourcesResult: []v1beta1.PipelineResourceResult{
-							{
-								ResourceName: "my-image",
-								Key:          "url",
-								Value:        "gcr.io/foo/bar",
-							},
-							{
-								ResourceName: "my-image",
-								Key:          "digest",
-								Value:        digest1,
-							},
-						},
-						TaskRunResults: []v1beta1.TaskRunResult{
+				Status: v1.TaskRunStatus{
+					TaskRunStatusFields: v1.TaskRunStatusFields{
+						Results: []v1.TaskRunResult{
 							{
 								Name:  "IMAGE_URL",
-								Value: *v1beta1.NewStructuredValues("gcr.io/foo/bat"),
+								Value: *v1.NewStructuredValues("gcr.io/foo/bat"),
 							},
 							{
 								Name:  "IMAGE_DIGEST",
-								Value: *v1beta1.NewStructuredValues("sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b4"),
+								Value: *v1.NewStructuredValues("sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b4"),
 							},
 						},
-						TaskSpec: &v1beta1.TaskSpec{
-							Results: []v1beta1.TaskResult{
+						TaskSpec: &v1.TaskSpec{
+							Results: []v1.TaskResult{
 								{
 									Name: "IMAGE_URL",
 								},
 								{
 									Name: "IMAGE_DIGEST",
-								},
-							},
-							Resources: &v1beta1.TaskResources{ //nolint:staticcheck
-								Outputs: []v1beta1.TaskResource{ //nolint:staticcheck
-									{
-										ResourceDeclaration: v1beta1.ResourceDeclaration{ //nolint:staticcheck
-											Name: "my-image",
-											Type: "image",
-										},
-									},
 								},
 							},
 						},
@@ -199,60 +82,35 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 			}),
 			want: []interface{}{
 				createDigest(t, "gcr.io/foo/bat@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b4"),
-				createDigest(t, "gcr.io/foo/bar@sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5")},
+			},
 		},
 		{
 			name: "extra",
-			obj: objects.NewTaskRunObjectV1Beta1(&v1beta1.TaskRun{ //nolint:staticcheck
+			obj: objects.NewTaskRunObjectV1(&v1.TaskRun{
 				TypeMeta: metav1.TypeMeta{
 					Kind: "TaskRun",
 				},
-				Status: v1beta1.TaskRunStatus{
-					TaskRunStatusFields: v1beta1.TaskRunStatusFields{
-						TaskRunResults: []v1beta1.TaskRunResult{
+				Status: v1.TaskRunStatus{
+					TaskRunStatusFields: v1.TaskRunStatusFields{
+						Results: []v1.TaskRunResult{
 							{
 								Name:  "IMAGE_URL",
-								Value: *v1beta1.NewStructuredValues("foo"),
+								Value: *v1.NewStructuredValues("foo"),
 							},
 							{
 								Name:  "gibberish",
-								Value: *v1beta1.NewStructuredValues("baz"),
+								Value: *v1.NewStructuredValues("baz"),
+							},
+							{
+								Name:  "SPAM_IMAGE_URL",
+								Value: *v1.NewStructuredValues("gcr.io/foo/bar"),
+							},
+							{
+								Name:  "SPAM_IMAGE_DIGEST",
+								Value: *v1.NewStructuredValues("sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5"),
 							},
 						},
-						ResourcesResult: []v1beta1.PipelineResourceResult{
-							{
-								ResourceName: "my-image",
-								Key:          "url",
-								Value:        "gcr.io/foo/bar",
-							},
-							{
-								ResourceName: "my-image",
-								Key:          "digest",
-								Value:        digest1,
-							},
-							{
-								ResourceName: "gibberish",
-								Key:          "url",
-								Value:        "gcr.io/foo/bar",
-							},
-							{
-								ResourceName: "gobble-dygook",
-								Key:          "digest",
-								Value:        digest1,
-							},
-						},
-						TaskSpec: &v1beta1.TaskSpec{
-							Resources: &v1beta1.TaskResources{ //nolint:staticcheck
-								Outputs: []v1beta1.TaskResource{ //nolint:staticcheck
-									{
-										ResourceDeclaration: v1beta1.ResourceDeclaration{ //nolint:staticcheck
-											Name: "my-image",
-											Type: "image",
-										},
-									},
-								},
-							},
-						},
+						TaskSpec: &v1.TaskSpec{},
 					},
 				},
 			}),
@@ -300,19 +158,6 @@ func TestOCIArtifact_ExtractObjects(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := logtesting.TestContextWithLogger(t)
 			oa := &OCIArtifact{}
-			if trV1Beta1, ok := tt.obj.GetObject().(*v1beta1.TaskRun); ok { //nolint:staticcheck
-				trV1 := &v1.TaskRun{}
-				if err := trV1Beta1.ConvertTo(ctx, trV1); err == nil {
-					if trV1Beta1.Status.TaskRunStatusFields.TaskSpec != nil && trV1Beta1.Status.TaskRunStatusFields.TaskSpec.Resources != nil { //nolint:staticcheck
-						jsonData, err := json.Marshal(trV1Beta1.Status.TaskRunStatusFields.TaskSpec.Resources) //nolint:staticcheck
-						if err != nil {
-							t.Errorf("Error serializing to JSON: %v", err)
-						}
-						trV1.Annotations["tekton.dev/v1beta1-status-taskrunstatusfields-taskspec-resources"] = string(jsonData)
-					}
-					tt.obj = objects.NewTaskRunObjectV1(trV1)
-				}
-			}
 			got := oa.ExtractObjects(ctx, tt.obj)
 			sort.Slice(got, func(i, j int) bool {
 				a := got[i].(name.Digest)

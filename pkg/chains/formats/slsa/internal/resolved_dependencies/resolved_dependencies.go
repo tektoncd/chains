@@ -27,8 +27,6 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/material"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/objects"
-	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/encoding/protojson"
 	"knative.dev/pkg/logging"
@@ -45,8 +43,6 @@ const (
 	InputResultName = "inputs/result"
 	// PipelineResourceName is the name of the resolved dependency of pipeline resource.
 	PipelineResourceName = "pipelineResource"
-	// v1beta1SpecResourceLabel is the name of the label that contains information about TaskRun resources.
-	v1beta1SpecResourceLabel = "tekton.dev/v1beta1-spec-resources"
 )
 
 // AddTaskDescriptorContent is used to toggle the fields in  see AddTektonTaskDescriptor and AddSLSATaskDescriptor
@@ -223,25 +219,6 @@ func taskDependencies(ctx context.Context, opts ResolveOptions, tro *objects.Tas
 	mats = material.FromTaskParamsAndResults(ctx, tro)
 	// convert materials to resolved dependencies
 	resolvedDependencies = append(resolvedDependencies, ConvertMaterialsToResolvedDependencies(mats, InputResultName)...)
-
-	// add task resources
-	// =====
-	// convert to v1beta1 and add any task resources
-	serializedResources := tro.Annotations[v1beta1SpecResourceLabel]
-	var resources v1beta1.TaskRunResources //nolint:staticcheck
-	shouldReplace := false
-	if err := json.Unmarshal([]byte(serializedResources), &resources); err == nil {
-		shouldReplace = true
-
-	}
-	trV1Beta1 := &v1beta1.TaskRun{} //nolint:staticcheck
-	if err := trV1Beta1.ConvertFrom(ctx, tro.GetObject().(*v1.TaskRun)); err == nil {
-		if shouldReplace {
-			trV1Beta1.Spec.Resources = &resources //nolint:staticcheck
-		}
-		mats = material.FromTaskResources(ctx, trV1Beta1)
-
-	}
 
 	// convert materials to resolved dependencies
 	resolvedDependencies = append(resolvedDependencies,

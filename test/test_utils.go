@@ -284,12 +284,6 @@ func verifySignature(ctx context.Context, t *testing.T, c *clients, obj objects.
 	case *objects.PipelineRunObjectV1:
 		configuredBackends = sets.List[string](cfg.Artifacts.PipelineRuns.StorageBackend)
 		key = fmt.Sprintf("pipelinerun-%s", obj.GetUID())
-	case *objects.TaskRunObjectV1Beta1:
-		configuredBackends = sets.List[string](cfg.Artifacts.TaskRuns.StorageBackend)
-		key = fmt.Sprintf("taskrun-%s", obj.GetUID())
-	case *objects.PipelineRunObjectV1Beta1:
-		configuredBackends = sets.List[string](cfg.Artifacts.PipelineRuns.StorageBackend)
-		key = fmt.Sprintf("pipelinerun-%s", obj.GetUID())
 	}
 
 	for _, b := range configuredBackends {

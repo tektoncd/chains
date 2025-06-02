@@ -37,7 +37,7 @@ import (
 	"github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	logtesting "knative.dev/pkg/logging/testing"
 )
 
@@ -47,7 +47,7 @@ var e1BuildFinished = time.Unix(1617011415, 0).UTC()
 func TestTaskRunCreatePayload1(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
 
-	tr, err := objectloader.TaskRunV1Beta1FromFile("../testdata/pipeline-v1beta1/taskrun1.json")
+	tr, err := objectloader.TaskRunV1FromFile("../testdata/pipeline-v1/taskrun1.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +84,7 @@ func TestTaskRunCreatePayload1(t *testing.T) {
 				Digest:     map[string]string{"sha1": "ab123"},
 				EntryPoint: "build.yaml",
 			},
-			Parameters: map[string]v1beta1.ParamValue{
+			Parameters: map[string]v1.ParamValue{
 				"IMAGE":             {Type: "string", StringVal: "test.io/test/image"},
 				"CHAINS-GIT_COMMIT": {Type: "string", StringVal: "sha:taskrun"},
 				"CHAINS-GIT_URL":    {Type: "string", StringVal: "https://git.test.com"},
@@ -96,7 +96,7 @@ func TestTaskRunCreatePayload1(t *testing.T) {
 		Builder: common.ProvenanceBuilder{
 			ID: "test_builder-1",
 		},
-		BuildType: "tekton.dev/v1beta1/TaskRun",
+		BuildType: "tekton.dev/v1/TaskRun",
 		BuildConfig: taskrun.BuildConfig{
 			Steps: []attest.StepAttestation{
 				{
@@ -144,7 +144,7 @@ func TestTaskRunCreatePayload1(t *testing.T) {
 	}
 	i, _ := NewFormatter(cfg)
 
-	got, err := i.CreatePayload(ctx, objects.NewTaskRunObjectV1Beta1(tr))
+	got, err := i.CreatePayload(ctx, objects.NewTaskRunObjectV1(tr))
 
 	if err != nil {
 		t.Errorf("unexpected error: %s", err.Error())
@@ -157,7 +157,7 @@ func TestTaskRunCreatePayload1(t *testing.T) {
 
 func TestPipelineRunCreatePayload(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
-	pr, err := objectloader.PipelineRunV1Beta1FromFile("../testdata/pipeline-v1beta1/pipelinerun1.json")
+	pr, err := objectloader.PipelineRunV1FromFile("../testdata/pipeline-v1/pipelinerun1.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -204,14 +204,14 @@ func TestPipelineRunCreatePayload(t *testing.T) {
 				Digest:     map[string]string{"sha1": "28b123"},
 				EntryPoint: "pipeline.yaml",
 			},
-			Parameters: map[string]v1beta1.ParamValue{
+			Parameters: map[string]v1.ParamValue{
 				"IMAGE": {Type: "string", StringVal: "test.io/test/image"},
 			},
 		},
 		Builder: common.ProvenanceBuilder{
 			ID: "test_builder-1",
 		},
-		BuildType:   "tekton.dev/v1beta1/PipelineRun",
+		BuildType:   "tekton.dev/v1/PipelineRun",
 		BuildConfig: getBuildPipelineRun(),
 	}
 
@@ -234,15 +234,15 @@ func TestPipelineRunCreatePayload(t *testing.T) {
 		Predicate: predicateStruct,
 	}
 
-	tr1, err := objectloader.TaskRunV1Beta1FromFile("../testdata/pipeline-v1beta1/taskrun1.json")
+	tr1, err := objectloader.TaskRunV1FromFile("../testdata/pipeline-v1/taskrun1.json")
 	if err != nil {
 		t.Errorf("error reading taskrun1: %s", err.Error())
 	}
-	tr2, err := objectloader.TaskRunV1Beta1FromFile("../testdata/pipeline-v1beta1/taskrun2.json")
+	tr2, err := objectloader.TaskRunV1FromFile("../testdata/pipeline-v1/taskrun2.json")
 	if err != nil {
 		t.Errorf("error reading taskrun: %s", err.Error())
 	}
-	pro := objects.NewPipelineRunObjectV1Beta1(pr)
+	pro := objects.NewPipelineRunObjectV1(pr)
 	pro.AppendTaskRun(tr1)
 	pro.AppendTaskRun(tr2)
 
@@ -259,7 +259,7 @@ func TestPipelineRunCreatePayload(t *testing.T) {
 }
 func TestPipelineRunCreatePayloadChildRefs(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
-	pr, err := objectloader.PipelineRunV1Beta1FromFile("../testdata/pipeline-v1beta1/pipelinerun-childrefs.json")
+	pr, err := objectloader.PipelineRunV1FromFile("../testdata/pipeline-v1/pipelinerun-childrefs.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -300,14 +300,14 @@ func TestPipelineRunCreatePayloadChildRefs(t *testing.T) {
 		},
 		Invocation: slsa.ProvenanceInvocation{
 			ConfigSource: slsa.ConfigSource{},
-			Parameters: map[string]v1beta1.ParamValue{
+			Parameters: map[string]v1.ParamValue{
 				"IMAGE": {Type: "string", StringVal: "test.io/test/image"},
 			},
 		},
 		Builder: common.ProvenanceBuilder{
 			ID: "test_builder-1",
 		},
-		BuildType:   "tekton.dev/v1beta1/PipelineRun",
+		BuildType:   "tekton.dev/v1/PipelineRun",
 		BuildConfig: getBuildPipelineRun(),
 	}
 
@@ -331,15 +331,15 @@ func TestPipelineRunCreatePayloadChildRefs(t *testing.T) {
 		Predicate: predicateStruct,
 	}
 
-	tr1, err := objectloader.TaskRunV1Beta1FromFile("../testdata/pipeline-v1beta1/taskrun1.json")
+	tr1, err := objectloader.TaskRunV1FromFile("../testdata/pipeline-v1/taskrun1.json")
 	if err != nil {
 		t.Errorf("error reading taskrun1: %s", err.Error())
 	}
-	tr2, err := objectloader.TaskRunV1Beta1FromFile("../testdata/pipeline-v1beta1/taskrun2.json")
+	tr2, err := objectloader.TaskRunV1FromFile("../testdata/pipeline-v1/taskrun2.json")
 	if err != nil {
 		t.Errorf("error reading taskrun: %s", err.Error())
 	}
-	pro := objects.NewPipelineRunObjectV1Beta1(pr)
+	pro := objects.NewPipelineRunObjectV1(pr)
 	pro.AppendTaskRun(tr1)
 	pro.AppendTaskRun(tr2)
 
@@ -356,7 +356,7 @@ func TestPipelineRunCreatePayloadChildRefs(t *testing.T) {
 
 func TestTaskRunCreatePayload2(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
-	tr, err := objectloader.TaskRunV1Beta1FromFile("../testdata/pipeline-v1beta1/taskrun2.json")
+	tr, err := objectloader.TaskRunV1FromFile("../testdata/pipeline-v1/taskrun2.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -388,7 +388,7 @@ func TestTaskRunCreatePayload2(t *testing.T) {
 				Digest:     common.DigestSet{"sha1": "x123"},
 				EntryPoint: "git-clone.yaml",
 			},
-			Parameters: map[string]v1beta1.ParamValue{
+			Parameters: map[string]v1.ParamValue{
 				"CHAINS-GIT_COMMIT": {Type: "string", StringVal: "sha:taskdefault"},
 				"CHAINS-GIT_URL":    {Type: "string", StringVal: "https://git.test.com"},
 				"revision":          {Type: "string"},
@@ -398,7 +398,7 @@ func TestTaskRunCreatePayload2(t *testing.T) {
 				"labels": {"tekton.dev/pipelineTask": "git-clone"},
 			},
 		},
-		BuildType: "tekton.dev/v1beta1/TaskRun",
+		BuildType: "tekton.dev/v1/TaskRun",
 		BuildConfig: taskrun.BuildConfig{
 			Steps: []attest.StepAttestation{
 				{
@@ -425,7 +425,7 @@ func TestTaskRunCreatePayload2(t *testing.T) {
 		Predicate:     predicateStruct,
 	}
 	i, _ := NewFormatter(cfg)
-	got, err := i.CreatePayload(ctx, objects.NewTaskRunObjectV1Beta1(tr))
+	got, err := i.CreatePayload(ctx, objects.NewTaskRunObjectV1(tr))
 
 	if err != nil {
 		t.Errorf("unexpected error: %s", err.Error())
@@ -438,7 +438,7 @@ func TestTaskRunCreatePayload2(t *testing.T) {
 func TestMultipleSubjects(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
 
-	tr, err := objectloader.TaskRunV1Beta1FromFile("../testdata/pipeline-v1beta1/taskrun-multiple-subjects.json")
+	tr, err := objectloader.TaskRunV1FromFile("../testdata/pipeline-v1/taskrun-multiple-subjects.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -450,7 +450,7 @@ func TestMultipleSubjects(t *testing.T) {
 	}
 
 	predicate := &slsa.ProvenancePredicate{
-		BuildType: "tekton.dev/v1beta1/TaskRun",
+		BuildType: "tekton.dev/v1/TaskRun",
 		Metadata:  &slsa.ProvenanceMetadata{},
 		Builder: common.ProvenanceBuilder{
 			ID: "test_builder-multiple",
@@ -460,9 +460,13 @@ func TestMultipleSubjects(t *testing.T) {
 				URI:    artifacts.OCIScheme + "gcr.io/test1/test1",
 				Digest: common.DigestSet{"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"},
 			},
+			{
+				URI:    artifacts.OCIScheme + "gcr.io/test1/test2",
+				Digest: common.DigestSet{"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b5"},
+			},
 		},
 		Invocation: slsa.ProvenanceInvocation{
-			Parameters: map[string]v1beta1.ParamValue{},
+			Parameters: map[string]v1.ParamValue{},
 		},
 		BuildConfig: taskrun.BuildConfig{
 			Steps: []attest.StepAttestation{
@@ -471,6 +475,13 @@ func TestMultipleSubjects(t *testing.T) {
 					Environment: map[string]interface{}{
 						"container": string("step1"),
 						"image":     artifacts.OCIScheme + "gcr.io/test1/test1@sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6",
+					},
+				},
+				{
+					Arguments: []string(nil),
+					Environment: map[string]interface{}{
+						"container": string("step2"),
+						"image":     artifacts.OCIScheme + "gcr.io/test1/test2@sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b5",
 					},
 				},
 			},
@@ -491,7 +502,8 @@ func TestMultipleSubjects(t *testing.T) {
 				Digest: common.DigestSet{
 					"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6",
 				},
-			}, {
+			},
+			{
 				Name: "gcr.io/myimage2",
 				Digest: common.DigestSet{
 					"sha256": "daa1a56e13c85cf164e7d9e595006649e3a04c47fe4a8261320e18a0bf3b0367",
@@ -502,9 +514,9 @@ func TestMultipleSubjects(t *testing.T) {
 	}
 
 	i, _ := NewFormatter(cfg)
-	got, err := i.CreatePayload(ctx, objects.NewTaskRunObjectV1Beta1(tr))
+	got, err := i.CreatePayload(ctx, objects.NewTaskRunObjectV1(tr))
 	if err != nil {
-		t.Errorf("unexpected error: %s", err.Error())
+		t.Fatalf("unexpected error: %s", err.Error())
 	}
 	if diff := cmp.Diff(expected, got, protocmp.Transform()); diff != "" {
 		t.Errorf("InTotoIte6.CreatePayload(): -want +got: %s", diff)
@@ -568,7 +580,7 @@ func getBuildPipelineRun() pipelinerun.BuildConfig {
 			{
 				Name:  "git-clone",
 				After: nil,
-				Ref: v1beta1.TaskRef{
+				Ref: v1.TaskRef{
 					Name: "git-clone",
 					Kind: "ClusterTask",
 				},
@@ -593,7 +605,7 @@ func getBuildPipelineRun() pipelinerun.BuildConfig {
 						Digest:     common.DigestSet{"sha1": "x123"},
 						EntryPoint: "git-clone.yaml",
 					},
-					Parameters: map[string]v1beta1.ParamValue{
+					Parameters: map[string]v1.ParamValue{
 						"CHAINS-GIT_COMMIT": {Type: "string", StringVal: "sha:taskdefault"},
 						"CHAINS-GIT_URL":    {Type: "string", StringVal: "https://git.test.com"},
 						"revision":          {Type: "string", StringVal: ""},
@@ -603,18 +615,18 @@ func getBuildPipelineRun() pipelinerun.BuildConfig {
 						"labels": {"tekton.dev/pipelineTask": "git-clone"},
 					},
 				},
-				Results: []v1beta1.TaskRunResult{
+				Results: []v1.TaskRunResult{
 					{
 						Name: "some-uri_DIGEST",
-						Value: v1beta1.ParamValue{
-							Type:      v1beta1.ParamTypeString,
+						Value: v1.ParamValue{
+							Type:      v1.ParamTypeString,
 							StringVal: "sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6",
 						},
 					},
 					{
 						Name: "some-uri",
-						Value: v1beta1.ParamValue{
-							Type:      v1beta1.ParamTypeString,
+						Value: v1.ParamValue{
+							Type:      v1.ParamTypeString,
 							StringVal: "pkg:deb/debian/curl@7.50.3-1",
 						},
 					},
@@ -623,7 +635,7 @@ func getBuildPipelineRun() pipelinerun.BuildConfig {
 			{
 				Name:  "build",
 				After: []string{"git-clone"},
-				Ref: v1beta1.TaskRef{
+				Ref: v1.TaskRef{
 					Name: "build",
 					Kind: "ClusterTask",
 				},
@@ -666,7 +678,7 @@ func getBuildPipelineRun() pipelinerun.BuildConfig {
 						Digest:     map[string]string{"sha1": "ab123"},
 						EntryPoint: "build.yaml",
 					},
-					Parameters: map[string]v1beta1.ParamValue{
+					Parameters: map[string]v1.ParamValue{
 						"CHAINS-GIT_COMMIT": {Type: "string", StringVal: "sha:taskrun"},
 						"CHAINS-GIT_URL":    {Type: "string", StringVal: "https://git.test.com"},
 						"IMAGE":             {Type: "string", StringVal: "test.io/test/image"},
@@ -675,18 +687,18 @@ func getBuildPipelineRun() pipelinerun.BuildConfig {
 						"labels": {"tekton.dev/pipelineTask": "build"},
 					},
 				},
-				Results: []v1beta1.TaskRunResult{
+				Results: []v1.TaskRunResult{
 					{
 						Name: "IMAGE_DIGEST",
-						Value: v1beta1.ParamValue{
-							Type:      v1beta1.ParamTypeString,
+						Value: v1.ParamValue{
+							Type:      v1.ParamTypeString,
 							StringVal: "sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7",
 						},
 					},
 					{
 						Name: "IMAGE_URL",
-						Value: v1beta1.ParamValue{
-							Type:      v1beta1.ParamTypeString,
+						Value: v1.ParamValue{
+							Type:      v1.ParamTypeString,
 							StringVal: "gcr.io/my/image",
 						},
 					},

@@ -37,7 +37,7 @@ import (
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	slsaprov "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
 	pipelineConfig "github.com/tektoncd/pipeline/pkg/apis/config"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	logtesting "knative.dev/pkg/logging/testing"
 )
 
@@ -97,17 +97,17 @@ func TestCorrectPayloadType(t *testing.T) {
 func TestTaskRunCreatePayload1(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
 
-	tr, err := objectloader.TaskRunFromFile("../testdata/slsa-v2alpha3/taskrun1.json")
+	tr, err := objectloader.TaskRunV1FromFile("../testdata/slsa-v2alpha3/taskrun1.json")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	resultValue := v1beta1.ParamValue{Type: "string", StringVal: "sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"}
+	resultValue := v1.ParamValue{Type: "string", StringVal: "sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"}
 	resultBytesDigest, err := json.Marshal(resultValue)
 	if err != nil {
 		t.Fatalf("Could not marshal results: %s", err)
 	}
-	resultValue = v1beta1.ParamValue{Type: "string", StringVal: "gcr.io/my/image"}
+	resultValue = v1.ParamValue{Type: "string", StringVal: "gcr.io/my/image"}
 	resultBytesUri, err := json.Marshal(resultValue)
 	if err != nil {
 		t.Fatalf("Could not marshal results: %s", err)
@@ -210,17 +210,17 @@ func TestTaskRunCreatePayload1(t *testing.T) {
 
 func TestTaskRunCreatePayload2(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
-	tr, err := objectloader.TaskRunFromFile("../testdata/slsa-v2alpha3/taskrun2.json")
+	tr, err := objectloader.TaskRunV1FromFile("../testdata/slsa-v2alpha3/taskrun2.json")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	resultValue := v1beta1.ParamValue{Type: "string", StringVal: "sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"}
+	resultValue := v1.ParamValue{Type: "string", StringVal: "sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"}
 	resultBytesDigest, err := json.Marshal(resultValue)
 	if err != nil {
 		t.Fatalf("Could not marshal results: %s", err)
 	}
-	resultValue = v1beta1.ParamValue{Type: "string", StringVal: "pkg:deb/debian/curl@7.50.3-1"}
+	resultValue = v1.ParamValue{Type: "string", StringVal: "pkg:deb/debian/curl@7.50.3-1"}
 	resultBytesUri, err := json.Marshal(resultValue)
 	if err != nil {
 		t.Fatalf("Could not marshal results: %s", err)
@@ -305,12 +305,12 @@ func TestTaskRunCreatePayload2(t *testing.T) {
 func TestMultipleSubjects(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
 
-	tr, err := objectloader.TaskRunFromFile("../testdata/slsa-v2alpha3/taskrun-multiple-subjects.json")
+	tr, err := objectloader.TaskRunV1FromFile("../testdata/slsa-v2alpha3/taskrun-multiple-subjects.json")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	resultValue := v1beta1.ParamValue{
+	resultValue := v1.ParamValue{
 		Type:      "string",
 		StringVal: "gcr.io/myimage1@sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6,gcr.io/myimage2@sha256:daa1a56e13c85cf164e7d9e595006649e3a04c47fe4a8261320e18a0bf3b0367",
 	}
@@ -388,15 +388,15 @@ func TestMultipleSubjects(t *testing.T) {
 }
 
 func createPro(path string) *objects.PipelineRunObjectV1 {
-	pr, err := objectloader.PipelineRunFromFile(path)
+	pr, err := objectloader.PipelineRunV1FromFile(path)
 	if err != nil {
 		panic(err)
 	}
-	tr1, err := objectloader.TaskRunFromFile("../testdata/slsa-v2alpha3/taskrun1.json")
+	tr1, err := objectloader.TaskRunV1FromFile("../testdata/slsa-v2alpha3/taskrun1.json")
 	if err != nil {
 		panic(err)
 	}
-	tr2, err := objectloader.TaskRunFromFile("../testdata/slsa-v2alpha3/taskrun2.json")
+	tr2, err := objectloader.TaskRunV1FromFile("../testdata/slsa-v2alpha3/taskrun2.json")
 	if err != nil {
 		panic(err)
 	}

@@ -27,15 +27,15 @@ import (
 )
 
 func createPro(path string) *objects.PipelineRunObjectV1 {
-	pr, err := objectloader.PipelineRunFromFile(path)
+	pr, err := objectloader.PipelineRunV1FromFile(path)
 	if err != nil {
 		panic(err)
 	}
-	tr1, err := objectloader.TaskRunFromFile("../../testdata/slsa-v2alpha3/taskrun1.json")
+	tr1, err := objectloader.TaskRunV1FromFile("../../testdata/slsa-v2alpha3/taskrun1.json")
 	if err != nil {
 		panic(err)
 	}
-	tr2, err := objectloader.TaskRunFromFile("../../testdata/slsa-v2alpha3/taskrun2.json")
+	tr2, err := objectloader.TaskRunV1FromFile("../../testdata/slsa-v2alpha3/taskrun2.json")
 	if err != nil {
 		panic(err)
 	}
@@ -204,7 +204,7 @@ func TestTaskRun(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			tr, err := objectloader.TaskRunFromFile(test.inputTaskRunFile)
+			tr, err := objectloader.TaskRunV1FromFile(test.inputTaskRunFile)
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -20,7 +20,6 @@ import (
 
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	pipelineclientset "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
@@ -40,18 +39,6 @@ func CreateObject(t *testing.T, ctx context.Context, ps pipelineclientset.Interf
 			t.Fatalf("error creating taskrun: %v", err)
 		}
 		return objects.NewTaskRunObjectV1(tr)
-	case *v1beta1.PipelineRun: //nolint:staticcheck
-		pr, err := ps.TektonV1beta1().PipelineRuns(obj.GetNamespace()).Create(ctx, o, metav1.CreateOptions{})
-		if err != nil {
-			t.Fatalf("error creating pipelinerun: %v", err)
-		}
-		return objects.NewPipelineRunObjectV1Beta1(pr)
-	case *v1beta1.TaskRun: //nolint:staticcheck
-		tr, err := ps.TektonV1beta1().TaskRuns(obj.GetNamespace()).Create(ctx, o, metav1.CreateOptions{})
-		if err != nil {
-			t.Fatalf("error creating taskrun: %v", err)
-		}
-		return objects.NewTaskRunObjectV1Beta1(tr)
 	}
 	return nil
 }
@@ -65,10 +52,6 @@ func GetObject(t *testing.T, ctx context.Context, ps pipelineclientset.Interface
 	case *v1.PipelineRun:
 		return GetPipelineRun(t, ctx, ps, obj.GetNamespace(), obj.GetName())
 	case *v1.TaskRun:
-		return GetTaskRun(t, ctx, ps, obj.GetNamespace(), obj.GetName())
-	case *v1beta1.PipelineRun: //nolint:staticcheck
-		return GetPipelineRun(t, ctx, ps, obj.GetNamespace(), obj.GetName())
-	case *v1beta1.TaskRun: //nolint:staticcheck
 		return GetTaskRun(t, ctx, ps, obj.GetNamespace(), obj.GetName())
 	}
 	t.Fatalf("unknown object type %T", obj.GetObject())
@@ -100,16 +83,6 @@ func WatchObject(t *testing.T, ctx context.Context, ps pipelineclientset.Interfa
 		}))
 	case *v1.TaskRun:
 		return ps.TektonV1().TaskRuns(obj.GetNamespace()).Watch(ctx, metav1.SingleObject(metav1.ObjectMeta{
-			Name:      o.GetName(),
-			Namespace: o.GetNamespace(),
-		}))
-	case *v1beta1.PipelineRun: //nolint:staticcheck
-		return ps.TektonV1beta1().PipelineRuns(obj.GetNamespace()).Watch(ctx, metav1.SingleObject(metav1.ObjectMeta{
-			Name:      o.GetName(),
-			Namespace: o.GetNamespace(),
-		}))
-	case *v1beta1.TaskRun: //nolint:staticcheck
-		return ps.TektonV1beta1().TaskRuns(obj.GetNamespace()).Watch(ctx, metav1.SingleObject(metav1.ObjectMeta{
 			Name:      o.GetName(),
 			Namespace: o.GetNamespace(),
 		}))

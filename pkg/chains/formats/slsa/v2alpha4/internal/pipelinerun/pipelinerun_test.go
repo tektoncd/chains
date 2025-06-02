@@ -475,14 +475,14 @@ func TestGenerateAttestation(t *testing.T) {
 }
 
 func createPro(prPath string, trPaths ...string) *objects.PipelineRunObjectV1 {
-	pr, err := objectloader.PipelineRunFromFile(prPath)
+	pr, err := objectloader.PipelineRunV1FromFile(prPath)
 	if err != nil {
 		panic(err)
 	}
 	p := objects.NewPipelineRunObjectV1(pr)
 
 	for _, trPath := range trPaths {
-		tr, err := objectloader.TaskRunFromFile(trPath)
+		tr, err := objectloader.TaskRunV1FromFile(trPath)
 		if err != nil {
 			panic(err)
 		}

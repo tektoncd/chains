@@ -1,6 +1,6 @@
 {
     "metadata": {
-        "name": "taskrun-build-1",
+        "name": "mismatch Status.Step.Name and Status.TaskSpec.Step.Name",
         "labels": {
             "tekton.dev/pipelineTask": "build"
         }
@@ -41,22 +41,22 @@
         "podName": "test-pod-name",
         "steps": [
             {
-                "name": "step1",
+                "name": "unnamed-",
                 "container": "step-step1",
-                "imageID": "docker-pullable://gcr.io/test4/test4@sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"
+                "imageID": "docker-pullable://gcr.io/test7/test7@sha256:d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"
             },
             {
                 "name": "step2",
                 "container": "step-step2",
-                "imageID": "docker-pullable://gcr.io/test5/test5@sha256:4d6dd704ef58cb214dd826519929e92a978a57cdee43693006139c0080fd6fac"
+                "imageID": "docker-pullable://gcr.io/test8/test8@sha256:4d6dd704ef58cb214dd826519929e92a978a57cdee43693006139c0080fd6fac"
             },
             {
                 "name": "step3",
                 "container": "step-step3",
-                "imageID": "docker-pullable://gcr.io/test6/test6@sha256:f1a8b8549c179f41e27ff3db0fe1a1793e4b109da46586501a8343637b1d0478"
+                "imageID": "docker-pullable://gcr.io/test9/test9@sha256:f1a8b8549c179f41e27ff3db0fe1a1793e4b109da46586501a8343637b1d0478"
             }
         ],
-        "taskResults": [
+        "results": [
             {
                 "name": "IMAGE_DIGEST",
                 "value": "sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"
