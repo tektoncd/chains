@@ -10,9 +10,11 @@ linters:
     - ineffassign
     - misspell
     - nolintlint
-    - revive
-    - staticcheck
+    # - revive
     - unused
+
+  disable:
+    - staticcheck
 
   settings:
     misspell:
@@ -25,9 +27,9 @@ formatters:
   enable:
     - gci
     - gofmt
-    - gofumpt
+    # - gofumpt
     - goimports
-    - golines
+    # - golines
 
   settings:
     gci:
