@@ -28,13 +28,11 @@ import (
 	"google.golang.org/protobuf/testing/protocmp"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/tektoncd/chains/internal/backport"
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/compare"
 	"github.com/tektoncd/chains/pkg/chains/objects"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	"github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logtesting "knative.dev/pkg/logging/testing"
 	"sigs.k8s.io/yaml"
@@ -49,7 +47,7 @@ const (
 )
 
 func TestMetadata(t *testing.T) {
-	tr := &v1beta1.TaskRun{ //nolint:staticcheck
+	tr := &v1.TaskRun{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "my-taskrun",
 			Namespace: "my-namespace",
@@ -57,8 +55,8 @@ func TestMetadata(t *testing.T) {
 				"chains.tekton.dev/reproducible": "true",
 			},
 		},
-		Status: v1beta1.TaskRunStatus{
-			TaskRunStatusFields: v1beta1.TaskRunStatusFields{
+		Status: v1.TaskRunStatus{
+			TaskRunStatusFields: v1.TaskRunStatusFields{
 				StartTime:      &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 12, time.UTC)},
 				CompletionTime: &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 24, time.UTC)},
 			},
@@ -70,7 +68,7 @@ func TestMetadata(t *testing.T) {
 		BuildStartedOn:  &start,
 		BuildFinishedOn: &end,
 	}
-	got := Metadata(objects.NewTaskRunObjectV1Beta1(tr))
+	got := Metadata(objects.NewTaskRunObjectV1(tr))
 	if !reflect.DeepEqual(expected, got) {
 		t.Fatalf("expected %v got %v", expected, got)
 	}
@@ -78,7 +76,7 @@ func TestMetadata(t *testing.T) {
 
 func TestMetadataInTimeZone(t *testing.T) {
 	tz := time.FixedZone("Test Time", int((12 * time.Hour).Seconds()))
-	tr := &v1beta1.TaskRun{ //nolint:staticcheck
+	tr := &v1.TaskRun{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "my-taskrun",
 			Namespace: "my-namespace",
@@ -86,8 +84,8 @@ func TestMetadataInTimeZone(t *testing.T) {
 				"chains.tekton.dev/reproducible": "true",
 			},
 		},
-		Status: v1beta1.TaskRunStatus{
-			TaskRunStatusFields: v1beta1.TaskRunStatusFields{
+		Status: v1.TaskRunStatus{
+			TaskRunStatusFields: v1.TaskRunStatusFields{
 				StartTime:      &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 12, tz)},
 				CompletionTime: &metav1.Time{Time: time.Date(1995, time.December, 24, 6, 12, 12, 24, tz)},
 			},
@@ -99,14 +97,14 @@ func TestMetadataInTimeZone(t *testing.T) {
 		BuildStartedOn:  &start,
 		BuildFinishedOn: &end,
 	}
-	got := Metadata(objects.NewTaskRunObjectV1Beta1(tr))
+	got := Metadata(objects.NewTaskRunObjectV1(tr))
 	if !reflect.DeepEqual(expected, got) {
 		t.Fatalf("expected %v got %v", expected, got)
 	}
 }
 
 func TestInvocation(t *testing.T) {
-	taskrun := `apiVersion: tekton.dev/v1beta1
+	taskrun := `apiVersion: tekton.dev/v1
 kind: TaskRun
 metadata:
   uid: my-uid
@@ -162,13 +160,13 @@ status:
       default: []
 `
 
-	var taskRun *v1beta1.TaskRun //nolint:staticcheck
+	var taskRun *v1.TaskRun
 	if err := yaml.Unmarshal([]byte(taskrun), &taskRun); err != nil {
 		t.Fatal(err)
 	}
 
 	expected := slsa.ProvenanceInvocation{
-		Parameters: map[string]v1beta1.ParamValue{
+		Parameters: map[string]v1.ParamValue{
 			"my-param":                      {Type: "string", StringVal: "string-param"},
 			"my-array-param":                {Type: "array", ArrayVal: []string{"my", "array"}},
 			"my-default-param":              {Type: "string", StringVal: "string-default-param"},
@@ -190,7 +188,7 @@ status:
 		},
 	}
 
-	got := invocation(objects.NewTaskRunObjectV1Beta1(taskRun))
+	got := invocation(objects.NewTaskRunObjectV1(taskRun))
 	if !reflect.DeepEqual(expected, got) {
 		if d := cmp.Diff(expected, got); d != "" {
 			t.Log(d)
@@ -200,95 +198,67 @@ status:
 }
 
 func TestGetSubjectDigests(t *testing.T) {
-	tr := &v1beta1.TaskRun{ //nolint:staticcheck
-		Spec: v1beta1.TaskRunSpec{
-			Resources: &v1beta1.TaskRunResources{ //nolint:staticcheck
-				Outputs: []v1beta1.TaskResourceBinding{ //nolint:staticcheck
-					{
-						PipelineResourceBinding: v1beta1.PipelineResourceBinding{ //nolint:staticcheck
-							Name: "nil-check",
-						},
-					}, {
-						PipelineResourceBinding: v1beta1.PipelineResourceBinding{ //nolint:staticcheck
-							Name: "built-image",
-							ResourceSpec: &v1alpha1.PipelineResourceSpec{ //nolint:staticcheck
-								Type: backport.PipelineResourceTypeImage,
-							},
-						},
-					},
-				},
-			},
-		},
-		Status: v1beta1.TaskRunStatus{
-			TaskRunStatusFields: v1beta1.TaskRunStatusFields{
-				TaskRunResults: []v1beta1.TaskRunResult{
+	tr := &v1.TaskRun{
+		Spec: v1.TaskRunSpec{},
+		Status: v1.TaskRunStatus{
+			TaskRunStatusFields: v1.TaskRunStatusFields{
+				Results: []v1.TaskRunResult{
 					{
 						Name:  "IMAGE_URL",
-						Value: *v1beta1.NewStructuredValues("registry/myimage"),
+						Value: *v1.NewStructuredValues("registry/myimage"),
 					},
 					{
 						Name:  "IMAGE_DIGEST",
-						Value: *v1beta1.NewStructuredValues(digest1),
+						Value: *v1.NewStructuredValues(digest1),
 					},
 					{
 						Name:  "mvn1_ARTIFACT_URI",
-						Value: *v1beta1.NewStructuredValues("maven-test-0.1.1.jar"),
+						Value: *v1.NewStructuredValues("maven-test-0.1.1.jar"),
 					},
 					{
 						Name:  "mvn1_ARTIFACT_DIGEST",
-						Value: *v1beta1.NewStructuredValues(digest3),
+						Value: *v1.NewStructuredValues(digest3),
 					},
 					{
 						Name:  "mvn1_pom_ARTIFACT_URI",
-						Value: *v1beta1.NewStructuredValues("maven-test-0.1.1.pom"),
+						Value: *v1.NewStructuredValues("maven-test-0.1.1.pom"),
 					},
 					{
 						Name:  "mvn1_pom_ARTIFACT_DIGEST",
-						Value: *v1beta1.NewStructuredValues(digest4),
+						Value: *v1.NewStructuredValues(digest4),
 					},
 					{
 						Name:  "mvn1_src_ARTIFACT_URI",
-						Value: *v1beta1.NewStructuredValues("maven-test-0.1.1-sources.jar"),
+						Value: *v1.NewStructuredValues("maven-test-0.1.1-sources.jar"),
 					},
 					{
 						Name:  "mvn1_src_ARTIFACT_DIGEST",
-						Value: *v1beta1.NewStructuredValues(digest5),
+						Value: *v1.NewStructuredValues(digest5),
 					},
 					{
 						Name:  "invalid_ARTIFACT_DIGEST",
-						Value: *v1beta1.NewStructuredValues(digest5),
+						Value: *v1.NewStructuredValues(digest5),
 					},
 					{
 						Name: "mvn1_pkg" + "-" + artifacts.ArtifactsOutputsResultName,
-						Value: *v1beta1.NewObject(map[string]string{
+						Value: *v1.NewObject(map[string]string{
 							"uri":    "projects/test-project-1/locations/us-west4/repositories/test-repo/mavenArtifacts/com.google.guava:guava:31.0-jre",
 							"digest": digest1,
 						}),
 					},
 					{
 						Name: "mvn1_pom_sha512" + "-" + artifacts.ArtifactsOutputsResultName,
-						Value: *v1beta1.NewObject(map[string]string{
+						Value: *v1.NewObject(map[string]string{
 							"uri":    "com.google.guava:guava:1.0-jre.pom",
 							"digest": digest2,
 						}),
 					},
 					{
 						Name: "img1_input" + "-" + artifacts.ArtifactsInputsResultName,
-						Value: *v1beta1.NewObject(map[string]string{
+						Value: *v1.NewObject(map[string]string{
 							"uri":    "gcr.io/foo/bar",
 							"digest": digest3,
 						}),
-					},
-				},
-				ResourcesResult: []v1beta1.PipelineResourceResult{
-					{
-						ResourceName: "built-image",
-						Key:          "url",
-						Value:        "registry/resource-image",
-					}, {
-						ResourceName: "built-image",
-						Key:          "digest",
-						Value:        digest2,
 					},
 				},
 			},
@@ -326,15 +296,10 @@ func TestGetSubjectDigests(t *testing.T) {
 			Digest: common.DigestSet{
 				"sha256": strings.TrimPrefix(digest1, "sha256:"),
 			},
-		}, {
-			Name: "registry/resource-image",
-			Digest: common.DigestSet{
-				"sha256": strings.TrimPrefix(digest2, "sha256:"),
-			},
 		},
 	}
 	ctx := logtesting.TestContextWithLogger(t)
-	tro := objects.NewTaskRunObjectV1Beta1(tr)
+	tro := objects.NewTaskRunObjectV1(tr)
 	got := extract.SubjectDigests(ctx, tro, nil)
 
 	if d := cmp.Diff(want, got, compare.SubjectCompareOption(), protocmp.Transform()); d != "" {

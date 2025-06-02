@@ -73,15 +73,15 @@ func TestByProducts(t *testing.T) {
 }
 
 func createPro(path string) *objects.PipelineRunObjectV1 {
-	pr, err := objectloader.PipelineRunFromFile(path)
+	pr, err := objectloader.PipelineRunV1FromFile(path)
 	if err != nil {
 		panic(err)
 	}
-	tr1, err := objectloader.TaskRunFromFile("../../../testdata/slsa-v2alpha3/taskrun1.json")
+	tr1, err := objectloader.TaskRunV1FromFile("../../../testdata/slsa-v2alpha3/taskrun1.json")
 	if err != nil {
 		panic(err)
 	}
-	tr2, err := objectloader.TaskRunFromFile("../../../testdata/slsa-v2alpha3/taskrun2.json")
+	tr2, err := objectloader.TaskRunV1FromFile("../../../testdata/slsa-v2alpha3/taskrun2.json")
 	if err != nil {
 		panic(err)
 	}

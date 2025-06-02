@@ -23,11 +23,11 @@ import (
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/attest"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
-	materialv1beta1 "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/material/v1beta1"
+	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/material"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v1/internal/protos"
 	"github.com/tektoncd/chains/pkg/chains/objects"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	corev1 "k8s.io/api/core/v1"
 	"knative.dev/pkg/apis"
 	"knative.dev/pkg/logging"
@@ -40,22 +40,22 @@ type BuildConfig struct {
 type TaskAttestation struct {
 	Name               string                    `json:"name,omitempty"`
 	After              []string                  `json:"after,omitempty"`
-	Ref                v1beta1.TaskRef           `json:"ref,omitempty"`
+	Ref                v1.TaskRef                `json:"ref,omitempty"`
 	StartedOn          time.Time                 `json:"startedOn,omitempty"`
 	FinishedOn         time.Time                 `json:"finishedOn,omitempty"`
 	ServiceAccountName string                    `json:"serviceAccountName,omitempty"`
 	Status             string                    `json:"status,omitempty"`
 	Steps              []attest.StepAttestation  `json:"steps,omitempty"`
 	Invocation         slsa.ProvenanceInvocation `json:"invocation,omitempty"`
-	Results            []v1beta1.TaskRunResult   `json:"results,omitempty"`
+	Results            []v1.TaskRunResult        `json:"results,omitempty"`
 }
 
 const statementInTotoV01 = "https://in-toto.io/Statement/v0.1"
 
-func GenerateAttestation(ctx context.Context, pro *objects.PipelineRunObjectV1Beta1, slsaConfig *slsaconfig.SlsaConfig) (interface{}, error) {
+func GenerateAttestation(ctx context.Context, pro *objects.PipelineRunObjectV1, slsaConfig *slsaconfig.SlsaConfig) (interface{}, error) {
 	subjects := extract.SubjectDigests(ctx, pro, slsaConfig)
 
-	mat, err := materialv1beta1.PipelineMaterials(ctx, pro, slsaConfig)
+	mat, err := material.PipelineMaterials(ctx, pro, slsaConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -85,15 +85,15 @@ func GenerateAttestation(ctx context.Context, pro *objects.PipelineRunObjectV1Be
 	return att, nil
 }
 
-func invocation(pro *objects.PipelineRunObjectV1Beta1) slsa.ProvenanceInvocation {
-	var paramSpecs []v1beta1.ParamSpec
+func invocation(pro *objects.PipelineRunObjectV1) slsa.ProvenanceInvocation {
+	var paramSpecs []v1.ParamSpec
 	if ps := pro.Status.PipelineSpec; ps != nil {
 		paramSpecs = ps.Params
 	}
 	return attest.Invocation(pro, pro.Spec.Params, paramSpecs)
 }
 
-func buildConfig(ctx context.Context, pro *objects.PipelineRunObjectV1Beta1) BuildConfig {
+func buildConfig(ctx context.Context, pro *objects.PipelineRunObjectV1) BuildConfig {
 	logger := logging.FromContext(ctx)
 	tasks := []TaskAttestation{}
 
@@ -155,7 +155,7 @@ func buildConfig(ctx context.Context, pro *objects.PipelineRunObjectV1Beta1) Bui
 			after := t.RunAfter
 			// Establish task order by retrieving all task's referenced
 			// in the "when" and "params" fields
-			refs := v1beta1.PipelineTaskResultRefs(&t)
+			refs := v1.PipelineTaskResultRefs(&t)
 			for _, ref := range refs {
 				// Ensure task doesn't already exist in after
 				found := false
@@ -176,11 +176,11 @@ func buildConfig(ctx context.Context, pro *objects.PipelineRunObjectV1Beta1) Bui
 			}
 
 			params := tr.Spec.Params
-			var paramSpecs []v1beta1.ParamSpec
+			var paramSpecs []v1.ParamSpec
 			if tr.Status.TaskSpec != nil {
 				paramSpecs = tr.Status.TaskSpec.Params
 			} else {
-				paramSpecs = []v1beta1.ParamSpec{}
+				paramSpecs = []v1.ParamSpec{}
 			}
 
 			task := TaskAttestation{
@@ -188,11 +188,11 @@ func buildConfig(ctx context.Context, pro *objects.PipelineRunObjectV1Beta1) Bui
 				After:              after,
 				StartedOn:          tr.Status.StartTime.Time.UTC(),
 				FinishedOn:         tr.Status.CompletionTime.Time.UTC(),
-				ServiceAccountName: pro.Spec.ServiceAccountName,
+				ServiceAccountName: pro.Spec.TaskRunTemplate.ServiceAccountName,
 				Status:             getStatus(tr.Status.Conditions),
 				Steps:              steps,
 				Invocation:         attest.Invocation(tr, params, paramSpecs),
-				Results:            tr.Status.TaskRunResults,
+				Results:            tr.Status.Results,
 			}
 			if t.TaskRef != nil {
 				task.Ref = *t.TaskRef
@@ -207,7 +207,7 @@ func buildConfig(ctx context.Context, pro *objects.PipelineRunObjectV1Beta1) Bui
 	return BuildConfig{Tasks: tasks}
 }
 
-func metadata(pro *objects.PipelineRunObjectV1Beta1) *slsa.ProvenanceMetadata {
+func metadata(pro *objects.PipelineRunObjectV1) *slsa.ProvenanceMetadata {
 	m := &slsa.ProvenanceMetadata{}
 	if pro.Status.StartTime != nil {
 		utc := pro.Status.StartTime.Time.UTC()

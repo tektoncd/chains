@@ -58,11 +58,11 @@ func TestGetInternalParamters(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			tr, err := objectloader.TaskRunV1Beta1FromFile("../../testdata/slsa-v2alpha2/taskrun1.json")
+			tr, err := objectloader.TaskRunV1FromFile("../../testdata/slsa-v2alpha2/taskrun1.json")
 			if err != nil {
 				t.Fatal(err)
 			}
-			tro := objects.NewTaskRunObjectV1Beta1(tr)
+			tro := objects.NewTaskRunObjectV1(tr)
 
 			got, err := GetInternalParamters(tro, test.buildDefinitionType)
 

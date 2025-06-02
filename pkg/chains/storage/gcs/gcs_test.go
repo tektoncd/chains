@@ -29,7 +29,6 @@ import (
 	rtesting "knative.dev/pkg/reconciler/testing"
 )
 
-//nolint:staticcheck
 func TestBackend_StorePayload(t *testing.T) {
 	type args struct {
 		tr        *v1.TaskRun

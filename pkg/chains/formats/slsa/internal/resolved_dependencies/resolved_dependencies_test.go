@@ -20,20 +20,15 @@ import (
 	"encoding/json"
 	"reflect"
 	"runtime"
-	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	intoto "github.com/in-toto/attestation/go/v1"
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
-	"github.com/tektoncd/chains/internal/backport"
-	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/internal/objectloader"
 	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	"github.com/tektoncd/pipeline/pkg/apis/resource/v1alpha1"
 	"google.golang.org/protobuf/testing/protocmp"
 	logtesting "knative.dev/pkg/logging/testing"
 )
@@ -258,15 +253,15 @@ func TestRemoveDuplicates(t *testing.T) {
 
 func createPro(path string) *objects.PipelineRunObjectV1 {
 	var err error
-	pr, err := objectloader.PipelineRunFromFile(path)
+	pr, err := objectloader.PipelineRunV1FromFile(path)
 	if err != nil {
 		panic(err)
 	}
-	tr1, err := objectloader.TaskRunFromFile("../../testdata/slsa-v2alpha3/taskrun1.json")
+	tr1, err := objectloader.TaskRunV1FromFile("../../testdata/slsa-v2alpha3/taskrun1.json")
 	if err != nil {
 		panic(err)
 	}
-	tr2, err := objectloader.TaskRunFromFile("../../testdata/slsa-v2alpha3/taskrun2.json")
+	tr2, err := objectloader.TaskRunV1FromFile("../../testdata/slsa-v2alpha3/taskrun2.json")
 	if err != nil {
 		panic(err)
 	}
@@ -278,11 +273,11 @@ func createPro(path string) *objects.PipelineRunObjectV1 {
 
 func tektonTaskRuns() map[string][]byte {
 	trs := make(map[string][]byte)
-	tr1, err := objectloader.TaskRunFromFile("../../testdata/slsa-v2alpha3/taskrun1.json")
+	tr1, err := objectloader.TaskRunV1FromFile("../../testdata/slsa-v2alpha3/taskrun1.json")
 	if err != nil {
 		panic(err)
 	}
-	tr2, err := objectloader.TaskRunFromFile("../../testdata/slsa-v2alpha3/taskrun2.json")
+	tr2, err := objectloader.TaskRunV1FromFile("../../testdata/slsa-v2alpha3/taskrun2.json")
 	if err != nil {
 		panic(err)
 	}
@@ -309,72 +304,6 @@ func TestTaskRun(t *testing.T) {
 		resolveOpts ResolveOptions
 		want        []*intoto.ResourceDescriptor
 	}{
-		{
-			name: "resolvedDependencies from pipeline resources",
-			obj: objects.NewTaskRunObjectV1Beta1(&v1beta1.TaskRun{ //nolint:staticcheck
-				Spec: v1beta1.TaskRunSpec{
-					Resources: &v1beta1.TaskRunResources{ //nolint:all //incompatible with pipelines v0.45
-						Inputs: []v1beta1.TaskResourceBinding{ //nolint:all //incompatible with pipelines v0.45
-							{
-								PipelineResourceBinding: v1beta1.PipelineResourceBinding{ //nolint:all //incompatible with pipelines v0.45
-									Name: "nil-resource-spec",
-								},
-							}, {
-								PipelineResourceBinding: v1beta1.PipelineResourceBinding{ //nolint:all //incompatible with pipelines v0.45
-									Name: "repo",
-									ResourceSpec: &v1alpha1.PipelineResourceSpec{ //nolint:all //incompatible with pipelines v0.45
-										Params: []v1alpha1.ResourceParam{ //nolint:all //incompatible with pipelines v0.45
-											{Name: "url", Value: "https://github.com/GoogleContainerTools/distroless"},
-										},
-										Type: backport.PipelineResourceTypeGit,
-									},
-								},
-							},
-						},
-					},
-				},
-				Status: v1beta1.TaskRunStatus{
-					TaskRunStatusFields: v1beta1.TaskRunStatusFields{
-						TaskRunResults: []v1beta1.TaskRunResult{
-							{
-								Name: "img1_input" + "-" + artifacts.ArtifactsInputsResultName,
-								Value: *v1beta1.NewObject(map[string]string{
-									"uri":    "gcr.io/foo/bar",
-									"digest": digest,
-								}),
-							},
-						},
-						ResourcesResult: []v1beta1.PipelineResourceResult{
-							{
-								ResourceName: "repo",
-								Key:          "commit",
-								Value:        "50c56a48cfb3a5a80fa36ed91c739bdac8381cbe",
-							}, {
-								ResourceName: "repo",
-								Key:          "url",
-								Value:        "https://github.com/GoogleContainerTools/distroless",
-							},
-						},
-					},
-				},
-			}),
-			want: []*intoto.ResourceDescriptor{
-				{
-					Name: "inputs/result",
-					Uri:  "gcr.io/foo/bar",
-					Digest: common.DigestSet{
-						"sha256": strings.TrimPrefix(digest, "sha256:"),
-					},
-				},
-				{
-					Name: "pipelineResource",
-					Uri:  "git+https://github.com/GoogleContainerTools/distroless.git",
-					Digest: common.DigestSet{
-						"sha1": "50c56a48cfb3a5a80fa36ed91c739bdac8381cbe",
-					},
-				},
-			},
-		},
 		{
 			name: "resolvedDependencies from remote task",
 			obj: objects.NewTaskRunObjectV1(&v1.TaskRun{
@@ -566,22 +495,10 @@ func TestTaskRun(t *testing.T) {
 			ctx := logtesting.TestContextWithLogger(t)
 			var input *objects.TaskRunObjectV1
 			var err error
-			if obj, ok := tc.obj.(*objects.TaskRunObjectV1); ok {
+			if obj, ok := tc.obj.(*objects.TaskRunObjectV1); !ok {
+				t.Fatalf("Unexpected tekton object type: %T", tc.obj)
+			} else {
 				input = obj
-			}
-
-			if trV1Beta1, ok := tc.obj.GetObject().(*v1beta1.TaskRun); ok { //nolint:staticcheck
-				trV1 := &v1.TaskRun{}
-				if err := trV1Beta1.ConvertTo(ctx, trV1); err == nil {
-					if trV1Beta1.Spec.Resources != nil { //nolint:staticcheck
-						jsonData, err := json.Marshal(trV1Beta1.Spec.Resources) //nolint:staticcheck
-						if err != nil {
-							t.Errorf("Error serializing to JSON: %v", err)
-						}
-						trV1.Annotations["tekton.dev/v1beta1-spec-resources"] = string(jsonData)
-					}
-					input = objects.NewTaskRunObjectV1(trV1)
-				}
 			}
 
 			rd, err := TaskRun(ctx, tc.resolveOpts, input)
