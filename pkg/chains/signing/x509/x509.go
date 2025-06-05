@@ -18,6 +18,7 @@ import (
 	"crypto"
 	"crypto/ecdsa"
 	cx509 "crypto/x509"
+	"encoding/asn1"
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
@@ -34,15 +35,31 @@ import (
 	"github.com/sigstore/cosign/v2/pkg/providers"
 	"knative.dev/pkg/logging"
 
+	"github.com/cloudflare/circl/sign/mldsa/mldsa65"
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/tuf"
 	"github.com/tektoncd/chains/pkg/chains/signing"
+	"github.com/tektoncd/chains/pkg/chains/signing/mldsa"
 	"github.com/tektoncd/chains/pkg/config"
 )
 
 const (
 	defaultOIDCClientID = "sigstore"
 )
+
+// MLDSA65 OID: 2.16.840.1.101.3.4.3.18
+var mldsaOID = asn1.ObjectIdentifier{2, 16, 840, 1, 101, 3, 4, 3, 18}
+
+type pkcs8 struct {
+	Version    int
+	Algorithm  pkcs8Algorithm
+	PrivateKey []byte
+}
+
+type pkcs8Algorithm struct {
+	Algorithm  asn1.ObjectIdentifier
+	Parameters asn1.RawValue `asn1:"optional"`
+}
 
 // Signer exposes methods to sign payloads.
 type Signer struct {
@@ -175,23 +192,82 @@ func loadRootFromURL(root string) ([]byte, error) {
 	return io.ReadAll(resp.Body)
 }
 
+func extractMLDSAFromPKCS8(der []byte) (*mldsa65.PrivateKey, error) {
+	// PKCS#8 structure typically has the raw key at the end
+	// For MLDSA65, we need exactly mldsa65.PrivateKeySize bytes
+
+	if len(der) < mldsa65.PrivateKeySize {
+		return nil, fmt.Errorf("PKCS#8 data too short: %d bytes, need at least %d",
+			len(der), mldsa65.PrivateKeySize)
+	}
+
+	// Strategy 1: Try the last PrivateKeySize bytes (most common case)
+	if len(der) >= mldsa65.PrivateKeySize {
+		rawKey := der[len(der)-mldsa65.PrivateKeySize:]
+		var mldsaKey mldsa65.PrivateKey
+		if err := mldsaKey.UnmarshalBinary(rawKey); err == nil {
+			return &mldsaKey, nil
+		}
+	}
+	return nil, fmt.Errorf("no valid MLDSA key found in PKCS#8 data")
+}
+
+func tryLoadMLDSA(data []byte) (*mldsa65.PrivateKey, error) {
+	// First try direct raw format
+	var mldsaKey mldsa65.PrivateKey
+	if err := mldsaKey.UnmarshalBinary(data); err == nil {
+		return &mldsaKey, nil
+	}
+
+	// Then try to extract from PKCS#8
+	if key, err := extractMLDSAFromPKCS8(data); err == nil {
+		return key, nil
+	}
+
+	return nil, fmt.Errorf("data is neither raw MLDSA key nor PKCS#8 wrapped MLDSA key")
+}
+
 func x509Signer(ctx context.Context, privateKey []byte) (*Signer, error) {
 	logger := logging.FromContext(ctx)
 	logger.Info("Found x509 key...")
 
 	p, _ := pem.Decode(privateKey)
-	if p.Type != "PRIVATE KEY" {
+	if p == nil {
+		return nil, fmt.Errorf("failed to decode PEM block")
+	}
+
+	logger.Infof("Attempting to parse private key of type: %s", p.Type)
+
+	switch p.Type {
+	case "PRIVATE KEY":
+		// Try PKCS#8 first for ECDSA keys
+		if pk, err := cx509.ParsePKCS8PrivateKey(p.Bytes); err == nil {
+			if ecKey, ok := pk.(*ecdsa.PrivateKey); ok {
+				logger.Info("Using ECDSA private key...")
+				signer, err := signature.LoadECDSASignerVerifier(ecKey, crypto.SHA256)
+				if err != nil {
+					return nil, fmt.Errorf("failed to load ECDSA signer: %w", err)
+				}
+				return &Signer{SignerVerifier: signer}, nil
+			}
+		}
+
+		// Try MLDSA formats
+		if mldsaKey, err := tryLoadMLDSA(p.Bytes); err == nil {
+			logger.Info("Using MLDSA private key...")
+			signer, err := mldsa.LoadSignerVerifier(mldsaKey)
+			if err != nil {
+				return nil, fmt.Errorf("failed to load MLDSA signer: %w", err)
+			}
+			return &Signer{SignerVerifier: signer}, nil
+		} else {
+			logger.Infof("Failed to load MLDSA key: %v", err)
+		}
+
+		return nil, fmt.Errorf("unsupported private key format - key could not be parsed as PKCS#8 ECDSA or MLDSA")
+	default:
 		return nil, fmt.Errorf("expected private key, found object of type %s", p.Type)
 	}
-	pk, err := cx509.ParsePKCS8PrivateKey(p.Bytes)
-	if err != nil {
-		return nil, err
-	}
-	signer, err := signature.LoadECDSASignerVerifier(pk.(*ecdsa.PrivateKey), crypto.SHA256)
-	if err != nil {
-		return nil, err
-	}
-	return &Signer{SignerVerifier: signer}, nil
 }
 
 func cosignSigner(ctx context.Context, secretPath string, privateKey []byte) (*Signer, error) {
