@@ -43,7 +43,7 @@ Current features include:
 
 - Signing `TaskRun` results with user provided cryptographic keys, including
   `TaskRun`s themselves and OCI Images
-- Attestation formats like [intoto](docs/intoto.md)
+- Attestation formats like [slsa/v1](docs/slsa-provenance.md#how-to-configure-tekton-chains)
 - Signing with a variety of cryptographic key types and services (x509, KMS)
 - Support for multiple storage backends for signatures
 
