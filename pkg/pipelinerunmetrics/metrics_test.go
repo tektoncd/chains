@@ -21,26 +21,27 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/tektoncd/chains/pkg/chains"
 	"knative.dev/pkg/metrics/metricstest"
 	_ "knative.dev/pkg/metrics/testing"
+
+	"github.com/tektoncd/chains/pkg/metrics"
 )
 
 func TestUninitializedMetrics(t *testing.T) {
-	metrics := &Recorder{}
+	recorder := &Recorder{}
 	ctx := context.Background()
 
-	metrics.RecordCountMetrics(ctx, chains.SignedMessagesCount)
-	metricstest.CheckStatsNotReported(t, chains.PipelineRunSignedName)
+	recorder.RecordCountMetrics(ctx, metrics.SignedMessagesCount)
+	metricstest.CheckStatsNotReported(t, string(pipelineRunSignedName))
 
-	metrics.RecordCountMetrics(ctx, chains.PayloadUploadeCount)
-	metricstest.CheckStatsNotReported(t, chains.PipelineRunUploadedName)
+	recorder.RecordCountMetrics(ctx, metrics.PayloadUploadeCount)
+	metricstest.CheckStatsNotReported(t, string(pipelineRunUploadedName))
 
-	metrics.RecordCountMetrics(ctx, chains.SignsStoredCount)
-	metricstest.CheckStatsNotReported(t, chains.PipelineRunStoredName)
+	recorder.RecordCountMetrics(ctx, metrics.SignsStoredCount)
+	metricstest.CheckStatsNotReported(t, string(pipelineRunStoredName))
 
-	metrics.RecordCountMetrics(ctx, chains.MarkedAsSignedCount)
-	metricstest.CheckStatsNotReported(t, chains.PipelineRunMarkedName)
+	recorder.RecordCountMetrics(ctx, metrics.MarkedAsSignedCount)
+	metricstest.CheckStatsNotReported(t, string(pipelineRunMarkedName))
 }
 
 func TestCountMetrics(t *testing.T) {
@@ -50,18 +51,39 @@ func TestCountMetrics(t *testing.T) {
 
 	rec := Get(ctx)
 
-	rec.RecordCountMetrics(ctx, chains.SignedMessagesCount)
-	metricstest.CheckCountData(t, chains.PipelineRunSignedName, map[string]string{}, 1)
-	rec.RecordCountMetrics(ctx, chains.PayloadUploadeCount)
-	metricstest.CheckCountData(t, chains.PipelineRunUploadedName, map[string]string{}, 1)
-	rec.RecordCountMetrics(ctx, chains.SignsStoredCount)
-	metricstest.CheckCountData(t, chains.PipelineRunStoredName, map[string]string{}, 1)
-	rec.RecordCountMetrics(ctx, chains.MarkedAsSignedCount)
-	metricstest.CheckCountData(t, chains.PipelineRunMarkedName, map[string]string{}, 1)
+	rec.RecordCountMetrics(ctx, metrics.SignedMessagesCount)
+	metricstest.CheckCountData(t, string(pipelineRunSignedName), map[string]string{}, 1)
+	rec.RecordCountMetrics(ctx, metrics.PayloadUploadeCount)
+	metricstest.CheckCountData(t, string(pipelineRunUploadedName), map[string]string{}, 1)
+	rec.RecordCountMetrics(ctx, metrics.SignsStoredCount)
+	metricstest.CheckCountData(t, string(pipelineRunStoredName), map[string]string{}, 1)
+	rec.RecordCountMetrics(ctx, metrics.MarkedAsSignedCount)
+	metricstest.CheckCountData(t, string(pipelineRunMarkedName), map[string]string{}, 1)
+}
+
+func TestRecordErrorMetric(t *testing.T) {
+	unregisterMetrics()
+	ctx := context.Background()
+	ctx = WithClient(ctx)
+
+	rec := Get(ctx)
+	if rec == nil {
+		t.Fatal("Recorder not initialized")
+	}
+
+	// Record an error metric with a sample error type "signing"
+	rec.RecordErrorMetric(ctx, "signing")
+	metricstest.CheckCountData(t, string(pipelineRunErrorCountName), map[string]string{"error_type": "signing"}, 1)
 }
 
 func unregisterMetrics() {
-	metricstest.Unregister(chains.PipelineRunSignedName, chains.PipelineRunUploadedName, chains.PipelineRunStoredName, chains.PipelineRunMarkedName)
+	metricstest.Unregister(
+		string(pipelineRunSignedName),
+		string(pipelineRunUploadedName),
+		string(pipelineRunStoredName),
+		string(pipelineRunMarkedName),
+		string(pipelineRunErrorCountName),
+	)
 	// Allow the recorder singleton to be recreated.
 	once = sync.Once{}
 	r = nil
