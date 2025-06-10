@@ -22,14 +22,11 @@ import (
 	"strings"
 
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
-	"github.com/tektoncd/chains/internal/backport"
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/attest"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/artifact"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/objects"
-	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"knative.dev/pkg/logging"
 )
 
@@ -57,12 +54,6 @@ func TaskMaterials(ctx context.Context, tro *objects.TaskRunObjectV1) ([]common.
 	mats = artifact.AppendMaterials(mats, sidecarMaterials...)
 
 	mats = artifact.AppendMaterials(mats, FromTaskParamsAndResults(ctx, tro)...)
-
-	// convert to v1beta1 and add any task resources
-	trV1Beta1 := &v1beta1.TaskRun{} //nolint:staticcheck
-	if err := trV1Beta1.ConvertFrom(ctx, tro.GetObject().(*v1.TaskRun)); err == nil {
-		mats = artifact.AppendMaterials(mats, FromTaskResources(ctx, trV1Beta1)...)
-	}
 
 	return mats, nil
 }
@@ -164,48 +155,6 @@ func fromImageID(imageID string) (common.ProvenanceMaterial, error) {
 	m.URI = artifacts.OCIScheme + uri
 	m.Digest[digest[0]] = digest[1]
 	return m, nil
-}
-
-// FromTaskResourcesToMaterials gets materials from task resources.
-func FromTaskResources(ctx context.Context, tr *v1beta1.TaskRun) []common.ProvenanceMaterial { //nolint:staticcheck
-	mats := []common.ProvenanceMaterial{}
-	if tr.Spec.Resources != nil { //nolint:all //incompatible with pipelines v0.45
-		// check for a Git PipelineResource
-		for _, input := range tr.Spec.Resources.Inputs { //nolint:all //incompatible with pipelines v0.45
-			if input.ResourceSpec == nil || input.ResourceSpec.Type != backport.PipelineResourceTypeGit { //nolint:all //incompatible with pipelines v0.45
-				continue
-			}
-
-			m := common.ProvenanceMaterial{
-				Digest: common.DigestSet{},
-			}
-
-			for _, rr := range tr.Status.ResourcesResult {
-				if rr.ResourceName != input.Name {
-					continue
-				}
-				if rr.Key == "url" {
-					m.URI = attest.SPDXGit(rr.Value, "")
-				} else if rr.Key == "commit" {
-					m.Digest["sha1"] = rr.Value
-				}
-			}
-
-			var url string
-			var revision string
-			for _, param := range input.ResourceSpec.Params {
-				if param.Name == "url" {
-					url = param.Value
-				}
-				if param.Name == "revision" {
-					revision = param.Value
-				}
-			}
-			m.URI = attest.SPDXGit(url, revision)
-			mats = artifact.AppendMaterials(mats, m)
-		}
-	}
-	return mats
 }
 
 // FromTaskParamsAndResults scans over the taskrun, taskspec params and taskrun results

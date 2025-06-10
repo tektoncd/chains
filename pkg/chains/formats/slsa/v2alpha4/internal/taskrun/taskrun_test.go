@@ -79,7 +79,7 @@ func TestByProducts(t *testing.T) {
 
 func TestTaskRunGenerateAttestation(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
-	tr, err := objectloader.TaskRunFromFile("../../../testdata/slsa-v2alpha4/taskrun1.json")
+	tr, err := objectloader.TaskRunV1FromFile("../../../testdata/slsa-v2alpha4/taskrun1.json")
 	if err != nil {
 		t.Fatal(err)
 	}
