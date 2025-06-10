@@ -34,15 +34,15 @@ Supply Chain Security in Tekton Pipelines
 Tekton Chains is a Kubernetes Custom Resource Definition (CRD) controller that
 allows you to manage your supply chain security in Tekton.
 
-In its default mode of operation, Chains works by observing all `TaskRuns`
-executions in your cluster. When `TaskRuns` complete, Chains takes a snapshot of
+In its default mode of operation, Chains works by observing all `TaskRuns` and `PipelineRuns`
+executions in your cluster. When they complete, Chains takes a snapshot of
 them. Chains then converts this snapshot to one or more standard payload
 formats, signs them and stores them somewhere.
 
 Current features include:
 
-- Signing `TaskRun` results with user provided cryptographic keys, including
-  `TaskRun`s themselves and OCI Images
+- Signing `TaskRun` and `PipelineRun` results with user provided cryptographic keys,
+  including the `TaskRun` or `PipelineRun` themselves and OCI Images
 - Attestation formats like [slsa/v1](docs/slsa-provenance.md#how-to-configure-tekton-chains)
 - Signing with a variety of cryptographic key types and services (x509, KMS)
 - Support for multiple storage backends for signatures
