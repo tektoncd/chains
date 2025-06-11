@@ -124,7 +124,7 @@ func (b *Backend) RetrieveSignatures(ctx context.Context, obj objects.TektonObje
 	return m, nil
 }
 
-// RetrievePayload retrieve the payload stored in the taskrun.
+// RetrievePayloads retrieve the payload stored in the taskrun.
 func (b *Backend) RetrievePayloads(ctx context.Context, obj objects.TektonObject, opts config.StorageOpts) (map[string]string, error) {
 	logger := logging.FromContext(ctx)
 	logger.Infof("Retrieving payload on %s/%s/%s", obj.GetGVK(), obj.GetNamespace(), obj.GetName())
