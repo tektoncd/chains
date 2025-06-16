@@ -170,8 +170,15 @@ func ExtractOCIImagesFromResults(ctx context.Context, results []objects.Result) 
 		digestSuffix: OCIImageDigestResultName,
 		isValid:      hasImageRequirements,
 	}
+
+	cfg := config.FromContext(ctx)
+	var opts []name.Option
+	if cfg.Storage.OCI.Insecure {
+		opts = append(opts, name.Insecure)
+	}
+
 	for _, s := range extractor.extract(ctx, results) {
-		dgst, err := name.NewDigest(fmt.Sprintf("%s@%s", s.URI, s.Digest))
+		dgst, err := name.NewDigest(fmt.Sprintf("%s@%s", s.URI, s.Digest), opts...)
 		if err != nil {
 			logger.Errorf("error getting digest: %v", err)
 			continue

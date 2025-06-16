@@ -118,8 +118,13 @@ func (b *Backend) uploadSignature(ctx context.Context, format simple.SimpleConta
 
 	imageName := format.ImageName()
 	logger.Infof("Uploading %s signature", imageName)
+	cfg := config.FromContext(ctx)
+	var opts []name.Option
+	if cfg.Storage.OCI.Insecure {
+		opts = append(opts, name.Insecure)
+	}
 
-	ref, err := name.NewDigest(imageName)
+	ref, err := name.NewDigest(imageName, opts...)
 	if err != nil {
 		return errors.Wrap(err, "getting digest")
 	}
@@ -153,13 +158,18 @@ func (b *Backend) uploadSignature(ctx context.Context, format simple.SimpleConta
 
 func (b *Backend) uploadAttestation(ctx context.Context, attestation *intoto.Statement, signature string, storageOpts config.StorageOpts, remoteOpts ...remote.Option) error {
 	logger := logging.FromContext(ctx)
+	cfg := config.FromContext(ctx)
+	var opts []name.Option
+	if cfg.Storage.OCI.Insecure {
+		opts = append(opts, name.Insecure)
+	}
+
 	// upload an attestation for each subject
 	logger.Info("Starting to upload attestations to OCI ...")
 	for _, subj := range attestation.Subject {
 		imageName := fmt.Sprintf("%s@sha256:%s", subj.Name, subj.Digest["sha256"])
 		logger.Infof("Starting attestation upload to OCI for %s...", imageName)
-
-		ref, err := name.NewDigest(imageName)
+		ref, err := name.NewDigest(imageName, opts...)
 		if err != nil {
 			return errors.Wrapf(err, "getting digest for subj %s", imageName)
 		}
