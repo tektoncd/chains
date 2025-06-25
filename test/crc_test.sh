@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 export namespace="${NAMESPACE:-tekton-chains}"
 
@@ -20,7 +21,7 @@ function install_chains() {
   export KO_DOCKER_REPO=ttl.sh
   ko apply -f config/ || fail_test "Tekton Chains installation failed"
   ko resolve -f config > release.yaml
-  yq 'del(.spec.template.spec.containers[].securityContext.runAsUser, .spec.template.spec.containers[].securityContext.runAsGroup)' release.yaml | oc apply -f -
+  yq 'del(.spec.template.spec.containers[]?.securityContext.runAsUser, .spec.template.spec.containers[]?.securityContext.runAsGroup)' release.yaml | kubectl apply -f -
 
   # Wait for pods to be running in the namespaces we are deploying to
   wait_until_pods_running ${namespace} || fail_test "Tekton Chains did not come up"
@@ -155,7 +156,7 @@ function wait_until_pods_running() {
   return 1
 }
 
-curl https://storage.googleapis.com/tekton-releases/pipeline/latest/release.notags.yaml | yq 'del(.spec.template.spec.containers[].securityContext.runAsUser, .spec.template.spec.containers[].securityContext.runAsGroup)' | oc apply -f -
+curl https://storage.googleapis.com/tekton-releases/pipeline/latest/release.notags.yaml | yq 'del(.spec.template.spec.containers[]?.securityContext.runAsUser, .spec.template.spec.containers[]?.securityContext.runAsGroup)' | kubectl apply -f -
 
 start_registry
 
@@ -169,4 +170,4 @@ chains_patch_spire
 
 export GCE_METADATA_HOST=localhost
 export OPENSHIFT=localhost
-go test -v -count=1 -tags=e2e -timeout=35m ./test/... --kubeconfig $HOME/.crc/machines/crc/kubeconfig
+go test -v -count=1 -tags=e2e -timeout=35m ./test/... --kubeconfig ${KUBECONFIG}
