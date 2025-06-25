@@ -655,7 +655,7 @@ var imageTaskRun = v1.TaskRun{
 }
 
 func getTaskRunObject(ns string) objects.TektonObject {
-	o := objects.NewTaskRunObjectV1(imageTaskrun.DeepCopy())
+	o := objects.NewTaskRunObjectV1(imageTaskRun.DeepCopy())
 	o.Namespace = ns
 	return o
 }
