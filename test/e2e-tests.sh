@@ -45,6 +45,8 @@ chains_patch_spire
 
 failed=0
 
+go install github.com/jstemmer/go-junit-report/v2@latest
+
 # Run the integration tests
 header "Running Go e2e tests"
 go_test_e2e -timeout=35m ./test/... || failed=1
