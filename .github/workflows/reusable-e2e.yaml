@@ -31,7 +31,7 @@ jobs:
       TEKTON_PIPELINES_RELEASE: "https://storage.googleapis.com/tekton-releases/pipeline/previous/${{ inputs.pipelines-release }}/release.yaml"
       # Note that we do not include the v prefix here so we can use it in all
       # the places this is used.
-      TEKTON_CLI_RELEASE: "0.30.0"
+      SKIP_INITIALIZE: true
 
     steps:
     - name: Set up Go
@@ -42,12 +42,6 @@ jobs:
     - uses: ko-build/setup-ko@v0.9
       with:
         version: tip
-
-    - name: Install tkn cli
-      run: |
-        curl -Lo ./tkn_${{ env.TEKTON_CLI_RELEASE }}_Linux_x86_64.tar.gz https://github.com/tektoncd/cli/releases/download/v${{ env.TEKTON_CLI_RELEASE }}/tkn_${{ env.TEKTON_CLI_RELEASE }}_Linux_x86_64.tar.gz
-        tar xvzf ./tkn_${{ env.TEKTON_CLI_RELEASE }}_Linux_x86_64.tar.gz tkn
-        chmod u+x ./tkn
 
     - name: Check out our repo
       uses: actions/checkout@6d193bf28034eafb982f37bd894289fe649468fc # v4.1.7
@@ -72,12 +66,14 @@ jobs:
         # Restart so picks up the changes.
         kubectl -n tekton-pipelines delete po -l app=tekton-pipelines-controller
 
-    - name: Install all the everythings
+    - name: Run integration tests
       working-directory: ./src/github.com/tektoncd/chains
-      timeout-minutes: 10
       run: |
-        ko apply -BRf ./config/
+        ./test/presubmit-tests.sh --integration-tests
 
+
+    - name: Run tutorial taskrun
+      run: |
         kubectl patch configmap/chains-config \
         --namespace tekton-chains \
         --type merge \
@@ -88,10 +84,8 @@ jobs:
 
         # TODO(vaikas): Better way to find when the chains has picked up
         # the changes
-        sleep 10
+        sleep 20
 
-    - name: Run tutorial taskrun
-      run: |
         kubectl create -f https://raw.githubusercontent.com/tektoncd/chains/main/examples/taskruns/task-output-image.yaml
 
         # Sleep so the taskrun shows up.
@@ -103,7 +97,7 @@ jobs:
         echo "Waiting for Chains to do it's thing"
         for i in {1..10}
         do
-          ./tkn tr describe --last -o jsonpath="{.metadata.annotations.chains\.tekton\.dev/transparency}" > tektonentry
+          tkn tr describe --last -o jsonpath="{.metadata.annotations.chains\.tekton\.dev/transparency}" > tektonentry
 
           if [ -s ./tektonentry ]; then
             if grep --quiet rekor.rekor-system.svc ./tektonentry ; then

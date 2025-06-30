@@ -31,11 +31,11 @@ source $(dirname $0)/../vendor/github.com/tektoncd/plumbing/scripts/e2e-tests.sh
 
 function install_tkn() {
   echo ">> Installing tkn"
-  TKN_VERSION=0.20.0
+  TKN_VERSION=0.41.0
   # Get the tar.xz
-  curl -LO https://github.com/tektoncd/cli/releases/download/v$TKN_VERSION/tkn_$TKN_VERSION_Linux_x86_64.tar.gz
+  curl -LO https://github.com/tektoncd/cli/releases/download/v${TKN_VERSION}/tkn_${TKN_VERSION}_Linux_x86_64.tar.gz
   # Extract tkn to your PATH (e.g. /usr/local/bin)
-  tar xvzf tkn_$TKN_VERSION_Linux_x86_64.tar.gz -C /usr/local/bin/ tkn
+  tar xvzf tkn_${TKN_VERSION}_Linux_x86_64.tar.gz -C /usr/local/bin/ tkn
 }
 
 function install_pipeline_crd() {

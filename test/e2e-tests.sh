@@ -17,22 +17,23 @@
 # This script calls out to scripts in tektoncd/plumbing to setup a cluster
 # and deploy Tekton Pipelines to it for running integration tests.
 
+SKIP_INITIALIZE=${SKIP_INITIALIZE:="false"}
+export GCE_METADATA_HOST=${GCE_METADATA_HOST:="localhost"}
+
 export namespace="${NAMESPACE:-tekton-chains}"
 echo "Using namespace: $namespace"
 
 source $(git rev-parse --show-toplevel)/test/e2e-common.sh
 
 # Script entry point.
-
-initialize $@
+if [ "${SKIP_INITIALIZE}" != "true" ]; then
+  initialize $@
+fi
 
 header "Setting up environment"
 
 # Test against nightly instead of latest.
 install_tkn
-
-export RELEASE_YAML="https://storage.googleapis.com/tekton-releases/pipeline/previous/v0.62.0/release.yaml"
-install_pipeline_crd
 
 install_chains
 
@@ -43,6 +44,8 @@ install_vault
 chains_patch_spire
 
 failed=0
+
+go install github.com/jstemmer/go-junit-report/v2@latest
 
 # Run the integration tests
 header "Running Go e2e tests"
