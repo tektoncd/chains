@@ -45,6 +45,18 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, tr *v1.TaskRun) pkgrecon
 	return r.FinalizeKind(ctx, tr)
 }
 
+// 01-Jul-2025; this is a temp solution util we consider the old finalizer name no longer used.
+// removeOldFinalizerIfExists removes the old finalizer from the TaskRun if it exists.
+func removeOldFinalizerIfExists(tr *v1.TaskRun) {
+	const oldFinalizerName = "chains.tekton.dev"
+	for i, f := range tr.ObjectMeta.Finalizers {
+		if f == oldFinalizerName {
+			tr.ObjectMeta.Finalizers = append(tr.ObjectMeta.Finalizers[:i], tr.ObjectMeta.Finalizers[i+1:]...)
+			break
+		}
+	}
+}
+
 // FinalizeKind implements taskrunreconciler.Finalizer
 // We utilize finalizers to ensure that we get a crack at signing every taskrun
 // that we see flowing through the system.  If we don't add a finalizer, it could
@@ -61,11 +73,13 @@ func (r *Reconciler) FinalizeKind(ctx context.Context, tr *v1.TaskRun) pkgreconc
 	// Check to see if it has already been signed.
 	if signing.Reconciled(ctx, r.Pipelineclientset, obj) {
 		logging.FromContext(ctx).Infof("taskrun %s/%s has been reconciled", tr.Namespace, tr.Name)
+		removeOldFinalizerIfExists(tr)
 		return nil
 	}
 
 	if err := r.TaskRunSigner.Sign(ctx, obj); err != nil {
 		return err
 	}
+	removeOldFinalizerIfExists(tr)
 	return nil
 }
