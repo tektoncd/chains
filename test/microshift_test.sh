@@ -3,24 +3,9 @@ set -e
 
 export namespace="${NAMESPACE:-tekton-chains}"
 
-function start_registry() {
-    running="$(docker inspect -f '{{.State.Running}}' ${REG_NAME} 2>/dev/null || echo false)"
-
-    if [[ ${running} != "true" ]];then
-        docker rm -f kind-registry || true
-        docker run \
-               -d --restart=always -p "127.0.0.1:${REG_PORT}:5000" \
-               -e REGISTRY_HTTP_SECRET=secret \
-               --name "${REG_NAME}" \
-               registry:2
-    fi
-}
-
 function install_chains() {
   echo ">> Deploying Tekton Chains"
-  export KO_DOCKER_REPO=ttl.sh
-  ko apply -f config/ || fail_test "Tekton Chains installation failed"
-  ko resolve -f config > release.yaml
+  ko resolve -f config > release.yaml || fail_test "Tekton Chains build failed"
   yq 'del(.spec.template.spec.containers[]?.securityContext.runAsUser, .spec.template.spec.containers[]?.securityContext.runAsGroup)' release.yaml | kubectl apply -f -
 
   # Wait for pods to be running in the namespaces we are deploying to
@@ -157,8 +142,6 @@ function wait_until_pods_running() {
 }
 
 curl https://storage.googleapis.com/tekton-releases/pipeline/latest/release.notags.yaml | yq 'del(.spec.template.spec.containers[]?.securityContext.runAsUser, .spec.template.spec.containers[]?.securityContext.runAsGroup)' | kubectl apply -f -
-
-start_registry
 
 install_chains
 
