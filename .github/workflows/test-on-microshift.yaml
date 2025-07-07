@@ -7,9 +7,6 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
 
 defaults:
   run:
@@ -25,6 +22,8 @@ jobs:
     env:
       SHELL: /bin/bash
       GOPATH: ${{ github.workspace }}
+      KO_DOCKER_REPO: ko.local
+      DOCKER_HOST: tcp://localhost:24816
 
     steps:
     - name: Checkout
@@ -44,20 +43,27 @@ jobs:
       run: |
           curl -L -o minc  https://github.com/minc-org/minc/releases/latest/download/minc_linux_amd64
           chmod +x minc
-          ./minc config set provider docker
           ./minc create --log-level debug
 
     - name: Install Tekton Chains and Run e2e tests
       working-directory: ${{ github.workspace }}/src/github.com/tektoncd/chains
 
       run: |
+          echo -e "\n************************ Install openshift client ************************\n"
           wget https://github.com/okd-project/okd/releases/download/4.19.0-okd-scos.6/openshift-client-linux-amd64-rhel9-4.19.0-okd-scos.6.tar.gz
           tar -xzvf openshift-client-linux-amd64-rhel9-4.19.0-okd-scos.6.tar.gz
           export PATH=${PATH}:${PWD}
 
+          echo -e "\n************************ Setup Podman ************************\n"
+          sudo podman system service --time=0 tcp://localhost:24816 &
+          sleep 7
+          echo -e "\ntest the podman tcp connection\n"
+          curl http://localhost:24816/_ping
+
+          echo -e "\n************************ Starting e2e ************************\n"
           oc adm policy add-scc-to-user anyuid -z tekton-pipelines-controller
           oc adm policy add-scc-to-user anyuid -z tekton-pipelines-webhook
 
           export KUBECONFIG=$HOME/.kube/config
 
-          source ${{ github.workspace }}/src/github.com/tektoncd/chains/test/crc_test.sh
+          source ${{ github.workspace }}/src/github.com/tektoncd/chains/test/microshift_test.sh
