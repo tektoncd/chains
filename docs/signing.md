@@ -20,7 +20,7 @@ Note, **only one** of the following keys needs to be set up for Chains to work:
 * [x509](#x509)
 * [Cosign](#cosign)
 * [KMS](#KMS)
-* [EXPERIMENTAL: Keyless signing](experimental.md#Keyless-Signing-Mode)
+* [Keyless signing](sigstore.md#keyless-signing-mode)
 
 ## x509
 
