@@ -17,10 +17,13 @@ import (
 	"bytes"
 	"context"
 	"crypto"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 
+	"github.com/cloudflare/circl/sign/mldsa/mldsa65"
 	"github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
 	"github.com/sigstore/sigstore/pkg/signature"
@@ -34,23 +37,40 @@ func Wrap(s Signer) (Signer, error) {
 		return nil, err
 	}
 
-	// Generate public key fingerprint
-	sshpk, err := ssh.NewPublicKey(pub)
-	if err != nil {
-		return nil, err
+	var fingerprint string
+	var pk crypto.PublicKey
+
+	// Handle MLDSA keys differently
+	if mldsaPub, ok := pub.(*mldsa65.PublicKey); ok {
+		// Generate fingerprint from MLDSA public key bytes
+		pkBytes, err := mldsaPub.MarshalBinary()
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal MLDSA public key: %w", err)
+		}
+		hash := sha256.Sum256(pkBytes)
+		fingerprint = "SHA256:" + base64.StdEncoding.EncodeToString(hash[:])
+		pk = pub
+	} else {
+		// For other key types, use SSH public key
+		sshpk, err := ssh.NewPublicKey(pub)
+		if err != nil {
+			return nil, err
+		}
+		fingerprint = ssh.FingerprintSHA256(sshpk)
+		pk = sshpk
 	}
-	fingerprint := ssh.FingerprintSHA256(sshpk)
 
 	adapter := sslAdapter{
 		wrapped: s,
 		keyID:   fingerprint,
-		pk:      sshpk,
+		pk:      pk,
 	}
 
 	envelope, err := dsse.NewEnvelopeSigner(&adapter)
 	if err != nil {
 		return nil, err
 	}
+
 	return &sslSigner{
 		wrapper: envelope,
 		typ:     s.Type(),
