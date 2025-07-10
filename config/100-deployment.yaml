@@ -85,6 +85,26 @@ spec:
         pipeline.tekton.dev/release: "devel"
         version: "devel"
     spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                - key: kubernetes.io/os
+                  operator: NotIn
+                  values:
+                  - windows
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: controller
+                  app.kubernetes.io/component: controller
+                  app.kubernetes.io/instance: default
+                  app.kubernetes.io/part-of: tekton-chains
+              topologyKey: kubernetes.io/hostname
+            weight: 100
       serviceAccountName: tekton-chains-controller
       containers:
         - name: tekton-chains-controller
