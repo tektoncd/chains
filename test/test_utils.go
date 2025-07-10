@@ -26,6 +26,7 @@ import (
 	"math/rand"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -241,16 +242,33 @@ func printDebugging(t *testing.T, obj objects.TektonObject) {
 	t.Helper()
 	kind := obj.GetObjectKind().GroupVersionKind().Kind
 
+	// Validate and sanitize inputs to prevent potential command injection
+	if !isValidKubernetesKind(kind) {
+		t.Logf("Invalid kind: %s, skipping logs", kind)
+		return
+	}
+
+	objNamespace := obj.GetNamespace()
+	objName := obj.GetName()
+
+	if !isValidKubernetesName(objNamespace) || !isValidKubernetesName(objName) {
+		t.Logf("Invalid namespace or name: %s/%s, skipping logs", objNamespace, objName)
+		return
+	}
+
 	t.Logf("============================== %s logs ==============================", obj.GetGVK())
-	output, _ := exec.Command("tkn", strings.ToLower(kind), "logs", "-n", obj.GetNamespace(), obj.GetName()).CombinedOutput()
+	// #nosec G204 -- objNamespace and objName are validated by isValidKubernetesName to prevent command injection
+	output, _ := exec.Command("tkn", strings.ToLower(kind), "logs", "--namespace", objNamespace, objName).CombinedOutput()
 	t.Log(string(output))
 
 	t.Logf("============================== %s describe ==============================", obj.GetGVK())
-	output, _ = exec.Command("tkn", strings.ToLower(kind), "describe", "-n", obj.GetNamespace(), obj.GetName()).CombinedOutput()
+	// #nosec G204 -- objNamespace and objName are validated by isValidKubernetesName to prevent command injection
+	output, _ = exec.Command("tkn", strings.ToLower(kind), "describe", "--namespace", objNamespace, objName).CombinedOutput()
 	t.Log(string(output))
 
 	t.Log("============================== chains controller logs ==============================")
-	output, _ = exec.Command("kubectl", "logs", "deploy/tekton-chains-controller", "-n", namespace).CombinedOutput()
+	// #nosec G204 -- namespace is a package-level constant, not user input
+	output, _ = exec.Command("kubectl", "logs", "deploy/tekton-chains-controller", "--namespace", namespace).CombinedOutput()
 	t.Log(string(output))
 }
 
@@ -347,4 +365,27 @@ func restartControllerPod(ctx context.Context, c kubernetes.Interface, timeout t
 		}
 		return false, nil
 	})
+}
+
+// isValidKubernetesKind validates that a string is a valid Kubernetes kind
+func isValidKubernetesKind(kind string) bool {
+	// Allow common Tekton kinds
+	validKinds := []string{"TaskRun", "PipelineRun", "Task", "Pipeline"}
+	for _, validKind := range validKinds {
+		if strings.EqualFold(kind, validKind) {
+			return true
+		}
+	}
+	return false
+}
+
+// isValidKubernetesName validates that a string follows Kubernetes naming rules
+// DNS-1123 subdomain rules: lowercase alphanumeric characters, '-' or '.'
+func isValidKubernetesName(name string) bool {
+	if len(name) == 0 || len(name) > 253 {
+		return false
+	}
+	// Kubernetes names should match DNS-1123 subdomain rules
+	matched, _ := regexp.MatchString(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`, name)
+	return matched
 }
