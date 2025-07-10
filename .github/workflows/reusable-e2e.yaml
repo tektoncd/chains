@@ -27,7 +27,7 @@ jobs:
       GOFLAGS: -ldflags=-s -ldflags=-w
       KO_DOCKER_REPO: registry.local:5000/knative
       KOCACHE: ~/ko
-      SIGSTORE_SCAFFOLDING_RELEASE_VERSION: "v0.7.12"
+      SIGSTORE_SCAFFOLDING_RELEASE_VERSION: "v0.7.24"
       TEKTON_PIPELINES_RELEASE: "https://storage.googleapis.com/tekton-releases/pipeline/previous/${{ inputs.pipelines-release }}/release.yaml"
       # Note that we do not include the v prefix here so we can use it in all
       # the places this is used.
