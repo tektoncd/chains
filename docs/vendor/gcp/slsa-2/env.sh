@@ -16,7 +16,7 @@
 export USE_GKE_GCLOUD_AUTH_PLUGIN=True
 # The Google Service Account which will be used to access GCP resource like ArtifactRegistry and KMS.
 export GSA_NAME=my-gsa
-# The Kubernets service account which will be tied to the GSA.
+# The Kubernetes service account which will be tied to the GSA.
 export KSA_NAME=my-ksa
 # The name of the repo in GCP's ArtifactRegistry, which will be used to upload artifacts created by this demo.
 export CLOUD_REPO=my-repo
