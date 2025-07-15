@@ -127,7 +127,7 @@ You can read more about Grafeas notes and occurrences [here](https://github.com/
 > - It is only valid for `slsa/v2alpha3` configurations (see TaskRun or PipelineRun configuration).
 > - The parameter can take one of two values:
 >   - `https://tekton.dev/chains/v2/slsa`: This buildType strictly conforms to the slsav1.0 spec.
->   - `https://tekton.dev/chains/v2/slsa-tekton`: This buildType also conforms to the slsav1.0 spec, but adds additional informaton specific to Tekton. This information includes the PipelinRun/TaskRun labels and annotations as internalParameters. It also includes capturing each pipeline task in a PipelinRun under resolvedDependencies.
+>   - `https://tekton.dev/chains/v2/slsa-tekton`: This buildType also conforms to the slsav1.0 spec, but adds additional information specific to Tekton. This information includes the PipelinRun/TaskRun labels and annotations as internalParameters. It also includes capturing each pipeline task in a PipelinRun under resolvedDependencies.
 
 ### Sigstore Features Configuration
 
