@@ -183,7 +183,7 @@ func TestMarkSigned(t *testing.T) {
 
 			// Now mark it as signed.
 			extra := map[string]string{
-				"foo": "bar",
+				"chains.tekton.dev/extra": "bar",
 			}
 
 			if err := MarkSigned(ctx, tt.object, c, extra); err != nil {
@@ -198,7 +198,7 @@ func TestMarkSigned(t *testing.T) {
 			if _, ok := signed.GetAnnotations()[ChainsAnnotation]; !ok {
 				t.Error("Object not signed.")
 			}
-			if signed.GetAnnotations()["foo"] != "bar" {
+			if signed.GetAnnotations()["chains.tekton.dev/extra"] != "bar" {
 				t.Error("Extra annotations not applied")
 			}
 		})
@@ -371,4 +371,160 @@ func TestAddRetry(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestAddAnnotationValidation tests the new validation logic for annotations
+func TestAddAnnotationValidation(t *testing.T) {
+	tests := []struct {
+		name            string
+		key             string
+		value           string
+		annotations     map[string]string
+		wantErr         bool
+		wantErrContains string
+	}{
+		{
+			name:    "valid chains annotation key",
+			key:     "chains.tekton.dev/test",
+			value:   "value",
+			wantErr: false,
+		},
+		{
+			name:            "invalid annotation key without prefix",
+			key:             "invalid-key",
+			value:           "value",
+			wantErr:         true,
+			wantErrContains: "invalid annotation key",
+		},
+		{
+			name:            "invalid annotation in map without prefix",
+			key:             "chains.tekton.dev/test",
+			value:           "value",
+			annotations:     map[string]string{"invalid": "value"},
+			wantErr:         true,
+			wantErrContains: "invalid annotation key",
+		},
+		{
+			name:  "valid annotations with prefix",
+			key:   "chains.tekton.dev/test",
+			value: "value",
+			annotations: map[string]string{
+				"chains.tekton.dev/extra1": "value1",
+				"chains.tekton.dev/extra2": "value2",
+			},
+			wantErr: false,
+		},
+		{
+			name:  "mixed valid and invalid annotations",
+			key:   "chains.tekton.dev/test",
+			value: "value",
+			annotations: map[string]string{
+				"chains.tekton.dev/extra1": "value1",
+				"invalid":                  "value2",
+			},
+			wantErr:         true,
+			wantErrContains: "invalid annotation key",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, _ := rtesting.SetupFakeContext(t)
+			c := fakepipelineclient.Get(ctx)
+
+			obj := objects.NewTaskRunObjectV1(&v1.TaskRun{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-taskrun",
+					Namespace: "default",
+				},
+			})
+
+			tekton.CreateObject(t, ctx, c, obj)
+
+			err := AddAnnotation(ctx, obj, c, tt.key, tt.value, tt.annotations)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("AddAnnotation() expected error but got none")
+				} else if tt.wantErrContains != "" && !contains(err.Error(), tt.wantErrContains) {
+					t.Errorf("AddAnnotation() error = %v, wantErrContains %v", err, tt.wantErrContains)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("AddAnnotation() unexpected error = %v", err)
+				}
+			}
+		})
+	}
+}
+
+// TestAnnotationPreservation tests that only Chains annotations are preserved
+func TestAnnotationPreservation(t *testing.T) {
+	ctx, _ := rtesting.SetupFakeContext(t)
+	c := fakepipelineclient.Get(ctx)
+
+	// Create object with mixed annotations
+	obj := objects.NewTaskRunObjectV1(&v1.TaskRun{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-taskrun",
+			Namespace: "default",
+			Annotations: map[string]string{
+				"chains.tekton.dev/existing": "keep-me",
+				"tekton.dev/other":           "ignore-me",
+				"kubernetes.io/annotation":   "ignore-me",
+				"chains.tekton.dev/another":  "keep-me-too",
+			},
+		},
+	})
+
+	tekton.CreateObject(t, ctx, c, obj)
+
+	// Add a new annotation
+	err := AddAnnotation(ctx, obj, c, "chains.tekton.dev/new", "new-value", nil)
+	if err != nil {
+		t.Fatalf("AddAnnotation() error = %v", err)
+	}
+
+	// Verify the result
+	updated, err := tekton.GetObject(t, ctx, c, obj)
+	if err != nil {
+		t.Fatalf("Get() error = %v", err)
+	}
+
+	annotations := updated.GetAnnotations()
+
+	// Should have all chains annotations
+	expectedChains := map[string]string{
+		"chains.tekton.dev/existing": "keep-me",
+		"chains.tekton.dev/another":  "keep-me-too",
+		"chains.tekton.dev/new":      "new-value",
+	}
+
+	for k, v := range expectedChains {
+		if got := annotations[k]; got != v {
+			t.Errorf("Expected annotation %s=%s, got %s", k, v, got)
+		}
+	}
+
+	// Should still have non-chains annotations (they weren't removed, just not included in patch)
+	expectedNonChains := map[string]string{
+		"tekton.dev/other":         "ignore-me",
+		"kubernetes.io/annotation": "ignore-me",
+	}
+
+	for k, v := range expectedNonChains {
+		if got := annotations[k]; got != v {
+			t.Errorf("Expected non-chains annotation %s=%s to be preserved, got %s", k, v, got)
+		}
+	}
+}
+
+// Helper function to check if string contains substring
+func contains(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
 }
