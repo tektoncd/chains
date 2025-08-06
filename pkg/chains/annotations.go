@@ -102,7 +102,7 @@ func AddAnnotation(ctx context.Context, obj objects.TektonObject, ps versioned.I
 		annotations = map[string]string{}
 	}
 	annotations[key] = value
-	patchBytes, err := patch.GetAnnotationsPatch(annotations)
+	patchBytes, err := patch.GetAnnotationsPatch(annotations, obj)
 	if err != nil {
 		return err
 	}

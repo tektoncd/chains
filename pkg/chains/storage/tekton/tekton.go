@@ -174,7 +174,7 @@ func (s *Storer) Store(ctx context.Context, req *api.StoreRequest[objects.Tekton
 		fmt.Sprintf(SignatureAnnotationFormat, key): base64.StdEncoding.EncodeToString(req.Bundle.Signature),
 		fmt.Sprintf(CertAnnotationsFormat, key):     base64.StdEncoding.EncodeToString(req.Bundle.Cert),
 		fmt.Sprintf(ChainAnnotationFormat, key):     base64.StdEncoding.EncodeToString(req.Bundle.Chain),
-	})
+	}, obj)
 	if err != nil {
 		return nil, err
 	}

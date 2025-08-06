@@ -22,14 +22,22 @@ import (
 
 	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	"github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"knative.dev/pkg/apis"
+	"knative.dev/pkg/logging"
 )
 
 // Label added to TaskRuns identifying the associated pipeline Task
 const PipelineTaskLabel = "tekton.dev/pipelineTask"
+
+// patchOptions contains the default patch options
+var patchOptions = metav1.PatchOptions{
+	FieldManager: "tekton-chains-controller",
+	Force:        &[]bool{false}[0],
+}
 
 // Object is used as a base object of all Kubernetes objects
 // ref: https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.9.4/pkg/client#Object
@@ -121,8 +129,19 @@ func (tro *TaskRunObjectV1) GetObject() interface{} {
 
 // Patch the original TaskRun object
 func (tro *TaskRunObjectV1) Patch(ctx context.Context, clientSet versioned.Interface, patchBytes []byte) error {
+	logger := logging.FromContext(ctx)
 	_, err := clientSet.TektonV1().TaskRuns(tro.Namespace).Patch(
-		ctx, tro.Name, types.MergePatchType, patchBytes, metav1.PatchOptions{})
+		ctx, tro.Name, types.ApplyPatchType, patchBytes, patchOptions)
+	if apierrors.IsConflict(err) {
+		// Since we only update the list of annotations we manage, there shouldn't be any conflicts unless
+		// another controller/client is updating our annotations. We log the issue and force patch.
+		logger.Warnf("failed to patch object %s/%s due to Server-Side Apply patch conflict, using force patch.", tro.Namespace, tro.Name)
+		// use a copy to avoid changing the global var
+		patchOptionsForce := patchOptions
+		patchOptionsForce.Force = &[]bool{true}[0]
+		_, err = clientSet.TektonV1().TaskRuns(tro.Namespace).Patch(
+			ctx, tro.Name, types.ApplyPatchType, patchBytes, patchOptionsForce)
+	}
 	return err
 }
 
@@ -260,8 +279,19 @@ func (pro *PipelineRunObjectV1) GetObject() interface{} {
 
 // Patch the original PipelineRun object
 func (pro *PipelineRunObjectV1) Patch(ctx context.Context, clientSet versioned.Interface, patchBytes []byte) error {
+	logger := logging.FromContext(ctx)
 	_, err := clientSet.TektonV1().PipelineRuns(pro.Namespace).Patch(
-		ctx, pro.Name, types.MergePatchType, patchBytes, metav1.PatchOptions{})
+		ctx, pro.Name, types.ApplyPatchType, patchBytes, patchOptions)
+	if apierrors.IsConflict(err) {
+		// Since we only update the list of annotations we manage, there shouldn't be any conflicts unless
+		// another controller/client is updating our annotations. We log the issue and force patch.
+		logger.Warnf("failed to patch object %s/%s due to Server-Side Apply patch conflict, using force patch.", pro.Namespace, pro.Name)
+		// use a copy to avoid changing the global var
+		patchOptionsForce := patchOptions
+		patchOptionsForce.Force = &[]bool{true}[0]
+		_, err = clientSet.TektonV1().PipelineRuns(pro.Namespace).Patch(
+			ctx, pro.Name, types.ApplyPatchType, patchBytes, patchOptionsForce)
+	}
 	return err
 }
 
