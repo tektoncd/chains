@@ -14,7 +14,12 @@
 
 package oci
 
-import "github.com/google/go-containerregistry/pkg/name"
+import (
+	"os"
+
+	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/google/go-containerregistry/pkg/v1/remote"
+)
 
 // Option provides a config option compatible with all OCI storers.
 type Option interface {
@@ -50,5 +55,34 @@ func (o *targetRepoOption) applyAttestationStorer(s *AttestationStorer) error {
 
 func (o *targetRepoOption) applySimpleStorer(s *SimpleStorer) error {
 	s.repo = &o.repo
+	return nil
+}
+
+// WithReferrersAPI configures the storers to use OCI 1.1 referrers API.
+func WithReferrersAPI(enabled bool) Option {
+	return &referrersAPIOption{
+		enabled: enabled,
+	}
+}
+
+type referrersAPIOption struct {
+	enabled bool
+}
+
+func (o *referrersAPIOption) applyAttestationStorer(s *AttestationStorer) error {
+	if o.enabled {
+		// Enable cosign experimental mode to activate OCI 1.1 referrers API
+		os.Setenv("COSIGN_EXPERIMENTAL", "1")
+		s.remoteOpts = append(s.remoteOpts, remote.WithUserAgent("chains/referrers-api"))
+	}
+	return nil
+}
+
+func (o *referrersAPIOption) applySimpleStorer(s *SimpleStorer) error {
+	if o.enabled {
+		// Enable cosign experimental mode to activate OCI 1.1 referrers API
+		os.Setenv("COSIGN_EXPERIMENTAL", "1")
+		s.remoteOpts = append(s.remoteOpts, remote.WithUserAgent("chains/referrers-api"))
+	}
 	return nil
 }
