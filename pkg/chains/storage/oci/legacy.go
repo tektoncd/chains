@@ -359,7 +359,7 @@ func (b *Backend) uploadSignatureWithReferrers(ctx context.Context, format simpl
 }
 
 // uploadAttestationWithReferrers uses cosign's OCI 1.1 experimental API for attestations
-func (b *Backend) uploadAttestationWithReferrers(ctx context.Context, attestation *intoto.Statement, signature string, storageOpts config.StorageOpts, remoteOpts ...remote.Option) error {
+func (b *Backend) uploadAttestationWithReferrers(ctx context.Context, attestation *intoto.Statement, signature string, _ config.StorageOpts, remoteOpts ...remote.Option) error {
 	logger := logging.FromContext(ctx)
 	if len(attestation.Subject) == 0 {
 		return errors.New("no subjects in attestation")

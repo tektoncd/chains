@@ -59,6 +59,8 @@ func (o *targetRepoOption) applySimpleStorer(s *SimpleStorer) error {
 }
 
 // WithReferrersAPI configures the storers to use OCI 1.1 referrers API.
+//
+//nolint:ireturn // returning interface is the intended pattern for options
 func WithReferrersAPI(enabled bool) Option {
 	return &referrersAPIOption{
 		enabled: enabled,

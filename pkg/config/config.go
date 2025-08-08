@@ -180,7 +180,7 @@ const (
 	gcsBucketKey               = "storage.gcs.bucket"
 	ociRepositoryKey           = "storage.oci.repository"
 	ociRepositoryInsecureKey   = "storage.oci.repository.insecure"
-	ociReferrersAPIKey         = "storage.oci.referrers-api"
+	ociReferrersAPIKey         = "storage.oci.referrers-api" //nolint:gosec // G101: This is a config key, not hardcoded credentials
 	docDBUrlKey                = "storage.docdb.url"
 	docDBMongoServerURLKey     = "storage.docdb.mongo-server-url"
 	docDBMongoServerURLDirKey  = "storage.docdb.mongo-server-url-dir"
