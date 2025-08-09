@@ -116,8 +116,9 @@ type GCSStorageConfig struct {
 }
 
 type OCIStorageConfig struct {
-	Repository string
-	Insecure   bool
+	Repository   string
+	Insecure     bool
+	ReferrersAPI bool
 }
 
 type TektonStorageConfig struct {
@@ -179,6 +180,7 @@ const (
 	gcsBucketKey               = "storage.gcs.bucket"
 	ociRepositoryKey           = "storage.oci.repository"
 	ociRepositoryInsecureKey   = "storage.oci.repository.insecure"
+	ociReferrersAPIKey         = "storage.oci.referrers-api" //nolint:gosec // G101: This is a config key, not hardcoded credentials
 	docDBUrlKey                = "storage.docdb.url"
 	docDBMongoServerURLKey     = "storage.docdb.mongo-server-url"
 	docDBMongoServerURLDirKey  = "storage.docdb.mongo-server-url-dir"
@@ -310,6 +312,7 @@ func NewConfigFromMap(data map[string]string) (*Config, error) {
 		asString(gcsBucketKey, &cfg.Storage.GCS.Bucket),
 		asString(ociRepositoryKey, &cfg.Storage.OCI.Repository),
 		asBool(ociRepositoryInsecureKey, &cfg.Storage.OCI.Insecure),
+		asBool(ociReferrersAPIKey, &cfg.Storage.OCI.ReferrersAPI),
 		asString(docDBUrlKey, &cfg.Storage.DocDB.URL),
 		asString(docDBMongoServerURLKey, &cfg.Storage.DocDB.MongoServerURL),
 		asString(docDBMongoServerURLDirKey, &cfg.Storage.DocDB.MongoServerURLDir),
