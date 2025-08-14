@@ -34,7 +34,9 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/pkg/errors"
 	"github.com/sigstore/cosign/v2/pkg/oci"
+	"github.com/sigstore/cosign/v2/pkg/oci/mutate"
 	ociremote "github.com/sigstore/cosign/v2/pkg/oci/remote"
+	"github.com/sigstore/cosign/v2/pkg/oci/static"
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/formats/simple"
 	"github.com/tektoncd/chains/pkg/config"
@@ -105,6 +107,13 @@ func (b *Backend) StorePayload(ctx context.Context, obj objects.TektonObject, ra
 			return nil
 		}
 
+		// Use new AttestationStorer with potential referrers API support
+		logger.Infof("ReferrersAPI config value: %v", b.cfg.Storage.OCI.ReferrersAPI)
+		if b.cfg.Storage.OCI.ReferrersAPI {
+			logger.Info("Using referrers API for attestation upload")
+			return b.uploadAttestationWithReferrers(ctx, &attestation, signature, storageOpts, auth)
+		}
+		logger.Info("Using traditional tag-based attestation upload")
 		return b.uploadAttestation(ctx, &attestation, signature, storageOpts, auth)
 	}
 
@@ -115,6 +124,13 @@ func (b *Backend) StorePayload(ctx context.Context, obj objects.TektonObject, ra
 
 func (b *Backend) uploadSignature(ctx context.Context, format simple.SimpleContainerImage, rawPayload []byte, signature string, storageOpts config.StorageOpts, remoteOpts ...remote.Option) error {
 	logger := logging.FromContext(ctx)
+	// Use new SimpleStorer with potential referrers API support
+	logger.Infof("ReferrersAPI config value: %v", b.cfg.Storage.OCI.ReferrersAPI)
+	if b.cfg.Storage.OCI.ReferrersAPI {
+		logger.Info("Using referrers API for signature upload")
+		return b.uploadSignatureWithReferrers(ctx, format, rawPayload, signature, storageOpts, remoteOpts...)
+	}
+	logger.Info("Using traditional tag-based signature upload")
 
 	imageName := format.ImageName()
 	logger.Infof("Uploading %s signature", imageName)
@@ -298,4 +314,91 @@ func newRepo(cfg config.Config, imageName name.Digest) (name.Repository, error) 
 		return name.NewRepository(storageOCIRepository, opts...)
 	}
 	return name.NewRepository(imageName.Repository.Name(), opts...)
+}
+
+// uploadSignatureWithReferrers uses cosign's OCI 1.1 experimental API for signatures
+func (b *Backend) uploadSignatureWithReferrers(ctx context.Context, format simple.SimpleContainerImage, rawPayload []byte, signature string, storageOpts config.StorageOpts, remoteOpts ...remote.Option) error {
+	logger := logging.FromContext(ctx)
+	imageName := format.ImageName()
+	ref, err := name.NewDigest(imageName)
+	if err != nil {
+		return errors.Wrap(err, "getting digest")
+	}
+
+	// Get or create the SignedEntity (same as SimpleStorer.Store)
+	se, err := ociremote.SignedEntity(ref, ociremote.WithRemoteOptions(remoteOpts...))
+	var entityNotFoundError *ociremote.EntityNotFoundError
+	if errors.As(err, &entityNotFoundError) {
+		se = ociremote.SignedUnknown(ref)
+	} else if err != nil {
+		return errors.Wrap(err, "getting signed entity")
+	}
+
+	// Create signature options (same as SimpleStorer.Store)
+	sigOpts := []static.Option{}
+	if storageOpts.Cert != "" {
+		sigOpts = append(sigOpts, static.WithCertChain([]byte(storageOpts.Cert), []byte(storageOpts.Chain)))
+	}
+
+	// Create the new signature for this entity
+	b64sig := base64.StdEncoding.EncodeToString([]byte(signature))
+	sig, err := static.NewSignature(rawPayload, b64sig, sigOpts...)
+	if err != nil {
+		return errors.Wrap(err, "creating signature")
+	}
+
+	// Attach the signature to the entity
+	newSE, err := mutate.AttachSignatureToEntity(se, sig)
+	if err != nil {
+		return errors.Wrap(err, "attaching signature to entity")
+	}
+
+	// Use cosign's OCI 1.1 experimental function instead of WriteSignatures
+	logger.Info("Using OCI 1.1 referrers API for signature upload")
+	return ociremote.WriteSignaturesExperimentalOCI(ref, newSE, ociremote.WithRemoteOptions(remoteOpts...))
+}
+
+// uploadAttestationWithReferrers uses cosign's OCI 1.1 experimental API for attestations
+func (b *Backend) uploadAttestationWithReferrers(ctx context.Context, attestation *intoto.Statement, signature string, _ config.StorageOpts, remoteOpts ...remote.Option) error {
+	logger := logging.FromContext(ctx)
+	if len(attestation.Subject) == 0 {
+		return errors.New("no subjects in attestation")
+	}
+
+	// Get the first subject (main image)
+	subject := attestation.Subject[0]
+	imageName := fmt.Sprintf("%s@sha256:%s", subject.Name, subject.Digest["sha256"])
+	ref, err := name.NewDigest(imageName)
+	if err != nil {
+		return errors.Wrap(err, "parsing subject digest")
+	}
+
+	// Create DSSE envelope with the attestation
+	payload, err := json.Marshal(attestation)
+	if err != nil {
+		return errors.Wrap(err, "marshaling attestation")
+	}
+
+	envelope := dsse.Envelope{
+		PayloadType: "application/vnd.in-toto+json",
+		Payload:     base64.StdEncoding.EncodeToString(payload),
+		Signatures: []dsse.Signature{
+			{
+				Sig: signature,
+			},
+		},
+	}
+
+	// Marshal the envelope to create bundle bytes
+	bundleBytes, err := json.Marshal(envelope)
+	if err != nil {
+		return errors.Wrap(err, "marshaling DSSE envelope")
+	}
+
+	// Extract predicate type from attestation
+	predicateType := attestation.PredicateType
+
+	// Use cosign's OCI 1.1 experimental function for attestations
+	logger.Info("Using OCI 1.1 referrers API for attestation upload")
+	return ociremote.WriteAttestationNewBundleFormat(ref, bundleBytes, predicateType, ociremote.WithRemoteOptions(remoteOpts...))
 }
