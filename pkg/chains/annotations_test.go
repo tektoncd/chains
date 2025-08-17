@@ -183,7 +183,7 @@ func TestMarkSigned(t *testing.T) {
 
 			// Now mark it as signed.
 			extra := map[string]string{
-				"foo": "bar",
+				"chains.tekton.dev/extra": "bar",
 			}
 
 			if err := MarkSigned(ctx, tt.object, c, extra); err != nil {
@@ -198,7 +198,7 @@ func TestMarkSigned(t *testing.T) {
 			if _, ok := signed.GetAnnotations()[ChainsAnnotation]; !ok {
 				t.Error("Object not signed.")
 			}
-			if signed.GetAnnotations()["foo"] != "bar" {
+			if signed.GetAnnotations()["chains.tekton.dev/extra"] != "bar" {
 				t.Error("Extra annotations not applied")
 			}
 		})

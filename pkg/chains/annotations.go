@@ -17,6 +17,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/tektoncd/chains/pkg/chains/objects"
@@ -26,6 +27,8 @@ import (
 )
 
 const (
+	// ChainsAnnotationPrefix is the prefix for all Chains annotations
+	ChainsAnnotationPrefix = "chains.tekton.dev/"
 	// ChainsAnnotation is the standard annotation to indicate a TR has been signed.
 	ChainsAnnotation             = "chains.tekton.dev/signed"
 	RetryAnnotation              = "chains.tekton.dev/retries"
@@ -97,12 +100,38 @@ func AddRetry(ctx context.Context, obj objects.TektonObject, ps versioned.Interf
 }
 
 func AddAnnotation(ctx context.Context, obj objects.TektonObject, ps versioned.Interface, key, value string, annotations map[string]string) error {
-	// Use patch instead of update to help prevent race conditions.
-	if annotations == nil {
-		annotations = map[string]string{}
+	// For server-side apply, we need to merge with existing chains annotations
+	// We only include chains.tekton.dev/ annotations to avoid ownership conflicts
+	existingAnnotations, err := obj.GetLatestAnnotations(ctx, ps)
+	if err != nil {
+		return err
 	}
-	annotations[key] = value
-	patchBytes, err := patch.GetAnnotationsPatch(annotations, obj)
+
+	// Start with existing chains annotations, ignore annotations from other controllers,
+	// so we do not take ownership of them.
+	mergedAnnotations := make(map[string]string)
+	for k, v := range existingAnnotations {
+		if strings.HasPrefix(k, ChainsAnnotationPrefix) {
+			mergedAnnotations[k] = v
+		}
+	}
+
+	// Add any additional chains annotations provided
+	// All annotations passed to this function should be chains annotations
+	for k, v := range annotations {
+		if !strings.HasPrefix(k, ChainsAnnotationPrefix) {
+			return fmt.Errorf("invalid annotation key %q: all annotations must have prefix %q", k, ChainsAnnotationPrefix)
+		}
+		mergedAnnotations[k] = v
+	}
+
+	// Add the specific key-value pair (must be a chains annotation)
+	if !strings.HasPrefix(key, ChainsAnnotationPrefix) {
+		return fmt.Errorf("invalid annotation key %q: must have prefix %q", key, ChainsAnnotationPrefix)
+	}
+	mergedAnnotations[key] = value
+
+	patchBytes, err := patch.GetAnnotationsPatch(mergedAnnotations, obj)
 	if err != nil {
 		return err
 	}
