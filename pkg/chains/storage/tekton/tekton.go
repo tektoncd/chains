@@ -17,6 +17,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"strings"
 
 	intoto "github.com/in-toto/attestation/go/v1"
 	"github.com/tektoncd/chains/pkg/chains/objects"
@@ -168,13 +169,28 @@ func (s *Storer) Store(ctx context.Context, req *api.StoreRequest[objects.Tekton
 	if key == "" {
 		key = string(obj.GetUID())
 	}
-	patchBytes, err := patch.GetAnnotationsPatch(map[string]string{
-		// Base64 encode both the signature and the payload
-		fmt.Sprintf(PayloadAnnotationFormat, key):   base64.StdEncoding.EncodeToString(req.Bundle.Content),
-		fmt.Sprintf(SignatureAnnotationFormat, key): base64.StdEncoding.EncodeToString(req.Bundle.Signature),
-		fmt.Sprintf(CertAnnotationsFormat, key):     base64.StdEncoding.EncodeToString(req.Bundle.Cert),
-		fmt.Sprintf(ChainAnnotationFormat, key):     base64.StdEncoding.EncodeToString(req.Bundle.Chain),
-	}, obj)
+
+	// For server-side apply, we need to merge with existing chains annotations
+	existingAnnotations, err := obj.GetLatestAnnotations(ctx, s.client)
+	if err != nil {
+		return nil, err
+	}
+
+	// Start with existing chains annotations only
+	mergedAnnotations := make(map[string]string)
+	for k, v := range existingAnnotations {
+		if strings.HasPrefix(k, "chains.tekton.dev/") {
+			mergedAnnotations[k] = v
+		}
+	}
+
+	// Add the new annotations
+	mergedAnnotations[fmt.Sprintf(PayloadAnnotationFormat, key)] = base64.StdEncoding.EncodeToString(req.Bundle.Content)
+	mergedAnnotations[fmt.Sprintf(SignatureAnnotationFormat, key)] = base64.StdEncoding.EncodeToString(req.Bundle.Signature)
+	mergedAnnotations[fmt.Sprintf(CertAnnotationsFormat, key)] = base64.StdEncoding.EncodeToString(req.Bundle.Cert)
+	mergedAnnotations[fmt.Sprintf(ChainAnnotationFormat, key)] = base64.StdEncoding.EncodeToString(req.Bundle.Chain)
+
+	patchBytes, err := patch.GetAnnotationsPatch(mergedAnnotations, obj)
 	if err != nil {
 		return nil, err
 	}
