@@ -19,7 +19,24 @@ import (
 	"testing"
 )
 
+// mockTektonObject implements TektonObject interface for testing
+type mockTektonObject struct {
+	name      string
+	namespace string
+	gvk       string
+}
+
+func (m *mockTektonObject) GetName() string      { return m.name }
+func (m *mockTektonObject) GetNamespace() string { return m.namespace }
+func (m *mockTektonObject) GetGVK() string       { return m.gvk }
+
 func TestGetAnnotationsPatch(t *testing.T) {
+	mockObj := &mockTektonObject{
+		name:      "test-taskrun",
+		namespace: "test-namespace",
+		gvk:       "tekton.dev/v1/TaskRun",
+	}
+
 	tests := []struct {
 		name           string
 		newAnnotations map[string]string
@@ -29,14 +46,14 @@ func TestGetAnnotationsPatch(t *testing.T) {
 		{
 			name:           "empty",
 			newAnnotations: map[string]string{},
-			want:           `{"metadata":{}}`,
+			want:           `{"apiVersion":"tekton.dev/v1","kind":"TaskRun","metadata":{"name":"test-taskrun","namespace":"test-namespace"}}`,
 		},
 		{
 			name: "one",
 			newAnnotations: map[string]string{
 				"foo": "bar",
 			},
-			want: `{"metadata":{"annotations":{"foo":"bar"}}}`,
+			want: `{"apiVersion":"tekton.dev/v1","kind":"TaskRun","metadata":{"name":"test-taskrun","namespace":"test-namespace","annotations":{"foo":"bar"}}}`,
 		},
 		{
 			name: "many",
@@ -44,12 +61,12 @@ func TestGetAnnotationsPatch(t *testing.T) {
 				"foo": "bar",
 				"baz": "bat",
 			},
-			want: `{"metadata":{"annotations":{"baz":"bat","foo":"bar"}}}`,
+			want: `{"apiVersion":"tekton.dev/v1","kind":"TaskRun","metadata":{"name":"test-taskrun","namespace":"test-namespace","annotations":{"baz":"bat","foo":"bar"}}}`,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetAnnotationsPatch(tt.newAnnotations)
+			got, err := GetAnnotationsPatch(tt.newAnnotations, mockObj)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetAnnotationsPatch() error = %v, wantErr %v", err, tt.wantErr)
 				return
