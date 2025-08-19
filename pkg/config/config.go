@@ -49,6 +49,7 @@ type Artifact struct {
 	StorageBackend        sets.Set[string]
 	Signer                string
 	DeepInspectionEnabled bool
+	DisableSigning        bool
 }
 
 // StorageConfigs contains the configuration to instantiate different storage providers
@@ -172,9 +173,10 @@ const (
 	pipelinerunSignerKey               = "artifacts.pipelinerun.signer"
 	pipelinerunEnableDeepInspectionKey = "artifacts.pipelinerun.enable-deep-inspection"
 
-	ociFormatKey  = "artifacts.oci.format"
-	ociStorageKey = "artifacts.oci.storage"
-	ociSignerKey  = "artifacts.oci.signer"
+	ociFormatKey         = "artifacts.oci.format"
+	ociStorageKey        = "artifacts.oci.storage"
+	ociSignerKey         = "artifacts.oci.signer"
+	ociDisableSigningKey = "artifacts.oci.disable-signing"
 
 	gcsBucketKey               = "storage.gcs.bucket"
 	ociRepositoryKey           = "storage.oci.repository"
@@ -230,6 +232,9 @@ const (
 )
 
 func (artifact *Artifact) Enabled() bool {
+	if artifact.DisableSigning {
+		return false
+	}
 	return !(artifact.StorageBackend.Len() == 1 && artifact.StorageBackend.Has(""))
 }
 
@@ -298,6 +303,7 @@ func NewConfigFromMap(data map[string]string) (*Config, error) {
 		asString(ociFormatKey, &cfg.Artifacts.OCI.Format, "simplesigning"),
 		asStringSet(ociStorageKey, &cfg.Artifacts.OCI.StorageBackend, sets.New[string]("tekton", "oci", "gcs", "docdb", "grafeas", "kafka", "archivista")),
 		asString(ociSignerKey, &cfg.Artifacts.OCI.Signer, "x509", "kms"),
+		asBool(ociDisableSigningKey, &cfg.Artifacts.OCI.DisableSigning),
 
 		// PubSub - General
 		asString(pubsubProvider, &cfg.Storage.PubSub.Provider, "inmemory", "kafka"),
