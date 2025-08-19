@@ -48,11 +48,12 @@ Supported keys include:
 
 ### OCI Configuration
 
-| Key                     | Description                                                                                                                                                                              | Supported Values                           | Default         |
-| :---------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------- | :-------------- |
-| `artifacts.oci.format`  | The format to store `OCI` payloads in.                                                                                                                                                   | `simplesigning`                            | `simplesigning` |
-| `artifacts.oci.storage` | The storage backend to store `OCI` signatures in. Multiple backends can be specified with comma-separated list ("oci,tekton"). To disable the `OCI` artifact input an empty string (""). | `tekton`, `oci`, `gcs`, `docdb`, `grafeas` | `oci`           |
-| `artifacts.oci.signer`  | The signature backend to sign `OCI` payloads with.                                                                                                                                       | `x509`, `kms`                              | `x509`          |
+| Key                         | Description                                                                                                                                                                              | Supported Values                           | Default         |
+| :-------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------- | :-------------- |
+| `artifacts.oci.format`      | The format to store `OCI` payloads in.                                                                                                                                                   | `simplesigning`                            | `simplesigning` |
+| `artifacts.oci.storage`     | The storage backend to store `OCI` signatures in. Multiple backends can be specified with comma-separated list ("oci,tekton"). To disable the `OCI` artifact input an empty string (""). | `tekton`, `oci`, `gcs`, `docdb`, `grafeas` | `oci`           |
+| `artifacts.oci.signer`      | The signature backend to sign `OCI` payloads with.                                                                                                                                       | `x509`, `kms`                              | `x509`          |
+| `artifacts.oci.disable-signing` | Whether to skip signing of OCI artifacts while still allowing provenance generation and attestation signing.                                                                         | `"true"`, `"false"`                        | `"false"`       |
 
 ### KMS Configuration
 
