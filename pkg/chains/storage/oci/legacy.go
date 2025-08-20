@@ -124,6 +124,8 @@ func (b *Backend) buildRemoteOptions(ctx context.Context, obj objects.TektonObje
 	}
 	opts = append(opts, auth)
 	if b.cfg.Storage.OCI.Insecure {
+		logger := logging.FromContext(ctx)
+		logger.Warn("Using insecure OCI registry connection. This skips TLS certificate verification and poses security risks. Only use this in testing or development environments.")
 		// InsecureSkipVerify is used only when explicitly configured for testing or development environments
 		// This is controlled by the user through configuration and should not be used in production
 		opts = append(opts, remote.WithTransport(&http.Transport{
