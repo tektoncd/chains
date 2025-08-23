@@ -18,7 +18,7 @@ import (
 	"testing"
 	"time"
 
-	signing "github.com/tektoncd/chains/pkg/chains"
+	"github.com/tektoncd/chains/pkg/chains/annotations"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/chains/pkg/internal/mocksigner"
@@ -122,7 +122,7 @@ func TestReconciler_handlePipelineRun(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "pipelinerun",
 					Namespace:   "default",
-					Annotations: map[string]string{signing.ChainsAnnotation: "true"},
+					Annotations: map[string]string{annotations.ChainsAnnotation: "true"},
 				},
 				Status: v1.PipelineRunStatus{
 					Status: duckv1.Status{
