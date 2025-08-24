@@ -246,27 +246,33 @@ func TestBackend_StorePayload(t *testing.T) {
 
 // TestBackend_StorePayload_Insecure tests the StorePayload functionality with both secure and insecure configurations.
 // It verifies that:
-// 1. In secure mode, the backend should reject connections to untrusted registries
-// 2. In insecure mode, the backend should attempt to connect but fail due to missing image
+// 1. In secure mode, the backend should reject connections to untrusted registries due to TLS certificate verification failure
+// 2. In insecure mode, the backend should successfully connect and upload signatures, bypassing TLS verification
 func TestBackend_StorePayload_Insecure(t *testing.T) {
 	// Setup test registry with self-signed certificate
 	s, registryURL := setupTestRegistry(t)
 	defer s.Close()
 
 	testCases := []struct {
-		name       string
-		insecure   bool
-		wantErrMsg string
+		name        string
+		insecure    bool
+		wantErr     bool
+		wantErrMsg  string
+		description string
 	}{
 		{
-			name:       "secure mode - should reject untrusted registry",
-			insecure:   false,
-			wantErrMsg: "tls: failed to verify certificate: x509:",
+			name:        "secure mode with untrusted certificate",
+			insecure:    false,
+			wantErr:     true,
+			wantErrMsg:  "tls: failed to verify certificate: x509:",
+			description: "Should reject connection to registry with self-signed certificate",
 		},
 		{
-			name:       "insecure mode - should attempt connection but fail due to missing image",
-			insecure:   true,
-			wantErrMsg: "getting signed image: entity not found in registry",
+			name:        "insecure mode bypassing TLS verification",
+			insecure:    true,
+			wantErr:     false,
+			wantErrMsg:  "",
+			description: "Should successfully connect and upload signature despite untrusted certificate",
 		},
 	}
 
@@ -311,12 +317,17 @@ func TestBackend_StorePayload_Insecure(t *testing.T) {
 				PayloadFormat: formats.PayloadTypeSimpleSigning,
 			})
 
-			if err == nil {
-				t.Error("expected error but got nil")
-				return
-			}
-			if !strings.Contains(err.Error(), tc.wantErrMsg) {
-				t.Errorf("error message mismatch\ngot: %v\nwant: %v", err, tc.wantErrMsg)
+			// Validate test results based on expected outcome
+			if tc.wantErr {
+				if err == nil {
+					t.Errorf("%s: expected error but got nil", tc.description)
+					return
+				}
+				if tc.wantErrMsg != "" && !strings.Contains(err.Error(), tc.wantErrMsg) {
+					t.Errorf("%s: error message mismatch\ngot: %v\nwant: %v", tc.description, err, tc.wantErrMsg)
+				}
+			} else if err != nil {
+				t.Errorf("%s: expected success but got error: %v", tc.description, err)
 			}
 		})
 	}
