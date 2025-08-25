@@ -18,6 +18,7 @@ import (
 	"fmt"
 
 	signing "github.com/tektoncd/chains/pkg/chains"
+	"github.com/tektoncd/chains/pkg/chains/annotations"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	"github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
@@ -65,7 +66,7 @@ func (r *Reconciler) FinalizeKind(ctx context.Context, pr *v1.PipelineRun) pkgre
 	pro := objects.NewPipelineRunObjectV1(pr)
 
 	// Check to see if it has already been signed.
-	if signing.Reconciled(ctx, r.Pipelineclientset, pro) {
+	if annotations.Reconciled(ctx, r.Pipelineclientset, pro) {
 		logging.FromContext(ctx).Infof("pipelinerun has been reconciled")
 		return nil
 	}
@@ -98,7 +99,7 @@ func (r *Reconciler) FinalizeKind(ctx context.Context, pr *v1.PipelineRun) pkgre
 			logging.FromContext(ctx).Infof("taskrun %s within pipelinerun is not yet finalized: status is not complete", name)
 			return r.trackTaskRun(tr, pr)
 		}
-		reconciled := signing.Reconciled(ctx, r.Pipelineclientset, objects.NewTaskRunObjectV1(tr))
+		reconciled := annotations.Reconciled(ctx, r.Pipelineclientset, objects.NewTaskRunObjectV1(tr))
 		if !reconciled {
 			logging.FromContext(ctx).Infof("taskrun %s within pipelinerun is not yet reconciled", name)
 			return r.trackTaskRun(tr, pr)

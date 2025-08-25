@@ -17,7 +17,7 @@ import (
 	"context"
 	"testing"
 
-	signing "github.com/tektoncd/chains/pkg/chains"
+	"github.com/tektoncd/chains/pkg/chains/annotations"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
 	"github.com/tektoncd/chains/pkg/internal/mocksigner"
@@ -117,7 +117,7 @@ func TestReconciler_handleTaskRun(t *testing.T) {
 			name: "complete, already signed",
 			tr: &v1.TaskRun{
 				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{signing.ChainsAnnotation: "true"},
+					Annotations: map[string]string{annotations.ChainsAnnotation: "true"},
 				},
 				Status: v1.TaskRunStatus{
 					Status: duckv1.Status{
