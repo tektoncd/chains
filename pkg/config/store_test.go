@@ -620,3 +620,71 @@ func TestParse(t *testing.T) {
 		})
 	}
 }
+
+func TestNewConfigFromMap_OCIDisableSigning(t *testing.T) {
+	tests := []struct {
+		name        string
+		data        map[string]string
+		wantEnabled bool
+		wantDisable bool
+	}{
+		{
+			name:        "OCI signing enabled by default",
+			data:        map[string]string{},
+			wantEnabled: true,
+			wantDisable: false,
+		},
+		{
+			name: "OCI signing disabled when set to true",
+			data: map[string]string{
+				"artifacts.oci.disable-signing": "true",
+			},
+			wantEnabled: false,
+			wantDisable: true,
+		},
+		{
+			name: "OCI signing enabled when set to false",
+			data: map[string]string{
+				"artifacts.oci.disable-signing": "false",
+			},
+			wantEnabled: true,
+			wantDisable: false,
+		},
+		{
+			name: "OCI signing enabled with invalid value",
+			data: map[string]string{
+				"artifacts.oci.disable-signing": "invalid",
+			},
+			wantEnabled: true,
+			wantDisable: false,
+		},
+		{
+			name: "OCI signing disabled even with other OCI configs",
+			data: map[string]string{
+				"artifacts.oci.format":          "simplesigning",
+				"artifacts.oci.storage":         "oci",
+				"artifacts.oci.signer":          "x509",
+				"artifacts.oci.disable-signing": "true",
+			},
+			wantEnabled: false,
+			wantDisable: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewConfigFromMap(tt.data)
+			if err != nil {
+				t.Fatalf("NewConfigFromMap() error = %v", err)
+			}
+
+			if got.Artifacts.OCI.DisableSigning != tt.wantDisable {
+				t.Errorf("OCI.DisableSigning = %v, want %v", got.Artifacts.OCI.DisableSigning, tt.wantDisable)
+			}
+
+			if got.Artifacts.OCI.Enabled() != tt.wantEnabled {
+				t.Errorf("OCI.Enabled() = %v, want %v", got.Artifacts.OCI.Enabled(), tt.wantEnabled)
+			}
+		})
+	}
+}
