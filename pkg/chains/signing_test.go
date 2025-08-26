@@ -140,30 +140,23 @@ func TestSigner_Sign(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
 			ctx, _ := rtesting.SetupFakeContext(t)
 			ps := fakepipelineclient.Get(ctx)
-
 			ctx = config.ToContext(ctx, tt.config.DeepCopy())
-
 			ts := &ObjectSigner{
 				Backends:          fakeAllBackends(tt.backends),
 				SecretPath:        "./signing/x509/testdata/",
 				Pipelineclientset: ps,
 			}
-
 			tekton.CreateObject(t, ctx, ps, tt.object)
-
 			if err := ts.Sign(ctx, tt.object); (err != nil) != tt.wantErr {
 				t.Errorf("Signer.Sign() error = %v", err)
 			}
-
 			// Fetch the updated object
 			updatedObject, err := tekton.GetObject(t, ctx, ps, tt.object)
 			if err != nil {
 				t.Errorf("error fetching fake object: %v", err)
 			}
-
 			// Check it is marked as signed
 			shouldBeSigned := !tt.wantErr
 			if Reconciled(ctx, ps, updatedObject) != shouldBeSigned {
@@ -183,7 +176,6 @@ func TestSigner_Sign(t *testing.T) {
 					t.Error("error, expected payload to be stored.")
 				}
 			}
-
 		})
 	}
 }
@@ -259,73 +251,53 @@ func TestSigner_Transparency(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
 			rekor := &mockRekor{}
 			backends := []*mockBackend{{backendType: "mock"}}
 			cleanup := setupMocks(rekor)
 			defer cleanup()
-
 			ctx, _ := rtesting.SetupFakeContext(t)
 			ps := fakepipelineclient.Get(ctx)
-
 			ctx = config.ToContext(ctx, tt.cfg.DeepCopy())
-
 			os := &ObjectSigner{
 				Backends:          fakeAllBackends(backends),
 				SecretPath:        "./signing/x509/testdata/",
 				Pipelineclientset: ps,
 			}
-
 			obj := tt.getNewObject("foo")
-
 			tekton.CreateObject(t, ctx, ps, obj)
-
 			if err := os.Sign(ctx, obj); err != nil {
 				t.Errorf("Signer.Sign() error = %v", err)
 			}
-
 			if len(rekor.entries) != 0 {
 				t.Error("expected no transparency log entries!")
 			}
-
 			// Now enable and try again!
 			tt.cfg.Transparency.Enabled = true
 			ctx = config.ToContext(ctx, tt.cfg.DeepCopy())
-
 			obj = tt.getNewObject("foobar")
-
 			tekton.CreateObject(t, ctx, ps, obj)
-
 			if err := os.Sign(ctx, obj); err != nil {
 				t.Errorf("Signer.Sign() error = %v", err)
 			}
-
 			if len(rekor.entries) != 1 {
 				t.Error("expected transparency log entry!")
 			}
-
 			// Now enable verifying the annotation
 			tt.cfg.Transparency.VerifyAnnotation = true
 			ctx = config.ToContext(ctx, tt.cfg.DeepCopy())
-
 			obj = tt.getNewObject("mytektonobject")
-
 			tekton.CreateObject(t, ctx, ps, obj)
-
 			if err := os.Sign(ctx, obj); err != nil {
 				t.Errorf("Signer.Sign() error = %v", err)
 			}
-
 			if len(rekor.entries) != 1 {
 				t.Error("expected new transparency log entries!")
 			}
-
 			// add in the annotation
 			setAnnotation(obj, RekorAnnotation, "true")
 			if err := os.Sign(ctx, obj); err != nil {
 				t.Errorf("Signer.Sign() error = %v", err)
 			}
-
 			if len(rekor.entries) != 2 {
 				t.Error("expected two transparency log entries!")
 			}

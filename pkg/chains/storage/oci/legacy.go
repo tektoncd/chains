@@ -95,7 +95,6 @@ func (b *Backend) StorePayload(ctx context.Context, obj objects.TektonObject, ra
 		if err := json.Unmarshal(rawPayload, &attestation); err != nil {
 			return errors.Wrap(err, "unmarshal attestation")
 		}
-
 		// This can happen if the Task/TaskRun does not adhere to specific naming conventions
 		// like *IMAGE_URL that would serve as hints. This may be intentional for a Task/TaskRun
 		// that is not intended to produce an image, e.g. git-clone.
@@ -104,10 +103,8 @@ func (b *Backend) StorePayload(ctx context.Context, obj objects.TektonObject, ra
 				"No image subject to attest for %s/%s/%s. Skipping upload to registry", obj.GetGVK(), obj.GetNamespace(), obj.GetName())
 			return nil
 		}
-
 		return b.uploadAttestation(ctx, &attestation, signature, storageOpts, auth)
 	}
-
 	// Fallback in case unsupported payload format is used or the deprecated "tekton" format
 	logger.Info("Skipping upload to OCI registry, OCI storage backend is only supported for OCI images and in-toto attestations")
 	return nil
@@ -253,16 +250,13 @@ func (b *Backend) RetrievePayloads(ctx context.Context, obj objects.TektonObject
 				if err := json.Unmarshal(payload, &envelope); err != nil {
 					return nil, fmt.Errorf("cannot decode the envelope: %s", err)
 				}
-
 				var decodedPayload []byte
 				decodedPayload, err = base64.StdEncoding.DecodeString(envelope.Payload)
 				if err != nil {
 					return nil, fmt.Errorf("error decoding the payload: %s", err)
 				}
-
 				m[ref] = string(decodedPayload)
 			}
-
 		}
 	}
 	return m, nil

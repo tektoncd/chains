@@ -114,38 +114,32 @@ func NewRecorder(ctx context.Context) (*Recorder, error) {
 }
 
 func viewRegister() error {
-
 	sgCountView = &view.View{
 		Description: sgCount.Description(),
 		Measure:     sgCount,
 		Aggregation: view.Count(),
 	}
-
 	plCountView = &view.View{
 		Description: plCount.Description(),
 		Measure:     plCount,
 		Aggregation: view.Count(),
 	}
-
 	stCountView = &view.View{
 		Description: stCount.Description(),
 		Measure:     stCount,
 		Aggregation: view.Count(),
 	}
-
 	mrCountView = &view.View{
 		Description: mrCount.Description(),
 		Measure:     mrCount,
 		Aggregation: view.Count(),
 	}
-
 	errorCountView = &view.View{
 		Description: taskRunErrorCount.Description(),
 		Measure:     taskRunErrorCount,
 		TagKeys:     []tag.Key{errorTypeKey},
 		Aggregation: view.Count(),
 	}
-
 	return view.Register(
 		sgCountView,
 		plCountView,

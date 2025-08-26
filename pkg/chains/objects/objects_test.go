@@ -135,7 +135,6 @@ func getPipelineRun() *v1.PipelineRun {
 }
 
 func TestPipelineRun_GetProvenance(t *testing.T) {
-
 	t.Run("TestPipelineRun_GetProvenance", func(t *testing.T) {
 		pr := NewPipelineRunObjectV1(getPipelineRun())
 		got := pr.GetProvenance()
@@ -150,11 +149,9 @@ func TestPipelineRun_GetProvenance(t *testing.T) {
 			t.Fatalf("metadata (-want, +got):\n%s", d)
 		}
 	})
-
 }
 
 func TestTaskRun_GetProvenance(t *testing.T) {
-
 	t.Run("TestTaskRun_GetProvenance", func(t *testing.T) {
 		tr := NewTaskRunObjectV1(getTaskRun())
 		got := tr.GetProvenance()
@@ -169,11 +166,9 @@ func TestTaskRun_GetProvenance(t *testing.T) {
 			t.Fatalf("metadata (-want, +got):\n%s", d)
 		}
 	})
-
 }
 
 func TestPipelineRun_GetResults(t *testing.T) {
-
 	t.Run("TestPipelineRun_GetResults", func(t *testing.T) {
 		pr := NewPipelineRunObjectV1(getPipelineRun())
 		got := pr.GetResults()
@@ -189,11 +184,9 @@ func TestPipelineRun_GetResults(t *testing.T) {
 			Result{Name: "mvn1_ARTIFACT_DIGEST", Value: *v1.NewStructuredValues("sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5")},
 		})
 	})
-
 }
 
 func TestTaskRun_GetStepImages(t *testing.T) {
-
 	t.Run("TestTaskRun_GetStepImages", func(t *testing.T) {
 		tr := NewTaskRunObjectV1(getTaskRun())
 		got := tr.GetStepImages()
@@ -202,11 +195,9 @@ func TestTaskRun_GetStepImages(t *testing.T) {
 			t.Fatalf("metadata (-want, +got):\n%s", d)
 		}
 	})
-
 }
 
 func TestTaskRun_GetSidecarImages(t *testing.T) {
-
 	t.Run("TestTaskRun_GetSidecarImages", func(t *testing.T) {
 		tr := NewTaskRunObjectV1(getTaskRun())
 		got := tr.GetSidecarImages()
@@ -215,11 +206,9 @@ func TestTaskRun_GetSidecarImages(t *testing.T) {
 			t.Fatalf("metadata (-want, +got):\n%s", d)
 		}
 	})
-
 }
 
 func TestTaskRun_GetResults(t *testing.T) {
-
 	t.Run("TestTaskRun_GetResults", func(t *testing.T) {
 		pr := NewTaskRunObjectV1(getTaskRun())
 		got := pr.GetResults()
@@ -235,7 +224,6 @@ func TestTaskRun_GetResults(t *testing.T) {
 			Result{Name: "mvn1_ARTIFACT_DIGEST", Value: *v1.NewStructuredValues("sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5")},
 		})
 	})
-
 }
 
 func TestPipelineRun_GetGVK(t *testing.T) {

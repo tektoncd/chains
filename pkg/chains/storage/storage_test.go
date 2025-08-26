@@ -28,7 +28,6 @@ import (
 )
 
 func TestInitializeBackends(t *testing.T) {
-
 	tests := []struct {
 		name string
 		cfg  config.Config

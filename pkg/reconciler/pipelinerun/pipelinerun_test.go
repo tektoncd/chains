@@ -67,10 +67,8 @@ func TestReconciler_Reconcile(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
 			ctx, _ := rtesting.SetupFakeContext(t)
 			setupData(ctx, t, tt.pipelineRuns)
-
 			configMapWatcher := configmap.NewStaticWatcher(&corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: system.Namespace(),
@@ -79,13 +77,11 @@ func TestReconciler_Reconcile(t *testing.T) {
 			})
 			namespacedScopedController := NewNamespacesScopedController(nil)
 			ctl := namespacedScopedController(ctx, configMapWatcher)
-
 			if la, ok := ctl.Reconciler.(pkgreconciler.LeaderAware); ok {
 				if err := la.Promote(pkgreconciler.UniversalBucket(), func(pkgreconciler.Bucket, types.NamespacedName) {}); err != nil {
 					t.Fatalf("Promote() = %v", err)
 				}
 			}
-
 			if err := ctl.Reconciler.Reconcile(ctx, tt.key); err != nil {
 				t.Errorf("Reconciler.Reconcile() error = %v", err)
 			}
@@ -108,7 +104,6 @@ func setupData(ctx context.Context, t *testing.T, prs []*v1.PipelineRun) informe
 }
 
 func TestReconciler_handlePipelineRun(t *testing.T) {
-
 	tests := []struct {
 		name       string
 		pr         *v1.PipelineRun
@@ -127,7 +122,8 @@ func TestReconciler_handlePipelineRun(t *testing.T) {
 				Status: v1.PipelineRunStatus{
 					Status: duckv1.Status{
 						Conditions: []apis.Condition{{Type: apis.ConditionSucceeded}},
-					}},
+					},
+				},
 			},
 			shouldSign: false,
 		},
@@ -142,7 +138,8 @@ func TestReconciler_handlePipelineRun(t *testing.T) {
 				Status: v1.PipelineRunStatus{
 					Status: duckv1.Status{
 						Conditions: []apis.Condition{{Type: apis.ConditionSucceeded}},
-					}},
+					},
+				},
 			},
 			shouldSign: true,
 		},
@@ -157,7 +154,8 @@ func TestReconciler_handlePipelineRun(t *testing.T) {
 				Status: v1.PipelineRunStatus{
 					Status: duckv1.Status{
 						Conditions: []apis.Condition{},
-					}},
+					},
+				},
 			},
 			shouldSign: false,
 		},
@@ -301,14 +299,12 @@ func TestReconciler_handlePipelineRun(t *testing.T) {
 			c := fakepipelineclient.Get(ctx)
 			tekton.CreateObject(t, ctx, c, objects.NewPipelineRunObjectV1(tt.pr))
 			tri := faketaskruninformer.Get(ctx)
-
 			r := &Reconciler{
 				PipelineRunSigner: signer,
 				Pipelineclientset: c,
 				TaskRunLister:     tri.Lister(),
 				Tracker:           &rtesting.FakeTracker{},
 			}
-
 			// Create mock taskruns
 			for _, tr := range tt.taskruns {
 				if err := tri.Informer().GetIndexer().Add(tr); err != nil {
@@ -319,7 +315,6 @@ func TestReconciler_handlePipelineRun(t *testing.T) {
 					t.Fatalf("TaskRun not added to informer: %v, namespace: %v", err, tt.pr.Namespace)
 				}
 			}
-
 			if err := r.ReconcileKind(ctx, tt.pr); err != nil && !tt.wantErr {
 				t.Errorf("Reconciler.handlePipelineRun() error = %v", err)
 			}

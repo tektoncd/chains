@@ -143,7 +143,6 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 		objects := signableType.ExtractObjects(ctx, tektonObj)
 		// Go through each object one at a time.
 		for _, obj := range objects {
-
 			payload, err := payloader.CreatePayload(ctx, obj)
 			if err != nil {
 				logger.Error(err)

@@ -65,26 +65,21 @@ func TestReconciler_Reconcile(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
 			ctx, _ := rtesting.SetupFakeContext(t)
 			setupData(ctx, t, tt.taskRuns)
-
 			configMapWatcher := configmap.NewStaticWatcher(&corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: system.Namespace(),
 					Name:      config.ChainsConfig,
 				},
 			})
-
 			namespacedScopedController := NewNamespacesScopedController(nil)
 			ctl := namespacedScopedController(ctx, configMapWatcher)
-
 			if la, ok := ctl.Reconciler.(pkgreconciler.LeaderAware); ok {
 				if err := la.Promote(pkgreconciler.UniversalBucket(), func(pkgreconciler.Bucket, types.NamespacedName) {}); err != nil {
 					t.Fatalf("Promote() = %v", err)
 				}
 			}
-
 			if err := ctl.Reconciler.Reconcile(ctx, tt.key); err != nil {
 				t.Errorf("Reconciler.Reconcile() error = %v", err)
 			}
@@ -107,7 +102,6 @@ func setupData(ctx context.Context, t *testing.T, trs []*v1.TaskRun) informers.T
 }
 
 func TestReconciler_handleTaskRun(t *testing.T) {
-
 	tests := []struct {
 		name       string
 		tr         *v1.TaskRun
@@ -122,7 +116,8 @@ func TestReconciler_handleTaskRun(t *testing.T) {
 				Status: v1.TaskRunStatus{
 					Status: duckv1.Status{
 						Conditions: []apis.Condition{{Type: apis.ConditionSucceeded}},
-					}},
+					},
+				},
 			},
 			shouldSign: false,
 		},
@@ -135,7 +130,8 @@ func TestReconciler_handleTaskRun(t *testing.T) {
 				Status: v1.TaskRunStatus{
 					Status: duckv1.Status{
 						Conditions: []apis.Condition{{Type: apis.ConditionSucceeded}},
-					}},
+					},
+				},
 			},
 			shouldSign: true,
 		},
@@ -148,7 +144,8 @@ func TestReconciler_handleTaskRun(t *testing.T) {
 				Status: v1.TaskRunStatus{
 					Status: duckv1.Status{
 						Conditions: []apis.Condition{},
-					}},
+					},
+				},
 			},
 			shouldSign: false,
 		},
@@ -159,7 +156,6 @@ func TestReconciler_handleTaskRun(t *testing.T) {
 			ctx, _ := rtesting.SetupFakeContext(t)
 			c := fakepipelineclient.Get(ctx)
 			tekton.CreateObject(t, ctx, c, objects.NewTaskRunObjectV1(tt.tr))
-
 			r := &Reconciler{
 				TaskRunSigner:     signer,
 				Pipelineclientset: c,

@@ -317,7 +317,6 @@ func TestPipelineRunCreatePayloadChildRefs(t *testing.T) {
 	}
 
 	expected := &intoto.Statement{
-
 		Type:          in_toto.StatementInTotoV01,
 		PredicateType: slsa.PredicateSLSAProvenance,
 		Subject: []*intoto.ResourceDescriptor{

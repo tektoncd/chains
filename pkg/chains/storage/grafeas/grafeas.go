@@ -405,7 +405,6 @@ func (b *Backend) getAllOccurrences(ctx context.Context, obj objects.TektonObjec
 
 // findOccurrencesForCriteria lookups a project's occurrences by the resource uri
 func (b *Backend) findOccurrencesForCriteria(ctx context.Context, noteName string, resourceURIs []string) ([]*pb.Occurrence, error) {
-
 	var uriFilters []string
 	for _, url := range resourceURIs {
 		uriFilters = append(uriFilters, fmt.Sprintf("resourceUrl=%q", url))

@@ -73,7 +73,6 @@ func ConvertMaterialsToResolvedDependencies(mats []common.ProvenanceMaterial, na
 // Original order of resolved dependencies is retained.
 func RemoveDuplicateResolvedDependencies(resolvedDependencies []*intoto.ResourceDescriptor) ([]*intoto.ResourceDescriptor, error) {
 	out := make([]*intoto.ResourceDescriptor, 0, len(resolvedDependencies))
-
 	// make map to store seen resolved dependencies
 	seen := map[string]bool{}
 	for _, resolvedDependency := range resolvedDependencies {
@@ -165,26 +164,21 @@ func fromPipelineTask(logger *zap.SugaredLogger, pro *objects.PipelineRunObjectV
 				if rd != nil {
 					resolvedDependencies = append(resolvedDependencies, rd)
 				}
-
 				mats := []common.ProvenanceMaterial{}
-
 				// add step images
 				stepMaterials, err := material.FromStepImages(tr)
 				if err != nil {
 					return nil, err
 				}
 				mats = append(mats, stepMaterials...)
-
 				// add sidecar images
 				sidecarMaterials, err := material.FromSidecarImages(tr)
 				if err != nil {
 					return nil, err
 				}
 				mats = append(mats, sidecarMaterials...)
-
 				// convert materials to resolved dependencies
 				resolvedDependencies = append(resolvedDependencies, ConvertMaterialsToResolvedDependencies(mats, "")...)
-
 			}
 		}
 	}
@@ -237,23 +231,34 @@ func taskDependencies(ctx context.Context, opts ResolveOptions, tro *objects.Tas
 func TaskRun(ctx context.Context, opts ResolveOptions, tro *objects.TaskRunObjectV1) ([]*intoto.ResourceDescriptor, error) {
 	var resolvedDependencies []*intoto.ResourceDescriptor
 	var err error
-
-	// add top level task config
-	if p := tro.Status.Provenance; p != nil && p.RefSource != nil {
-		rd := intoto.ResourceDescriptor{
-			Name:   TaskConfigName,
-			Uri:    p.RefSource.URI,
-			Digest: p.RefSource.Digest,
-		}
-		resolvedDependencies = append(resolvedDependencies, &rd)
-	}
-
-	rds, err := taskDependencies(ctx, opts, tro)
+	mats := []common.ProvenanceMaterial{}
+	// add step and sidecar images
+	stepMaterials, err := material.FromStepImages(tro)
 	if err != nil {
 		return nil, err
 	}
-	resolvedDependencies = append(resolvedDependencies, rds...)
-
+	mats = append(mats, stepMaterials...)
+	sidecarMaterials, err := material.FromSidecarImages(tro)
+	if err != nil {
+		return nil, err
+	}
+	mats = append(mats, sidecarMaterials...)
+	resolvedDependencies = append(resolvedDependencies, ConvertMaterialsToResolvedDependencies(mats, "")...)
+	if opts.WithStepActionsResults {
+		mats = material.FromStepActionsResults(ctx, tro)
+		resolvedDependencies = append(resolvedDependencies, ConvertMaterialsToResolvedDependencies(mats, InputResultName)...)
+	}
+	mats = material.FromTaskParamsAndResults(ctx, tro)
+	// convert materials to resolved dependencies
+	resolvedDependencies = append(resolvedDependencies, ConvertMaterialsToResolvedDependencies(mats, InputResultName)...)
+	// convert materials to resolved dependencies
+	resolvedDependencies = append(resolvedDependencies,
+		ConvertMaterialsToResolvedDependencies(mats, PipelineResourceName)...)
+	// remove duplicate resolved dependencies
+	resolvedDependencies, err = RemoveDuplicateResolvedDependencies(resolvedDependencies)
+	if err != nil {
+		return nil, err
+	}
 	return resolvedDependencies, nil
 }
 
@@ -262,7 +267,6 @@ func PipelineRun(ctx context.Context, pro *objects.PipelineRunObjectV1, slsaconf
 	var err error
 	var resolvedDependencies []*intoto.ResourceDescriptor
 	logger := logging.FromContext(ctx)
-
 	// add pipeline config to resolved dependencies
 	if p := pro.Status.Provenance; p != nil && p.RefSource != nil {
 		rd := intoto.ResourceDescriptor{
@@ -272,14 +276,12 @@ func PipelineRun(ctx context.Context, pro *objects.PipelineRunObjectV1, slsaconf
 		}
 		resolvedDependencies = append(resolvedDependencies, &rd)
 	}
-
 	// add resolved dependencies from pipeline tasks
 	rds, err := fromPipelineTask(logger, pro, addTasks)
 	if err != nil {
 		return nil, err
 	}
 	resolvedDependencies = append(resolvedDependencies, rds...)
-
 	if slsaconfig.DeepInspectionEnabled && opts.WithStepActionsResults {
 		execTasks := pro.GetExecutedTasks()
 		for _, task := range execTasks {
@@ -287,12 +289,10 @@ func PipelineRun(ctx context.Context, pro *objects.PipelineRunObjectV1, slsaconf
 			resolvedDependencies = append(resolvedDependencies, ConvertMaterialsToResolvedDependencies(stepActionMat, InputResultName)...)
 		}
 	}
-
 	// add resolved dependencies from pipeline results
 	mats := material.FromPipelineParamsAndResults(ctx, pro, slsaconfig)
 	// convert materials to resolved dependencies
 	resolvedDependencies = append(resolvedDependencies, ConvertMaterialsToResolvedDependencies(mats, InputResultName)...)
-
 	// remove duplicate resolved dependencies
 	resolvedDependencies, err = RemoveDuplicateResolvedDependencies(resolvedDependencies)
 	if err != nil {

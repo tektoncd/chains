@@ -84,9 +84,7 @@ func TestBackend_StorePayload(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx, _ := rtesting.SetupFakeContext(t)
 			c := fakepipelineclient.Get(ctx)
-
 			tekton.CreateObject(t, ctx, c, tt.object)
-
 			b := &Backend{
 				pipelineclientset: c,
 			}
@@ -99,28 +97,23 @@ func TestBackend_StorePayload(t *testing.T) {
 			if err := b.StorePayload(ctx, tt.object, payload, mockSignature, opts); (err != nil) != tt.wantErr {
 				t.Errorf("Backend.StorePayload() error = %v, wantErr %v", err, tt.wantErr)
 			}
-
 			// The rest is invalid if we wanted an error.
 			if tt.wantErr {
 				return
 			}
-
 			payloadAnnotation := payloadName(opts)
 			payloads, err := b.RetrievePayloads(ctx, tt.object, opts)
 			if err != nil {
 				t.Errorf("error base64 decoding: %v", err)
 			}
-
 			mp := mockPayload{}
 			if err := json.Unmarshal([]byte(payloads[payloadAnnotation]), &mp); err != nil {
 				t.Errorf("error json decoding: %v", err)
 			}
-
 			// Compare to the input.
 			if diff := cmp.Diff(tt.payload, mp); diff != "" {
 				t.Errorf("unexpected payload: (-want, +got): %s", diff)
 			}
-
 			// Compare the signature.
 			signatureAnnotation := sigName(opts)
 			sigs, err := b.RetrieveSignatures(ctx, tt.object, opts)
@@ -130,7 +123,6 @@ func TestBackend_StorePayload(t *testing.T) {
 			if diff := cmp.Diff(mockSignature, sigs[signatureAnnotation][0]); diff != "" {
 				t.Errorf("unexpected signature: (-want, +got): %s", diff)
 			}
-
 		})
 	}
 }

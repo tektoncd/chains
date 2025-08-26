@@ -65,7 +65,6 @@ type artifact struct {
 
 // AddArtifact adds a new artifact item to the original slice.
 func addArtifact(original []artifact, item artifact) []artifact {
-
 	for i, a := range original {
 		// if there is an equivalent entry in the original slice, merge the
 		// artifact's DigestSet into the existing entry's DigestSet.
