@@ -23,7 +23,7 @@ addlicense requires go 1.16 or later.
     -l      license type: apache, bsd, mit, mpl (default "apache")
     -s      Include SPDX identifier in license header. Set -s=only to only include SPDX identifier.
     -v      verbose mode: print the name of the files that are modified
-    -y      copyright year(s) (default "2022")
+    -y      copyright year(s) (default is the current year)
 
 The pattern argument can be provided multiple times, and may also refer
 to single files.  Directories are processed recursively.
@@ -62,6 +62,21 @@ appropriate addlicense flags:
 
 ```bash
 docker run -it -v ${PWD}:/src ghcr.io/google/addlicense -c "Google LLC" *.go
+```
+
+## Running with pre-commit
+
+This is the official [pre-commit hook](https://pre-commit.com/) for addlicense.
+
+Activate by adding it to your `.pre-commit-config.yaml`:
+
+```bash
+repos:
+- repo: https://github.com/google/addlicense
+  rev: <latest tag>
+  hooks:
+  - id: addlicense
+    args: [ "-c", "Company, Inc", "*.go" ]
 ```
 
 ## license
