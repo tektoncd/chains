@@ -495,6 +495,66 @@ func fakeAllBackends(backends []*mockBackend) map[string]storage.Backend {
 	return newBackends
 }
 
+func TestObjectSigner_Sign_OCIDisabled(t *testing.T) {
+	tests := []struct {
+		name                  string
+		config                config.Config
+		expectOCIEnabled      bool
+		expectPipelineEnabled bool
+	}{
+		{
+			name: "OCI signing enabled by default",
+			config: config.Config{
+				Artifacts: config.ArtifactConfigs{
+					OCI: config.Artifact{
+						Format:         "simplesigning",
+						StorageBackend: sets.New[string]("mock"),
+						Signer:         "x509",
+					},
+					PipelineRuns: config.Artifact{
+						Format:         "slsa/v1",
+						StorageBackend: sets.New[string]("mock"),
+						Signer:         "x509",
+					},
+				},
+			},
+			expectOCIEnabled:      true,
+			expectPipelineEnabled: true,
+		},
+		{
+			name: "OCI signing disabled with none signer",
+			config: config.Config{
+				Artifacts: config.ArtifactConfigs{
+					OCI: config.Artifact{
+						Format:         "simplesigning",
+						StorageBackend: sets.New[string]("mock"),
+						Signer:         "none",
+					},
+					PipelineRuns: config.Artifact{
+						Format:         "slsa/v1",
+						StorageBackend: sets.New[string]("mock"),
+						Signer:         "x509",
+					},
+				},
+			},
+			expectOCIEnabled:      false,
+			expectPipelineEnabled: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Test direct artifact configuration - this is the core functionality
+			if tt.config.Artifacts.OCI.Enabled() != tt.expectOCIEnabled {
+				t.Errorf("Config OCI.Enabled() = %v, want %v", tt.config.Artifacts.OCI.Enabled(), tt.expectOCIEnabled)
+			}
+			if tt.config.Artifacts.PipelineRuns.Enabled() != tt.expectPipelineEnabled {
+				t.Errorf("Config PipelineRuns.Enabled() = %v, want %v", tt.config.Artifacts.PipelineRuns.Enabled(), tt.expectPipelineEnabled)
+			}
+		})
+	}
+}
+
 func setupMocks(rekor *mockRekor) func() {
 	oldRekor := getRekor
 	getRekor = func(_ string) (rekorClient, error) {

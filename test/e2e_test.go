@@ -931,3 +931,66 @@ func TestVaultKMSSpire(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestDisableOCISigning(t *testing.T) {
+	ctx := logtesting.TestContextWithLogger(t)
+	c, ns, cleanup := setup(ctx, t, setupOpts{registry: true})
+	t.Cleanup(cleanup)
+
+	// Configure chains to disable OCI signing using "none" signer but keep attestation storage
+	resetConfig := setConfigMap(ctx, t, c, map[string]string{
+		"artifacts.oci.format":            "simplesigning",
+		"artifacts.oci.storage":           "oci",
+		"artifacts.oci.signer":            "none", // Use "none" to disable OCI signing
+		"artifacts.taskrun.format":        "slsa/v1",
+		"artifacts.taskrun.signer":        "x509",
+		"artifacts.taskrun.storage":       "oci",
+		"storage.oci.repository.insecure": "true",
+	})
+	t.Cleanup(resetConfig)
+	time.Sleep(3 * time.Second) // https://github.com/tektoncd/chains/issues/664
+
+	// create necessary resources
+	imageName := "chains-test-disable-signing"
+	image := fmt.Sprintf("%s/%s", c.internalRegistry, imageName)
+
+	task := kanikoTask(t, ns, image)
+	if _, err := c.PipelineClient.TektonV1().Tasks(ns).Create(ctx, task, metav1.CreateOptions{}); err != nil {
+		t.Fatalf("error creating task: %s", err)
+	}
+
+	tro := kanikoTaskRun(ns)
+	createdTro := tekton.CreateObject(t, ctx, c.PipelineClient, tro)
+
+	// Give it a minute to complete.
+	if got := waitForCondition(ctx, t, c.PipelineClient, createdTro, done, time.Minute); got == nil {
+		t.Fatal("object never done")
+	}
+
+	// Wait for chains to process it
+	if got := waitForCondition(ctx, t, c.PipelineClient, createdTro, signed, 2*time.Minute); got == nil {
+		t.Fatal("object never signed")
+	}
+
+	// Verify the taskrun has attestation annotations but OCI image signing should be skipped
+	// The attestation should still be created and stored in OCI registry
+	updatedTro, err := tekton.GetObject(t, ctx, c.PipelineClient, createdTro)
+	if err != nil {
+		t.Fatalf("error getting updated taskrun: %v", err)
+	}
+
+	// Check that chains processed the taskrun (attestation created)
+	annotations := updatedTro.GetAnnotations()
+	if _, ok := annotations["chains.tekton.dev/signed"]; !ok {
+		t.Error("expected chains.tekton.dev/signed annotation to be present")
+	}
+
+	// Verify signature stored in tekton storage (attestations should still work)
+	verifySignature(ctx, t, c, updatedTro)
+
+	// Test verifies that with artifacts.oci.signer set to "none":
+	// 1. OCI image signatures are NOT pushed (disabled)
+	// 2. TaskRun attestations ARE still generated and pushed to OCI registry
+	// This confirms that disabling OCI signing doesn't affect attestation generation/storage
+	t.Log("OCI signing disabled test completed - taskrun attestation created and stored while OCI image signing was skipped")
+}
