@@ -16,6 +16,7 @@ package chains
 import (
 	"testing"
 
+	"github.com/tektoncd/chains/pkg/chains/annotations"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
 	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
@@ -70,7 +71,7 @@ func TestShouldUploadTlog(t *testing.T) {
 				Enabled:          true,
 				VerifyAnnotation: true,
 			},
-			annotations: map[string]string{ChainsTransparencyAnnotation: "foo"},
+			annotations: map[string]string{annotations.ChainsTransparencyAnnotation: "foo"},
 			expected:    false,
 		},
 	}

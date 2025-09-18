@@ -11,7 +11,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package chains
+package annotations
 
 import (
 	"testing"
@@ -373,57 +373,51 @@ func TestAddRetry(t *testing.T) {
 	}
 }
 
-// TestAddAnnotationValidation tests the new validation logic for annotations
-func TestAddAnnotationValidation(t *testing.T) {
+// TestAddAnnotationsValidation tests the new validation logic for annotations
+func TestAddAnnotationsValidation(t *testing.T) {
 	tests := []struct {
 		name            string
-		key             string
-		value           string
 		annotations     map[string]string
 		wantErr         bool
 		wantErrContains string
 	}{
 		{
-			name:    "valid chains annotation key",
-			key:     "chains.tekton.dev/test",
-			value:   "value",
+			name: "valid chains annotation",
+			annotations: map[string]string{
+				"chains.tekton.dev/test": "value",
+			},
 			wantErr: false,
 		},
 		{
-			name:            "invalid annotation key without prefix",
-			key:             "invalid-key",
-			value:           "value",
-			wantErr:         true,
-			wantErrContains: "invalid annotation key",
-		},
-		{
-			name:            "invalid annotation in map without prefix",
-			key:             "chains.tekton.dev/test",
-			value:           "value",
-			annotations:     map[string]string{"invalid": "value"},
-			wantErr:         true,
-			wantErrContains: "invalid annotation key",
-		},
-		{
-			name:  "valid annotations with prefix",
-			key:   "chains.tekton.dev/test",
-			value: "value",
+			name: "invalid annotation without prefix",
 			annotations: map[string]string{
+				"invalid-key": "value",
+			},
+			wantErr:         true,
+			wantErrContains: "invalid annotation key",
+		},
+		{
+			name: "valid annotations with prefix",
+			annotations: map[string]string{
+				"chains.tekton.dev/test":   "value",
 				"chains.tekton.dev/extra1": "value1",
 				"chains.tekton.dev/extra2": "value2",
 			},
 			wantErr: false,
 		},
 		{
-			name:  "mixed valid and invalid annotations",
-			key:   "chains.tekton.dev/test",
-			value: "value",
+			name: "mixed valid and invalid annotations",
 			annotations: map[string]string{
 				"chains.tekton.dev/extra1": "value1",
 				"invalid":                  "value2",
 			},
 			wantErr:         true,
 			wantErrContains: "invalid annotation key",
+		},
+		{
+			name:        "empty annotations map",
+			annotations: map[string]string{},
+			wantErr:     false,
 		},
 	}
 
@@ -441,17 +435,17 @@ func TestAddAnnotationValidation(t *testing.T) {
 
 			tekton.CreateObject(t, ctx, c, obj)
 
-			err := AddAnnotation(ctx, obj, c, tt.key, tt.value, tt.annotations)
+			err := AddAnnotations(ctx, obj, c, tt.annotations)
 
 			if tt.wantErr {
 				if err == nil {
-					t.Errorf("AddAnnotation() expected error but got none")
+					t.Errorf("AddAnnotations() expected error but got none")
 				} else if tt.wantErrContains != "" && !contains(err.Error(), tt.wantErrContains) {
-					t.Errorf("AddAnnotation() error = %v, wantErrContains %v", err, tt.wantErrContains)
+					t.Errorf("AddAnnotations() error = %v, wantErrContains %v", err, tt.wantErrContains)
 				}
 			} else {
 				if err != nil {
-					t.Errorf("AddAnnotation() unexpected error = %v", err)
+					t.Errorf("AddAnnotations() unexpected error = %v", err)
 				}
 			}
 		})
@@ -480,9 +474,9 @@ func TestAnnotationPreservation(t *testing.T) {
 	tekton.CreateObject(t, ctx, c, obj)
 
 	// Add a new annotation
-	err := AddAnnotation(ctx, obj, c, "chains.tekton.dev/new", "new-value", nil)
+	err := AddAnnotations(ctx, obj, c, map[string]string{"chains.tekton.dev/new": "new-value"})
 	if err != nil {
-		t.Fatalf("AddAnnotation() error = %v", err)
+		t.Fatalf("AddAnnotations() error = %v", err)
 	}
 
 	// Verify the result
@@ -527,4 +521,100 @@ func contains(s, substr string) bool {
 		}
 	}
 	return false
+}
+
+func TestCreateAnnotationsPatch(t *testing.T) {
+	// Create a real TaskRun object to test with
+	tr := &v1.TaskRun{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-taskrun",
+			Namespace: "test-namespace",
+		},
+	}
+
+	// Convert to TektonObject
+	obj := objects.NewTaskRunObjectV1(tr)
+
+	tests := []struct {
+		name           string
+		newAnnotations map[string]string
+		want           string
+		wantErr        bool
+	}{
+		{
+			name:           "empty",
+			newAnnotations: map[string]string{},
+			want:           `{"apiVersion":"tekton.dev/v1","kind":"TaskRun","metadata":{"name":"test-taskrun","namespace":"test-namespace"}}`,
+		},
+		{
+			name: "one",
+			newAnnotations: map[string]string{
+				"foo": "bar",
+			},
+			want: `{"apiVersion":"tekton.dev/v1","kind":"TaskRun","metadata":{"name":"test-taskrun","namespace":"test-namespace","annotations":{"foo":"bar"}}}`,
+		},
+		{
+			name: "many",
+			newAnnotations: map[string]string{
+				"foo": "bar",
+				"baz": "bat",
+			},
+			want: `{"apiVersion":"tekton.dev/v1","kind":"TaskRun","metadata":{"name":"test-taskrun","namespace":"test-namespace","annotations":{"baz":"bat","foo":"bar"}}}`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := CreateAnnotationsPatch(tt.newAnnotations, obj)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("CreateAnnotationsPatch() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			gotStr := string(got)
+			if gotStr != tt.want {
+				t.Errorf("CreateAnnotationsPatch() = %v, want %v", gotStr, tt.want)
+			}
+		})
+	}
+}
+
+func TestTransparencyAnnotation(t *testing.T) {
+	ctx, _ := rtesting.SetupFakeContext(t)
+	c := fakepipelineclient.Get(ctx)
+
+	// Create a TaskRun with transparency annotation
+	tr := &v1.TaskRun{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-taskrun",
+			Namespace: "default",
+		},
+	}
+
+	obj := objects.NewTaskRunObjectV1(tr)
+	tekton.CreateObject(t, ctx, c, obj)
+
+	// Test adding transparency annotation
+	transparencyAnnotations := map[string]string{
+		ChainsTransparencyAnnotation: "https://rekor.sigstore.dev/api/v1/log/entries?logIndex=123",
+	}
+
+	err := AddAnnotations(ctx, obj, c, transparencyAnnotations)
+	if err != nil {
+		t.Fatalf("AddAnnotations() error = %v", err)
+	}
+
+	// Verify the annotation was added
+	updated, err := tekton.GetObject(t, ctx, c, obj)
+	if err != nil {
+		t.Fatalf("Get() error = %v", err)
+	}
+
+	annotations := updated.GetAnnotations()
+	if v, ok := annotations[ChainsTransparencyAnnotation]; !ok || v == "" {
+		t.Errorf("Expected transparency annotation to be set, got %v", annotations)
+	}
+
+	expectedValue := "https://rekor.sigstore.dev/api/v1/log/entries?logIndex=123"
+	if annotations[ChainsTransparencyAnnotation] != expectedValue {
+		t.Errorf("Expected transparency annotation value %q, got %q", expectedValue, annotations[ChainsTransparencyAnnotation])
+	}
 }
