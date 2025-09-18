@@ -128,4 +128,4 @@ To learn more about Chains:
 - Attend the Chains Working Group meeting, details
   [here](https://github.com/tektoncd/community/blob/main/working-groups.md#chains)
 
-[cosign]: (https://github.com/sigstore/cosign)
+[cosign]: https://github.com/sigstore/cosign
