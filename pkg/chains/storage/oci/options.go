@@ -14,7 +14,13 @@
 
 package oci
 
-import "github.com/google/go-containerregistry/pkg/name"
+import (
+	"os"
+
+	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/google/go-containerregistry/pkg/v1/remote"
+	"github.com/tektoncd/chains/pkg/config"
+)
 
 // Option provides a config option compatible with all OCI storers.
 type Option interface {
@@ -50,5 +56,39 @@ func (o *targetRepoOption) applyAttestationStorer(s *AttestationStorer) error {
 
 func (o *targetRepoOption) applySimpleStorer(s *SimpleStorer) error {
 	s.repo = &o.repo
+	return nil
+}
+
+// WithFormat configures the storage format for OCI signatures and attestations.
+//
+//nolint:ireturn // returning interface is the intended pattern for options
+func WithFormat(format string) Option {
+	return &formatOption{
+		format: format,
+	}
+}
+
+type formatOption struct {
+	format string
+}
+
+func (o *formatOption) applyAttestationStorer(s *AttestationStorer) error {
+	s.format = o.format
+
+	// Enable experimental features for non-legacy formats
+	if o.format == config.OCIFormatReferrersAPI || o.format == config.OCIFormatProtobuf {
+		os.Setenv("COSIGN_EXPERIMENTAL", "1")
+		s.remoteOpts = append(s.remoteOpts, remote.WithUserAgent("chains/"+o.format))
+	}
+	return nil
+}
+
+func (o *formatOption) applySimpleStorer(s *SimpleStorer) error {
+	s.format = o.format
+
+	if o.format == config.OCIFormatReferrersAPI || o.format == config.OCIFormatProtobuf {
+		os.Setenv("COSIGN_EXPERIMENTAL", "1")
+		s.remoteOpts = append(s.remoteOpts, remote.WithUserAgent("chains/"+o.format))
+	}
 	return nil
 }

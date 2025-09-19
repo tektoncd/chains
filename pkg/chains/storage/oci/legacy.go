@@ -80,7 +80,7 @@ func (b *Backend) StorePayload(ctx context.Context, obj objects.TektonObject, ra
 		return errors.Wrap(err, "getting oci authenticator")
 	}
 
-	logger.Infof("Storing payload on %s/%s/%s", obj.GetGVK(), obj.GetNamespace(), obj.GetName())
+	logger.Infof("Storing payload on %s/%s/%s with format: %s", obj.GetGVK(), obj.GetNamespace(), obj.GetName(), b.cfg.Storage.OCI.Format)
 
 	if storageOpts.PayloadFormat == formats.PayloadTypeSimpleSigning {
 		format := simple.SimpleContainerImage{}
@@ -95,6 +95,15 @@ func (b *Backend) StorePayload(ctx context.Context, obj objects.TektonObject, ra
 		if err := json.Unmarshal(rawPayload, &attestation); err != nil {
 			return errors.Wrap(err, "unmarshal attestation")
 		}
+
+		// Extract predicate type from raw JSON since it gets lost during unmarshaling
+		var rawStatement struct {
+			PredicateType string `json:"predicateType"`
+		}
+		if err := json.Unmarshal(rawPayload, &rawStatement); err != nil {
+			return errors.Wrap(err, "extracting predicate type from raw payload")
+		}
+		attestation.PredicateType = rawStatement.PredicateType
 
 		// This can happen if the Task/TaskRun does not adhere to specific naming conventions
 		// like *IMAGE_URL that would serve as hints. This may be intentional for a Task/TaskRun
@@ -114,11 +123,7 @@ func (b *Backend) StorePayload(ctx context.Context, obj objects.TektonObject, ra
 }
 
 func (b *Backend) uploadSignature(ctx context.Context, format simple.SimpleContainerImage, rawPayload []byte, signature string, storageOpts config.StorageOpts, remoteOpts ...remote.Option) error {
-	logger := logging.FromContext(ctx)
-
 	imageName := format.ImageName()
-	logger.Infof("Uploading %s signature", imageName)
-
 	ref, err := name.NewDigest(imageName)
 	if err != nil {
 		return errors.Wrap(err, "getting digest")
@@ -129,12 +134,17 @@ func (b *Backend) uploadSignature(ctx context.Context, format simple.SimpleConta
 		return errors.Wrapf(err, "getting storage repo for sub %s", imageName)
 	}
 
-	store, err := NewSimpleStorerFromConfig(WithTargetRepository(repo))
+	// Use new SimpleStorer with format configuration
+	store, err := NewSimpleStorerFromConfig(
+		WithTargetRepository(repo),
+		WithFormat(b.cfg.Storage.OCI.Format),
+	)
 	if err != nil {
 		return err
 	}
-	// TODO: make these creation opts.
+
 	store.remoteOpts = remoteOpts
+
 	if _, err := store.Store(ctx, &api.StoreRequest[name.Digest, simple.SimpleContainerImage]{
 		Object:   nil,
 		Artifact: ref,
@@ -144,6 +154,7 @@ func (b *Backend) uploadSignature(ctx context.Context, format simple.SimpleConta
 			Signature: []byte(signature),
 			Cert:      []byte(storageOpts.Cert),
 			Chain:     []byte(storageOpts.Chain),
+			PublicKey: storageOpts.PublicKey,
 		},
 	}); err != nil {
 		return err
@@ -169,12 +180,17 @@ func (b *Backend) uploadAttestation(ctx context.Context, attestation *intoto.Sta
 			return errors.Wrapf(err, "getting storage repo for sub %s", imageName)
 		}
 
-		store, err := NewAttestationStorer(WithTargetRepository(repo))
+		// Use new AttestationStorer with format configuration
+		store, err := NewAttestationStorer(
+			WithTargetRepository(repo),
+			WithFormat(b.cfg.Storage.OCI.Format),
+		)
 		if err != nil {
 			return err
 		}
-		// TODO: make these creation opts.
+
 		store.remoteOpts = remoteOpts
+
 		if _, err := store.Store(ctx, &api.StoreRequest[name.Digest, *intoto.Statement]{
 			Object:   nil,
 			Artifact: ref,
@@ -184,6 +200,7 @@ func (b *Backend) uploadAttestation(ctx context.Context, attestation *intoto.Sta
 				Signature: []byte(signature),
 				Cert:      []byte(storageOpts.Cert),
 				Chain:     []byte(storageOpts.Chain),
+				PublicKey: storageOpts.PublicKey,
 			},
 		}); err != nil {
 			return err
