@@ -620,3 +620,105 @@ func TestParse(t *testing.T) {
 		})
 	}
 }
+
+func TestNewConfigFromMap_OCISignerNone(t *testing.T) {
+	tests := []struct {
+		name        string
+		data        map[string]string
+		wantEnabled bool
+		wantSigner  string
+	}{
+		{
+			name:        "OCI signing enabled by default with x509 signer",
+			data:        map[string]string{},
+			wantEnabled: true,
+			wantSigner:  "x509",
+		},
+		{
+			name: "OCI signing disabled when signer is none",
+			data: map[string]string{
+				"artifacts.oci.signer": "none",
+			},
+			wantEnabled: false,
+			wantSigner:  "none",
+		},
+		{
+			name: "OCI signing enabled with x509 signer",
+			data: map[string]string{
+				"artifacts.oci.signer": "x509",
+			},
+			wantEnabled: true,
+			wantSigner:  "x509",
+		},
+		{
+			name: "OCI signing enabled with kms signer",
+			data: map[string]string{
+				"artifacts.oci.signer": "kms",
+			},
+			wantEnabled: true,
+			wantSigner:  "kms",
+		},
+		{
+			name: "OCI signing disabled with none signer even with other OCI configs",
+			data: map[string]string{
+				"artifacts.oci.format":  "simplesigning",
+				"artifacts.oci.storage": "oci",
+				"artifacts.oci.signer":  "none",
+			},
+			wantEnabled: false,
+			wantSigner:  "none",
+		},
+		{
+			name: "TaskRun signing disabled with none signer",
+			data: map[string]string{
+				"artifacts.taskrun.signer": "none",
+			},
+			wantEnabled: false,
+			wantSigner:  "none",
+		},
+		{
+			name: "PipelineRun signing disabled with none signer",
+			data: map[string]string{
+				"artifacts.pipelinerun.signer": "none",
+			},
+			wantEnabled: false,
+			wantSigner:  "none",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewConfigFromMap(tt.data)
+			if err != nil {
+				t.Fatalf("NewConfigFromMap() error = %v", err)
+			}
+
+			// Check the signer based on what was configured
+			var actualSigner string
+			var actualEnabled bool
+
+			if _, ok := tt.data["artifacts.oci.signer"]; ok {
+				actualSigner = got.Artifacts.OCI.Signer
+				actualEnabled = got.Artifacts.OCI.Enabled()
+			} else if _, ok := tt.data["artifacts.taskrun.signer"]; ok {
+				actualSigner = got.Artifacts.TaskRuns.Signer
+				actualEnabled = got.Artifacts.TaskRuns.Enabled()
+			} else if _, ok := tt.data["artifacts.pipelinerun.signer"]; ok {
+				actualSigner = got.Artifacts.PipelineRuns.Signer
+				actualEnabled = got.Artifacts.PipelineRuns.Enabled()
+			} else {
+				// Default case - check OCI
+				actualSigner = got.Artifacts.OCI.Signer
+				actualEnabled = got.Artifacts.OCI.Enabled()
+			}
+
+			if actualSigner != tt.wantSigner {
+				t.Errorf("Signer = %v, want %v", actualSigner, tt.wantSigner)
+			}
+
+			if actualEnabled != tt.wantEnabled {
+				t.Errorf("Enabled() = %v, want %v", actualEnabled, tt.wantEnabled)
+			}
+		})
+	}
+}
