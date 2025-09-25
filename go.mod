@@ -3,8 +3,8 @@ module github.com/tektoncd/chains
 go 1.24.6
 
 require (
-	cloud.google.com/go/compute/metadata v0.8.0
-	cloud.google.com/go/storage v1.56.1
+	cloud.google.com/go/compute/metadata v0.9.0
+	cloud.google.com/go/storage v1.57.0
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/golangci/golangci-lint v1.64.8
 	github.com/google/addlicense v1.2.0
@@ -14,7 +14,7 @@ require (
 	github.com/google/go-licenses v1.6.0
 	github.com/grafeas/grafeas v0.2.3
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/in-toto/archivista v0.10.0
+	github.com/in-toto/archivista v0.11.0
 	github.com/in-toto/attestation v1.1.2
 	github.com/in-toto/go-witness v0.8.6
 	github.com/in-toto/in-toto-golang v0.9.1-0.20240317085821-8e2966059a09
@@ -30,7 +30,7 @@ require (
 	github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.9.5
 	github.com/spiffe/go-spiffe/v2 v2.6.0
 	github.com/stretchr/testify v1.11.1
-	github.com/tektoncd/pipeline v1.3.1
+	github.com/tektoncd/pipeline v1.4.0
 	github.com/tektoncd/plumbing v0.0.0-20250115133002-f515628dffea
 	go.opencensus.io v0.24.0
 	go.uber.org/zap v1.27.0
@@ -39,12 +39,12 @@ require (
 	gocloud.dev/pubsub/kafkapubsub v0.43.0
 	golang.org/x/crypto v0.42.0
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b
-	google.golang.org/grpc v1.75.0
+	google.golang.org/grpc v1.75.1
 	google.golang.org/protobuf v1.36.9
 	k8s.io/api v0.34.1
 	k8s.io/apimachinery v0.34.1
 	k8s.io/client-go v0.34.1
-	k8s.io/code-generator v0.33.4
+	k8s.io/code-generator v0.34.1
 	knative.dev/pkg v0.0.0-20250415155312-ed3e2158b883
 	sigs.k8s.io/yaml v1.6.0
 )
@@ -464,7 +464,6 @@ require (
 	golang.org/x/time v0.12.0 // indirect
 	golang.org/x/tools v0.36.0 // indirect
 	golang.org/x/tools/go/expect v0.1.1-deprecated // indirect
-	golang.org/x/tools/go/packages/packagestest v0.1.1-deprecated // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	gomodules.xyz/jsonpatch/v2 v2.5.0 // indirect
 	google.golang.org/api v0.248.0 // indirect
@@ -480,7 +479,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	honnef.co/go/tools v0.6.1 // indirect
-	k8s.io/apiextensions-apiserver v0.32.6 // indirect
+	k8s.io/apiextensions-apiserver v0.32.8 // indirect
 	k8s.io/gengo/v2 v2.0.0-20250604051438-85fd79dbfd9f // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20250710124328-f3f2b991d03b // indirect
