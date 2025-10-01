@@ -1,0 +1,91 @@
+name: Tekton CI
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    name: Build tests
+    runs-on: ubuntu-24.04
+
+    env:
+      GOPATH: ${{ github.workspace }}
+      GO111MODULE: ''
+
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          path: ${{ github.workspace }}/src/github.com/tektoncd/chains
+
+      - name: Set up Go
+        uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+        with:
+          cache-dependency-path: "${{ github.workspace }}/src/github.com/tektoncd/chains/go.sum"
+          go-version-file: "${{ github.workspace }}/src/github.com/tektoncd/chains/go.mod"
+
+      - name: Install dependencies
+        run: |
+          echo "${GOPATH}/bin" >> "$GITHUB_PATH"
+          GO111MODULE="on" go install github.com/google/go-licenses@v1.0.0
+          # TODO: re-enable this and fix the license headers / exclusions
+          # GO111MODULE="on" go install github.com/google/addlicense@v1.2.0
+          GO111MODULE="on" go install github.com/jstemmer/go-junit-report@latest
+
+          # Install GolangCI linter: https://github.com/golangci/golangci-lint/
+          GOLANGCI_VERSION=2.1.6
+          curl -sL https://github.com/golangci/golangci-lint/releases/download/v${GOLANGCI_VERSION}/golangci-lint-${GOLANGCI_VERSION}-linux-amd64.tar.gz | tar -C /usr/local/bin -xvzf - --strip-components=1 --wildcards "*/golangci-lint"
+
+      - name: Run tests
+        working-directory: ${{ github.workspace }}/src/github.com/tektoncd/chains
+        run: |
+          ./test/presubmit-tests.sh --build-tests
+
+  unit-tests:
+    name: Unit tests
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          path: ${{ github.workspace }}/src/github.com/tektoncd/chains
+
+      - name: Set up Go
+        uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+        with:
+          cache-dependency-path: "${{ github.workspace }}/src/github.com/tektoncd/chains/go.sum"
+          go-version-file: "${{ github.workspace }}/src/github.com/tektoncd/chains/go.mod"
+
+      - name: Install dependencies
+        run: |
+          echo "${GOPATH}/bin" >> "$GITHUB_PATH"
+          GO111MODULE="on" go install github.com/jstemmer/go-junit-report@latest
+
+      - name: Run tests
+        working-directory: ${{ github.workspace }}/src/github.com/tektoncd/chains
+        run: |
+          ./test/presubmit-tests.sh --unit-tests
