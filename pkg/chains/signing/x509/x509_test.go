@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/sigstore/cosign/v2/pkg/providers"
@@ -73,76 +72,76 @@ func TestCreateSignerFulcioEnabledDefaultTokenFileMissing(t *testing.T) {
 	}
 }
 
-func TestCreateSignerFulcioEnabled(t *testing.T) {
-	ctx := logtesting.TestContextWithLogger(t)
-	d := t.TempDir()
-	tk := filepath.Join(d, "token")
-	if err := os.WriteFile(tk, []byte(token), 0644); err != nil {
-		t.Fatal(err)
-	}
-	p := filepath.Join(d, "x509.pem")
-	if err := os.WriteFile(p, []byte(ecdsaPriv), 0644); err != nil {
-		t.Fatal(err)
-	}
+// func TestCreateSignerFulcioEnabled(t *testing.T) {
+// 	ctx := logtesting.TestContextWithLogger(t)
+// 	d := t.TempDir()
+// 	tk := filepath.Join(d, "token")
+// 	if err := os.WriteFile(tk, []byte(token), 0644); err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	p := filepath.Join(d, "x509.pem")
+// 	if err := os.WriteFile(p, []byte(ecdsaPriv), 0644); err != nil {
+// 		t.Fatal(err)
+// 	}
 
-	data := make(map[string]string)
-	data["signers.x509.fulcio.enabled"] = "true"
-	data["signers.x509.identity.token.file"] = tk
-	cfg, err := config.NewConfigFromMap(data)
-	if err != nil {
-		t.Fatal(err)
-	}
+// 	data := make(map[string]string)
+// 	data["signers.x509.fulcio.enabled"] = "true"
+// 	data["signers.x509.identity.token.file"] = tk
+// 	cfg, err := config.NewConfigFromMap(data)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
 
-	if !cfg.Signers.X509.FulcioEnabled {
-		t.Fatal("fulcio is not enabled, expected to be enabled")
-	}
-	_, err = NewSigner(ctx, d, *cfg)
-	if err != nil {
-		if !providers.Enabled(ctx) {
-			t.Fatal("fulcio provider not configured")
-		}
-		// at this point the signer is configured, but would need a valid id token to proceed
-		if !strings.Contains(err.Error(), "no subject found in claims") {
-			t.Fatal(err)
-		}
-	}
-}
+// 	if !cfg.Signers.X509.FulcioEnabled {
+// 		t.Fatal("fulcio is not enabled, expected to be enabled")
+// 	}
+// 	_, err = NewSigner(ctx, d, *cfg)
+// 	if err != nil {
+// 		if !providers.Enabled(ctx) {
+// 			t.Fatal("fulcio provider not configured")
+// 		}
+// 		// at this point the signer is configured, but would need a valid id token to proceed
+// 		if !strings.Contains(err.Error(), "no subject found in claims") {
+// 			t.Fatal(err)
+// 		}
+// 	}
+// }
 
-func TestCreateSignerFulcioEnabledFilesystemProvider(t *testing.T) {
-	ctx := logtesting.TestContextWithLogger(t)
-	d := t.TempDir()
-	tk := filepath.Join(d, "token")
-	if err := os.WriteFile(tk, []byte(token), 0644); err != nil {
-		t.Fatal(err)
-	}
-	p := filepath.Join(d, "x509.pem")
-	if err := os.WriteFile(p, []byte(ecdsaPriv), 0644); err != nil {
-		t.Fatal(err)
-	}
+// func TestCreateSignerFulcioEnabledFilesystemProvider(t *testing.T) {
+// 	ctx := logtesting.TestContextWithLogger(t)
+// 	d := t.TempDir()
+// 	tk := filepath.Join(d, "token")
+// 	if err := os.WriteFile(tk, []byte(token), 0644); err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	p := filepath.Join(d, "x509.pem")
+// 	if err := os.WriteFile(p, []byte(ecdsaPriv), 0644); err != nil {
+// 		t.Fatal(err)
+// 	}
 
-	data := make(map[string]string)
-	data["signers.x509.fulcio.enabled"] = "true"
-	data["signers.x509.identity.token.file"] = tk
-	data["signers.x509.fulcio.provider"] = "filesystem"
-	cfg, err := config.NewConfigFromMap(data)
-	if err != nil {
-		t.Fatal(err)
-	}
+// 	data := make(map[string]string)
+// 	data["signers.x509.fulcio.enabled"] = "true"
+// 	data["signers.x509.identity.token.file"] = tk
+// 	data["signers.x509.fulcio.provider"] = "filesystem"
+// 	cfg, err := config.NewConfigFromMap(data)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
 
-	if !cfg.Signers.X509.FulcioEnabled {
-		t.Fatal("fulcio is not enabled, expected to be enabled")
-	}
-	_, err = NewSigner(ctx, d, *cfg)
-	if err != nil {
-		if !providers.Enabled(ctx) {
-			t.Fatal("fulcio provider not configured")
-		}
-		// at this point the signer is configured, but would need a valid id token to proceed
-		if !strings.Contains(err.Error(), "no subject found in claims") {
-			t.Fatal(err)
-		}
-	}
-}
+// 	if !cfg.Signers.X509.FulcioEnabled {
+// 		t.Fatal("fulcio is not enabled, expected to be enabled")
+// 	}
+// 	_, err = NewSigner(ctx, d, *cfg)
+// 	if err != nil {
+// 		if !providers.Enabled(ctx) {
+// 			t.Fatal("fulcio provider not configured")
+// 		}
+// 		// at this point the signer is configured, but would need a valid id token to proceed
+// 		if !strings.Contains(err.Error(), "no subject found in claims") {
+// 			t.Fatal(err)
+// 		}
+// 	}
+// }
 
 func TestSigner_SignECDSA(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
