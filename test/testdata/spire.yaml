@@ -109,8 +109,8 @@ metadata:
     app.kubernetes.io/instance: spire
 data:
   oidc-discovery-provider.conf: |
+    allow_insecure_scheme = true
     log_level = "INFO"
-    allow_insecure_scheme = "true"
     domains = [ "spire-oidc.spire" ]
     insecure_addr = ":8082"
     # listen_socket_path = "/tmp/spire-server/private/oidc.sock"
@@ -140,7 +140,6 @@ data:
       # ca_key_type = "rsa-2048"
       jwt_issuer = "spire-oidc.spire"
 
-      default_svid_ttl = "1h"
       ca_subject = {
         country = ["US"],
         organization = ["SPIFFE"],
@@ -379,14 +378,14 @@ spec:
           # This is a small image with wait-for-it, choose whatever image
           # you prefer that waits for a service to be up. This image is built
           # from https://github.com/lqhl/wait-for-it
-          image: gcr.io/spiffe-io/wait-for-it
+          image: ghcr.io/tektoncd/plumbing/wait-for-it
           imagePullPolicy: IfNotPresent
           args: ["-t", "30", "spire-server:8081"]
       containers:
         - name: spire-agent
           securityContext:
             {}
-          image: gcr.io/spiffe-io/spire-agent:1.0.2
+          image: ghcr.io/spiffe/spire-agent:1.13.1@sha256:18326c81155ffb2685070f94b536a48eb0d0506db519f471abd16e3242eaf262
           imagePullPolicy: IfNotPresent
           args: ["-config", "/run/spire/config/agent.conf"]
           volumeMounts:
@@ -468,7 +467,7 @@ spec:
         - name: spire-server
           securityContext:
             {}
-          image: gcr.io/spiffe-io/spire-server:1.0.2
+          image: ghcr.io/spiffe/spire-server:1.13.1@sha256:2c6d79b7858dc828a25eac1433556443266ee7f6695d97a8572ee97bb0117971
           imagePullPolicy: IfNotPresent
           args:
             - -config
@@ -505,30 +504,22 @@ spec:
           resources:
             {}
         - name: spire-oidc
-          image: gcr.io/spiffe-io/oidc-discovery-provider:1.0.2
+          image: ghcr.io/spiffe/oidc-discovery-provider:1.13.1
           imagePullPolicy: IfNotPresent
           args:
-          - -config
-          - /run/spire/oidc/config/oidc-discovery-provider.conf
+            - -config
+            - /run/spire/oidc/config/oidc-discovery-provider.conf
           ports:
-          - name: oidc
-            containerPort: 8082
-            protocol: TCP
+            - name: oidc
+              containerPort: 8082
+              protocol: TCP
           volumeMounts:
-          - name: spire-server-socket
-            mountPath: /tmp/spire-server/private
-            readOnly: false
-          - name: spire-oidc-config
-            mountPath: /run/spire/oidc/config/
-            readOnly: true
-          # - name: spire-data
-          #   mountPath: /run/spire/data
-          #   readOnly: false
-          readinessProbe:
-            exec:
-              command: ["/bin/ps", "aux", " ||", "grep", "oidc-discovery-provider -config /run/spire/oidc/config/oidc-discovery-provider.conf"]
-            initialDelaySeconds: 5
-            periodSeconds: 5
+            - name: spire-server-socket
+              mountPath: /tmp/spire-server/private
+              readOnly: false
+            - name: spire-oidc-config
+              mountPath: /run/spire/oidc/config/
+              readOnly: true
           resources:
             {}
       volumes:
