@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	pipelineRunResults = "pipelineRunResults/%s"
+	pipelineRunResults = "pipelineRunResults/%s/%s"
 	// JSONMediaType is the media type of json encoded content used in resource descriptors
 	JSONMediaType = "application/json"
 )
@@ -54,7 +54,7 @@ func GenerateAttestation(ctx context.Context, pro *objects.PipelineRunObjectV1, 
 
 // byproducts contains the pipelineRunResults that are not subjects.
 func byproducts(pro *objects.PipelineRunObjectV1, slsaconfig *slsaconfig.SlsaConfig) ([]*intoto.ResourceDescriptor, error) {
-	byProd, err := results.GetResultsWithoutBuildArtifacts(pro.GetResults(), pipelineRunResults)
+	byProd, err := results.GetResultsWithoutBuildArtifacts(pro.GetName(), pro.GetResults(), pipelineRunResults)
 	if err != nil {
 		return nil, err
 	}

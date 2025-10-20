@@ -29,8 +29,8 @@ import (
 )
 
 const (
-	taskRunResults     = "taskRunResults/%s"
-	taskRunStepResults = "stepResults/%s"
+	taskRunResults     = "taskRunResults/%s/%s"
+	taskRunStepResults = "stepResults/%s/%s"
 )
 
 // GenerateAttestation returns the provenance for the given taskrun in SALSA 1.0 format.
@@ -55,13 +55,13 @@ func GenerateAttestation(ctx context.Context, tro *objects.TaskRunObjectV1, slsa
 func ByProducts(tro *objects.TaskRunObjectV1) ([]*intoto.ResourceDescriptor, error) {
 	byProd := []*intoto.ResourceDescriptor{}
 
-	res, err := results.GetResultsWithoutBuildArtifacts(tro.GetResults(), taskRunResults)
+	res, err := results.GetResultsWithoutBuildArtifacts(tro.GetName(), tro.GetResults(), taskRunResults)
 	if err != nil {
 		return nil, err
 	}
 	byProd = append(byProd, res...)
 
-	res, err = results.GetResultsWithoutBuildArtifacts(tro.GetStepResults(), taskRunStepResults)
+	res, err = results.GetResultsWithoutBuildArtifacts(tro.GetName(), tro.GetStepResults(), taskRunStepResults)
 	if err != nil {
 		return nil, err
 	}

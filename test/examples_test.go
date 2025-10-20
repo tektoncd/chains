@@ -251,10 +251,9 @@ func runInTotoFormatterTests(ctx context.Context, t *testing.T, ns string, c *cl
 				gotProvenance.Predicate = nil
 
 				opts := []cmp.Option{
-					// Annotations and labels may contain release specific information. Ignore
-					// those to avoid brittle tests.
-					cmpopts.IgnoreFields(slsa1.BuildDefinition{}, "InternalParameters"),
-					cmpopts.IgnoreMapEntries(ignoreEnvironmentAnnotationsAndLabels),
+					// Annotations, labels, and internalParameters may contain release specific
+					// information. Ignore those to avoid brittle tests.
+					cmpopts.IgnoreMapEntries(ignoreReleaseSpecificFields),
 					protocmp.Transform(),
 				}
 
@@ -280,7 +279,7 @@ func runInTotoFormatterTests(ctx context.Context, t *testing.T, ns string, c *cl
 					// Annotations and labels may contain release specific information. Ignore
 					// those to avoid brittle tests.
 					cmpopts.IgnoreFields(slsa02.ProvenanceInvocation{}, "Environment"),
-					cmpopts.IgnoreMapEntries(ignoreEnvironmentAnnotationsAndLabels),
+					cmpopts.IgnoreMapEntries(ignoreReleaseSpecificFields),
 					protocmp.Transform(),
 				}
 
@@ -371,7 +370,7 @@ type URIDigestPair struct {
 }
 
 type Format struct {
-	Entrypoint         string
+	TektonObjectName   string
 	PipelineStartedOn  string
 	PipelineFinishedOn string
 	UID                string
@@ -380,6 +379,7 @@ type Format struct {
 	ContainerNames     []string
 	StepImages         []string
 	URIDigest          []URIDigestPair
+	ChildTaskRunNames  []string
 }
 
 func expectedTaskRunProvenanceFormat(t *testing.T, example string, obj objects.TektonObject, outputLocation string) Format {
@@ -409,7 +409,7 @@ func expectedTaskRunProvenanceFormat(t *testing.T, example string, obj objects.T
 	}
 
 	return Format{
-		Entrypoint:         name,
+		TektonObjectName:   name,
 		UID:                string(tr.ObjectMeta.UID),
 		BuildStartTimes:    []string{tr.Status.StartTime.Time.UTC().Format(time.RFC3339)},
 		BuildFinishedTimes: []string{tr.Status.CompletionTime.Time.UTC().Format(time.RFC3339)},
@@ -425,6 +425,7 @@ func expectedPipelineRunProvenanceFormat(ctx context.Context, t *testing.T, obj 
 
 	buildStartTimes := []string{}
 	buildFinishedTimes := []string{}
+	childTaskRunNames := []string{}
 	var uridigest []URIDigestPair
 	uriDigestSet := make(map[string]bool)
 
@@ -433,6 +434,7 @@ func expectedPipelineRunProvenanceFormat(ctx context.Context, t *testing.T, obj 
 		if err != nil {
 			t.Errorf("Did not expect an error but got %v", err)
 		}
+		childTaskRunNames = append(childTaskRunNames, taskRun.Name)
 		buildStartTimes = append(buildStartTimes, taskRun.Status.StartTime.Time.UTC().Format(time.RFC3339))
 		buildFinishedTimes = append(buildFinishedTimes, taskRun.Status.CompletionTime.Time.UTC().Format(time.RFC3339))
 		for _, step := range taskRun.Status.Steps {
@@ -458,12 +460,14 @@ func expectedPipelineRunProvenanceFormat(ctx context.Context, t *testing.T, obj 
 	}
 
 	return Format{
+		TektonObjectName:   pr.Name,
 		UID:                string(pr.ObjectMeta.UID),
 		PipelineStartedOn:  pr.Status.StartTime.Time.UTC().Format(time.RFC3339),
 		PipelineFinishedOn: pr.Status.CompletionTime.Time.UTC().Format(time.RFC3339),
 		BuildStartTimes:    buildStartTimes,
 		BuildFinishedTimes: buildFinishedTimes,
 		URIDigest:          uridigest,
+		ChildTaskRunNames:  childTaskRunNames,
 	}
 }
 
@@ -611,46 +615,63 @@ func pipelineRunFromExample(t *testing.T, ns, example string) objects.TektonObje
 	return objects.NewPipelineRunObjectV1(pr)
 }
 
-func ignoreEnvironmentAnnotationsAndLabels(key string, value any) bool {
+func ignoreReleaseSpecificFields(key string, value any) bool {
+	// Ignore internalParameters
+	if key == "internalParameters" {
+		return true
+	}
+
 	if key != "environment" {
 		return false
 	}
-	// There are multiple maps with the key "environment", so we must carefully
-	// choose the right one.
+
+	// Ignore invocation.environment (which contains annotations and labels)
+	// but keep step.environment (which contains container and image)
 	switch v := value.(type) {
 	case map[string]any:
-		_, hasAnnotations := v["annotations"]
-		_, hasLabels := v["labels"]
-		return hasAnnotations || hasLabels
+		// If it has annotations or labels, it's invocation.environment - ignore it
+		if _, hasAnnotations := v["annotations"]; hasAnnotations {
+			return true
+		}
+		if _, hasLabels := v["labels"]; hasLabels {
+			return true
+		}
+		// If it has container or image, it's step.environment - keep it
+		if _, hasContainer := v["container"]; hasContainer {
+			return false
+		}
+		if _, hasImage := v["image"]; hasImage {
+			return false
+		}
+	case *structpb.Struct:
+		// Handle protobuf Struct type
+		if v != nil && v.Fields != nil {
+			// If it has annotations or labels, it's invocation.environment - ignore it
+			if _, hasAnnotations := v.Fields["annotations"]; hasAnnotations {
+				return true
+			}
+			if _, hasLabels := v.Fields["labels"]; hasLabels {
+				return true
+			}
+			// If it has container or image, it's step.environment - keep it
+			if _, hasContainer := v.Fields["container"]; hasContainer {
+				return false
+			}
+			if _, hasImage := v.Fields["image"]; hasImage {
+				return false
+			}
+		}
 	}
-	return false
+	// If we can't determine, be conservative and ignore it
+	return true
 }
 
 func comparePredicates[T any](t *testing.T, expPredicateStruct, gotPredicateStruct *structpb.Struct, opts []cmp.Option) {
 	t.Helper()
-	expJSON, err := expPredicateStruct.MarshalJSON()
-	if err != nil {
-		t.Fatalf("error getting predicate json: %v", err)
-	}
 
-	gotJSON, err := gotPredicateStruct.MarshalJSON()
-	if err != nil {
-		t.Fatalf("error getting predicate json: %v", err)
-	}
-
-	var expectedPredicate T
-	json.Unmarshal(expJSON, &expectedPredicate)
-	if err != nil {
-		t.Fatalf("error getting predicate original struct: %v", err)
-	}
-
-	var gotPredicate T
-	json.Unmarshal(gotJSON, &gotPredicate)
-	if err != nil {
-		t.Fatalf("error getting predicate original struct: %v", err)
-	}
-
-	if diff := cmp.Diff(&expectedPredicate, &gotPredicate, opts...); diff != "" {
+	// Compare the protobuf structs directly using protocmp
+	// The opts already include protocmp.Transform() which handles protobuf comparison
+	if diff := cmp.Diff(expPredicateStruct, gotPredicateStruct, opts...); diff != "" {
 		t.Errorf("predicates dont match: -want +got: %s", diff)
 	}
 }

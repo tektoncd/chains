@@ -163,12 +163,12 @@
                 {
                     "content": "eyJkaWdlc3QiOiJzaGEyNTY6NTg2Nzg5YWEwMzFmYWZjN2Q3OGE1MzkzY2RjNzcyZTBiNTUxMDdlYTU0YmI4YmNmM2YyY2RhYzZjNmRhNTFlZSIsInVyaSI6Imdjci5pby9mb28vaW1nMiJ9",
                     "mediaType": "application/json",
-                    "name": "pipelineRunResults/output2-ARTIFACT_OUTPUTS"
+                    "name": "pipelineRunResults/{{.TektonObjectName}}/output2-ARTIFACT_OUTPUTS"
                 },
                 {
                     "content": "eyJkaWdlc3QiOiJzaGEyNTY6NTg2Nzg5YWEwMzFmYWZjN2Q3OGE1MzkzY2RjNzcyZTBiNTUxMDdlYTU0YmI4YmNmM2YyY2RhYzZjNmRhNTFlZSIsInVyaSI6Imdjci5pby9mb28vaW1nMiJ9",
                     "mediaType": "application/json",
-                    "name": "taskRunResults/output2"
+                    "name": "taskRunResults/{{index .ChildTaskRunNames 0}}/output2"
                 }
             ],
             "metadata": {
