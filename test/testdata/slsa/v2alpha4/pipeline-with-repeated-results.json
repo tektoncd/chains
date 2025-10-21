@@ -108,6 +108,27 @@
                                         }
                                     ]
                                 }
+                            },
+                            {
+                                "name": "t3",
+                                "taskSpec": {
+                                    "metadata": {},
+                                    "results": [
+                                        {
+                                            "name": "IMAGES",
+                                            "type": "string"
+                                        }
+                                    ],
+                                    "spec": null,
+                                    "steps": [
+                                        {
+                                            "computeResources": {},
+                                            "image": "busybox:glibc",
+                                            "name": "step1",
+                                            "script": "echo -n \"gcr.io/foo/img1@sha256:586789aa031fafc7d78a5393cdc772e0b55107ea54bb8bcf3f2cdac6c6da51ee\" > $(results.IMAGES.path)"
+                                        }
+                                    ]
+                                }
                             }
                         ]
                     },
