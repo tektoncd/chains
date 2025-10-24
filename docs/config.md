@@ -68,6 +68,7 @@ Supported keys include:
 |:-------------------------------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:--------|
 | `storage.gcs.bucket`                             | The GCS bucket for storage                                                                                                                                                                                                                                                                                          |                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |         |
 | `storage.oci.repository`                         | The OCI repo to store OCI signatures and attestation in                                                                                                                                                                                                                                                             | If left undefined _and_ one of `artifacts.{oci,taskrun}.storage` includes `oci` storage, attestations will be stored alongside the stored OCI artifact itself. ([example on GCP](../images/attestations-in-artifact-registry.png)) Defining this value results in the OCI bundle stored in the designated location _instead of_ alongside the image. See [cosign documentation](https://github.com/sigstore/cosign#specifying-registry) for additional information. |         |
+| `storage.oci.format`                            | Storage format for OCI signatures and attestations. Controls both the storage mechanism and serialization format used for storing cryptographic artifacts. | `legacy` - Tag-based storage with DSSE format for full backward compatibility<br/>`referrers-api` - OCI 1.1 referrers API with DSSE format for reduced tag proliferation<br/>`protobuf-bundle` - OCI 1.1 referrers API with protobuf bundle format for experimental cosign features | `legacy` |
 | `storage.docdb.url`                              | The go-cloud URI reference to a docstore collection                                                                                                                                                                                                                                                                 | `firestore://projects/[PROJECT]/databases/(default)/documents/[COLLECTION]?name_field=name`                                                                                                                                                                                                                                                                                                                                                                         |         |
 | `storage.docdb.mongo-server-url` (optional)      | The value of MONGO_SERVER_URL env var with the MongoDB connection URI                                                                                                                                                                                                                                               | Example: `mongodb://[USER]:[PASSWORD]@[HOST]:[PORT]/[DATABASE]`                                                                                                                                                                                                                                                                                                                                                                                                     |         |
 | `storage.docdb.mongo-server-url-dir` (optional)  | The path of the directory that contains the file named MONGO_SERVER_URL that stores the value of MONGO_SERVER_URL env var                                                                                                                                                                                           | If the file `/mnt/mongo-creds-secret/MONGO_SERVER_URL` has the value of MONGO_SERVER_URL, then set `storage.docdb.mongo-server-url-dir: /mnt/mongo-creds-secret`                                                                                                                                                                                                                                                                                                    |         |
@@ -76,6 +77,77 @@ Supported keys include:
 | `storage.grafeas.noteid` (optional)              | This field will be used as the prefix part of the note name that will be created. The value of this field must be a string without spaces. (See more details [below](#grafeas).)                                                                                                                                    |                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |         |
 | `storage.grafeas.notehint` (optional)            | This field is used to set the [human_readable_name](https://github.com/grafeas/grafeas/blob/cd23d4dc1bef740d6d6d90d5007db5c9a2431c41/proto/v1/attestation.proto#L49) field in the Grafeas ATTESTATION note. If it is not provided, the default `This attestation note was generated by Tekton Chains` will be used. |                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |         |
 | `storage.archivista.url`         | The URL endpoint for the Archivista service.                                                                                                                                                                                                                                                                     | A valid HTTPS URL pointing to your Archivista instance (e.g. `https://archivista.testifysec.io`).                                                                                                                                                                                                                                                                                                                      | None |
+
+#### OCI Storage Formats
+
+The `storage.oci.format` configuration supports three distinct storage formats, each designed for different use cases:
+
+##### Legacy Format (`legacy`)
+- **Storage Mechanism**: Tag-based storage using `<image>:sha256-<digest>.sig` and `<image>:sha256-<digest>.att` tags
+- **Serialization Format**: DSSE (Dead Simple Signing Envelope) format
+- **Compatibility**: Full backward compatibility with existing tooling and deployments
+- **Registry Impact**: Creates additional tags in the registry for each signature and attestation
+- **Use Case**: Production deployments requiring maximum compatibility
+
+**Example Configuration:**
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chains-config
+  namespace: tekton-chains
+data:
+  storage.oci.format: "legacy"
+```
+
+##### Referrers API Format (`referrers-api`)
+- **Storage Mechanism**: OCI 1.1 Referrers API for artifact relationships
+- **Serialization Format**: DSSE (Dead Simple Signing Envelope) format - same as legacy
+- **Compatibility**: Compatible with OCI 1.1 registries and DSSE-aware tooling
+- **Registry Impact**: Uses referrers API, significantly reducing tag proliferation
+- **Use Case**: Modern OCI 1.1 registries where tag reduction is desired while maintaining DSSE compatibility
+
+**Example Configuration:**
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chains-config
+  namespace: tekton-chains
+data:
+  storage.oci.format: "referrers-api"
+```
+
+##### Protobuf Bundle Format (`protobuf-bundle`)
+- **Storage Mechanism**: OCI 1.1 Referrers API for artifact relationships
+- **Serialization Format**: Protobuf bundle format for experimental cosign features
+- **Compatibility**: Requires cosign experimental features and latest tooling
+- **Registry Impact**: Uses referrers API with experimental serialization
+- **Use Case**: Testing new cosign features and experimental workflows
+
+**Example Configuration:**
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chains-config
+  namespace: tekton-chains
+data:
+  storage.oci.format: "protobuf-bundle"
+```
+
+**Important Notes:**
+- The default format is `legacy` to ensure backward compatibility
+- Referrers API formats (`referrers-api` and `protobuf-bundle`) require OCI 1.1 compatible registries
+- Format changes affect both signatures and attestations
+- The `protobuf-bundle` format is experimental and may change in future releases
+
+**Migration from Deprecated Configuration:**
+The deprecated `storage.oci.referrers-api` boolean configuration is automatically migrated:
+- `storage.oci.referrers-api: false` → `storage.oci.format: "legacy"`
+- `storage.oci.referrers-api: true` → `storage.oci.format: "protobuf-bundle"`
+
+See the [OCI Format Migration Guide](oci-format-migration.md) for detailed migration instructions.
 
 #### docstore
 

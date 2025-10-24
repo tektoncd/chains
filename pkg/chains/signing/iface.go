@@ -14,6 +14,8 @@ limitations under the License.
 package signing
 
 import (
+	"crypto"
+
 	"github.com/sigstore/sigstore/pkg/signature"
 )
 
@@ -41,4 +43,6 @@ type Bundle struct {
 	Cert []byte
 	// Cert is an optional PEM encoded x509 certificate chain, if one was used for signing.
 	Chain []byte
+	// PublicKey is the public key from the signer, available for storage backends that need it.
+	PublicKey crypto.PublicKey
 }
