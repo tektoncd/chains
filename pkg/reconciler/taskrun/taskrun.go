@@ -17,6 +17,7 @@ import (
 	"context"
 
 	signing "github.com/tektoncd/chains/pkg/chains"
+	"github.com/tektoncd/chains/pkg/chains/annotations"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	"github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
@@ -71,7 +72,7 @@ func (r *Reconciler) FinalizeKind(ctx context.Context, tr *v1.TaskRun) pkgreconc
 	obj := objects.NewTaskRunObjectV1(tr)
 
 	// Check to see if it has already been signed.
-	if signing.Reconciled(ctx, r.Pipelineclientset, obj) {
+	if annotations.Reconciled(ctx, r.Pipelineclientset, obj) {
 		logging.FromContext(ctx).Infof("taskrun %s/%s has been reconciled", tr.Namespace, tr.Name)
 		removeOldFinalizerIfExists(tr)
 		return nil
