@@ -169,12 +169,12 @@ func TestTaskRunCreatePayload1(t *testing.T) {
 			},
 			Byproducts: []*intoto.ResourceDescriptor{
 				{
-					Name:      "stepResults/step1_result1",
+					Name:      "stepResults/taskrun-build/step1_result1",
 					Content:   resultBytesStepResult,
 					MediaType: jsonMediaType,
 				},
 				{
-					Name:      "stepResults/step1_result1-ARTIFACT_OUTPUTS",
+					Name:      "stepResults/taskrun-build/step1_result1-ARTIFACT_OUTPUTS",
 					Content:   resultBytesStepResultObj,
 					MediaType: jsonMediaType,
 				},
@@ -282,17 +282,17 @@ func TestTaskRunCreatePayload2(t *testing.T) {
 			},
 			Byproducts: []*intoto.ResourceDescriptor{
 				{
-					Name:      "taskRunResults/some-uri_DIGEST",
+					Name:      "taskRunResults/git-clone/some-uri_DIGEST",
 					Content:   resultBytesDigest,
 					MediaType: jsonMediaType,
 				},
 				{
-					Name:      "taskRunResults/some-uri",
+					Name:      "taskRunResults/git-clone/some-uri",
 					Content:   resultBytesURI,
 					MediaType: jsonMediaType,
 				},
 				{
-					Name:      "stepResults/step1_result1-ARTIFACT_INPUTS",
+					Name:      "stepResults/git-clone/step1_result1-ARTIFACT_INPUTS",
 					Content:   resultBytesObj,
 					MediaType: jsonMediaType,
 				},

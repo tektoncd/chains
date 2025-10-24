@@ -37,6 +37,7 @@ import (
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logtesting "knative.dev/pkg/logging/testing"
 )
 
@@ -45,6 +46,9 @@ const jsonMediaType = "application/json"
 func TestByProducts(t *testing.T) {
 	resultValue := v1.ResultValue{Type: "string", StringVal: "result-value"}
 	tr := &v1.TaskRun{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "taskRun-name",
+		},
 		Status: v1.TaskRunStatus{
 			TaskRunStatusFields: v1.TaskRunStatusFields{
 				Results: []v1.TaskRunResult{
@@ -63,7 +67,7 @@ func TestByProducts(t *testing.T) {
 	}
 	want := []*intoto.ResourceDescriptor{
 		{
-			Name:      "taskRunResults/result-name",
+			Name:      "taskRunResults/taskRun-name/result-name",
 			Content:   resultBytes,
 			MediaType: jsonMediaType,
 		},
@@ -134,12 +138,12 @@ func TestTaskRunGenerateAttestation(t *testing.T) {
 			},
 			Byproducts: []*intoto.ResourceDescriptor{
 				{
-					Name:      "stepResults/step1_result1",
+					Name:      "stepResults/taskrun-build/step1_result1",
 					MediaType: "application/json",
 					Content:   []uint8(`"result-value"`),
 				},
 				{
-					Name:      "stepResults/step1_result1-ARTIFACT_OUTPUTS",
+					Name:      "stepResults/taskrun-build/step1_result1-ARTIFACT_OUTPUTS",
 					MediaType: "application/json",
 					Content:   []uint8(`{"digest":"sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7","uri":"gcr.io/my/image/fromstep2"}`),
 				},

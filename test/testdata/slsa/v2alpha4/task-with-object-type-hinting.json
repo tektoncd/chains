@@ -145,7 +145,7 @@
 	        },
             "byproducts": [
                 {
-                    "name": "taskRunResults/first-ARTIFACT_OUTPUTS",
+                    "name": "taskRunResults/{{.TektonObjectName}}/first-ARTIFACT_OUTPUTS",
                     "mediaType": "application/json",
                     "content": "eyJkaWdlc3QiOiJzaGEyNTY6NTg2Nzg5YWEwMzFmYWZjN2Q3OGE1MzkzY2RjNzcyZTBiNTUxMDdlYTU0YmI4YmNmM2YyY2RhYzZjNmRhNTFlZSIsInVyaSI6Imdjci5pby9mb28vaW1nMSJ9"
                 }
