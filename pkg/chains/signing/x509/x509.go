@@ -78,7 +78,6 @@ func fulcioSigner(ctx context.Context, cfg config.X509Signer) (*Signer, error) {
 	if !providersEnabled {
 		return nil, fmt.Errorf("no auth provider for fulcio is enabled")
 	}
-	var tok string
 	var err error
 	if cfg.TUFMirrorURL != tuf.DefaultRemoteRoot {
 		if err = initializeTUF(ctx, cfg.TUFMirrorURL); err != nil {
@@ -86,31 +85,19 @@ func fulcioSigner(ctx context.Context, cfg config.X509Signer) (*Signer, error) {
 		}
 	}
 
+	// Determine how fulcio should get the identity token.
+	// If a token file path is provided, pass the path so fulcio reads it directly.
+	// Otherwise, let fulcio perform its own token acquisition (env/oidc), and
+	// only best-effort check that a provider is available when explicitly set.
+	idTokenPath := ""
 	if cfg.IdentityTokenFile != "" {
-		switch cfg.FulcioProvider {
-		// cosign providers package hardcodes the token path value
-		// "filesystem-custom-path" accepts a variable for the token path
-		case fsDefaultCosignTokenPathProvider, "", fsCustomTokenPathProvider:
-			cfg.FulcioProvider = fsCustomTokenPathProvider
-		}
-	}
-
-	if cfg.FulcioProvider != "" {
-		logger.Infof("Attempting to get id token from provider %s", cfg.FulcioProvider)
-		p, err := providers.ProvideFrom(ctx, cfg.FulcioProvider)
-		if err != nil {
+		idTokenPath = cfg.IdentityTokenFile
+		logger.Infof("Using identity token from file %s", idTokenPath)
+	} else if cfg.FulcioProvider != "" {
+		logger.Infof("Attempting to validate provider %s availability", cfg.FulcioProvider)
+		if _, err := providers.ProvideFrom(ctx, cfg.FulcioProvider); err != nil {
 			return nil, errors.Wrap(err, "provide from")
 		}
-		tok, err = p.Provide(ctx, defaultOIDCClientID)
-		if err != nil {
-			return nil, errors.Wrapf(err, "getting token from provider %s", cfg.FulcioProvider)
-		}
-	} else {
-		// if FulcioProvider is not set, all will be tried
-		tok, err = providers.Provide(ctx, defaultOIDCClientID)
-	}
-	if err != nil {
-		return nil, errors.Wrap(err, "getting provider")
 	}
 
 	logger.Info("Signing with fulcio ...")
@@ -124,7 +111,7 @@ func fulcioSigner(ctx context.Context, cfg config.X509Signer) (*Signer, error) {
 	}
 	k, err := fulcio.NewSigner(ctx, options.KeyOpts{
 		FulcioURL:    cfg.FulcioAddr,
-		IDToken:      tok,
+		IDToken:      idTokenPath,
 		OIDCIssuer:   cfg.FulcioOIDCIssuer,
 		OIDCClientID: defaultOIDCClientID,
 	}, signer)
