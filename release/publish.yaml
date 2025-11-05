@@ -97,7 +97,7 @@ spec:
       # Login to the container registry
       DOCKER_CONFIG=$(cat ${CONTAINER_REGISTRY_CREDENTIALS} | \
         crane auth login -u ${CONTAINER_REGISTRY_USER} --password-stdin $(params.imageRegistry) 2>&1 | \
-        sed 's,^.*logged in via \(.*\)$,\1,g')
+        sed -n 's,^.*logged in via \(.*\)$,\1,p')
 
       # Auth with account credentials for all regions.
       for region in ${REGIONS}
@@ -106,6 +106,7 @@ spec:
         cat ${CONTAINER_REGISTRY_CREDENTIALS} | crane auth login -u ${CONTAINER_REGISTRY_USER} --password-stdin ${HOSTNAME}
       done
       cp ${DOCKER_CONFIG} /workspace/docker-config.json
+
 
   - name: run-ko
     image: ghcr.io/tektoncd/plumbing/ko@sha256:990ec7fc709567e0d26fa40788a040b97598343d2fcb7252751316e34f31c4cc
