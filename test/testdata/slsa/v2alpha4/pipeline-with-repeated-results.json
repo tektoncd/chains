@@ -190,6 +190,21 @@
                     "content": "eyJkaWdlc3QiOiJzaGEyNTY6NTg2Nzg5YWEwMzFmYWZjN2Q3OGE1MzkzY2RjNzcyZTBiNTUxMDdlYTU0YmI4YmNmM2YyY2RhYzZjNmRhNTFlZSIsInVyaSI6Imdjci5pby9mb28vaW1nMiJ9",
                     "mediaType": "application/json",
                     "name": "taskRunResults/{{index .ChildTaskRunNames 0}}/output2"
+                },
+                {
+                    "content": "eyJzdGF0dXMiOiJTdWNjZWVkZWQifQ==",
+                    "mediaType": "application/json",
+                    "name": "taskRunStatus/{{index .ChildTaskRunNames 0}}"
+                },
+                {
+                    "content": "eyJzdGF0dXMiOiJTdWNjZWVkZWQifQ==",
+                    "mediaType": "application/json",
+                    "name": "taskRunStatus/{{index .ChildTaskRunNames 1}}"
+                },
+                {
+                    "content": "eyJzdGF0dXMiOiJTdWNjZWVkZWQifQ==",
+                    "mediaType": "application/json",
+                    "name": "taskRunStatus/{{index .ChildTaskRunNames 2}}"
                 }
             ],
             "metadata": {

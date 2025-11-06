@@ -17,6 +17,7 @@ limitations under the License.
 package pipelinerun
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"testing"
 	"time"
@@ -35,7 +36,9 @@ import (
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"knative.dev/pkg/apis"
 	logtesting "knative.dev/pkg/logging/testing"
 )
 
@@ -290,6 +293,14 @@ func TestGenerateAttestation(t *testing.T) {
 					Name:      "stepResults/taskrun-build/step1_result1-ARTIFACT_OUTPUTS",
 					Content:   []uint8(`{"digest":"sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7","uri":"gcr.io/my/image/fromstep2"}`),
 					MediaType: JSONMediaType,
+				}, {
+					Name:      "taskRunStatus/git-clone",
+					Content:   []uint8(`{"status":"Succeeded"}`),
+					MediaType: JSONMediaType,
+				}, {
+					Name:      "taskRunStatus/taskrun-build",
+					Content:   []uint8(`{"status":"Succeeded"}`),
+					MediaType: JSONMediaType,
 				},
 			},
 		},
@@ -423,6 +434,14 @@ func TestGenerateAttestation(t *testing.T) {
 					Name:      "stepResults/taskrun-build/step1_result1",
 					Content:   []uint8(`"result-value"`),
 					MediaType: JSONMediaType,
+				}, {
+					Name:      "taskRunStatus/git-clone",
+					Content:   []uint8(`{"status":"Succeeded"}`),
+					MediaType: JSONMediaType,
+				}, {
+					Name:      "taskRunStatus/taskrun-build",
+					Content:   []uint8(`{"status":"Succeeded"}`),
+					MediaType: JSONMediaType,
 				},
 			},
 		},
@@ -475,6 +494,166 @@ func TestGenerateAttestation(t *testing.T) {
 				t.Errorf("GenerateAttestation(): -want +got: %s", diff)
 			}
 		})
+	}
+}
+
+func TestTaskRunStatusWithFailure(t *testing.T) {
+	ctx := logtesting.TestContextWithLogger(t)
+
+	// Create a PipelineRun with one successful and one failed TaskRun
+	succeededTime := metav1.NewTime(time.Unix(1617011415, 0))
+	failedTime := metav1.NewTime(time.Unix(1617011420, 0))
+
+	pr := &v1.PipelineRun{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-pipeline-with-failure",
+			UID:  "pipelinerun-with-failure-uid",
+		},
+		Spec: v1.PipelineRunSpec{
+			PipelineSpec: &v1.PipelineSpec{
+				Tasks: []v1.PipelineTask{
+					{Name: "successful-task"},
+					{Name: "failed-task", OnError: v1.PipelineTaskContinue},
+				},
+			},
+		},
+		Status: v1.PipelineRunStatus{
+			PipelineRunStatusFields: v1.PipelineRunStatusFields{
+				StartTime:      &metav1.Time{Time: time.Unix(1617011400, 0)},
+				CompletionTime: &succeededTime,
+				PipelineSpec: &v1.PipelineSpec{
+					Tasks: []v1.PipelineTask{
+						{Name: "successful-task"},
+						{Name: "failed-task", OnError: v1.PipelineTaskContinue},
+					},
+				},
+			},
+		},
+	}
+	// PipelineRun succeeded despite having a failed task (onError: continue)
+	pr.Status.SetCondition(&apis.Condition{
+		Type:   apis.ConditionSucceeded,
+		Status: corev1.ConditionTrue,
+		Reason: "Succeeded",
+	})
+
+	successfulTaskRun := &v1.TaskRun{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "successful-task-run",
+			Labels: map[string]string{
+				"tekton.dev/pipelineTask": "successful-task",
+			},
+		},
+		Status: v1.TaskRunStatus{
+			TaskRunStatusFields: v1.TaskRunStatusFields{
+				StartTime:      &metav1.Time{Time: time.Unix(1617011400, 0)},
+				CompletionTime: &succeededTime,
+			},
+		},
+	}
+	// Set succeeded condition
+	successfulTaskRun.Status.SetCondition(&apis.Condition{
+		Type:   apis.ConditionSucceeded,
+		Status: corev1.ConditionTrue,
+		Reason: "Succeeded",
+	})
+
+	failedTaskRun := &v1.TaskRun{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "failed-task-run",
+			Labels: map[string]string{
+				"tekton.dev/pipelineTask": "failed-task",
+			},
+		},
+		Status: v1.TaskRunStatus{
+			TaskRunStatusFields: v1.TaskRunStatusFields{
+				StartTime:      &metav1.Time{Time: time.Unix(1617011410, 0)},
+				CompletionTime: &failedTime,
+			},
+		},
+	}
+	// Set failed condition
+	failedTaskRun.Status.SetCondition(&apis.Condition{
+		Type:   apis.ConditionSucceeded,
+		Status: corev1.ConditionFalse,
+		Reason: "Failed",
+	})
+
+	pro := objects.NewPipelineRunObjectV1(pr)
+	pro.AppendTaskRun(successfulTaskRun)
+	pro.AppendTaskRun(failedTaskRun)
+
+	// Generate attestation with deep inspection enabled
+	got, err := GenerateAttestation(ctx, pro, &slsaconfig.SlsaConfig{
+		BuilderID:             "test_builder",
+		DeepInspectionEnabled: true,
+		BuildType:             "https://tekton.dev/chains/v2/slsa",
+	})
+	if err != nil {
+		t.Fatalf("GenerateAttestation() error = %v", err)
+	}
+
+	// Verify the statement structure
+	// Note: We use a type switch to avoid copying the Statement value which contains a mutex
+	var predicateStruct *structpb.Struct
+	switch stmt := got.(type) {
+	case intoto.Statement:
+		predicateStruct = stmt.Predicate
+	default:
+		t.Fatalf("Expected intoto.Statement, got %T", got)
+	}
+
+	// Extract byproducts from the predicate
+	runDetailsValue, ok := predicateStruct.Fields["runDetails"]
+	if !ok {
+		t.Fatal("runDetails not found in predicate")
+	}
+
+	byproductsValue, ok := runDetailsValue.GetStructValue().Fields["byproducts"]
+	if !ok {
+		t.Fatal("byproducts not found in runDetails")
+	}
+
+	byproducts := byproductsValue.GetListValue().Values
+
+	// Find the status byproducts and verify their content
+	var successStatus, failedStatus bool
+	for _, bp := range byproducts {
+		fields := bp.GetStructValue().Fields
+		name := fields["name"].GetStringValue()
+		contentBase64 := fields["content"].GetStringValue()
+
+		switch name {
+		case "taskRunStatus/successful-task-run":
+			// Decode base64 content
+			decoded, err := base64.StdEncoding.DecodeString(contentBase64)
+			if err != nil {
+				t.Fatalf("Failed to decode base64 content: %v", err)
+			}
+			expected := `{"status":"Succeeded"}`
+			if string(decoded) != expected {
+				t.Errorf("Expected successful task status to be %q, got %q", expected, string(decoded))
+			}
+			successStatus = true
+		case "taskRunStatus/failed-task-run":
+			// Decode base64 content
+			decoded, err := base64.StdEncoding.DecodeString(contentBase64)
+			if err != nil {
+				t.Fatalf("Failed to decode base64 content: %v", err)
+			}
+			expected := `{"status":"Failed"}`
+			if string(decoded) != expected {
+				t.Errorf("Expected failed task status to be %q, got %q", expected, string(decoded))
+			}
+			failedStatus = true
+		}
+	}
+
+	if !successStatus {
+		t.Error("Expected to find status byproduct for successful-task-run")
+	}
+	if !failedStatus {
+		t.Error("Expected to find status byproduct for failed-task-run with 'Failed' status")
 	}
 }
 
