@@ -82,9 +82,12 @@ jobs:
         # Restart chains controller so picks up the changes.
         kubectl -n tekton-chains delete po -l app=tekton-chains-controller
 
-        # TODO(vaikas): Better way to find when the chains has picked up
-        # the changes
-        sleep 20
+        # Wait for chains controller to be ready again
+        echo "Waiting for chains controller to be ready"
+        kubectl wait --for=condition=ready --timeout=2m -n tekton-chains pod -l app=tekton-chains-controller
+
+        # Give chains a moment to reload the configuration
+        sleep 5
 
         kubectl create -f https://raw.githubusercontent.com/tektoncd/chains/main/examples/taskruns/task-output-image.yaml
 
@@ -116,6 +119,9 @@ jobs:
         done
 
         # Did not find entry, fail
+        echo "Failed to find rekor transparency entry after 10 attempts"
+        kubectl get taskruns -oyaml
+        kubectl logs -n tekton-chains -l app=tekton-chains-controller --tail=100
         exit 1
 
     - name: Collect diagnostics
