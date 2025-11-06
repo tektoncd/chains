@@ -15,6 +15,7 @@ package pipelinerun
 
 import (
 	"context"
+	"encoding/json"
 
 	intoto "github.com/in-toto/attestation/go/v1"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
@@ -26,6 +27,8 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha4/internal/taskrun"
 	"github.com/tektoncd/chains/pkg/chains/objects"
+	corev1 "k8s.io/api/core/v1"
+	"knative.dev/pkg/apis"
 )
 
 const (
@@ -71,6 +74,13 @@ func byproducts(pro *objects.PipelineRunObjectV1, slsaconfig *slsaconfig.SlsaCon
 		byProd = append(byProd, taskProds...)
 	}
 
+	// Add task execution status as byproducts
+	taskStatusByproducts, err := getTaskStatusByproducts(pro)
+	if err != nil {
+		return nil, err
+	}
+	byProd = append(byProd, taskStatusByproducts...)
+
 	return byProd, nil
 }
 
@@ -87,4 +97,51 @@ func SubjectDigests(ctx context.Context, pro *objects.PipelineRunObjectV1, slsac
 	}
 
 	return subjects
+}
+
+// getTaskStatusByproducts creates byproducts containing task execution status information.
+func getTaskStatusByproducts(pro *objects.PipelineRunObjectV1) ([]*intoto.ResourceDescriptor, error) {
+	var byproducts []*intoto.ResourceDescriptor
+
+	for _, tro := range pro.GetExecutedTasks() {
+		status := getStatus(tro.Status.Conditions)
+		if status == "" {
+			continue
+		}
+
+		// Create JSON content with status
+		statusData := map[string]string{"status": status}
+		content, err := json.Marshal(statusData)
+		if err != nil {
+			return nil, err
+		}
+
+		rd := &intoto.ResourceDescriptor{
+			Name:      "taskRunStatus/" + tro.Name,
+			Content:   content,
+			MediaType: JSONMediaType,
+		}
+
+		byproducts = append(byproducts, rd)
+	}
+
+	return byproducts, nil
+}
+
+// getStatus converts TaskRun condition status to a human-readable string.
+// Following tkn cli's behavior
+// https://github.com/tektoncd/cli/blob/6afbb0f0dbc7186898568f0d4a0436b8b2994d99/pkg/formatted/k8s.go#L55
+func getStatus(conditions []apis.Condition) string {
+	var status string
+	if len(conditions) > 0 {
+		switch conditions[0].Status {
+		case corev1.ConditionFalse:
+			status = "Failed"
+		case corev1.ConditionTrue:
+			status = "Succeeded"
+		case corev1.ConditionUnknown:
+			status = "Running" // Should never happen
+		}
+	}
+	return status
 }

@@ -290,6 +290,14 @@ func TestGenerateAttestation(t *testing.T) {
 					Name:      "stepResults/taskrun-build/step1_result1-ARTIFACT_OUTPUTS",
 					Content:   []uint8(`{"digest":"sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7","uri":"gcr.io/my/image/fromstep2"}`),
 					MediaType: JSONMediaType,
+				}, {
+					Name:      "taskRunStatus/git-clone",
+					Content:   []uint8(`{"status":"Succeeded"}`),
+					MediaType: JSONMediaType,
+				}, {
+					Name:      "taskRunStatus/taskrun-build",
+					Content:   []uint8(`{"status":"Succeeded"}`),
+					MediaType: JSONMediaType,
 				},
 			},
 		},
@@ -422,6 +430,14 @@ func TestGenerateAttestation(t *testing.T) {
 				}, {
 					Name:      "stepResults/taskrun-build/step1_result1",
 					Content:   []uint8(`"result-value"`),
+					MediaType: JSONMediaType,
+				}, {
+					Name:      "taskRunStatus/git-clone",
+					Content:   []uint8(`{"status":"Succeeded"}`),
+					MediaType: JSONMediaType,
+				}, {
+					Name:      "taskRunStatus/taskrun-build",
+					Content:   []uint8(`{"status":"Succeeded"}`),
 					MediaType: JSONMediaType,
 				},
 			},
