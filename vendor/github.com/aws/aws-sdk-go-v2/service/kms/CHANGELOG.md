@@ -1,3 +1,52 @@
+# v1.47.0 (2025-10-30)
+
+* **Feature**: Add cross account VPC endpoint service connectivity support to CustomKeyStore.
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.46.2 (2025-10-23)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.46.1 (2025-10-22)
+
+* No change notes available for this release.
+
+# v1.46.0 (2025-10-16)
+
+* **Feature**: Update endpoint ruleset parameters casing
+* **Dependency Update**: Bump minimum Go version to 1.23.
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.45.6 (2025-09-26)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.45.5 (2025-09-24)
+
+* **Documentation**: Documentation only updates for KMS.
+
+# v1.45.4 (2025-09-23)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.45.3 (2025-09-10)
+
+* No change notes available for this release.
+
+# v1.45.2 (2025-09-08)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.45.1 (2025-08-29)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.45.0 (2025-08-27)
+
+* **Feature**: Remove incorrect endpoint tests
+* **Dependency Update**: Update to smithy-go v1.23.0.
+* **Dependency Update**: Updated to the latest SDK module versions
+
 # v1.44.2 (2025-08-21)
 
 * **Dependency Update**: Updated to the latest SDK module versions
