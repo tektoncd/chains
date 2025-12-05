@@ -323,7 +323,7 @@ spec:
 
 Starting with version `v2alpha4`, the type-hinted object results value now can include a new boolean flag called `isBuildArtifact`. When set to `true`, this flag indicates the output artifact should be considered as `subject` in the executed TaskRun/PipelineRun.
 
-The `isBuildArtifact` can be set in results whose type-hint uses the `*ARTIFACT_OUTPUTS` format. Results using the `IMAGES` and `*IMAGE_URL` / `*IMAGE_DIGEST` type-hint format will still be considered as `subject` automatically; all other results will be clasified as `byProduct`
+The `isBuildArtifact` can be set in results whose type-hint uses the `*ARTIFACT_OUTPUTS` format. Results using the `IMAGES` and `*IMAGE_URL` / `*IMAGE_DIGEST` type-hint format will still be considered as `subject` automatically; all other results will be classified as `byProduct`
 
 For instance, in the following TaskRun:
 
@@ -415,7 +415,7 @@ spec:
           name: img-builder
 ```
 
-Chains Will read `first-ARTIFACT_OUTPUTS` and `second-IMAGE_URL/second-IMAGE_DIGEST` from the StepAction and clasify them as a `subject`.
+Chains Will read `first-ARTIFACT_OUTPUTS` and `second-IMAGE_URL/second-IMAGE_DIGEST` from the StepAction and classify them as a `subject`.
 
 
 ## Besides inputs/outputs
