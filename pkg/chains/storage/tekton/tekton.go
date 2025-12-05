@@ -72,6 +72,7 @@ func (b *Backend) StorePayload(ctx context.Context, obj objects.TektonObject, ra
 			Signature: []byte(signature),
 			Cert:      []byte(opts.Cert),
 			Chain:     []byte(opts.Chain),
+			PublicKey: opts.PublicKey,
 		},
 	}); err != nil {
 		logger.Errorf("error writing to Tekton object: %w", err)
