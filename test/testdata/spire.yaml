@@ -199,7 +199,7 @@ metadata:
     app.kubernetes.io/instance: spire
 rules:
 - apiGroups: [""]
-  resources: ["pods","nodes","nodes/proxy"]
+  resources: ["pods", "nodes", "nodes/proxy"]
   verbs: ["get"]
 ---
 
@@ -268,7 +268,7 @@ metadata:
   namespace: spire
   name: spire-server-role
 rules:
-  # allow "get" access to pods (to resolve selectors for PSAT attestation)
+# allow "get" access to pods (to resolve selectors for PSAT attestation)
 - apiGroups: [""]
   resources: ["pods"]
   verbs: ["get"]
@@ -531,15 +531,15 @@ spec:
         - name: spire-oidc-config
           configMap:
             name: spire-oidc-dp
-  # volumeClaimTemplates:
-  #   - metadata:
-  #       name: spire-data
-  #       labels:
-  #         app.kubernetes.io/name: spire
-  #         app.kubernetes.io/instance: spire
-  #     spec:
-  #       accessModes:
-  #         - ReadWriteOnce
-  #       resources:
-  #         requests:
-  #           storage: 1Gi
+# volumeClaimTemplates:
+#   - metadata:
+#       name: spire-data
+#       labels:
+#         app.kubernetes.io/name: spire
+#         app.kubernetes.io/instance: spire
+#     spec:
+#       accessModes:
+#         - ReadWriteOnce
+#       resources:
+#         requests:
+#           storage: 1Gi

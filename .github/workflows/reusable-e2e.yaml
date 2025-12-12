@@ -1,7 +1,6 @@
-
 name: Reusable workflow example
 
-on:
+'on':
   workflow_call:
     inputs:
       pipelines-release:
@@ -23,7 +22,7 @@ jobs:
 
     env:
       GOPATH: ${{ github.workspace }}
-      GO111MODULE: on
+      GO111MODULE: 'on'
       GOFLAGS: -ldflags=-s -ldflags=-w
       KO_DOCKER_REPO: registry.local:5000/knative
       KOCACHE: ~/ko
@@ -35,21 +34,21 @@ jobs:
 
     steps:
     - name: Set up Go
-      uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+      uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32  # v5.0.2
       with:
         go-version: 1.22.x
 
-    - uses: ko-build/setup-ko@d006021bd0c28d1ce33a07e7943d48b079944c8d # v0.9
+    - uses: ko-build/setup-ko@d006021bd0c28d1ce33a07e7943d48b079944c8d  # v0.9
       with:
         version: tip
 
     - name: Check out our repo
-      uses: actions/checkout@6d193bf28034eafb982f37bd894289fe649468fc # v4.1.7
+      uses: actions/checkout@6d193bf28034eafb982f37bd894289fe649468fc  # v4.1.7
       with:
         path: ./src/github.com/tektoncd/chains
 
     - name: Install mirror, kind, knative + sigstore
-      uses: sigstore/scaffolding/actions/setup@d40cf576f588d980142f0b8462c425d7b32f00b1 # v0.7.25
+      uses: sigstore/scaffolding/actions/setup@d40cf576f588d980142f0b8462c425d7b32f00b1  # v0.7.25
       with:
         k8s-version: ${{ inputs.k8s-version }}
         version: ${{ env.SIGSTORE_SCAFFOLDING_RELEASE_VERSION }}
@@ -126,7 +125,7 @@ jobs:
 
     - name: Collect diagnostics
       if: ${{ failure() }}
-      uses: chainguard-dev/actions/kind-diag@1b32103f5aa389c31ab0be75a8edc38d7e4750d8 # v1.5.7
+      uses: chainguard-dev/actions/kind-diag@1b32103f5aa389c31ab0be75a8edc38d7e4750d8  # v1.5.7
       with:
         cluster-resources: nodes
         namespace-resources: pods,taskruns,jobs

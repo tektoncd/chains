@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# With AWS STS, for automatic id token injection into pod at /var/run/secrets/eks.amazonaws.com/serviceaccount/token 
+# With AWS STS, for automatic id token injection into pod at /var/run/secrets/eks.amazonaws.com/serviceaccount/token
 # need to patch the tekton-chains-controller serviceaccount with the following
 # annotations:
 #   eks.amazonaws.com/audience: sigstore
@@ -56,10 +56,10 @@ data:
   transparency.enabled: "true"
   transparency.url: https://rekor.apps.example.com
   signers.x509.fulcio.enabled: "true"
-  signers.x509.fulcio.address: https://fulcio.apps.example.com 
-  signers.x509.tuf.mirror.url: https://tuf.apps.example.com 
+  signers.x509.fulcio.address: https://fulcio.apps.example.com
+  signers.x509.tuf.mirror.url: https://tuf.apps.example.com
   signers.x509.fulcio.issuer: https://your-oidc.aws.gcp/xxxxxxxxx
-  signers.x509.identity.token.file: /var/run/secrets/eks.amazonaws.com/serviceaccount/token 
+  signers.x509.identity.token.file: /var/run/secrets/eks.amazonaws.com/serviceaccount/token
 # The data can be tweaked at install time, it is commented out
 # because these are the default settings.
 # data:
@@ -154,5 +154,5 @@ spec:
             # (e.g. GKE workload identity, SPIFFE)
             - serviceAccountToken:
                 path: oidc-token
-                expirationSeconds: 600 # Use as short-lived as possible.
+                expirationSeconds: 600  # Use as short-lived as possible.
                 audience: sigstore

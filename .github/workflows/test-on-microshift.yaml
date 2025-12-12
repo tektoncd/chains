@@ -3,7 +3,7 @@ name: Test Chains on Microshift
 permissions:
   contents: read
 
-on:
+'on':
   push:
     branches:
       - main
@@ -27,17 +27,17 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
       with:
         path: ${{ github.workspace }}/src/github.com/tektoncd/chains
 
-    - uses: imjasonh/setup-ko@d006021bd0c28d1ce33a07e7943d48b079944c8d # v0.9
+    - uses: imjasonh/setup-ko@d006021bd0c28d1ce33a07e7943d48b079944c8d  # v0.9
 
     - name: Set up Go
-      uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+      uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5  # v5.5.0
       with:
-          cache-dependency-path: "${{ github.workspace }}/src/github.com/tektoncd/chains/go.sum"
-          go-version-file: "${{ github.workspace }}/src/github.com/tektoncd/chains/go.mod"
+        cache-dependency-path: "${{ github.workspace }}/src/github.com/tektoncd/chains/go.sum"
+        go-version-file: "${{ github.workspace }}/src/github.com/tektoncd/chains/go.mod"
 
     - name: setup microshift
       run: |

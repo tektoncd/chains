@@ -151,5 +151,5 @@ spec:
               # (e.g. GKE workload identity, SPIFFE)
               - serviceAccountToken:
                   path: oidc-token
-                  expirationSeconds: 600 # Use as short-lived as possible.
+                  expirationSeconds: 600  # Use as short-lived as possible.
                   audience: sigstore
