@@ -49,7 +49,7 @@ metadata:
   labels:
     app.kubernetes.io/name: vault
     app.kubernetes.io/instance: vault
-  annotations:
+  annotations: {}
 spec:
   clusterIP: None
   publishNotReadyAddresses: true
@@ -75,7 +75,7 @@ metadata:
   labels:
     app.kubernetes.io/name: vault
     app.kubernetes.io/instance: vault
-  annotations:
+  annotations: {}
 spec:
   # We want the servers to become available even if they're not ready
   # since this DNS is also used for join operations.
@@ -228,13 +228,12 @@ spec:
       volumes:
         - name: home
           emptyDir: {}
-  # volumeClaimTemplates:
-  #   - metadata:
-  #       name: data
-  #     spec:
-  #       accessModes:
-  #         - ReadWriteOnce
-  #       resources:
-  #         requests:
-  #           storage: 10Gi
-
+# volumeClaimTemplates:
+#   - metadata:
+#       name: data
+#     spec:
+#       accessModes:
+#         - ReadWriteOnce
+#       resources:
+#         requests:
+#           storage: 10Gi

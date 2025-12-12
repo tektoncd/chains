@@ -28,5 +28,5 @@ data:
   storage.grafeas.projectid: $PROJECT_ID
   storage.grafeas.noteid: slsa-demo-note
   builder.id: $BUILDER_ID
-  artifacts.taskrun.storage: "" # disabled
-  artifacts.oci.storage: "" # disabled
+  artifacts.taskrun.storage: ""  # disabled
+  artifacts.oci.storage: ""  # disabled

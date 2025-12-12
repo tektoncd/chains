@@ -1,7 +1,8 @@
 name: Chains kind E2E Tests
 
 
-on: [workflow_call]
+'on':
+  workflow_call: {}
 # on:
 #   pull_request:
 #     branches:
@@ -19,7 +20,7 @@ jobs:
       group: ${{ github.workflow }}-${{ matrix.k8s-version }}-${{ github.event.pull_request.number || github.ref }}
       cancel-in-progress: true
     strategy:
-      fail-fast: false # Keep running if one leg fails.
+      fail-fast: false  # Keep running if one leg fails.
       matrix:
         # Keep in sync with the list of supported releases: https://kubernetes.io/releases/
         # Add latest k8s-version once it is added in https://github.com/sigstore/scaffolding/releases
@@ -30,13 +31,13 @@ jobs:
     uses: ./.github/workflows/reusable-e2e.yaml
     with:
       k8s-version: ${{ matrix.k8s-version }}
-      pipelines-release: v1.2.0 # Latest version
+      pipelines-release: v1.2.0  # Latest version
   pipelines-lts:
     concurrency:
       group: ${{ github.workflow }}-${{ matrix.pipelines-release }}-${{ github.event.pull_request.number || github.ref }}
       cancel-in-progress: true
     strategy:
-      fail-fast: false # Keep running if one leg fails.
+      fail-fast: false  # Keep running if one leg fails.
       matrix:
         pipelines-release:
           # This should follow the list of versions from https://github.com/tektoncd/pipeline/blob/main/releases.md#release

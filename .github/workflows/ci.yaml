@@ -1,6 +1,7 @@
 name: ci
 
-on: [pull_request]
+'on':
+  pull_request: {}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull-request.number || github.ref }}
@@ -12,7 +13,7 @@ defaults:
 
 permissions:
   contents: read
-  checks: write # Used to annotate code in the PR
+  checks: write  # Used to annotate code in the PR
 
 jobs:
   changes:
@@ -77,7 +78,7 @@ jobs:
         fi
         echo "$gofmt_out"
     - name: golangci-lint
-      uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0
+      uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20  # v9.2.0
       if: ${{ needs.changes.outputs.non-docs == 'true' }}
       with:
         version: v2.1.6

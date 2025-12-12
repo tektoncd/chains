@@ -19,7 +19,7 @@ spec:
               uri: {}
               digest: {}
               isBuildArtifact: {}
-          
+
           - name: output2
             type: object
             properties:
