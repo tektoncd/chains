@@ -196,11 +196,21 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 					continue
 				}
 
+				// Extract public key from signer for storage backends that need it
+				pubKey, err := signer.PublicKey()
+				if err != nil {
+					logger.Errorf("Failed to extract public key from signer: %v", err)
+					o.recordError(ctx, signableType.Type(), metrics.SigningError)
+					merr = multierror.Append(merr, err)
+					continue
+				}
+
 				storageOpts := config.StorageOpts{
 					ShortKey:      signableType.ShortKey(obj),
 					FullKey:       signableType.FullKey(obj),
 					Cert:          signer.Cert(),
 					Chain:         signer.Chain(),
+					PublicKey:     pubKey,
 					PayloadFormat: payloadFormat,
 				}
 				if err := b.StorePayload(ctx, tektonObj, rawPayload, string(signature), storageOpts); err != nil {
