@@ -48,7 +48,7 @@ jobs:
         path: ./src/github.com/tektoncd/chains
 
     - name: Install mirror, kind, knative + sigstore
-      uses: sigstore/scaffolding/actions/setup@d40cf576f588d980142f0b8462c425d7b32f00b1  # v0.7.25
+      uses: sigstore/scaffolding/actions/setup@8e9b439dcf7072c0a9e3b1653c6227c258f94202  # v0.7.31
       with:
         k8s-version: ${{ inputs.k8s-version }}
         version: ${{ env.SIGSTORE_SCAFFOLDING_RELEASE_VERSION }}
