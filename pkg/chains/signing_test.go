@@ -25,6 +25,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	intoto "github.com/in-toto/attestation/go/v1"
 	"github.com/sigstore/rekor/pkg/generated/models"
+	"github.com/tektoncd/chains/pkg/chains/annotations"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/chains/signing"
 	"github.com/tektoncd/chains/pkg/chains/storage"
@@ -166,8 +167,8 @@ func TestSigner_Sign(t *testing.T) {
 
 			// Check it is marked as signed
 			shouldBeSigned := !tt.wantErr
-			if Reconciled(ctx, ps, updatedObject) != shouldBeSigned {
-				t.Errorf("IsSigned()=%t, wanted %t", Reconciled(ctx, ps, updatedObject), shouldBeSigned)
+			if annotations.Reconciled(ctx, ps, updatedObject) != shouldBeSigned {
+				t.Errorf("IsSigned()=%t, wanted %t", annotations.Reconciled(ctx, ps, updatedObject), shouldBeSigned)
 			}
 			// Check the payloads were stored in all the backends.
 			for _, b := range tt.backends {
@@ -321,7 +322,7 @@ func TestSigner_Transparency(t *testing.T) {
 			}
 
 			// add in the annotation
-			setAnnotation(obj, RekorAnnotation, "true")
+			setAnnotation(obj, "chains.tekton.dev/transparency-upload", "true")
 			if err := os.Sign(ctx, obj); err != nil {
 				t.Errorf("Signer.Sign() error = %v", err)
 			}

@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	intoto "github.com/in-toto/attestation/go/v1"
 	"github.com/tektoncd/chains/pkg/artifacts"
+	"github.com/tektoncd/chains/pkg/chains/annotations"
 	"github.com/tektoncd/chains/pkg/chains/formats"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/chains/signing"
@@ -225,14 +226,14 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 					merr = multierror.Append(merr, err)
 				} else {
 					logger.Infof("Uploaded entry to %s with index %d", cfg.Transparency.URL, *entry.LogIndex)
-					extraAnnotations[ChainsTransparencyAnnotation] = fmt.Sprintf("%s/api/v1/log/entries?logIndex=%d", cfg.Transparency.URL, *entry.LogIndex)
+					extraAnnotations[annotations.ChainsTransparencyAnnotation] = fmt.Sprintf("%s/api/v1/log/entries?logIndex=%d", cfg.Transparency.URL, *entry.LogIndex)
 					measureMetrics(ctx, metrics.PayloadUploadeCount, o.Recorder)
 				}
 			}
 
 		}
 		if merr.ErrorOrNil() != nil {
-			if retryErr := HandleRetry(ctx, tektonObj, o.Pipelineclientset, extraAnnotations); retryErr != nil {
+			if retryErr := annotations.HandleRetry(ctx, tektonObj, o.Pipelineclientset, extraAnnotations); retryErr != nil {
 				logger.Warnf("error handling retry: %v", retryErr)
 				merr = multierror.Append(merr, retryErr)
 			}
@@ -241,7 +242,7 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 	}
 
 	// Now mark the TektonObject as signed
-	if err := MarkSigned(ctx, tektonObj, o.Pipelineclientset, extraAnnotations); err != nil {
+	if err := annotations.MarkSigned(ctx, tektonObj, o.Pipelineclientset, extraAnnotations); err != nil {
 		return err
 	}
 	measureMetrics(ctx, metrics.MarkedAsSignedCount, o.Recorder)
@@ -260,13 +261,6 @@ func (o *ObjectSigner) recordError(ctx context.Context, kind string, errType met
 	if shouldRecordError && o.Recorder != nil {
 		o.Recorder.RecordErrorMetric(ctx, errType)
 	}
-}
-
-func HandleRetry(ctx context.Context, obj objects.TektonObject, ps versioned.Interface, annotations map[string]string) error {
-	if RetryAvailable(obj) {
-		return AddRetry(ctx, obj, ps, annotations)
-	}
-	return MarkFailed(ctx, obj, ps, annotations)
 }
 
 // getRawPayload returns the payload as a json string. If the given payload is a intoto.Statement type, protojson.Marshal

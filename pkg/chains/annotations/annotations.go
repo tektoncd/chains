@@ -11,28 +11,28 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package chains
+package annotations
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/tektoncd/chains/pkg/chains/objects"
-	"github.com/tektoncd/chains/pkg/patch"
 	versioned "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	"knative.dev/pkg/logging"
 )
 
+//nolint:revive,exported
 const (
 	// ChainsAnnotationPrefix is the prefix for all Chains annotations
-	ChainsAnnotationPrefix = "chains.tekton.dev/"
-	// ChainsAnnotation is the standard annotation to indicate a TR has been signed.
-	ChainsAnnotation             = "chains.tekton.dev/signed"
-	RetryAnnotation              = "chains.tekton.dev/retries"
-	ChainsTransparencyAnnotation = "chains.tekton.dev/transparency"
+	ChainsAnnotationPrefix       = "chains.tekton.dev/"
+	ChainsAnnotation             = ChainsAnnotationPrefix + "signed"
+	RetryAnnotation              = ChainsAnnotationPrefix + "retries"
+	ChainsTransparencyAnnotation = ChainsAnnotationPrefix + "transparency"
 	MaxRetries                   = 3
 )
 
@@ -63,20 +63,30 @@ func reconciledFromAnnotations(annotations map[string]string) bool {
 	return val == "true" || val == "failed"
 }
 
+// mergeAnnotations creates a new map with existing annotations plus a new key-value pair
+func mergeAnnotations(annotations map[string]string, key, value string) map[string]string {
+	merged := make(map[string]string)
+	for k, v := range annotations {
+		merged[k] = v
+	}
+	merged[key] = value
+	return merged
+}
+
 // MarkSigned marks a Tekton object as signed.
 func MarkSigned(ctx context.Context, obj objects.TektonObject, ps versioned.Interface, annotations map[string]string) error {
 	if _, ok := obj.GetAnnotations()[ChainsAnnotation]; ok {
 		// Object is already signed, but we may still need to apply additional annotations
 		if len(annotations) > 0 {
-			return AddAnnotation(ctx, obj, ps, ChainsAnnotation, "true", annotations)
+			return AddAnnotations(ctx, obj, ps, mergeAnnotations(annotations, ChainsAnnotation, "true"))
 		}
 		return nil
 	}
-	return AddAnnotation(ctx, obj, ps, ChainsAnnotation, "true", annotations)
+	return AddAnnotations(ctx, obj, ps, mergeAnnotations(annotations, ChainsAnnotation, "true"))
 }
 
 func MarkFailed(ctx context.Context, obj objects.TektonObject, ps versioned.Interface, annotations map[string]string) error {
-	return AddAnnotation(ctx, obj, ps, ChainsAnnotation, "failed", annotations)
+	return AddAnnotations(ctx, obj, ps, mergeAnnotations(annotations, ChainsAnnotation, "failed"))
 }
 
 func RetryAvailable(obj objects.TektonObject) bool {
@@ -94,16 +104,17 @@ func RetryAvailable(obj objects.TektonObject) bool {
 func AddRetry(ctx context.Context, obj objects.TektonObject, ps versioned.Interface, annotations map[string]string) error {
 	ann := obj.GetAnnotations()[RetryAnnotation]
 	if ann == "" {
-		return AddAnnotation(ctx, obj, ps, RetryAnnotation, "0", annotations)
+		return AddAnnotations(ctx, obj, ps, mergeAnnotations(annotations, RetryAnnotation, "0"))
 	}
 	val, err := strconv.Atoi(ann)
 	if err != nil {
 		return errors.Wrap(err, "adding retry")
 	}
-	return AddAnnotation(ctx, obj, ps, RetryAnnotation, fmt.Sprintf("%d", val+1), annotations)
+	return AddAnnotations(ctx, obj, ps, mergeAnnotations(annotations, RetryAnnotation, fmt.Sprintf("%d", val+1)))
 }
 
-func AddAnnotation(ctx context.Context, obj objects.TektonObject, ps versioned.Interface, key, value string, annotations map[string]string) error {
+// AddAnnotations adds annotation to the k8s object
+func AddAnnotations(ctx context.Context, obj objects.TektonObject, ps versioned.Interface, annotations map[string]string) error {
 	// Get current annotations from API server to ensure we have the latest state
 	currentAnnotations, err := obj.GetLatestAnnotations(ctx, ps)
 	if err != nil {
@@ -127,13 +138,7 @@ func AddAnnotation(ctx context.Context, obj objects.TektonObject, ps versioned.I
 		mergedAnnotations[k] = v
 	}
 
-	// Add the specific key-value pair, again it must be chains annotation
-	if !strings.HasPrefix(key, ChainsAnnotationPrefix) {
-		return fmt.Errorf("invalid annotation key %q: all annotations must have prefix %q", key, ChainsAnnotationPrefix)
-	}
-	mergedAnnotations[key] = value
-
-	patchBytes, err := patch.GetAnnotationsPatch(mergedAnnotations, obj)
+	patchBytes, err := CreateAnnotationsPatch(mergedAnnotations, obj)
 	if err != nil {
 		return err
 	}
@@ -147,4 +152,54 @@ func AddAnnotation(ctx context.Context, obj objects.TektonObject, ps versioned.I
 	// and maintain compatibility with existing tests. This could be revisited in the future.
 
 	return nil
+}
+
+// HandleRetry handles retries managed as annotation on the k8s object
+func HandleRetry(ctx context.Context, obj objects.TektonObject, ps versioned.Interface, annotationsMap map[string]string) error {
+	if RetryAvailable(obj) {
+		return AddRetry(ctx, obj, ps, annotationsMap)
+	}
+	return MarkFailed(ctx, obj, ps, annotationsMap)
+}
+
+// CreateAnnotationsPatch returns patch bytes that can be used with kubectl patch
+func CreateAnnotationsPatch(newAnnotations map[string]string, obj objects.TektonObject) ([]byte, error) {
+	// Get GVK using the TektonObject interface method (more reliable than runtime.Object)
+	gvkStr := obj.GetGVK()
+	if gvkStr == "" {
+		return nil, fmt.Errorf("unable to determine GroupVersionKind for object %s/%s", obj.GetNamespace(), obj.GetName())
+	}
+
+	// Parse the string format "group/version/kind"
+	parts := strings.Split(gvkStr, "/")
+	if len(parts) != 3 || parts[0] == "" || parts[1] == "" || parts[2] == "" {
+		return nil, fmt.Errorf("invalid GVK format: %s", gvkStr)
+	}
+	apiVersion := parts[0] + "/" + parts[1]
+	kind := parts[2]
+
+	// For server-side apply, we need to create a structured patch with metadata
+	p := serverSideApplyPatch{
+		APIVersion: apiVersion,
+		Kind:       kind,
+		Metadata: serverSideApplyMetadata{
+			Name:        obj.GetName(),
+			Namespace:   obj.GetNamespace(),
+			Annotations: newAnnotations,
+		},
+	}
+	return json.Marshal(p)
+}
+
+// These are used to get proper json formatting for server-side apply
+type serverSideApplyPatch struct {
+	APIVersion string                  `json:"apiVersion"`
+	Kind       string                  `json:"kind"`
+	Metadata   serverSideApplyMetadata `json:"metadata"`
+}
+
+type serverSideApplyMetadata struct {
+	Name        string            `json:"name"`
+	Namespace   string            `json:"namespace,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
