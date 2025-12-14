@@ -128,9 +128,9 @@ kubectl annotate serviceaccount $KSA_NAME \
   iam.gke.io/gcp-service-account=$GSA_NAME@$PROJECT_ID.iam.gserviceaccount.com
 
 # install pipelines
-kubectl apply --filename https://storage.googleapis.com/tekton-releases/pipeline/previous/v0.46.0/release.yaml
+kubectl apply --filename https://infra.tekton.dev/tekton-releases/pipeline/previous/v0.46.0/release.yaml
 # install chains
-kubectl apply -f https://storage.googleapis.com/tekton-releases/chains/previous/v0.15.0/release.yaml
+kubectl apply -f https://infra.tekton.dev/tekton-releases/chains/previous/v0.15.0/release.yaml
 
 gcloud iam service-accounts add-iam-policy-binding $GSA_NAME@$PROJECT_ID.iam.gserviceaccount.com \
   --role "roles/iam.workloadIdentityUser" \
