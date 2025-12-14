@@ -83,8 +83,8 @@ text editor.
 
    NAME                    VALUE
    commit-sha                 420adfcdf225326605f2b2c2264b42a2f7b86e4e
-   release-file               https://storage.googleapis.com/tekton-releases/chains/previous/v0.13.0/release.yaml
-   release-file-no-tag        https://storage.googleapis.com/tekton-releases/chains/previous/v0.13.0/release.notag.yaml
+   release-file               https://infra.tekton.dev/tekton-releases/chains/previous/v0.13.0/release.yaml
+   release-file-no-tag        https://infra.tekton.dev/tekton-releases/chains/previous/v0.13.0/release.notag.yaml
 
    (...)
    ```
@@ -98,7 +98,7 @@ text editor.
    1. Find the Rekor UUID for the release
 
       ```bash
-      RELEASE_FILE=https://storage.googleapis.com/tekton-releases/chains/previous/${CHAINS_VERSION_TAG}/release.yaml
+      RELEASE_FILE=https://infra.tekton.dev/tekton-releases/chains/previous/${CHAINS_VERSION_TAG}/release.yaml
       CONTROLLER_IMAGE_SHA=$(curl $RELEASE_FILE | egrep 'ghcr.io.*controller' | cut -d'@' -f2)
       REKOR_UUID=$(rekor-cli search --sha $CONTROLLER_IMAGE_SHA | grep -v Found | head -1)
       echo -e "CONTROLLER_IMAGE_SHA: ${CONTROLLER_IMAGE_SHA}\nREKOR_UUID: ${REKOR_UUID}"
@@ -155,12 +155,12 @@ text editor.
 
    ```bash
    # Test latest
-   kubectl --context my-dev-cluster apply --filename https://storage.googleapis.com/tekton-releases/chains/latest/release.yaml
+   kubectl --context my-dev-cluster apply --filename https://infra.tekton.dev/tekton-releases/chains/latest/release.yaml
    ```
 
    ```bash
    # Test backport
-   kubectl --context my-dev-cluster apply --filename https://storage.googleapis.com/tekton-releases/chains/previous/$CHAINS_VERSION_TAG/release.yaml
+   kubectl --context my-dev-cluster apply --filename https://infra.tekton.dev/tekton-releases/chains/previous/$CHAINS_VERSION_TAG/release.yaml
    ```
 
 1. Update releases page at

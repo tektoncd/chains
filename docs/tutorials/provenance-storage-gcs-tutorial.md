@@ -57,8 +57,8 @@ kind create cluster -n tekton
 
 4. Install **Tekton Pipelines** and **Tekton Chains**
 ```shell
-kubectl apply --filename https://storage.googleapis.com/tekton-releases/pipeline/latest/release.yaml
-kubectl apply --filename https://storage.googleapis.com/tekton-releases/chains/latest/release.yaml
+kubectl apply --filename https://infra.tekton.dev/tekton-releases/pipeline/latest/release.yaml
+kubectl apply --filename https://infra.tekton.dev/tekton-releases/chains/latest/release.yaml
 ```
 Ensure that all pods in the `tekton-pipelines` and `tekton-chains` namespaces are running, and that the pods are in the "Running" status. Below is an example of what the pods should look like:
 

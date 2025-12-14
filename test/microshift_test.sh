@@ -141,7 +141,7 @@ function wait_until_pods_running() {
   return 1
 }
 
-curl https://storage.googleapis.com/tekton-releases/pipeline/latest/release.notags.yaml | yq 'del(.spec.template.spec.containers[]?.securityContext.runAsUser, .spec.template.spec.containers[]?.securityContext.runAsGroup)' | kubectl apply -f -
+curl https://infra.tekton.dev/tekton-releases/pipeline/latest/release.notags.yaml | yq 'del(.spec.template.spec.containers[]?.securityContext.runAsUser, .spec.template.spec.containers[]?.securityContext.runAsGroup)' | kubectl apply -f -
 
 install_chains
 

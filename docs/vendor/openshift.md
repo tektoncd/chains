@@ -36,7 +36,7 @@ for more information.
 1. Install Tekton Chains:
 
    ```bash
-   oc apply --filename https://storage.googleapis.com/tekton-releases/chains/latest/release.yaml
+   oc apply --filename https://infra.tekton.dev/tekton-releases/chains/latest/release.yaml
    ```
 
    See the
