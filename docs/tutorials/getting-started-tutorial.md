@@ -56,7 +56,12 @@ disable the `OCI` artifact.
 To create a simple `TaskRun`, run:
 
 ```shell
-$ kubectl create -f https://raw.githubusercontent.com/tektoncd/chains/main/examples/taskruns/task-output-image.yaml
+kubectl create -f https://raw.githubusercontent.com/tektoncd/chains/main/examples/taskruns/task-output-image.yaml
+```
+
+The output should be similar to:
+
+```
 taskrun.tekton.dev/build-push-run-output-image-qbjvh created
 ```
 
