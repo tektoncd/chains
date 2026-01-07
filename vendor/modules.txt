@@ -1831,8 +1831,8 @@ github.com/sashamelentyev/usestdlibvars/pkg/analyzer/internal/mapping
 ## explicit
 github.com/sassoftware/relic/lib/pkcs7
 github.com/sassoftware/relic/lib/x509tools
-# github.com/secure-systems-lab/go-securesystemslib v0.9.1
-## explicit; go 1.23.0
+# github.com/secure-systems-lab/go-securesystemslib v0.10.0
+## explicit; go 1.24.0
 github.com/secure-systems-lab/go-securesystemslib/cjson
 github.com/secure-systems-lab/go-securesystemslib/dsse
 github.com/secure-systems-lab/go-securesystemslib/encrypted
@@ -2773,7 +2773,7 @@ google.golang.org/genproto/googleapis/api/monitoredres
 google.golang.org/genproto/googleapis/rpc/code
 google.golang.org/genproto/googleapis/rpc/errdetails
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.77.0
+# google.golang.org/grpc v1.78.0
 ## explicit; go 1.24.0
 google.golang.org/grpc
 google.golang.org/grpc/attributes
@@ -2908,6 +2908,7 @@ google.golang.org/grpc/internal/xds/xdsclient/xdslbregistry
 google.golang.org/grpc/internal/xds/xdsclient/xdslbregistry/converter
 google.golang.org/grpc/internal/xds/xdsclient/xdsresource
 google.golang.org/grpc/internal/xds/xdsclient/xdsresource/version
+google.golang.org/grpc/internal/xds/xdsdepmgr
 google.golang.org/grpc/keepalive
 google.golang.org/grpc/mem
 google.golang.org/grpc/metadata
