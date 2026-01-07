@@ -236,8 +236,8 @@ github.com/GaijinEntertainment/go-exhaustruct/v3/internal/structure
 github.com/GoogleCloudPlatform/grpc-gcp-go/grpcgcp
 github.com/GoogleCloudPlatform/grpc-gcp-go/grpcgcp/grpc_gcp
 github.com/GoogleCloudPlatform/grpc-gcp-go/grpcgcp/multiendpoint
-# github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.29.0
-## explicit; go 1.23.0
+# github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.30.0
+## explicit; go 1.24.0
 github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp
 # github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.54.0
 ## explicit; go 1.24.0
@@ -625,8 +625,8 @@ github.com/cloudevents/sdk-go/v2/event/datacodec/xml
 github.com/cloudevents/sdk-go/v2/protocol
 github.com/cloudevents/sdk-go/v2/protocol/http
 github.com/cloudevents/sdk-go/v2/types
-# github.com/cncf/xds/go v0.0.0-20250501225837-2ac532fd4443
-## explicit; go 1.19
+# github.com/cncf/xds/go v0.0.0-20251022180443-0feb69152e9f
+## explicit; go 1.24
 github.com/cncf/xds/go/udpa/annotations
 github.com/cncf/xds/go/udpa/type/v1
 github.com/cncf/xds/go/xds/annotations/v3
@@ -719,8 +719,8 @@ github.com/emirpasic/gods/lists/arraylist
 github.com/emirpasic/gods/trees
 github.com/emirpasic/gods/trees/binaryheap
 github.com/emirpasic/gods/utils
-# github.com/envoyproxy/go-control-plane/envoy v1.32.4
-## explicit; go 1.22
+# github.com/envoyproxy/go-control-plane/envoy v1.35.0
+## explicit; go 1.23.0
 github.com/envoyproxy/go-control-plane/envoy/admin/v3
 github.com/envoyproxy/go-control-plane/envoy/annotations
 github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3
@@ -1326,8 +1326,8 @@ github.com/gostaticanalysis/nilerr
 ## explicit; go 1.20
 github.com/grafeas/grafeas/go/utils/intoto
 github.com/grafeas/grafeas/proto/v1/grafeas_go_proto
-# github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.2
-## explicit; go 1.23.0
+# github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.3
+## explicit; go 1.24.0
 github.com/grpc-ecosystem/grpc-gateway/v2/internal/httprule
 github.com/grpc-ecosystem/grpc-gateway/v2/runtime
 github.com/grpc-ecosystem/grpc-gateway/v2/utilities
@@ -1739,8 +1739,8 @@ github.com/prometheus/client_golang/prometheus/testutil/promlint/validations
 # github.com/prometheus/client_model v0.6.2
 ## explicit; go 1.22.0
 github.com/prometheus/client_model/go
-# github.com/prometheus/common v0.66.1
-## explicit; go 1.23.0
+# github.com/prometheus/common v0.67.4
+## explicit; go 1.24.0
 github.com/prometheus/common/expfmt
 github.com/prometheus/common/model
 # github.com/prometheus/procfs v0.16.1
@@ -1892,8 +1892,8 @@ github.com/sigstore/cosign/v2/pkg/providers/google
 github.com/sigstore/cosign/v2/pkg/providers/spiffe
 github.com/sigstore/cosign/v2/pkg/signature
 github.com/sigstore/cosign/v2/pkg/types
-# github.com/sigstore/fulcio v1.7.1
-## explicit; go 1.24.0
+# github.com/sigstore/fulcio v1.8.3
+## explicit; go 1.25.0
 github.com/sigstore/fulcio/pkg/api
 # github.com/sigstore/protobuf-specs v0.5.0
 ## explicit; go 1.22.0
@@ -2016,7 +2016,7 @@ github.com/spf13/afero/mem
 ## explicit; go 1.21.0
 github.com/spf13/cast
 github.com/spf13/cast/internal
-# github.com/spf13/cobra v1.10.1
+# github.com/spf13/cobra v1.10.2
 ## explicit; go 1.15
 github.com/spf13/cobra
 # github.com/spf13/pflag v1.0.10
@@ -2424,8 +2424,6 @@ go.opentelemetry.io/otel/semconv/v1.24.0
 go.opentelemetry.io/otel/semconv/v1.37.0
 go.opentelemetry.io/otel/semconv/v1.37.0/httpconv
 go.opentelemetry.io/otel/semconv/v1.37.0/rpcconv
-# go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.38.0
-## explicit; go 1.23.0
 # go.opentelemetry.io/otel/metric v1.38.0
 ## explicit; go 1.23.0
 go.opentelemetry.io/otel/metric
@@ -2451,8 +2449,6 @@ go.opentelemetry.io/otel/trace
 go.opentelemetry.io/otel/trace/embedded
 go.opentelemetry.io/otel/trace/internal/telemetry
 go.opentelemetry.io/otel/trace/noop
-# go.opentelemetry.io/proto/otlp v1.7.1
-## explicit; go 1.23.0
 # go.step.sm/crypto v0.74.0
 ## explicit; go 1.24.0
 go.step.sm/crypto/fingerprint
@@ -2777,7 +2773,7 @@ google.golang.org/genproto/googleapis/api/monitoredres
 google.golang.org/genproto/googleapis/rpc/code
 google.golang.org/genproto/googleapis/rpc/errdetails
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.76.0
+# google.golang.org/grpc v1.77.0
 ## explicit; go 1.24.0
 google.golang.org/grpc
 google.golang.org/grpc/attributes
@@ -2794,7 +2790,6 @@ google.golang.org/grpc/balancer/lazy
 google.golang.org/grpc/balancer/leastrequest
 google.golang.org/grpc/balancer/pickfirst
 google.golang.org/grpc/balancer/pickfirst/internal
-google.golang.org/grpc/balancer/pickfirst/pickfirstleaf
 google.golang.org/grpc/balancer/ringhash
 google.golang.org/grpc/balancer/rls
 google.golang.org/grpc/balancer/rls/internal/adaptive
@@ -2818,11 +2813,13 @@ google.golang.org/grpc/credentials/alts/internal/handshaker/service
 google.golang.org/grpc/credentials/alts/internal/proto/grpc_gcp
 google.golang.org/grpc/credentials/google
 google.golang.org/grpc/credentials/insecure
+google.golang.org/grpc/credentials/jwt
 google.golang.org/grpc/credentials/oauth
 google.golang.org/grpc/credentials/tls/certprovider
 google.golang.org/grpc/credentials/tls/certprovider/pemfile
 google.golang.org/grpc/encoding
 google.golang.org/grpc/encoding/gzip
+google.golang.org/grpc/encoding/internal
 google.golang.org/grpc/encoding/proto
 google.golang.org/grpc/experimental/opentelemetry
 google.golang.org/grpc/experimental/stats
@@ -2880,6 +2877,7 @@ google.golang.org/grpc/internal/xds/balancer/outlierdetection
 google.golang.org/grpc/internal/xds/balancer/priority
 google.golang.org/grpc/internal/xds/balancer/wrrlocality
 google.golang.org/grpc/internal/xds/bootstrap
+google.golang.org/grpc/internal/xds/bootstrap/jwtcreds
 google.golang.org/grpc/internal/xds/bootstrap/tlscreds
 google.golang.org/grpc/internal/xds/clients
 google.golang.org/grpc/internal/xds/clients/grpctransport
