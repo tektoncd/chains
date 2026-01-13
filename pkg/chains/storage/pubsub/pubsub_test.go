@@ -14,6 +14,7 @@ limitations under the License.
 package pubsub
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -132,5 +133,58 @@ func TestBackend_StorePayload(t *testing.T) {
 			}
 			msg.Ack()
 		})
+	}
+}
+
+func TestNewStorageBackend(t *testing.T) {
+	ctx := context.Background()
+	cfg := config.Config{}
+	b, err := NewStorageBackend(ctx, cfg)
+	if err != nil {
+		t.Fatalf("NewStorageBackend() error = %v", err)
+	}
+	if b == nil {
+		t.Fatal("NewStorageBackend() returned nil")
+	}
+}
+
+func TestBackend_Type(t *testing.T) {
+	b := &Backend{}
+	if got := b.Type(); got != StorageBackendPubSub {
+		t.Errorf("Backend.Type() = %v, want %v", got, StorageBackendPubSub)
+	}
+}
+
+func TestBackend_NewTopic_Kafka(t *testing.T) {
+	// verifies that we enter the Kafka configuration block
+	// and attempt to open a topic using the kafkapubsub driver.
+	// Since we don't have a real Kafka broker, we expect this might fail,
+	// but we want to ensure it doesn't fail with "invalid provider".
+
+	cfg := config.Config{
+		Storage: config.StorageConfigs{
+			PubSub: config.PubSubStorageConfig{
+				Provider: PubSubProviderKafka,
+				Topic:    "my-topic",
+				Kafka: config.KafkaStorageConfig{
+					BootstrapServers: "localhost:9092",
+				},
+			},
+		},
+	}
+	b := &Backend{cfg: cfg}
+	ctx := context.Background()
+
+	topic, err := b.NewTopic(ctx)
+	if topic != nil {
+		topic.Shutdown(ctx)
+	}
+
+	// If we got an error, ensure it is NOT "invalid provider"
+	// We expect a connection error or similar since there is no Kafka broker
+	if err != nil {
+		if err.Error() == fmt.Sprintf("invalid provider: %q", PubSubProviderKafka) {
+			t.Errorf("NewTopic() handled Kafka provider as invalid")
+		}
 	}
 }
