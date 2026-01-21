@@ -3475,11 +3475,6 @@ func awsAwsjson11_serializeOpDocumentCreateCustomKeyStoreInput(v *CreateCustomKe
 		ok.String(*v.XksProxyVpcEndpointServiceName)
 	}
 
-	if v.XksProxyVpcEndpointServiceOwner != nil {
-		ok := object.Key("XksProxyVpcEndpointServiceOwner")
-		ok.String(*v.XksProxyVpcEndpointServiceOwner)
-	}
-
 	return nil
 }
 
@@ -4734,11 +4729,6 @@ func awsAwsjson11_serializeOpDocumentUpdateCustomKeyStoreInput(v *UpdateCustomKe
 	if v.XksProxyVpcEndpointServiceName != nil {
 		ok := object.Key("XksProxyVpcEndpointServiceName")
 		ok.String(*v.XksProxyVpcEndpointServiceName)
-	}
-
-	if v.XksProxyVpcEndpointServiceOwner != nil {
-		ok := object.Key("XksProxyVpcEndpointServiceOwner")
-		ok.String(*v.XksProxyVpcEndpointServiceOwner)
 	}
 
 	return nil

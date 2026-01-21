@@ -17,11 +17,10 @@ linters:
     - gomoddirectives
     - gosmopolitan
     - inamedparam
-    - intrange
+    - intrange # disabled while < go1.22
     - ireturn
     - lll
     - musttag
-    - modernize
     - nestif
     - nlreturn
     - nonamedreturns
@@ -30,7 +29,6 @@ linters:
     - recvcheck
     - testpackage
     - thelper
-    - tagliatelle
     - tparallel
     - unparam
     - varnamelen

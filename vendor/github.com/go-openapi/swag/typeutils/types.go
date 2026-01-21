@@ -1,5 +1,16 @@
-// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
-// SPDX-License-Identifier: Apache-2.0
+// Copyright 2015 go-swagger maintainers
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package typeutils
 
@@ -11,18 +22,11 @@ type zeroable interface {
 
 // IsZero returns true when the value passed into the function is a zero value.
 // This allows for safer checking of interface values.
-func IsZero(data any) bool {
+func IsZero(data interface{}) bool {
 	v := reflect.ValueOf(data)
 	// check for nil data
 	switch v.Kind() { //nolint:exhaustive
-	case
-		reflect.Interface,
-		reflect.Func,
-		reflect.Chan,
-		reflect.Pointer,
-		reflect.UnsafePointer,
-		reflect.Map,
-		reflect.Slice:
+	case reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice:
 		if v.IsNil() {
 			return true
 		}
@@ -49,31 +53,6 @@ func IsZero(data any) bool {
 		return reflect.DeepEqual(data, reflect.Zero(v.Type()).Interface())
 	case reflect.Invalid:
 		return true
-	default:
-		return false
-	}
-}
-
-// IsNil checks if input is nil.
-//
-// For types chan, func, interface, map, pointer, or slice it returns true if its argument is nil.
-//
-// See [reflect.Value.IsNil].
-func IsNil(input any) bool {
-	if input == nil {
-		return true
-	}
-
-	kind := reflect.TypeOf(input).Kind()
-	switch kind { //nolint:exhaustive
-	case reflect.Pointer,
-		reflect.UnsafePointer,
-		reflect.Map,
-		reflect.Slice,
-		reflect.Chan,
-		reflect.Interface,
-		reflect.Func:
-		return reflect.ValueOf(input).IsNil()
 	default:
 		return false
 	}

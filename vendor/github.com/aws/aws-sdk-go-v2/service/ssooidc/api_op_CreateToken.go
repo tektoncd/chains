@@ -85,9 +85,10 @@ type CreateTokenInput struct {
 	// [IAM Identity Center OIDC API Reference]: https://docs.aws.amazon.com/singlesignon/latest/OIDCAPIReference/Welcome.html
 	RefreshToken *string
 
-	// The list of scopes for which authorization is requested. This parameter has no
-	// effect; the access token will always include all scopes configured during client
-	// registration.
+	// The list of scopes for which authorization is requested. The access token that
+	// is issued is limited to the scopes that are granted. If this value is not
+	// specified, IAM Identity Center authorizes all scopes that are configured for the
+	// client during the call to RegisterClient.
 	Scope []string
 
 	noSmithyDocumentSerde
@@ -223,7 +224,40 @@ func (c *Client) addOperationCreateTokenMiddlewares(stack *middleware.Stack, opt
 	if err = addInterceptAttempt(stack, options); err != nil {
 		return err
 	}
-	if err = addInterceptors(stack, options); err != nil {
+	if err = addInterceptExecution(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeSerialization(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAfterSerialization(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeSigning(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAfterSigning(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptTransmit(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeDeserialization(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAfterDeserialization(stack, options); err != nil {
+		return err
+	}
+	if err = addSpanInitializeStart(stack); err != nil {
+		return err
+	}
+	if err = addSpanInitializeEnd(stack); err != nil {
+		return err
+	}
+	if err = addSpanBuildRequestStart(stack); err != nil {
+		return err
+	}
+	if err = addSpanBuildRequestEnd(stack); err != nil {
 		return err
 	}
 	return nil

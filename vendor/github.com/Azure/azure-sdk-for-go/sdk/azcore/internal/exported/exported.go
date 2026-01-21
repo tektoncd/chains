@@ -92,7 +92,7 @@ func DecodeByteArray(s string, v *[]byte, format Base64Encoding) error {
 		return nil
 	}
 	payload := string(s)
-	if len(payload) >= 2 && payload[0] == '"' && payload[len(payload)-1] == '"' {
+	if payload[0] == '"' {
 		// remove surrounding quotes
 		payload = payload[1 : len(payload)-1]
 	}

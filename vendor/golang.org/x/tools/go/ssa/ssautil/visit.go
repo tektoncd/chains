@@ -74,8 +74,8 @@ func AllFunctions(prog *ssa.Program) map[*ssa.Function]bool {
 	methodsOf := func(T types.Type) {
 		if !types.IsInterface(T) {
 			mset := prog.MethodSets.MethodSet(T)
-			for method := range mset.Methods() {
-				function(prog.MethodValue(method))
+			for i := 0; i < mset.Len(); i++ {
+				function(prog.MethodValue(mset.At(i)))
 			}
 		}
 	}

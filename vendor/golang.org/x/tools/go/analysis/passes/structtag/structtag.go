@@ -17,8 +17,6 @@ import (
 	"strconv"
 	"strings"
 
-	"fmt"
-
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
 	"golang.org/x/tools/go/ast/inspector"
@@ -102,11 +100,7 @@ func checkCanonicalFieldTag(pass *analysis.Pass, field *types.Var, tag string, s
 	}
 
 	if err := validateStructTag(tag); err != nil {
-		pass.Report(analysis.Diagnostic{
-			Pos:     field.Pos(),
-			End:     field.Pos() + token.Pos(len(field.Name())),
-			Message: fmt.Sprintf("struct field tag %#q not compatible with reflect.StructTag.Get: %s", tag, err),
-		})
+		pass.Reportf(field.Pos(), "struct field tag %#q not compatible with reflect.StructTag.Get: %s", tag, err)
 	}
 
 	// Check for use of json or xml tags with unexported fields.
@@ -128,11 +122,7 @@ func checkCanonicalFieldTag(pass *analysis.Pass, field *types.Var, tag string, s
 		// ignored.
 		case "", "-":
 		default:
-			pass.Report(analysis.Diagnostic{
-				Pos:     field.Pos(),
-				End:     field.Pos() + token.Pos(len(field.Name())),
-				Message: fmt.Sprintf("struct field %s has %s tag but is not exported", field.Name(), enc),
-			})
+			pass.Reportf(field.Pos(), "struct field %s has %s tag but is not exported", field.Name(), enc)
 			return
 		}
 	}
@@ -200,11 +190,7 @@ func checkTagDuplicates(pass *analysis.Pass, tag, key string, nearest, field *ty
 			alsoPos.Filename = rel
 		}
 
-		pass.Report(analysis.Diagnostic{
-			Pos:     nearest.Pos(),
-			End:     nearest.Pos() + token.Pos(len(nearest.Name())),
-			Message: fmt.Sprintf("struct field %s repeats %s tag %q also at %s", field.Name(), key, val, alsoPos),
-		})
+		pass.Reportf(nearest.Pos(), "struct field %s repeats %s tag %q also at %s", field.Name(), key, val, alsoPos)
 	} else {
 		seen.Set(key, val, level, field.Pos())
 	}

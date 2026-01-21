@@ -204,7 +204,8 @@ func (m *argMatcher) match(typ types.Type, topLevel bool) bool {
 	case *types.Struct:
 		// report whether all the elements of the struct match the expected type. For
 		// instance, with "%d" all the elements must be printable with the "%d" format.
-		for typf := range typ.Fields() {
+		for i := 0; i < typ.NumFields(); i++ {
+			typf := typ.Field(i)
 			if !m.match(typf.Type(), false) {
 				return false
 			}

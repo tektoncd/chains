@@ -1,6 +1,3 @@
-// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
-// SPDX-License-Identifier: Apache-2.0
-
 // Copyright 2013 The Go Authors. All rights reserved.
 //
 // Use of this source code is governed by a BSD-style
@@ -13,7 +10,6 @@
 package header
 
 import (
-	"maps"
 	"net/http"
 	"strings"
 	"time"
@@ -27,11 +23,6 @@ type octetType byte
 const (
 	isToken octetType = 1 << iota
 	isSpace
-)
-
-const (
-	asciiMaxControlChar = 31
-	asciiMaxChar        = 127
 )
 
 func init() {
@@ -51,10 +42,10 @@ func init() {
 	// token      = 1*<any CHAR except CTLs or separators>
 	// qdtext     = <any TEXT except <">>
 
-	for c := range 256 {
+	for c := 0; c < 256; c++ {
 		var t octetType
-		isCtl := c <= asciiMaxControlChar || c == asciiMaxChar
-		isChar := 0 <= c && c <= asciiMaxChar
+		isCtl := c <= 31 || c == 127
+		isChar := 0 <= c && c <= 127
 		isSeparator := strings.ContainsRune(" \t\"(),/:;<=>?@[]\\{}", rune(c))
 		if strings.ContainsRune(" \t\r\n", rune(c)) {
 			t |= isSpace
@@ -69,7 +60,9 @@ func init() {
 // Copy returns a shallow copy of the header.
 func Copy(header http.Header) http.Header {
 	h := make(http.Header)
-	maps.Copy(h, header)
+	for k, vs := range header {
+		h[k] = vs
+	}
 	return h
 }
 
@@ -99,7 +92,7 @@ func ParseList(header http.Header, key string) []string {
 		end := 0
 		escape := false
 		quote := false
-		for i := range len(s) {
+		for i := 0; i < len(s); i++ {
 			b := s[i]
 			switch {
 			case escape:

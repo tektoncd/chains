@@ -1,6 +1,3 @@
-// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
-// SPDX-License-Identifier: Apache-2.0
-
 package runtime
 
 import (
@@ -8,7 +5,7 @@ import (
 	"io"
 )
 
-// CSVOpt alter the behavior of the CSV consumer or producer.
+// CSVOpts alter the behavior of the CSV consumer or producer.
 type CSVOpt func(*csvOpts)
 
 type csvOpts struct {

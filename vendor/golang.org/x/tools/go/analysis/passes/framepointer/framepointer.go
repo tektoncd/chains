@@ -13,7 +13,7 @@ import (
 	"unicode"
 
 	"golang.org/x/tools/go/analysis"
-	"golang.org/x/tools/internal/analysis/analyzerutil"
+	"golang.org/x/tools/go/analysis/passes/internal/analysisutil"
 )
 
 const Doc = "report assembly that clobbers the frame pointer before saving it"
@@ -98,7 +98,7 @@ func run(pass *analysis.Pass) (any, error) {
 	}
 
 	for _, fname := range sfiles {
-		content, tf, err := analyzerutil.ReadFile(pass, fname)
+		content, tf, err := analysisutil.ReadFile(pass, fname)
 		if err != nil {
 			return nil, err
 		}
@@ -127,7 +127,7 @@ func run(pass *analysis.Pass) (any, error) {
 			}
 
 			if arch.isFPWrite(line) {
-				pass.Reportf(tf.LineStart(lineno), "frame pointer is clobbered before saving")
+				pass.Reportf(analysisutil.LineStart(tf, lineno), "frame pointer is clobbered before saving")
 				active = false
 				continue
 			}

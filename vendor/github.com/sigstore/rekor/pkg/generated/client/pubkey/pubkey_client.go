@@ -105,7 +105,7 @@ GetPublicKey retrieves the public key that can be used to validate the signed tr
 Returns the public key that can be used to validate the signed tree head
 */
 func (a *Client) GetPublicKey(params *GetPublicKeyParams, opts ...ClientOption) (*GetPublicKeyOK, error) {
-	// NOTE: parameters are not validated before sending
+	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewGetPublicKeyParams()
 	}
@@ -124,22 +124,17 @@ func (a *Client) GetPublicKey(params *GetPublicKeyParams, opts ...ClientOption) 
 	for _, opt := range opts {
 		opt(op)
 	}
+
 	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-
-	// only one success response has to be checked
 	success, ok := result.(*GetPublicKeyOK)
 	if ok {
 		return success, nil
 	}
-
-	// unexpected success response.
-	//
-	// a default response is provided: fill this and return an error
+	// unexpected success response
 	unexpectedSuccess := result.(*GetPublicKeyDefault)
-
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 

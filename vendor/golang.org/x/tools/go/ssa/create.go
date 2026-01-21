@@ -15,7 +15,6 @@ import (
 	"os"
 	"sync"
 
-	"golang.org/x/tools/internal/ssainternal"
 	"golang.org/x/tools/internal/versions"
 )
 
@@ -312,21 +311,4 @@ func (prog *Program) AllPackages() []*Package {
 // view of its dependencies.
 func (prog *Program) ImportedPackage(path string) *Package {
 	return prog.imported[path]
-}
-
-// setNoReturns sets the predicate used by the SSA builder to decide
-// whether a call to the specified named function cannot return,
-// allowing the builder to prune control-flow edges following the
-// call, thus improving the precision of downstream analysis.
-//
-// TODO(adonovan): add (*Program).SetNoReturn to the public API.
-func (prog *Program) setNoReturn(noReturn func(*types.Func) bool) {
-	prog.noReturn = noReturn
-}
-
-func init() {
-	// SetNoReturn exposes Program.setNoReturn to the buildssa analyzer.
-	ssainternal.SetNoReturn = func(prog any, noReturn func(*types.Func) bool) {
-		prog.(*Program).setNoReturn(noReturn)
-	}
 }

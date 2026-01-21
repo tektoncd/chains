@@ -392,11 +392,6 @@
                 "CreateKeyRing"
               ]
             },
-            "Decapsulate": {
-              "methods": [
-                "Decapsulate"
-              ]
-            },
             "Decrypt": {
               "methods": [
                 "Decrypt"
@@ -570,11 +565,6 @@
             "CreateKeyRing": {
               "methods": [
                 "CreateKeyRing"
-              ]
-            },
-            "Decapsulate": {
-              "methods": [
-                "Decapsulate"
               ]
             },
             "Decrypt": {

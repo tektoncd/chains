@@ -175,7 +175,7 @@ func ExpandPatterns(ctxt *build.Context, patterns []string) map[string]bool {
 			for _, pkg := range all {
 				doPkg(pkg, neg)
 			}
-		} else if dir, ok := strings.CutSuffix(arg, "/..."); ok {
+		} else if dir := strings.TrimSuffix(arg, "/..."); dir != arg {
 			// dir/... matches all packages beneath dir
 			for _, pkg := range all {
 				if strings.HasPrefix(pkg, dir) &&

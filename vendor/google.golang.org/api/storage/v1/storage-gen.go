@@ -1611,9 +1611,6 @@ type Buckets struct {
 	// sets. Provide this value in a subsequent request to return the next page of
 	// results.
 	NextPageToken string `json:"nextPageToken,omitempty"`
-	// Unreachable: The list of bucket resource names that could not be reached
-	// during the listing operation.
-	Unreachable []string `json:"unreachable,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
@@ -5223,14 +5220,6 @@ func (c *BucketsListCall) Prefix(prefix string) *BucketsListCall {
 //	"noAcl" - Omit owner, acl and defaultObjectAcl properties.
 func (c *BucketsListCall) Projection(projection string) *BucketsListCall {
 	c.urlParams_.Set("projection", projection)
-	return c
-}
-
-// ReturnPartialSuccess sets the optional parameter "returnPartialSuccess": If
-// true, return a list of bucket resource names for buckets that are in
-// unreachable locations.
-func (c *BucketsListCall) ReturnPartialSuccess(returnPartialSuccess bool) *BucketsListCall {
-	c.urlParams_.Set("returnPartialSuccess", fmt.Sprint(returnPartialSuccess))
 	return c
 }
 

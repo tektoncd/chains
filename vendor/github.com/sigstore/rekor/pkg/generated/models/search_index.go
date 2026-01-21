@@ -24,7 +24,6 @@ package models
 import (
 	"context"
 	"encoding/json"
-	stderrors "errors"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -103,7 +102,7 @@ func (m *SearchIndex) validateHash(formats strfmt.Registry) error {
 	return nil
 }
 
-var searchIndexTypeOperatorPropEnum []any
+var searchIndexTypeOperatorPropEnum []interface{}
 
 func init() {
 	var res []string
@@ -152,15 +151,11 @@ func (m *SearchIndex) validatePublicKey(formats strfmt.Registry) error {
 
 	if m.PublicKey != nil {
 		if err := m.PublicKey.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("publicKey")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("publicKey")
 			}
-
 			return err
 		}
 	}
@@ -191,15 +186,11 @@ func (m *SearchIndex) contextValidatePublicKey(ctx context.Context, formats strf
 		}
 
 		if err := m.PublicKey.ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("publicKey")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("publicKey")
 			}
-
 			return err
 		}
 	}
@@ -262,7 +253,7 @@ func (m *SearchIndexPublicKey) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-var searchIndexPublicKeyTypeFormatPropEnum []any
+var searchIndexPublicKeyTypeFormatPropEnum []interface{}
 
 func init() {
 	var res []string

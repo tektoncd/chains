@@ -114,17 +114,21 @@ func (m Mapper[K, V]) Values() []V {
 // Each iterates over each key-value pair in the map and calls the provided function.
 // Does nothing if the map is nil.
 func (m Mapper[K, V]) Each(fn func(K, V)) {
-	for k, v := range m {
-		fn(k, v)
+	if m != nil {
+		for k, v := range m {
+			fn(k, v)
+		}
 	}
 }
 
 // Filter returns a new Mapper containing only the key-value pairs that satisfy the predicate.
 func (m Mapper[K, V]) Filter(fn func(K, V) bool) Mapper[K, V] {
 	result := NewMapper[K, V]()
-	for k, v := range m {
-		if fn(k, v) {
-			result[k] = v
+	if m != nil {
+		for k, v := range m {
+			if fn(k, v) {
+				result[k] = v
+			}
 		}
 	}
 	return result
@@ -133,8 +137,10 @@ func (m Mapper[K, V]) Filter(fn func(K, V) bool) Mapper[K, V] {
 // MapValues returns a new Mapper with the same keys but values transformed by the provided function.
 func (m Mapper[K, V]) MapValues(fn func(V) V) Mapper[K, V] {
 	result := NewMapper[K, V]()
-	for k, v := range m {
-		result[k] = fn(v)
+	if m != nil {
+		for k, v := range m {
+			result[k] = fn(v)
+		}
 	}
 	return result
 }
@@ -142,8 +148,10 @@ func (m Mapper[K, V]) MapValues(fn func(V) V) Mapper[K, V] {
 // Clone returns a shallow copy of the Mapper.
 func (m Mapper[K, V]) Clone() Mapper[K, V] {
 	result := NewMapper[K, V]()
-	for k, v := range m {
-		result[k] = v
+	if m != nil {
+		for k, v := range m {
+			result[k] = v
+		}
 	}
 	return result
 }

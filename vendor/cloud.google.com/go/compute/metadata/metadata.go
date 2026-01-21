@@ -22,7 +22,6 @@ package metadata // import "cloud.google.com/go/compute/metadata"
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -63,26 +62,21 @@ var (
 )
 
 var defaultClient = &Client{
-	hc:        newDefaultHTTPClient(true),
-	subClient: newDefaultHTTPClient(false),
-	logger:    slog.New(noOpHandler{}),
+	hc:     newDefaultHTTPClient(),
+	logger: slog.New(noOpHandler{}),
 }
 
-func newDefaultHTTPClient(enableTimeouts bool) *http.Client {
-	transport := &http.Transport{
-		Dial: (&net.Dialer{
-			Timeout:   2 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).Dial,
+func newDefaultHTTPClient() *http.Client {
+	return &http.Client{
+		Transport: &http.Transport{
+			Dial: (&net.Dialer{
+				Timeout:   2 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}).Dial,
+			IdleConnTimeout: 60 * time.Second,
+		},
+		Timeout: 5 * time.Second,
 	}
-	c := &http.Client{
-		Transport: transport,
-	}
-	if enableTimeouts {
-		transport.IdleConnTimeout = 60 * time.Second
-		c.Timeout = 5 * time.Second
-	}
-	return c
 }
 
 // NotDefinedError is returned when requested metadata is not defined.
@@ -356,12 +350,8 @@ func strsContains(ss []string, s string) bool {
 
 // A Client provides metadata.
 type Client struct {
-	hc *http.Client
-	// subClient by default is a HTTP Client that is only used for subscribe
-	// methods that should not specify a timeout. If the user specifies a client
-	// this with be the same as 'hc'.
-	subClient *http.Client
-	logger    *slog.Logger
+	hc     *http.Client
+	logger *slog.Logger
 }
 
 // Options for configuring a [Client].
@@ -393,7 +383,7 @@ func NewClient(c *http.Client) *Client {
 		return defaultClient
 	}
 	// Return a new client with a no-op logger for backward compatibility.
-	return &Client{hc: c, subClient: c, logger: slog.New(noOpHandler{})}
+	return &Client{hc: c, logger: slog.New(noOpHandler{})}
 }
 
 // NewWithOptions returns a Client that is configured with the provided Options.
@@ -409,21 +399,19 @@ func NewWithOptions(opts *Options) *Client {
 		if logger == nil {
 			logger = slog.New(noOpHandler{})
 		}
-		return &Client{hc: defaultClient.hc, subClient: defaultClient.subClient, logger: logger}
+		return &Client{hc: defaultClient.hc, logger: logger}
 	}
 
 	// Handle isolated client creation.
 	client := opts.Client
-	subClient := opts.Client
 	if client == nil {
-		client = newDefaultHTTPClient(true)
-		subClient = newDefaultHTTPClient(false)
+		client = newDefaultHTTPClient()
 	}
 	logger := opts.Logger
 	if logger == nil {
 		logger = slog.New(noOpHandler{})
 	}
-	return &Client{hc: client, subClient: subClient, logger: logger}
+	return &Client{hc: client, logger: logger}
 }
 
 // NOTE: metadataRequestStrategy is assigned to a variable for test stubbing purposes.
@@ -507,10 +495,6 @@ func (c *Client) OnGCEWithContext(ctx context.Context) bool {
 // getETag returns a value from the metadata service as well as the associated ETag.
 // This func is otherwise equivalent to Get.
 func (c *Client) getETag(ctx context.Context, suffix string) (value, etag string, err error) {
-	return c.getETagWithSubClient(ctx, suffix, false)
-}
-
-func (c *Client) getETagWithSubClient(ctx context.Context, suffix string, enableSubClient bool) (value, etag string, err error) {
 	// Using a fixed IP makes it very difficult to spoof the metadata service in
 	// a container, which is an important use-case for local testing of cloud
 	// deployments. To enable spoofing of the metadata service, the environment
@@ -537,13 +521,9 @@ func (c *Client) getETagWithSubClient(ctx context.Context, suffix string, enable
 	var reqErr error
 	var body []byte
 	retryer := newRetryer()
-	hc := c.hc
-	if enableSubClient {
-		hc = c.subClient
-	}
 	for {
 		c.logger.DebugContext(ctx, "metadata request", "request", httpRequest(req, nil))
-		res, reqErr = hc.Do(req)
+		res, reqErr = c.hc.Do(req)
 		var code int
 		if res != nil {
 			code = res.StatusCode
@@ -889,7 +869,7 @@ func (c *Client) SubscribeWithContext(ctx context.Context, suffix string, fn fun
 	const failedSubscribeSleep = time.Second * 5
 
 	// First check to see if the metadata value exists at all.
-	val, lastETag, err := c.getETagWithSubClient(ctx, suffix, true)
+	val, lastETag, err := c.getETag(ctx, suffix)
 	if err != nil {
 		return err
 	}
@@ -905,11 +885,8 @@ func (c *Client) SubscribeWithContext(ctx context.Context, suffix string, fn fun
 		suffix += "?wait_for_change=true&last_etag="
 	}
 	for {
-		val, etag, err := c.getETagWithSubClient(ctx, suffix+url.QueryEscape(lastETag), true)
+		val, etag, err := c.getETag(ctx, suffix+url.QueryEscape(lastETag))
 		if err != nil {
-			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-				return err
-			}
 			if _, deleted := err.(NotDefinedError); !deleted {
 				time.Sleep(failedSubscribeSleep)
 				continue // Retry on other errors.

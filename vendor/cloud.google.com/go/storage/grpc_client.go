@@ -26,6 +26,7 @@ import (
 	"sync"
 
 	"cloud.google.com/go/iam/apiv1/iampb"
+	"cloud.google.com/go/internal/trace"
 	gapic "cloud.google.com/go/storage/internal/apiv2"
 	"cloud.google.com/go/storage/internal/apiv2/storagepb"
 	"github.com/googleapis/gax-go/v2"
@@ -99,10 +100,9 @@ func defaultGRPCOptions() []option.ClientOption {
 	} else {
 		// Only enable DirectPath when the emulator is not being targeted.
 		defaults = append(defaults,
-			internaloption.AllowNonDefaultServiceAccount(true),
 			internaloption.EnableDirectPath(true),
-			internaloption.EnableDirectPathXds(),
-			internaloption.AllowHardBoundTokens("ALTS"))
+			internaloption.AllowNonDefaultServiceAccount(true),
+			internaloption.EnableDirectPathXds())
 	}
 
 	return defaults
@@ -124,11 +124,9 @@ func enableClientMetrics(ctx context.Context, s *settings, config storageConfig)
 		project = c.ProjectID
 	}
 	metricsContext, err := newGRPCMetricContext(ctx, metricsConfig{
-		project:       project,
-		interval:      config.metricInterval,
-		manualReader:  config.manualReader,
-		meterProvider: config.meterProvider,
-	},
+		project:      project,
+		interval:     config.metricInterval,
+		manualReader: config.manualReader},
 	)
 	if err != nil {
 		return nil, fmt.Errorf("gRPC Metrics: %w", err)
@@ -142,7 +140,7 @@ func newGRPCStorageClient(ctx context.Context, opts ...storageOption) (*grpcStor
 	s := initSettings(opts...)
 	s.clientOption = append(defaultGRPCOptions(), s.clientOption...)
 	// Disable all gax-level retries in favor of retry logic in the veneer client.
-	s.gax = append(s.gax, gax.WithRetry(nil), gax.WithTimeout(0))
+	s.gax = append(s.gax, gax.WithRetry(nil))
 
 	config := newStorageConfig(s.clientOption...)
 	if config.readAPIWasSet {
@@ -952,24 +950,14 @@ func (c *grpcStorageClient) ComposeObject(ctx context.Context, req *composeObjec
 }
 func (c *grpcStorageClient) RewriteObject(ctx context.Context, req *rewriteObjectRequest, opts ...storageOption) (*rewriteObjectResponse, error) {
 	s := callSettings(c.settings, opts...)
-
-	var dst *storagepb.Object
-	// If the destination object attributes are not set, do not include them
-	// in the request. This indicates that the object attributes should be
-	// copied from the source object.
-	if req.dstObject.attrs.isZero() {
-		dst = nil
-	} else {
-		dst = req.dstObject.attrs.toProtoObject("")
-	}
-
+	obj := req.dstObject.attrs.toProtoObject("")
 	call := &storagepb.RewriteObjectRequest{
 		SourceBucket:              bucketResourceName(globalProjectAlias, req.srcObject.bucket),
 		SourceObject:              req.srcObject.name,
 		RewriteToken:              req.token,
 		DestinationBucket:         bucketResourceName(globalProjectAlias, req.dstObject.bucket),
 		DestinationName:           req.dstObject.name,
-		Destination:               dst,
+		Destination:               obj,
 		DestinationKmsKey:         req.dstObject.keyName,
 		DestinationPredefinedAcl:  req.predefinedACL,
 		CommonObjectRequestParams: toProtoCommonObjectRequestParams(req.dstObject.encryptionKey),
@@ -1078,8 +1066,8 @@ func (c *grpcStorageClient) NewMultiRangeDownloader(ctx context.Context, params 
 		return nil, errors.New("storage: MultiRangeDownloader requires the experimental.WithGRPCBidiReads option")
 	}
 
-	ctx, _ = startSpan(ctx, "grpcStorageClient.NewMultiRangeDownloader")
-	defer func() { endSpan(ctx, err) }()
+	ctx = trace.StartSpan(ctx, "cloud.google.com/go/storage.grpcStorageClient.NewMultiRangeDownloader")
+	defer func() { trace.EndSpan(ctx, err) }()
 	s := callSettings(c.settings, opts...)
 	// Force the use of the custom codec to enable zero-copy reads.
 	s.gax = append(s.gax, gax.WithGRPCOptions(
@@ -1623,8 +1611,8 @@ func (c *grpcStorageClient) NewRangeReader(ctx context.Context, params *newRange
 		return c.NewRangeReaderReadObject(ctx, params, opts...)
 	}
 
-	ctx, _ = startSpan(ctx, "grpcStorageClient.NewRangeReader")
-	defer func() { endSpan(ctx, err) }()
+	ctx = trace.StartSpan(ctx, "cloud.google.com/go/storage.grpcStorageClient.NewRangeReader")
+	defer func() { trace.EndSpan(ctx, err) }()
 
 	s := callSettings(c.settings, opts...)
 
@@ -2040,10 +2028,6 @@ func (r *gRPCReader) Read(p []byte) (int, error) {
 			n, found := r.currMsg.readAndUpdateCRC(p, 1, func(b []byte) {
 				r.updateCRC(b)
 			})
-			// If we are done reading the current msg, free buffers.
-			if r.currMsg.done {
-				r.currMsg.databufs.Free()
-			}
 
 			// If data for our readID was found, we can update `seen` and return.
 			if found {
@@ -2096,8 +2080,6 @@ func (r *gRPCReader) WriteTo(w io.Writer) (int64, error) {
 				r.updateCRC(b)
 			})
 			r.seen += written
-			// We have processed the message, so free the buffer
-			r.currMsg.databufs.Free()
 			if err != nil {
 				return r.seen - alreadySeen, err
 			}

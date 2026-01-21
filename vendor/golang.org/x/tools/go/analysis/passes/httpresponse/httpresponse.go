@@ -13,6 +13,7 @@ import (
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
 	"golang.org/x/tools/go/ast/inspector"
+	"golang.org/x/tools/internal/analysisinternal"
 	"golang.org/x/tools/internal/typesinternal"
 )
 
@@ -45,7 +46,7 @@ func run(pass *analysis.Pass) (any, error) {
 
 	// Fast path: if the package doesn't import net/http,
 	// skip the traversal.
-	if !typesinternal.Imports(pass.Pkg, "net/http") {
+	if !analysisinternal.Imports(pass.Pkg, "net/http") {
 		return nil, nil
 	}
 
@@ -117,7 +118,7 @@ func isHTTPFuncOrMethodOnClient(info *types.Info, expr *ast.CallExpr) bool {
 		return false // the function called does not return two values.
 	}
 	isPtr, named := typesinternal.ReceiverNamed(res.At(0))
-	if !isPtr || named == nil || !typesinternal.IsTypeNamed(named, "net/http", "Response") {
+	if !isPtr || named == nil || !analysisinternal.IsTypeNamed(named, "net/http", "Response") {
 		return false // the first return type is not *http.Response.
 	}
 
@@ -132,11 +133,11 @@ func isHTTPFuncOrMethodOnClient(info *types.Info, expr *ast.CallExpr) bool {
 		return ok && id.Name == "http" // function in net/http package.
 	}
 
-	if typesinternal.IsTypeNamed(typ, "net/http", "Client") {
+	if analysisinternal.IsTypeNamed(typ, "net/http", "Client") {
 		return true // method on http.Client.
 	}
 	ptr, ok := types.Unalias(typ).(*types.Pointer)
-	return ok && typesinternal.IsTypeNamed(ptr.Elem(), "net/http", "Client") // method on *http.Client.
+	return ok && analysisinternal.IsTypeNamed(ptr.Elem(), "net/http", "Client") // method on *http.Client.
 }
 
 // restOfBlock, given a traversal stack, finds the innermost containing

@@ -25,7 +25,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	stderrors "errors"
 	"io"
 	"strconv"
 
@@ -83,7 +82,7 @@ func (m *SearchLogQuery) UnmarshalJSON(raw []byte) error {
 	var propEntries []ProposedEntry
 	if string(data.Entries) != "null" {
 		entries, err := UnmarshalProposedEntrySlice(bytes.NewBuffer(data.Entries), runtime.JSONConsumer())
-		if err != nil && !stderrors.Is(err, io.EOF) {
+		if err != nil && err != io.EOF {
 			return err
 		}
 		propEntries = entries
@@ -175,15 +174,11 @@ func (m *SearchLogQuery) validateEntries(formats strfmt.Registry) error {
 	for i := 0; i < len(m.Entries()); i++ {
 
 		if err := m.entriesField[i].Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("entries" + "." + strconv.Itoa(i))
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("entries" + "." + strconv.Itoa(i))
 			}
-
 			return err
 		}
 
@@ -270,15 +265,11 @@ func (m *SearchLogQuery) contextValidateEntries(ctx context.Context, formats str
 		}
 
 		if err := m.entriesField[i].ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("entries" + "." + strconv.Itoa(i))
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("entries" + "." + strconv.Itoa(i))
 			}
-
 			return err
 		}
 

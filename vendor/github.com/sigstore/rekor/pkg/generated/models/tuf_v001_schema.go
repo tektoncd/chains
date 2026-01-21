@@ -23,7 +23,6 @@ package models
 
 import (
 	"context"
-	stderrors "errors"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -77,15 +76,11 @@ func (m *TUFV001Schema) validateMetadata(formats strfmt.Registry) error {
 
 	if m.Metadata != nil {
 		if err := m.Metadata.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("metadata")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("metadata")
 			}
-
 			return err
 		}
 	}
@@ -101,15 +96,11 @@ func (m *TUFV001Schema) validateRoot(formats strfmt.Registry) error {
 
 	if m.Root != nil {
 		if err := m.Root.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("root")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("root")
 			}
-
 			return err
 		}
 	}
@@ -144,15 +135,11 @@ func (m *TUFV001Schema) contextValidateMetadata(ctx context.Context, formats str
 	if m.Metadata != nil {
 
 		if err := m.Metadata.ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("metadata")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("metadata")
 			}
-
 			return err
 		}
 	}
@@ -165,15 +152,11 @@ func (m *TUFV001Schema) contextValidateRoot(ctx context.Context, formats strfmt.
 	if m.Root != nil {
 
 		if err := m.Root.ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("root")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("root")
 			}
-
 			return err
 		}
 	}
@@ -183,7 +166,7 @@ func (m *TUFV001Schema) contextValidateRoot(ctx context.Context, formats strfmt.
 
 func (m *TUFV001Schema) contextValidateSpecVersion(ctx context.Context, formats strfmt.Registry) error {
 
-	if err := validate.ReadOnly(ctx, "spec_version", "body", m.SpecVersion); err != nil {
+	if err := validate.ReadOnly(ctx, "spec_version", "body", string(m.SpecVersion)); err != nil {
 		return err
 	}
 
@@ -215,7 +198,7 @@ type TUFV001SchemaMetadata struct {
 
 	// Specifies the metadata inline within the document
 	// Required: true
-	Content any `json:"content"`
+	Content interface{} `json:"content"`
 }
 
 // Validate validates this TUF v001 schema metadata
@@ -271,7 +254,7 @@ type TUFV001SchemaRoot struct {
 
 	// Specifies the metadata inline within the document
 	// Required: true
-	Content any `json:"content"`
+	Content interface{} `json:"content"`
 }
 
 // Validate validates this TUF v001 schema root

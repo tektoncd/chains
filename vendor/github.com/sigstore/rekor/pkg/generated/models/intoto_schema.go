@@ -26,4 +26,4 @@ package models
 // # Intoto for Rekord objects
 //
 // swagger:model intotoSchema
-type IntotoSchema any
+type IntotoSchema interface{}

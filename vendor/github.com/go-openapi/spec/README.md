@@ -7,10 +7,6 @@
 
 The object model for OpenAPI specification documents.
 
-## Licensing
-
-This library ships under the [SPDX-License-Identifier: Apache-2.0](./LICENSE).
-
 ### FAQ
 
 * What does this do?
