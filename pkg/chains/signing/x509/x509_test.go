@@ -58,8 +58,9 @@ func TestCreateSignerFulcioEnabledDefaultTokenFileMissing(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
 	d := t.TempDir()
 
+	const trueStr = "true"
 	data := make(map[string]string)
-	data["signers.x509.fulcio.enabled"] = "true"
+	data["signers.x509.fulcio.enabled"] = trueStr
 	cfg, err := config.NewConfigFromMap(data)
 	if err != nil {
 		t.Fatal(err)

@@ -343,7 +343,8 @@ func TestExtractStructuredTargetFromResults(t *testing.T) {
 		{URI: "com.google.guava:guava:31.0-jre.pom", Digest: digest2},
 	}
 	gotOutputs := ExtractStructuredTargetFromResults(ctx, objects.NewTaskRunObjectV1(tr).GetResults(), ArtifactsOutputsResultName)
-	opts := append(ignore, cmpopts.SortSlices(func(x, y *StructuredSignable) bool { return x.Digest < y.Digest }))
+	opts := ignore
+	opts = append(opts, cmpopts.SortSlices(func(x, y *StructuredSignable) bool { return x.Digest < y.Digest }))
 	if diff := cmp.Diff(gotOutputs, wantOutputs, opts...); diff != "" {
 		t.Error(diff)
 	}
