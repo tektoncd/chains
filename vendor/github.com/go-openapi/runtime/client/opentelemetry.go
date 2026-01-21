@@ -1,6 +1,3 @@
-// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
-// SPDX-License-Identifier: Apache-2.0
-
 package client
 
 import (
@@ -14,7 +11,8 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/propagation"
-	semconv "go.opentelemetry.io/otel/semconv/v1.37.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
+	"go.opentelemetry.io/otel/semconv/v1.17.0/httpconv"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -111,7 +109,7 @@ func newOpenTelemetryTransport(transport runtime.ClientTransport, host string, o
 	return tr
 }
 
-func (t *openTelemetryTransport) Submit(op *runtime.ClientOperation) (any, error) {
+func (t *openTelemetryTransport) Submit(op *runtime.ClientOperation) (interface{}, error) {
 	if op.Context == nil {
 		return t.transport.Submit(op)
 	}
@@ -131,17 +129,14 @@ func (t *openTelemetryTransport) Submit(op *runtime.ClientOperation) (any, error
 		return params.WriteToRequest(req, reg)
 	})
 
-	op.Reader = runtime.ClientResponseReaderFunc(func(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
+	op.Reader = runtime.ClientResponseReaderFunc(func(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 		if span != nil {
 			statusCode := response.Code()
 			// NOTE: this is replaced by semconv.HTTPResponseStatusCode in semconv v1.21
-			span.SetAttributes(semconv.HTTPResponseStatusCode(statusCode))
+			span.SetAttributes(semconv.HTTPStatusCode(statusCode))
 			// NOTE: the conversion from HTTP status code to trace code is no longer available with
 			// semconv v1.21
-			const minHTTPStatusIsError = 400
-			if statusCode >= minHTTPStatusIsError {
-				span.SetStatus(codes.Error, http.StatusText(statusCode))
-			}
+			span.SetStatus(httpconv.ServerStatus(statusCode))
 		}
 
 		return reader.ReadResponse(response, consumer)
@@ -178,7 +173,7 @@ func (t *openTelemetryTransport) newOpenTelemetrySpan(op *runtime.ClientOperatio
 	span.SetAttributes(
 		attribute.String("net.peer.name", t.host),
 		attribute.String(string(semconv.HTTPRouteKey), op.PathPattern),
-		attribute.String(string(semconv.HTTPRequestMethodKey), op.Method),
+		attribute.String(string(semconv.HTTPMethodKey), op.Method),
 		attribute.String("span.kind", trace.SpanKindClient.String()),
 		attribute.String("http.scheme", scheme),
 	)

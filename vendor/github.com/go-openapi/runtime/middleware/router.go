@@ -1,5 +1,16 @@
-// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
-// SPDX-License-Identifier: Apache-2.0
+// Copyright 2015 go-swagger maintainers
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package middleware
 
@@ -11,16 +22,18 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/go-openapi/runtime/logger"
+	"github.com/go-openapi/runtime/security"
+	"github.com/go-openapi/swag"
+
 	"github.com/go-openapi/analysis"
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/loads"
-	"github.com/go-openapi/runtime"
-	"github.com/go-openapi/runtime/logger"
-	"github.com/go-openapi/runtime/middleware/denco"
-	"github.com/go-openapi/runtime/security"
 	"github.com/go-openapi/spec"
 	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag/stringutils"
+
+	"github.com/go-openapi/runtime"
+	"github.com/go-openapi/runtime/middleware/denco"
 )
 
 // RouteParam is a object to capture route params in a framework agnostic way.
@@ -197,13 +210,13 @@ func (ra *RouteAuthenticator) CommonScopes() []string {
 }
 
 // Authenticate Authenticator interface implementation
-func (ra *RouteAuthenticator) Authenticate(req *http.Request, route *MatchedRoute) (bool, any, error) {
+func (ra *RouteAuthenticator) Authenticate(req *http.Request, route *MatchedRoute) (bool, interface{}, error) {
 	if ra.allowAnonymous {
 		route.Authenticator = ra
 		return true, nil, nil
 	}
 	// iterate in proper order
-	var lastResult any
+	var lastResult interface{}
 	for _, scheme := range ra.Schemes {
 		if authenticator, ok := ra.Authenticator[scheme]; ok {
 			applies, princ, err := authenticator.Authenticate(&security.ScopedAuthRequest{
@@ -276,7 +289,7 @@ func (ras RouteAuthenticators) AllowsAnonymous() bool {
 }
 
 // Authenticate method implemention so this collection can be used as authenticator
-func (ras RouteAuthenticators) Authenticate(req *http.Request, route *MatchedRoute) (bool, any, error) {
+func (ras RouteAuthenticators) Authenticate(req *http.Request, route *MatchedRoute) (bool, interface{}, error) {
 	var lastError error
 	var allowsAnon bool
 	var anonAuth RouteAuthenticator
@@ -323,7 +336,6 @@ type routeEntry struct {
 // MatchedRoute represents the route that was matched in this request
 type MatchedRoute struct {
 	routeEntry
-
 	Params        RouteParams
 	Consumer      runtime.Consumer
 	Producer      runtime.Producer
@@ -365,8 +377,7 @@ func (d *defaultRouter) Lookup(method, path string) (*MatchedRoute, bool) {
 					}
 					// a workaround to handle fragment/composing parameters until they are supported in denco router
 					// check if this parameter is a fragment within a path segment
-					const enclosureSize = 2
-					if xpos := strings.Index(entry.PathPattern, fmt.Sprintf("{%s}", p.Name)) + len(p.Name) + enclosureSize; xpos < len(entry.PathPattern) && entry.PathPattern[xpos] != '/' {
+					if xpos := strings.Index(entry.PathPattern, fmt.Sprintf("{%s}", p.Name)) + len(p.Name) + 2; xpos < len(entry.PathPattern) && entry.PathPattern[xpos] != '/' {
 						// extract fragment parameters
 						ep := strings.Split(entry.PathPattern[xpos:], "/")[0]
 						pnames, pvalues := decodeCompositParams(p.Name, v, ep, nil, nil)
@@ -449,11 +460,11 @@ func (d *defaultRouteBuilder) AddRoute(method, path string, operation *spec.Oper
 		parameters := d.analyzer.ParamsFor(method, strings.TrimPrefix(path, bp))
 
 		// add API defaults if not part of the spec
-		if defConsumes := d.api.DefaultConsumes(); defConsumes != "" && !stringutils.ContainsStringsCI(consumes, defConsumes) {
+		if defConsumes := d.api.DefaultConsumes(); defConsumes != "" && !swag.ContainsStringsCI(consumes, defConsumes) {
 			consumes = append(consumes, defConsumes)
 		}
 
-		if defProduces := d.api.DefaultProduces(); defProduces != "" && !stringutils.ContainsStringsCI(produces, defProduces) {
+		if defProduces := d.api.DefaultProduces(); defProduces != "" && !swag.ContainsStringsCI(produces, defProduces) {
 			produces = append(produces, defProduces)
 		}
 
@@ -475,20 +486,6 @@ func (d *defaultRouteBuilder) AddRoute(method, path string, operation *spec.Oper
 			Authorizer:     d.api.Authorizer(),
 		})
 		d.records[mn] = append(d.records[mn], record)
-	}
-}
-
-func (d *defaultRouteBuilder) Build() *defaultRouter {
-	routers := make(map[string]*denco.Router)
-	for method, records := range d.records {
-		router := denco.New()
-		_ = router.Build(records)
-		routers[method] = router
-	}
-	return &defaultRouter{
-		spec:      d.spec,
-		routers:   routers,
-		debugLogf: d.debugLogf,
 	}
 }
 
@@ -517,4 +514,18 @@ func (d *defaultRouteBuilder) buildAuthenticators(operation *spec.Operation) Rou
 		})
 	}
 	return auths
+}
+
+func (d *defaultRouteBuilder) Build() *defaultRouter {
+	routers := make(map[string]*denco.Router)
+	for method, records := range d.records {
+		router := denco.New()
+		_ = router.Build(records)
+		routers[method] = router
+	}
+	return &defaultRouter{
+		spec:      d.spec,
+		routers:   routers,
+		debugLogf: d.debugLogf,
+	}
 }

@@ -17,7 +17,7 @@ import (
 	"golang.org/x/tools/go/analysis/passes/inspect"
 	"golang.org/x/tools/go/ast/inspector"
 	"golang.org/x/tools/go/types/typeutil"
-	"golang.org/x/tools/internal/typesinternal"
+	"golang.org/x/tools/internal/analysisinternal"
 )
 
 const Doc = `check the argument type of sort.Slice
@@ -34,7 +34,7 @@ var Analyzer = &analysis.Analyzer{
 }
 
 func run(pass *analysis.Pass) (any, error) {
-	if !typesinternal.Imports(pass.Pkg, "sort") {
+	if !analysisinternal.Imports(pass.Pkg, "sort") {
 		return nil, nil // doesn't directly import sort
 	}
 
@@ -47,7 +47,7 @@ func run(pass *analysis.Pass) (any, error) {
 	inspect.Preorder(nodeFilter, func(n ast.Node) {
 		call := n.(*ast.CallExpr)
 		obj := typeutil.Callee(pass.TypesInfo, call)
-		if !typesinternal.IsFunctionNamed(obj, "sort", "Slice", "SliceStable", "SliceIsSorted") {
+		if !analysisinternal.IsFunctionNamed(obj, "sort", "Slice", "SliceStable", "SliceIsSorted") {
 			return
 		}
 		callee := obj.(*types.Func)

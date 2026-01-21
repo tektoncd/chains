@@ -1,17 +1,16 @@
-// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
-// SPDX-License-Identifier: Apache-2.0
-
 package strfmt
 
 import (
 	cryptorand "crypto/rand"
 	"database/sql/driver"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"sync"
 
 	"github.com/oklog/ulid"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // ULID represents a ulid string format
@@ -30,12 +29,12 @@ type ULID struct {
 
 var (
 	ulidEntropyPool = sync.Pool{
-		New: func() any {
+		New: func() interface{} {
 			return cryptorand.Reader
 		},
 	}
 
-	ULIDScanDefaultFunc = func(raw any) (ULID, error) {
+	ULIDScanDefaultFunc = func(raw interface{}) (ULID, error) {
 		u := NewULIDZero()
 		switch x := raw.(type) {
 		case nil:
@@ -99,7 +98,7 @@ func NewULID() (ULID, error) {
 	obj := ulidEntropyPool.Get()
 	entropy, ok := obj.(io.Reader)
 	if !ok {
-		return u, fmt.Errorf("failed to cast %+v to io.Reader: %w", obj, ErrFormat)
+		return u, fmt.Errorf("failed to cast %+v to io.Reader", obj)
 	}
 
 	id, err := ulid.New(ulid.Now(), entropy)
@@ -113,7 +112,7 @@ func NewULID() (ULID, error) {
 }
 
 // GetULID returns underlying instance of ULID
-func (u *ULID) GetULID() any {
+func (u *ULID) GetULID() interface{} {
 	return u.ULID
 }
 
@@ -128,7 +127,7 @@ func (u *ULID) UnmarshalText(data []byte) error { // validation is performed lat
 }
 
 // Scan reads a value from a database driver
-func (u *ULID) Scan(raw any) error {
+func (u *ULID) Scan(raw interface{}) error {
 	ul, err := ULIDScanOverrideFunc(raw)
 	if err == nil {
 		*u = ul
@@ -165,6 +164,29 @@ func (u *ULID) UnmarshalJSON(data []byte) error {
 	}
 	u.ULID = id
 	return nil
+}
+
+// MarshalBSON document from this value
+func (u ULID) MarshalBSON() ([]byte, error) {
+	return bson.Marshal(bson.M{"data": u.String()})
+}
+
+// UnmarshalBSON document into this value
+func (u *ULID) UnmarshalBSON(data []byte) error {
+	var m bson.M
+	if err := bson.Unmarshal(data, &m); err != nil {
+		return err
+	}
+
+	if ud, ok := m["data"].(string); ok {
+		id, err := ulid.ParseStrict(ud)
+		if err != nil {
+			return fmt.Errorf("couldn't parse bson bytes as ULID: %w", err)
+		}
+		u.ULID = id
+		return nil
+	}
+	return errors.New("couldn't unmarshal bson bytes as ULID")
 }
 
 // DeepCopyInto copies the receiver and writes its value into out.

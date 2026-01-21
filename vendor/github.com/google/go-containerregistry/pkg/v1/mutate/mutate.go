@@ -514,7 +514,7 @@ func Canonical(img v1.Image) (v1.Image, error) {
 
 	cfg.Container = ""
 	cfg.Config.Hostname = ""
-	cfg.DockerVersion = "" //nolint:staticcheck // Field will be removed in next release
+	cfg.DockerVersion = ""
 
 	return ConfigFile(img, cfg)
 }

@@ -26,4 +26,4 @@ package models
 // log entry schema for dsse envelopes
 //
 // swagger:model dsseSchema
-type DSSESchema any
+type DSSESchema interface{}

@@ -6,17 +6,14 @@ import (
 	smithydocument "github.com/aws/smithy-go/document"
 )
 
-// This structure contains Amazon Web Services-specific parameter extensions and
-// the [identity context].
-//
-// [identity context]: https://docs.aws.amazon.com/singlesignon/latest/userguide/trustedidentitypropagation-overview.html
+// This structure contains Amazon Web Services-specific parameter extensions for
+// the token endpoint responses and includes the identity context.
 type AwsAdditionalDetails struct {
 
-	// The trusted context assertion is signed and encrypted by STS. It provides
-	// access to sts:identity_context claim in the idToken without JWT parsing
-	//
-	// Identity context comprises information that Amazon Web Services services use to
-	// make authorization decisions when they receive requests.
+	// STS context assertion that carries a user identifier to the Amazon Web Services
+	// service that it calls and can be used to obtain an identity-enhanced IAM role
+	// session. This value corresponds to the sts:identity_context claim in the ID
+	// token.
 	IdentityContext *string
 
 	noSmithyDocumentSerde

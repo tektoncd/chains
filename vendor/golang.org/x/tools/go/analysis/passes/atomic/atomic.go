@@ -11,11 +11,10 @@ import (
 
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
+	"golang.org/x/tools/go/analysis/passes/internal/analysisutil"
 	"golang.org/x/tools/go/ast/inspector"
 	"golang.org/x/tools/go/types/typeutil"
-	"golang.org/x/tools/internal/analysis/analyzerutil"
-	"golang.org/x/tools/internal/astutil"
-	"golang.org/x/tools/internal/typesinternal"
+	"golang.org/x/tools/internal/analysisinternal"
 )
 
 //go:embed doc.go
@@ -23,7 +22,7 @@ var doc string
 
 var Analyzer = &analysis.Analyzer{
 	Name:             "atomic",
-	Doc:              analyzerutil.MustExtractDoc(doc, "atomic"),
+	Doc:              analysisutil.MustExtractDoc(doc, "atomic"),
 	URL:              "https://pkg.go.dev/golang.org/x/tools/go/analysis/passes/atomic",
 	Requires:         []*analysis.Analyzer{inspect.Analyzer},
 	RunDespiteErrors: true,
@@ -31,7 +30,7 @@ var Analyzer = &analysis.Analyzer{
 }
 
 func run(pass *analysis.Pass) (any, error) {
-	if !typesinternal.Imports(pass.Pkg, "sync/atomic") {
+	if !analysisinternal.Imports(pass.Pkg, "sync/atomic") {
 		return nil, nil // doesn't directly import sync/atomic
 	}
 
@@ -55,7 +54,7 @@ func run(pass *analysis.Pass) (any, error) {
 				continue
 			}
 			obj := typeutil.Callee(pass.TypesInfo, call)
-			if typesinternal.IsFunctionNamed(obj, "sync/atomic", "AddInt32", "AddInt64", "AddUint32", "AddUint64", "AddUintptr") {
+			if analysisinternal.IsFunctionNamed(obj, "sync/atomic", "AddInt32", "AddInt64", "AddUint32", "AddUint64", "AddUintptr") {
 				checkAtomicAddAssignment(pass, n.Lhs[i], call)
 			}
 		}
@@ -73,7 +72,7 @@ func checkAtomicAddAssignment(pass *analysis.Pass, left ast.Expr, call *ast.Call
 	arg := call.Args[0]
 	broken := false
 
-	gofmt := func(e ast.Expr) string { return astutil.Format(pass.Fset, e) }
+	gofmt := func(e ast.Expr) string { return analysisinternal.Format(pass.Fset, e) }
 
 	if uarg, ok := arg.(*ast.UnaryExpr); ok && uarg.Op == token.AND {
 		broken = gofmt(left) == gofmt(uarg.X)

@@ -1,9 +1,8 @@
 package tw
 
 import (
-	"io"
-
 	"github.com/olekukonko/ll"
+	"io"
 )
 
 // Renderer defines the interface for rendering tables to an io.Writer.

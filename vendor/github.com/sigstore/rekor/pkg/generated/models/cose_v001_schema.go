@@ -24,7 +24,6 @@ package models
 import (
 	"context"
 	"encoding/json"
-	stderrors "errors"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -77,15 +76,11 @@ func (m *CoseV001Schema) validateData(formats strfmt.Registry) error {
 
 	if m.Data != nil {
 		if err := m.Data.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("data")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("data")
 			}
-
 			return err
 		}
 	}
@@ -125,15 +120,11 @@ func (m *CoseV001Schema) contextValidateData(ctx context.Context, formats strfmt
 		}
 
 		if err := m.Data.ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("data")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("data")
 			}
-
 			return err
 		}
 	}
@@ -200,15 +191,11 @@ func (m *CoseV001SchemaData) validateEnvelopeHash(formats strfmt.Registry) error
 
 	if m.EnvelopeHash != nil {
 		if err := m.EnvelopeHash.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("data" + "." + "envelopeHash")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("data" + "." + "envelopeHash")
 			}
-
 			return err
 		}
 	}
@@ -223,15 +210,11 @@ func (m *CoseV001SchemaData) validatePayloadHash(formats strfmt.Registry) error 
 
 	if m.PayloadHash != nil {
 		if err := m.PayloadHash.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("data" + "." + "payloadHash")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("data" + "." + "payloadHash")
 			}
-
 			return err
 		}
 	}
@@ -266,15 +249,11 @@ func (m *CoseV001SchemaData) contextValidateEnvelopeHash(ctx context.Context, fo
 		}
 
 		if err := m.EnvelopeHash.ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("data" + "." + "envelopeHash")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("data" + "." + "envelopeHash")
 			}
-
 			return err
 		}
 	}
@@ -291,15 +270,11 @@ func (m *CoseV001SchemaData) contextValidatePayloadHash(ctx context.Context, for
 		}
 
 		if err := m.PayloadHash.ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("data" + "." + "payloadHash")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("data" + "." + "payloadHash")
 			}
-
 			return err
 		}
 	}
@@ -358,7 +333,7 @@ func (m *CoseV001SchemaDataEnvelopeHash) Validate(formats strfmt.Registry) error
 	return nil
 }
 
-var coseV001SchemaDataEnvelopeHashTypeAlgorithmPropEnum []any
+var coseV001SchemaDataEnvelopeHashTypeAlgorithmPropEnum []interface{}
 
 func init() {
 	var res []string
@@ -468,7 +443,7 @@ func (m *CoseV001SchemaDataPayloadHash) Validate(formats strfmt.Registry) error 
 	return nil
 }
 
-var coseV001SchemaDataPayloadHashTypeAlgorithmPropEnum []any
+var coseV001SchemaDataPayloadHashTypeAlgorithmPropEnum []interface{}
 
 func init() {
 	var res []string

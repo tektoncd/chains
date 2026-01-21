@@ -17,11 +17,9 @@ import (
 
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
+	"golang.org/x/tools/go/analysis/passes/internal/analysisutil"
 	"golang.org/x/tools/go/ast/inspector"
-	"golang.org/x/tools/internal/analysis/analyzerutil"
-	"golang.org/x/tools/internal/astutil"
-	"golang.org/x/tools/internal/refactor"
-	"golang.org/x/tools/internal/typesinternal"
+	"golang.org/x/tools/internal/analysisinternal"
 )
 
 //go:embed doc.go
@@ -29,26 +27,26 @@ var doc string
 
 var Analyzer = &analysis.Analyzer{
 	Name:     "assign",
-	Doc:      analyzerutil.MustExtractDoc(doc, "assign"),
+	Doc:      analysisutil.MustExtractDoc(doc, "assign"),
 	URL:      "https://pkg.go.dev/golang.org/x/tools/go/analysis/passes/assign",
 	Requires: []*analysis.Analyzer{inspect.Analyzer},
 	Run:      run,
 }
 
 func run(pass *analysis.Pass) (any, error) {
-	var (
-		inspect = pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
-		info    = pass.TypesInfo
-	)
+	inspect := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
 
-	for curAssign := range inspect.Root().Preorder((*ast.AssignStmt)(nil)) {
-		stmt := curAssign.Node().(*ast.AssignStmt)
+	nodeFilter := []ast.Node{
+		(*ast.AssignStmt)(nil),
+	}
+	inspect.Preorder(nodeFilter, func(n ast.Node) {
+		stmt := n.(*ast.AssignStmt)
 		if stmt.Tok != token.ASSIGN {
-			continue // ignore :=
+			return // ignore :=
 		}
 		if len(stmt.Lhs) != len(stmt.Rhs) {
 			// If LHS and RHS have different cardinality, they can't be the same.
-			continue
+			return
 		}
 
 		// Delete redundant LHS, RHS pairs, taking care
@@ -63,13 +61,13 @@ func run(pass *analysis.Pass) (any, error) {
 			isSelfAssign := false
 			var le string
 
-			if typesinternal.NoEffects(info, lhs) &&
-				typesinternal.NoEffects(info, rhs) &&
-				!isMapIndex(info, lhs) &&
+			if !analysisutil.HasSideEffects(pass.TypesInfo, lhs) &&
+				!analysisutil.HasSideEffects(pass.TypesInfo, rhs) &&
+				!isMapIndex(pass.TypesInfo, lhs) &&
 				reflect.TypeOf(lhs) == reflect.TypeOf(rhs) { // short-circuit the heavy-weight gofmt check
 
-				le = astutil.Format(pass.Fset, lhs)
-				re := astutil.Format(pass.Fset, rhs)
+				le = analysisinternal.Format(pass.Fset, lhs)
+				re := analysisinternal.Format(pass.Fset, rhs)
 				if le == re {
 					isSelfAssign = true
 				}
@@ -111,14 +109,13 @@ func run(pass *analysis.Pass) (any, error) {
 		}
 
 		if len(exprs) == 0 {
-			continue
+			return
 		}
 
 		if len(exprs) == len(stmt.Lhs) {
 			// If every part of the statement is a self-assignment,
 			// remove the whole statement.
-			tokFile := pass.Fset.File(stmt.Pos())
-			edits = refactor.DeleteStmt(tokFile, curAssign)
+			edits = []analysis.TextEdit{{Pos: stmt.Pos(), End: stmt.End()}}
 		}
 
 		pass.Report(analysis.Diagnostic{
@@ -129,7 +126,7 @@ func run(pass *analysis.Pass) (any, error) {
 				TextEdits: edits,
 			}},
 		})
-	}
+	})
 
 	return nil, nil
 }

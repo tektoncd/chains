@@ -1,7 +1,5 @@
 package tw
 
-import "slices"
-
 // Slicer is a generic slice type that provides additional methods for slice manipulation.
 type Slicer[T any] []T
 
@@ -71,17 +69,21 @@ func (s Slicer[T]) Last() T {
 // Each iterates over each element in the slice and calls the provided function.
 // Does nothing if the slice is nil.
 func (s Slicer[T]) Each(fn func(T)) {
-	for _, v := range s {
-		fn(v)
+	if s != nil {
+		for _, v := range s {
+			fn(v)
+		}
 	}
 }
 
 // Filter returns a new Slicer containing only elements that satisfy the predicate.
 func (s Slicer[T]) Filter(fn func(T) bool) Slicer[T] {
 	result := NewSlicer[T]()
-	for _, v := range s {
-		if fn(v) {
-			result = result.Append(v)
+	if s != nil {
+		for _, v := range s {
+			if fn(v) {
+				result = result.Append(v)
+			}
 		}
 	}
 	return result
@@ -90,22 +92,33 @@ func (s Slicer[T]) Filter(fn func(T) bool) Slicer[T] {
 // Map returns a new Slicer with each element transformed by the provided function.
 func (s Slicer[T]) Map(fn func(T) T) Slicer[T] {
 	result := NewSlicer[T]()
-	for _, v := range s {
-		result = result.Append(fn(v))
+	if s != nil {
+		for _, v := range s {
+			result = result.Append(fn(v))
+		}
 	}
 	return result
 }
 
 // Contains returns true if the slice contains an element that satisfies the predicate.
 func (s Slicer[T]) Contains(fn func(T) bool) bool {
-	return slices.ContainsFunc(s, fn)
+	if s != nil {
+		for _, v := range s {
+			if fn(v) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // Find returns the first element that satisfies the predicate, along with a boolean indicating if it was found.
 func (s Slicer[T]) Find(fn func(T) bool) (T, bool) {
-	for _, v := range s {
-		if fn(v) {
-			return v, true
+	if s != nil {
+		for _, v := range s {
+			if fn(v) {
+				return v, true
+			}
 		}
 	}
 	var zero T

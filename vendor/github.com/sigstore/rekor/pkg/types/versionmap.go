@@ -20,7 +20,7 @@ import (
 	"sync"
 
 	"github.com/blang/semver"
-	"github.com/sigstore/rekor/pkg/internal/log"
+	"github.com/sigstore/rekor/pkg/log"
 )
 
 // VersionEntryFactoryMap defines a map-like interface to find the correct implementation for a version string

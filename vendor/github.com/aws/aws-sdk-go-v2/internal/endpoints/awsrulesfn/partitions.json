@@ -50,9 +50,6 @@
       "ap-southeast-5" : {
         "description" : "Asia Pacific (Malaysia)"
       },
-      "ap-southeast-6" : {
-        "description" : "Asia Pacific (New Zealand)"
-      },
       "ap-southeast-7" : {
         "description" : "Asia Pacific (Thailand)"
       },
@@ -146,7 +143,7 @@
       "dualStackDnsSuffix" : "api.amazonwebservices.eu",
       "implicitGlobalRegion" : "eusc-de-east-1",
       "name" : "aws-eusc",
-      "supportsDualStack" : true,
+      "supportsDualStack" : false,
       "supportsFIPS" : true
     },
     "regionRegex" : "^eusc\\-(de)\\-\\w+\\-\\d+$",
@@ -162,7 +159,7 @@
       "dualStackDnsSuffix" : "api.aws.ic.gov",
       "implicitGlobalRegion" : "us-iso-east-1",
       "name" : "aws-iso",
-      "supportsDualStack" : true,
+      "supportsDualStack" : false,
       "supportsFIPS" : true
     },
     "regionRegex" : "^us\\-iso\\-\\w+\\-\\d+$",
@@ -184,7 +181,7 @@
       "dualStackDnsSuffix" : "api.aws.scloud",
       "implicitGlobalRegion" : "us-isob-east-1",
       "name" : "aws-iso-b",
-      "supportsDualStack" : true,
+      "supportsDualStack" : false,
       "supportsFIPS" : true
     },
     "regionRegex" : "^us\\-isob\\-\\w+\\-\\d+$",
@@ -194,9 +191,6 @@
       },
       "us-isob-east-1" : {
         "description" : "US ISOB East (Ohio)"
-      },
-      "us-isob-west-1" : {
-        "description" : "US ISOB West"
       }
     }
   }, {
@@ -206,7 +200,7 @@
       "dualStackDnsSuffix" : "api.cloud-aws.adc-e.uk",
       "implicitGlobalRegion" : "eu-isoe-west-1",
       "name" : "aws-iso-e",
-      "supportsDualStack" : true,
+      "supportsDualStack" : false,
       "supportsFIPS" : true
     },
     "regionRegex" : "^eu\\-isoe\\-\\w+\\-\\d+$",
@@ -225,7 +219,7 @@
       "dualStackDnsSuffix" : "api.aws.hci.ic.gov",
       "implicitGlobalRegion" : "us-isof-south-1",
       "name" : "aws-iso-f",
-      "supportsDualStack" : true,
+      "supportsDualStack" : false,
       "supportsFIPS" : true
     },
     "regionRegex" : "^us\\-isof\\-\\w+\\-\\d+$",

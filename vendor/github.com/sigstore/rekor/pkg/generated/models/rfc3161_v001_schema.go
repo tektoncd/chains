@@ -23,7 +23,6 @@ package models
 
 import (
 	"context"
-	stderrors "errors"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -65,15 +64,11 @@ func (m *Rfc3161V001Schema) validateTsr(formats strfmt.Registry) error {
 
 	if m.Tsr != nil {
 		if err := m.Tsr.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("tsr")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("tsr")
 			}
-
 			return err
 		}
 	}
@@ -100,15 +95,11 @@ func (m *Rfc3161V001Schema) contextValidateTsr(ctx context.Context, formats strf
 	if m.Tsr != nil {
 
 		if err := m.Tsr.ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("tsr")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("tsr")
 			}
-
 			return err
 		}
 	}

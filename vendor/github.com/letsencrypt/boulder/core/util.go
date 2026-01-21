@@ -1,7 +1,6 @@
 package core
 
 import (
-	"context"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/rand"
@@ -16,7 +15,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
-	mrand "math/rand/v2"
+	mrand "math/rand"
 	"os"
 	"path"
 	"reflect"
@@ -27,12 +26,8 @@ import (
 	"unicode"
 
 	"github.com/go-jose/go-jose/v4"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
-
-	"github.com/letsencrypt/boulder/identifier"
 )
 
 const Unspecified = "Unspecified"
@@ -213,7 +208,7 @@ func GetBuildHost() (retID string) {
 // IsAnyNilOrZero returns whether any of the supplied values are nil, or (if not)
 // if any of them is its type's zero-value. This is useful for validating that
 // all required fields on a proto message are present.
-func IsAnyNilOrZero(vals ...any) bool {
+func IsAnyNilOrZero(vals ...interface{}) bool {
 	for _, val := range vals {
 		switch v := val.(type) {
 		case nil:
@@ -321,15 +316,11 @@ func UniqueLowerNames(names []string) (unique []string) {
 	return
 }
 
-// HashIdentifiers returns a hash of the identifiers requested. This is intended
-// for use when interacting with the orderFqdnSets table and rate limiting.
-func HashIdentifiers(idents identifier.ACMEIdentifiers) []byte {
-	var values []string
-	for _, ident := range identifier.Normalize(idents) {
-		values = append(values, ident.Value)
-	}
-
-	hash := sha256.Sum256([]byte(strings.Join(values, ",")))
+// HashNames returns a hash of the names requested. This is intended for use
+// when interacting with the orderFqdnSets table and rate limiting.
+func HashNames(names []string) []byte {
+	names = UniqueLowerNames(names)
+	hash := sha256.Sum256([]byte(strings.Join(names, ",")))
 	return hash[:]
 }
 
@@ -385,14 +376,6 @@ func IsASCII(str string) bool {
 		}
 	}
 	return true
-}
-
-// IsCanceled returns true if err is non-nil and is either context.Canceled, or
-// has a grpc code of Canceled. This is useful because cancellations propagate
-// through gRPC boundaries, and if we choose to treat in-process cancellations a
-// certain way, we usually want to treat cross-process cancellations the same way.
-func IsCanceled(err error) bool {
-	return errors.Is(err, context.Canceled) || status.Code(err) == codes.Canceled
 }
 
 func Command() string {

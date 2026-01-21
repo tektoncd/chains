@@ -2,11 +2,10 @@ package twwidth
 
 import (
 	"bytes"
+	"github.com/mattn/go-runewidth"
 	"regexp"
 	"strings"
 	"sync"
-
-	"github.com/mattn/go-runewidth"
 )
 
 // condition holds the global runewidth configuration, including East Asian width settings.
@@ -36,15 +35,15 @@ var widthCache map[cacheKey]int
 // including CSI (Control Sequence Introducer) and OSC (Operating System Command) sequences.
 // The returned regex can be used to strip ANSI codes from strings.
 func Filter() *regexp.Regexp {
-	regESC := "\x1b" // ASCII escape character
-	regBEL := "\x07" // ASCII bell character
+	var regESC = "\x1b" // ASCII escape character
+	var regBEL = "\x07" // ASCII bell character
 
 	// ANSI string terminator: either ESC+\ or BEL
-	regST := "(" + regexp.QuoteMeta(regESC+"\\") + "|" + regexp.QuoteMeta(regBEL) + ")"
+	var regST = "(" + regexp.QuoteMeta(regESC+"\\") + "|" + regexp.QuoteMeta(regBEL) + ")"
 	// Control Sequence Introducer (CSI): ESC[ followed by parameters and a final byte
-	regCSI := regexp.QuoteMeta(regESC+"[") + "[\x30-\x3f]*[\x20-\x2f]*[\x40-\x7e]"
+	var regCSI = regexp.QuoteMeta(regESC+"[") + "[\x30-\x3f]*[\x20-\x2f]*[\x40-\x7e]"
 	// Operating System Command (OSC): ESC] followed by arbitrary content until a terminator
-	regOSC := regexp.QuoteMeta(regESC+"]") + ".*?" + regST
+	var regOSC = regexp.QuoteMeta(regESC+"]") + ".*?" + regST
 
 	// Combine CSI and OSC patterns into a single regex
 	return regexp.MustCompile("(" + regCSI + "|" + regOSC + ")")
@@ -258,12 +257,11 @@ func Truncate(s string, maxWidth int, suffix ...string) string {
 			terminated := false
 			if seqLen >= 2 {
 				introducer := seqBytes[1]
-				switch introducer {
-				case '[':
+				if introducer == '[' {
 					if seqLen >= 3 && r >= 0x40 && r <= 0x7E {
 						terminated = true
 					}
-				case ']':
+				} else if introducer == ']' {
 					if r == '\x07' {
 						terminated = true
 					} else if seqLen > 1 && seqBytes[seqLen-2] == '\x1b' && r == '\\' { // Check for ST: \x1b\

@@ -24,7 +24,6 @@ package models
 import (
 	"context"
 	"encoding/json"
-	stderrors "errors"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -73,15 +72,11 @@ func (m *JarV001Schema) validateArchive(formats strfmt.Registry) error {
 
 	if m.Archive != nil {
 		if err := m.Archive.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("archive")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("archive")
 			}
-
 			return err
 		}
 	}
@@ -96,15 +91,11 @@ func (m *JarV001Schema) validateSignature(formats strfmt.Registry) error {
 
 	if m.Signature != nil {
 		if err := m.Signature.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("signature")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("signature")
 			}
-
 			return err
 		}
 	}
@@ -135,15 +126,11 @@ func (m *JarV001Schema) contextValidateArchive(ctx context.Context, formats strf
 	if m.Archive != nil {
 
 		if err := m.Archive.ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("archive")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("archive")
 			}
-
 			return err
 		}
 	}
@@ -160,15 +147,11 @@ func (m *JarV001Schema) contextValidateSignature(ctx context.Context, formats st
 		}
 
 		if err := m.Signature.ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("signature")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("signature")
 			}
-
 			return err
 		}
 	}
@@ -228,15 +211,11 @@ func (m *JarV001SchemaArchive) validateHash(formats strfmt.Registry) error {
 
 	if m.Hash != nil {
 		if err := m.Hash.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("archive" + "." + "hash")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("archive" + "." + "hash")
 			}
-
 			return err
 		}
 	}
@@ -267,15 +246,11 @@ func (m *JarV001SchemaArchive) contextValidateHash(ctx context.Context, formats 
 		}
 
 		if err := m.Hash.ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("archive" + "." + "hash")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("archive" + "." + "hash")
 			}
-
 			return err
 		}
 	}
@@ -334,7 +309,7 @@ func (m *JarV001SchemaArchiveHash) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-var jarV001SchemaArchiveHashTypeAlgorithmPropEnum []any
+var jarV001SchemaArchiveHashTypeAlgorithmPropEnum []interface{}
 
 func init() {
 	var res []string
@@ -442,7 +417,7 @@ func (m *JarV001SchemaSignature) Validate(formats strfmt.Registry) error {
 
 func (m *JarV001SchemaSignature) validateContent(formats strfmt.Registry) error {
 
-	if err := validate.Required("signature"+"."+"content", "body", m.Content); err != nil {
+	if err := validate.Required("signature"+"."+"content", "body", strfmt.Base64(m.Content)); err != nil {
 		return err
 	}
 
@@ -457,15 +432,11 @@ func (m *JarV001SchemaSignature) validatePublicKey(formats strfmt.Registry) erro
 
 	if m.PublicKey != nil {
 		if err := m.PublicKey.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("signature" + "." + "publicKey")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("signature" + "." + "publicKey")
 			}
-
 			return err
 		}
 	}
@@ -493,7 +464,7 @@ func (m *JarV001SchemaSignature) ContextValidate(ctx context.Context, formats st
 
 func (m *JarV001SchemaSignature) contextValidateContent(ctx context.Context, formats strfmt.Registry) error {
 
-	if err := validate.ReadOnly(ctx, "signature"+"."+"content", "body", m.Content); err != nil {
+	if err := validate.ReadOnly(ctx, "signature"+"."+"content", "body", strfmt.Base64(m.Content)); err != nil {
 		return err
 	}
 
@@ -505,15 +476,11 @@ func (m *JarV001SchemaSignature) contextValidatePublicKey(ctx context.Context, f
 	if m.PublicKey != nil {
 
 		if err := m.PublicKey.ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("signature" + "." + "publicKey")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("signature" + "." + "publicKey")
 			}
-
 			return err
 		}
 	}

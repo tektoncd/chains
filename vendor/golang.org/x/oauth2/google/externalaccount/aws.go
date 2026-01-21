@@ -5,6 +5,7 @@
 package externalaccount
 
 import (
+	"bytes"
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
@@ -147,13 +148,13 @@ func canonicalHeaders(req *http.Request) (string, string) {
 	}
 	sort.Strings(headers)
 
-	var fullHeaders strings.Builder
+	var fullHeaders bytes.Buffer
 	for _, header := range headers {
 		headerValue := strings.Join(lowerCaseHeaders[header], ",")
 		fullHeaders.WriteString(header)
-		fullHeaders.WriteByte(':')
+		fullHeaders.WriteRune(':')
 		fullHeaders.WriteString(headerValue)
-		fullHeaders.WriteByte('\n')
+		fullHeaders.WriteRune('\n')
 	}
 
 	return strings.Join(headers, ";"), fullHeaders.String()

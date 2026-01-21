@@ -24,7 +24,6 @@ package models
 import (
 	"context"
 	"encoding/json"
-	stderrors "errors"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -88,15 +87,11 @@ func (m *DSSEV001Schema) validateEnvelopeHash(formats strfmt.Registry) error {
 
 	if m.EnvelopeHash != nil {
 		if err := m.EnvelopeHash.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("envelopeHash")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("envelopeHash")
 			}
-
 			return err
 		}
 	}
@@ -111,15 +106,11 @@ func (m *DSSEV001Schema) validatePayloadHash(formats strfmt.Registry) error {
 
 	if m.PayloadHash != nil {
 		if err := m.PayloadHash.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("payloadHash")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("payloadHash")
 			}
-
 			return err
 		}
 	}
@@ -134,15 +125,11 @@ func (m *DSSEV001Schema) validateProposedContent(formats strfmt.Registry) error 
 
 	if m.ProposedContent != nil {
 		if err := m.ProposedContent.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("proposedContent")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("proposedContent")
 			}
-
 			return err
 		}
 	}
@@ -168,15 +155,11 @@ func (m *DSSEV001Schema) validateSignatures(formats strfmt.Registry) error {
 
 		if m.Signatures[i] != nil {
 			if err := m.Signatures[i].Validate(formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("signatures" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("signatures" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -221,15 +204,11 @@ func (m *DSSEV001Schema) contextValidateEnvelopeHash(ctx context.Context, format
 		}
 
 		if err := m.EnvelopeHash.ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("envelopeHash")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("envelopeHash")
 			}
-
 			return err
 		}
 	}
@@ -246,15 +225,11 @@ func (m *DSSEV001Schema) contextValidatePayloadHash(ctx context.Context, formats
 		}
 
 		if err := m.PayloadHash.ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("payloadHash")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("payloadHash")
 			}
-
 			return err
 		}
 	}
@@ -271,15 +246,11 @@ func (m *DSSEV001Schema) contextValidateProposedContent(ctx context.Context, for
 		}
 
 		if err := m.ProposedContent.ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("proposedContent")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("proposedContent")
 			}
-
 			return err
 		}
 	}
@@ -289,7 +260,7 @@ func (m *DSSEV001Schema) contextValidateProposedContent(ctx context.Context, for
 
 func (m *DSSEV001Schema) contextValidateSignatures(ctx context.Context, formats strfmt.Registry) error {
 
-	if err := validate.ReadOnly(ctx, "signatures", "body", m.Signatures); err != nil {
+	if err := validate.ReadOnly(ctx, "signatures", "body", []*DSSEV001SchemaSignaturesItems0(m.Signatures)); err != nil {
 		return err
 	}
 
@@ -302,15 +273,11 @@ func (m *DSSEV001Schema) contextValidateSignatures(ctx context.Context, formats 
 			}
 
 			if err := m.Signatures[i].ContextValidate(ctx, formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("signatures" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("signatures" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -371,7 +338,7 @@ func (m *DSSEV001SchemaEnvelopeHash) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-var dsseV001SchemaEnvelopeHashTypeAlgorithmPropEnum []any
+var dsseV001SchemaEnvelopeHashTypeAlgorithmPropEnum []interface{}
 
 func init() {
 	var res []string
@@ -481,7 +448,7 @@ func (m *DSSEV001SchemaPayloadHash) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-var dsseV001SchemaPayloadHashTypeAlgorithmPropEnum []any
+var dsseV001SchemaPayloadHashTypeAlgorithmPropEnum []interface{}
 
 func init() {
 	var res []string

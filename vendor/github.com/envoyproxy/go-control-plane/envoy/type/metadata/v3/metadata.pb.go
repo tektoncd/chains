@@ -22,10 +22,10 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// MetadataKey provides a way to retrieve values from
-// :ref:`Metadata <envoy_v3_api_msg_config.core.v3.Metadata>` using a “key“ and a “path“.
+// MetadataKey provides a general interface using “key“ and “path“ to retrieve value from
+// :ref:`Metadata <envoy_v3_api_msg_config.core.v3.Metadata>`.
 //
-// For example, consider the following Metadata:
+// For example, for the following Metadata:
 //
 // .. code-block:: yaml
 //
@@ -36,7 +36,7 @@ const (
 //	      xyz:
 //	        hello: envoy
 //
-// The following MetadataKey would retrieve the string value "bar" from the Metadata:
+// The following MetadataKey will retrieve a string value "bar" from the Metadata.
 //
 // .. code-block:: yaml
 //
@@ -49,18 +49,15 @@ type MetadataKey struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// The key name of the Metadata from which to retrieve the Struct.
-	// This typically represents a builtin subsystem or custom extension.
+	// The key name of Metadata to retrieve the Struct from the metadata.
+	// Typically, it represents a builtin subsystem or custom extension.
 	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	// The path used to retrieve a specific Value from the Struct.
-	// This can be either a prefix or a full path, depending on the use case.
-	// For example, “[prop, xyz]“ would retrieve a struct or “[prop, foo]“ would retrieve a string
-	// in the example above.
+	// The path to retrieve the Value from the Struct. It can be a prefix or a full path,
+	// e.g. “[prop, xyz]“ for a struct or “[prop, foo]“ for a string in the example,
+	// which depends on the particular scenario.
 	//
-	// .. note::
-	//
-	//	Since only key-type segments are supported, a path cannot specify a list
-	//	unless the list is the last segment.
+	// Note: Due to that only the key type segment is supported, the path can not specify a list
+	// unless the list is the last segment.
 	Path []*MetadataKey_PathSegment `protobuf:"bytes,2,rep,name=path,proto3" json:"path,omitempty"`
 }
 
@@ -110,7 +107,7 @@ func (x *MetadataKey) GetPath() []*MetadataKey_PathSegment {
 	return nil
 }
 
-// Describes different types of metadata sources.
+// Describes what kind of metadata.
 type MetadataKind struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -224,8 +221,8 @@ func (*MetadataKind_Cluster_) isMetadataKind_Kind() {}
 
 func (*MetadataKind_Host_) isMetadataKind_Kind() {}
 
-// Specifies a segment in a path for retrieving values from Metadata.
-// Currently, only key-based segments (field names) are supported.
+// Specifies the segment in a path to retrieve value from Metadata.
+// Currently it is only supported to specify the key, i.e. field name, as one segment of a path.
 type MetadataKey_PathSegment struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -288,7 +285,7 @@ type isMetadataKey_PathSegment_Segment interface {
 }
 
 type MetadataKey_PathSegment_Key struct {
-	// If specified, use this key to retrieve the value in a Struct.
+	// If specified, use the key to retrieve the value in a Struct.
 	Key string `protobuf:"bytes,1,opt,name=key,proto3,oneof"`
 }
 

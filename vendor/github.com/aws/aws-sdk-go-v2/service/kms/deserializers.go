@@ -11382,15 +11382,6 @@ func awsAwsjson11_deserializeDocumentXksProxyConfigurationType(v **types.XksProx
 				sv.VpcEndpointServiceName = ptr.String(jtv)
 			}
 
-		case "VpcEndpointServiceOwner":
-			if value != nil {
-				jtv, ok := value.(string)
-				if !ok {
-					return fmt.Errorf("expected AccountIdType to be of type string, got %T instead", value)
-				}
-				sv.VpcEndpointServiceOwner = ptr.String(jtv)
-			}
-
 		default:
 			_, _ = key, value
 

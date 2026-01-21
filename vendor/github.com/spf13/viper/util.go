@@ -174,7 +174,10 @@ func parseSizeInBytes(sizeStr string) uint {
 		}
 	}
 
-	size := max(cast.ToInt(sizeStr), 0)
+	size := cast.ToInt(sizeStr)
+	if size < 0 {
+		size = 0
+	}
 
 	return safeMul(uint(size), multiplier)
 }

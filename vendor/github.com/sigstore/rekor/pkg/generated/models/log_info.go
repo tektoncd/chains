@@ -23,7 +23,6 @@ package models
 
 import (
 	"context"
-	stderrors "errors"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -102,15 +101,11 @@ func (m *LogInfo) validateInactiveShards(formats strfmt.Registry) error {
 
 		if m.InactiveShards[i] != nil {
 			if err := m.InactiveShards[i].Validate(formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("inactiveShards" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("inactiveShards" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -193,15 +188,11 @@ func (m *LogInfo) contextValidateInactiveShards(ctx context.Context, formats str
 			}
 
 			if err := m.InactiveShards[i].ContextValidate(ctx, formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("inactiveShards" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("inactiveShards" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}

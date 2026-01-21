@@ -1,5 +1,16 @@
-// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
-// SPDX-License-Identifier: Apache-2.0
+// Copyright 2015 go-swagger maintainers
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package untyped
 
@@ -18,10 +29,25 @@ import (
 	"github.com/go-openapi/runtime"
 )
 
-const (
-	smallPreallocatedSlots  = 10
-	mediumPreallocatedSlots = 30
-)
+// NewAPI creates the default untyped API
+func NewAPI(spec *loads.Document) *API {
+	var an *analysis.Spec
+	if spec != nil && spec.Spec() != nil {
+		an = analysis.New(spec.Spec())
+	}
+	api := &API{
+		spec:           spec,
+		analyzer:       an,
+		consumers:      make(map[string]runtime.Consumer, 10),
+		producers:      make(map[string]runtime.Producer, 10),
+		authenticators: make(map[string]runtime.Authenticator),
+		operations:     make(map[string]map[string]runtime.OperationHandler),
+		ServeError:     errors.ServeError,
+		Models:         make(map[string]func() interface{}),
+		formats:        strfmt.NewFormats(),
+	}
+	return api.WithJSONDefaults()
+}
 
 // API represents an untyped mux for a swagger spec
 type API struct {
@@ -35,29 +61,8 @@ type API struct {
 	authorizer      runtime.Authorizer
 	operations      map[string]map[string]runtime.OperationHandler
 	ServeError      func(http.ResponseWriter, *http.Request, error)
-	Models          map[string]func() any
+	Models          map[string]func() interface{}
 	formats         strfmt.Registry
-}
-
-// NewAPI creates the default untyped API
-func NewAPI(spec *loads.Document) *API {
-	var an *analysis.Spec
-	if spec != nil && spec.Spec() != nil {
-		an = analysis.New(spec.Spec())
-	}
-	api := &API{
-		spec:           spec,
-		analyzer:       an,
-		consumers:      make(map[string]runtime.Consumer, smallPreallocatedSlots),
-		producers:      make(map[string]runtime.Producer, smallPreallocatedSlots),
-		authenticators: make(map[string]runtime.Authenticator),
-		operations:     make(map[string]map[string]runtime.OperationHandler),
-		ServeError:     errors.ServeError,
-		Models:         make(map[string]func() any),
-		formats:        strfmt.NewFormats(),
-	}
-
-	return api.WithJSONDefaults()
 }
 
 // WithJSONDefaults loads the json defaults for this api
@@ -110,7 +115,7 @@ func (d *API) RegisterAuthorizer(handler runtime.Authorizer) {
 // RegisterConsumer registers a consumer for a media type.
 func (d *API) RegisterConsumer(mediaType string, handler runtime.Consumer) {
 	if d.consumers == nil {
-		d.consumers = make(map[string]runtime.Consumer, smallPreallocatedSlots)
+		d.consumers = make(map[string]runtime.Consumer, 10)
 	}
 	d.consumers[strings.ToLower(mediaType)] = handler
 }
@@ -118,7 +123,7 @@ func (d *API) RegisterConsumer(mediaType string, handler runtime.Consumer) {
 // RegisterProducer registers a producer for a media type
 func (d *API) RegisterProducer(mediaType string, handler runtime.Producer) {
 	if d.producers == nil {
-		d.producers = make(map[string]runtime.Producer, smallPreallocatedSlots)
+		d.producers = make(map[string]runtime.Producer, 10)
 	}
 	d.producers[strings.ToLower(mediaType)] = handler
 }
@@ -126,7 +131,7 @@ func (d *API) RegisterProducer(mediaType string, handler runtime.Producer) {
 // RegisterOperation registers an operation handler for an operation name
 func (d *API) RegisterOperation(method, path string, handler runtime.OperationHandler) {
 	if d.operations == nil {
-		d.operations = make(map[string]map[string]runtime.OperationHandler, mediumPreallocatedSlots)
+		d.operations = make(map[string]map[string]runtime.OperationHandler, 30)
 	}
 	um := strings.ToUpper(method)
 	if b, ok := d.operations[um]; !ok || b == nil {
