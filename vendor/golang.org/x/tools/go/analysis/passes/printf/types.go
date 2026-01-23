@@ -72,7 +72,7 @@ func (m *argMatcher) match(typ types.Type, topLevel bool) bool {
 		return true
 	}
 
-	if typ, _ := typ.(*typeparams.TypeParam); typ != nil {
+	if typ, _ := types.Unalias(typ).(*types.TypeParam); typ != nil {
 		// Avoid infinite recursion through type parameters.
 		if m.seen[typ] {
 			return true
@@ -204,8 +204,7 @@ func (m *argMatcher) match(typ types.Type, topLevel bool) bool {
 	case *types.Struct:
 		// report whether all the elements of the struct match the expected type. For
 		// instance, with "%d" all the elements must be printable with the "%d" format.
-		for i := 0; i < typ.NumFields(); i++ {
-			typf := typ.Field(i)
+		for typf := range typ.Fields() {
 			if !m.match(typf.Type(), false) {
 				return false
 			}
@@ -275,7 +274,7 @@ func (m *argMatcher) match(typ types.Type, topLevel bool) bool {
 }
 
 func isConvertibleToString(typ types.Type) bool {
-	if bt, ok := typ.(*types.Basic); ok && bt.Kind() == types.UntypedNil {
+	if bt, ok := types.Unalias(typ).(*types.Basic); ok && bt.Kind() == types.UntypedNil {
 		// We explicitly don't want untyped nil, which is
 		// convertible to both of the interfaces below, as it
 		// would just panic anyway.

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
+
 package client
 
 import (
@@ -48,8 +51,7 @@ func (d *drainingReadCloser) Close() error {
 		// If the reader side (a HTTP server) is misbehaving, it still may send
 		// some bytes, but the closer ignores them to keep the underling
 		// connection open.
-		//nolint:errcheck
-		io.Copy(io.Discard, d.rdr)
+		_, _ = io.Copy(io.Discard, d.rdr)
 	}
 	return d.rdr.Close()
 }

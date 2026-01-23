@@ -19,13 +19,11 @@ import (
 	"fmt"
 	"net/url"
 
+	"github.com/in-toto/in-toto-golang/in_toto"
 	slsa02 "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	slsa1 "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v1"
-
-	"github.com/in-toto/in-toto-golang/in_toto"
-	"github.com/spf13/cobra"
-
 	"github.com/sigstore/cosign/v2/pkg/cosign/attestation"
+	"github.com/spf13/cobra"
 )
 
 const (
@@ -38,6 +36,7 @@ const (
 	PredicateCycloneDX = "cyclonedx"
 	PredicateLink      = "link"
 	PredicateVuln      = "vuln"
+	PredicateOpenVEX   = "openvex"
 )
 
 // PredicateTypeMap is the mapping between the predicate `type` option to predicate URI.
@@ -51,6 +50,7 @@ var PredicateTypeMap = map[string]string{
 	PredicateCycloneDX: in_toto.PredicateCycloneDX,
 	PredicateLink:      in_toto.PredicateLinkV1,
 	PredicateVuln:      attestation.CosignVulnProvenanceV01,
+	PredicateOpenVEX:   attestation.OpenVexNamespace,
 }
 
 // PredicateOptions is the wrapper for predicate related options.
@@ -63,7 +63,7 @@ var _ Interface = (*PredicateOptions)(nil)
 // AddFlags implements Interface
 func (o *PredicateOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&o.Type, "type", "custom",
-		"specify a predicate type (slsaprovenance|slsaprovenance02|slsaprovenance1|link|spdx|spdxjson|cyclonedx|vuln|custom) or an URI")
+		"specify a predicate type (slsaprovenance|slsaprovenance02|slsaprovenance1|link|spdx|spdxjson|cyclonedx|vuln|openvex|custom) or an URI")
 }
 
 // ParsePredicateType parses the predicate `type` flag passed into a predicate URI, or validates `type` is a valid URI.
@@ -81,7 +81,8 @@ func ParsePredicateType(t string) (string, error) {
 // PredicateLocalOptions is the wrapper for predicate related options.
 type PredicateLocalOptions struct {
 	PredicateOptions
-	Path string
+	Path      string
+	Statement string
 }
 
 var _ Interface = (*PredicateLocalOptions)(nil)
@@ -92,7 +93,11 @@ func (o *PredicateLocalOptions) AddFlags(cmd *cobra.Command) {
 
 	cmd.Flags().StringVar(&o.Path, "predicate", "",
 		"path to the predicate file.")
-	_ = cmd.MarkFlagRequired("predicate")
+
+	cmd.Flags().StringVar(&o.Statement, "statement", "",
+		"path to the statement file.")
+
+	cmd.MarkFlagsOneRequired("predicate", "statement")
 }
 
 // PredicateRemoteOptions is the wrapper for remote predicate related options.

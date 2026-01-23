@@ -17,9 +17,11 @@ package log
 
 import (
 	"context"
+	"fmt"
 	"log"
 
-	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/chi/v5/middleware"
+	internallog "github.com/sigstore/rekor/pkg/internal/log"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -27,11 +29,13 @@ import (
 // Logger set the default logger to development mode
 var Logger *zap.SugaredLogger
 
+var traceStringPrefix string
+
 func init() {
-	ConfigureLogger("dev")
+	ConfigureLogger("dev", "")
 }
 
-func ConfigureLogger(logType string) {
+func ConfigureLogger(logType, traceStrPrefix string) {
 	var cfg zap.Config
 	if logType == "prod" {
 		cfg = zap.NewProductionConfig()
@@ -39,7 +43,7 @@ func ConfigureLogger(logType string) {
 		cfg.EncoderConfig.MessageKey = "message"
 		cfg.EncoderConfig.TimeKey = "time"
 		cfg.EncoderConfig.EncodeLevel = encodeLevel()
-		cfg.EncoderConfig.EncodeTime = zapcore.RFC3339TimeEncoder
+		cfg.EncoderConfig.EncodeTime = zapcore.RFC3339NanoTimeEncoder
 		cfg.EncoderConfig.EncodeDuration = zapcore.SecondsDurationEncoder
 		cfg.EncoderConfig.EncodeCaller = zapcore.FullCallerEncoder
 	} else {
@@ -51,6 +55,11 @@ func ConfigureLogger(logType string) {
 		log.Fatalln("createLogger", err)
 	}
 	Logger = logger.Sugar()
+	internallog.Logger = Logger
+
+	if traceStrPrefix != "" {
+		traceStringPrefix = traceStrPrefix
+	}
 }
 
 func encodeLevel() zapcore.LevelEncoder {
@@ -109,6 +118,9 @@ func ContextLogger(ctx context.Context) *zap.SugaredLogger {
 		if ctxRequestID, ok := ctx.Value(middleware.RequestIDKey).(string); ok {
 			requestID := operation{ctxRequestID}
 			proposedLogger = proposedLogger.With(zap.Object("operation", requestID))
+			if traceStringPrefix != "" {
+				proposedLogger = proposedLogger.With(zap.String("logging.googleapis.com/trace", fmt.Sprintf("%s/%s", traceStringPrefix, ctxRequestID)))
+			}
 		}
 	}
 	return proposedLogger

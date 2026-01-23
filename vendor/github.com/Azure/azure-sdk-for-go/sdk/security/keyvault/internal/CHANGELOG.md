@@ -1,5 +1,31 @@
 # Release History
 
+## 1.2.0 (2025-06-12)
+
+### Other Changes
+* Upgrade dependencies
+
+## 1.2.0-beta.1 (2025-03-11)
+
+### Features Added
+* Added fakes support
+
+## 1.1.1 (2025-02-13)
+
+### Bugs Fixed
+* Fixed data race when using Client from multiple goroutines concurrently (thanks, @strager)
+
+## 1.1.0 (2024-10-21)
+
+### Features Added
+* Added CAE support
+* `KeyVaultChallengePolicy` always requests tokens from the Vault's tenant, overriding any credential default
+
+## 1.0.1 (2024-04-09)
+
+### Other Changes
+* Upgraded dependencies
+
 ## 1.0.0 (2023-08-15)
 
 ### Features Added

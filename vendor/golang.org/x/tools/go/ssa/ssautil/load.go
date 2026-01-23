@@ -11,17 +11,15 @@ import (
 	"go/token"
 	"go/types"
 
-	"golang.org/x/tools/go/loader"
 	"golang.org/x/tools/go/packages"
 	"golang.org/x/tools/go/ssa"
-	"golang.org/x/tools/internal/typeparams"
 )
 
 // Packages creates an SSA program for a set of packages.
 //
 // The packages must have been loaded from source syntax using the
-// golang.org/x/tools/go/packages.Load function in LoadSyntax or
-// LoadAllSyntax mode.
+// [packages.Load] function in [packages.LoadSyntax] or
+// [packages.LoadAllSyntax] mode.
 //
 // Packages creates an SSA package for each well-typed package in the
 // initial list, plus all their dependencies. The resulting list of
@@ -29,9 +27,9 @@ import (
 // a nil if SSA code could not be constructed for the corresponding initial
 // package due to type errors.
 //
-// Code for bodies of functions is not built until Build is called on
-// the resulting Program. SSA code is constructed only for the initial
-// packages with well-typed syntax trees.
+// Code for bodies of functions is not built until [Program.Build] is
+// called on the resulting Program. SSA code is constructed only for
+// the initial packages with well-typed syntax trees.
 //
 // The mode parameter controls diagnostics and checking during SSA construction.
 func Packages(initial []*packages.Package, mode ssa.BuilderMode) (*ssa.Program, []*ssa.Package) {
@@ -60,7 +58,7 @@ func Packages(initial []*packages.Package, mode ssa.BuilderMode) (*ssa.Program, 
 // their dependencies.
 //
 // The packages must have been loaded from source syntax using the
-// golang.org/x/tools/go/packages.Load function in LoadAllSyntax mode.
+// [packages.Load] function in [packages.LoadAllSyntax] mode.
 //
 // AllPackages creates an SSA package for each well-typed package in the
 // initial list, plus all their dependencies. The resulting list of
@@ -111,39 +109,17 @@ func doPackages(initial []*packages.Package, mode ssa.BuilderMode, deps bool) (*
 	return prog, ssapkgs
 }
 
-// CreateProgram returns a new program in SSA form, given a program
-// loaded from source.  An SSA package is created for each transitively
-// error-free package of lprog.
+// BuildPackage builds an SSA program with SSA intermediate
+// representation (IR) for all functions of a single package.
 //
-// Code for bodies of functions is not built until Build is called
-// on the result.
-//
-// The mode parameter controls diagnostics and checking during SSA construction.
-//
-// Deprecated: Use golang.org/x/tools/go/packages and the Packages
-// function instead; see ssa.Example_loadPackages.
-func CreateProgram(lprog *loader.Program, mode ssa.BuilderMode) *ssa.Program {
-	prog := ssa.NewProgram(lprog.Fset, mode)
-
-	for _, info := range lprog.AllPackages {
-		if info.TransitivelyErrorFree {
-			prog.CreatePackage(info.Pkg, info.Files, &info.Info, info.Importable)
-		}
-	}
-
-	return prog
-}
-
-// BuildPackage builds an SSA program with IR for a single package.
-//
-// It populates pkg by type-checking the specified file ASTs.  All
+// It populates pkg by type-checking the specified file syntax trees.  All
 // dependencies are loaded using the importer specified by tc, which
 // typically loads compiler export data; SSA code cannot be built for
-// those packages.  BuildPackage then constructs an ssa.Program with all
+// those packages.  BuildPackage then constructs an [ssa.Program] with all
 // dependency packages created, and builds and returns the SSA package
 // corresponding to pkg.
 //
-// The caller must have set pkg.Path() to the import path.
+// The caller must have set pkg.Path to the import path.
 //
 // The operation fails if there were any type-checking or import errors.
 //
@@ -157,15 +133,15 @@ func BuildPackage(tc *types.Config, fset *token.FileSet, pkg *types.Package, fil
 	}
 
 	info := &types.Info{
-		Types:      make(map[ast.Expr]types.TypeAndValue),
-		Defs:       make(map[*ast.Ident]types.Object),
-		Uses:       make(map[*ast.Ident]types.Object),
-		Implicits:  make(map[ast.Node]types.Object),
-		Scopes:     make(map[ast.Node]*types.Scope),
-		Selections: make(map[*ast.SelectorExpr]*types.Selection),
+		Types:        make(map[ast.Expr]types.TypeAndValue),
+		Defs:         make(map[*ast.Ident]types.Object),
+		Uses:         make(map[*ast.Ident]types.Object),
+		Implicits:    make(map[ast.Node]types.Object),
+		Instances:    make(map[*ast.Ident]types.Instance),
+		Scopes:       make(map[ast.Node]*types.Scope),
+		Selections:   make(map[*ast.SelectorExpr]*types.Selection),
+		FileVersions: make(map[*ast.File]string),
 	}
-	typeparams.InitInstanceInfo(info)
-	// versions.InitFileVersions(info) // TODO(taking): Enable when internal/versions is available.
 	if err := types.NewChecker(tc, fset, pkg, info).Files(files); err != nil {
 		return nil, nil, err
 	}
