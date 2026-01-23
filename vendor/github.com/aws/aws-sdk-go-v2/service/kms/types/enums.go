@@ -11,11 +11,13 @@ const (
 	AlgorithmSpecRsaesOaepSha256     AlgorithmSpec = "RSAES_OAEP_SHA_256"
 	AlgorithmSpecRsaAesKeyWrapSha1   AlgorithmSpec = "RSA_AES_KEY_WRAP_SHA_1"
 	AlgorithmSpecRsaAesKeyWrapSha256 AlgorithmSpec = "RSA_AES_KEY_WRAP_SHA_256"
+	AlgorithmSpecSm2pke              AlgorithmSpec = "SM2PKE"
 )
 
 // Values returns all known values for AlgorithmSpec. Note that this can be
-// expanded in the future, and so it is only as up to date as the client. The
-// ordering of this slice is not guaranteed to be stable across updates.
+// expanded in the future, and so it is only as up to date as the client.
+//
+// The ordering of this slice is not guaranteed to be stable across updates.
 func (AlgorithmSpec) Values() []AlgorithmSpec {
 	return []AlgorithmSpec{
 		"RSAES_PKCS1_V1_5",
@@ -23,6 +25,7 @@ func (AlgorithmSpec) Values() []AlgorithmSpec {
 		"RSAES_OAEP_SHA_256",
 		"RSA_AES_KEY_WRAP_SHA_1",
 		"RSA_AES_KEY_WRAP_SHA_256",
+		"SM2PKE",
 	}
 }
 
@@ -51,8 +54,9 @@ const (
 )
 
 // Values returns all known values for ConnectionErrorCodeType. Note that this can
-// be expanded in the future, and so it is only as up to date as the client. The
-// ordering of this slice is not guaranteed to be stable across updates.
+// be expanded in the future, and so it is only as up to date as the client.
+//
+// The ordering of this slice is not guaranteed to be stable across updates.
 func (ConnectionErrorCodeType) Values() []ConnectionErrorCodeType {
 	return []ConnectionErrorCodeType{
 		"INVALID_CREDENTIALS",
@@ -88,8 +92,9 @@ const (
 )
 
 // Values returns all known values for ConnectionStateType. Note that this can be
-// expanded in the future, and so it is only as up to date as the client. The
-// ordering of this slice is not guaranteed to be stable across updates.
+// expanded in the future, and so it is only as up to date as the client.
+//
+// The ordering of this slice is not guaranteed to be stable across updates.
 func (ConnectionStateType) Values() []ConnectionStateType {
 	return []ConnectionStateType{
 		"CONNECTED",
@@ -120,8 +125,9 @@ const (
 )
 
 // Values returns all known values for CustomerMasterKeySpec. Note that this can
-// be expanded in the future, and so it is only as up to date as the client. The
-// ordering of this slice is not guaranteed to be stable across updates.
+// be expanded in the future, and so it is only as up to date as the client.
+//
+// The ordering of this slice is not guaranteed to be stable across updates.
 func (CustomerMasterKeySpec) Values() []CustomerMasterKeySpec {
 	return []CustomerMasterKeySpec{
 		"RSA_2048",
@@ -149,8 +155,9 @@ const (
 )
 
 // Values returns all known values for CustomKeyStoreType. Note that this can be
-// expanded in the future, and so it is only as up to date as the client. The
-// ordering of this slice is not guaranteed to be stable across updates.
+// expanded in the future, and so it is only as up to date as the client.
+//
+// The ordering of this slice is not guaranteed to be stable across updates.
 func (CustomKeyStoreType) Values() []CustomKeyStoreType {
 	return []CustomKeyStoreType{
 		"AWS_CLOUDHSM",
@@ -162,19 +169,21 @@ type DataKeyPairSpec string
 
 // Enum values for DataKeyPairSpec
 const (
-	DataKeyPairSpecRsa2048       DataKeyPairSpec = "RSA_2048"
-	DataKeyPairSpecRsa3072       DataKeyPairSpec = "RSA_3072"
-	DataKeyPairSpecRsa4096       DataKeyPairSpec = "RSA_4096"
-	DataKeyPairSpecEccNistP256   DataKeyPairSpec = "ECC_NIST_P256"
-	DataKeyPairSpecEccNistP384   DataKeyPairSpec = "ECC_NIST_P384"
-	DataKeyPairSpecEccNistP521   DataKeyPairSpec = "ECC_NIST_P521"
-	DataKeyPairSpecEccSecgP256k1 DataKeyPairSpec = "ECC_SECG_P256K1"
-	DataKeyPairSpecSm2           DataKeyPairSpec = "SM2"
+	DataKeyPairSpecRsa2048             DataKeyPairSpec = "RSA_2048"
+	DataKeyPairSpecRsa3072             DataKeyPairSpec = "RSA_3072"
+	DataKeyPairSpecRsa4096             DataKeyPairSpec = "RSA_4096"
+	DataKeyPairSpecEccNistP256         DataKeyPairSpec = "ECC_NIST_P256"
+	DataKeyPairSpecEccNistP384         DataKeyPairSpec = "ECC_NIST_P384"
+	DataKeyPairSpecEccNistP521         DataKeyPairSpec = "ECC_NIST_P521"
+	DataKeyPairSpecEccSecgP256k1       DataKeyPairSpec = "ECC_SECG_P256K1"
+	DataKeyPairSpecSm2                 DataKeyPairSpec = "SM2"
+	DataKeyPairSpecEccNistEdwards25519 DataKeyPairSpec = "ECC_NIST_EDWARDS25519"
 )
 
 // Values returns all known values for DataKeyPairSpec. Note that this can be
-// expanded in the future, and so it is only as up to date as the client. The
-// ordering of this slice is not guaranteed to be stable across updates.
+// expanded in the future, and so it is only as up to date as the client.
+//
+// The ordering of this slice is not guaranteed to be stable across updates.
 func (DataKeyPairSpec) Values() []DataKeyPairSpec {
 	return []DataKeyPairSpec{
 		"RSA_2048",
@@ -185,6 +194,7 @@ func (DataKeyPairSpec) Values() []DataKeyPairSpec {
 		"ECC_NIST_P521",
 		"ECC_SECG_P256K1",
 		"SM2",
+		"ECC_NIST_EDWARDS25519",
 	}
 }
 
@@ -197,8 +207,9 @@ const (
 )
 
 // Values returns all known values for DataKeySpec. Note that this can be expanded
-// in the future, and so it is only as up to date as the client. The ordering of
-// this slice is not guaranteed to be stable across updates.
+// in the future, and so it is only as up to date as the client.
+//
+// The ordering of this slice is not guaranteed to be stable across updates.
 func (DataKeySpec) Values() []DataKeySpec {
 	return []DataKeySpec{
 		"AES_256",
@@ -217,8 +228,9 @@ const (
 )
 
 // Values returns all known values for EncryptionAlgorithmSpec. Note that this can
-// be expanded in the future, and so it is only as up to date as the client. The
-// ordering of this slice is not guaranteed to be stable across updates.
+// be expanded in the future, and so it is only as up to date as the client.
+//
+// The ordering of this slice is not guaranteed to be stable across updates.
 func (EncryptionAlgorithmSpec) Values() []EncryptionAlgorithmSpec {
 	return []EncryptionAlgorithmSpec{
 		"SYMMETRIC_DEFAULT",
@@ -237,8 +249,9 @@ const (
 )
 
 // Values returns all known values for ExpirationModelType. Note that this can be
-// expanded in the future, and so it is only as up to date as the client. The
-// ordering of this slice is not guaranteed to be stable across updates.
+// expanded in the future, and so it is only as up to date as the client.
+//
+// The ordering of this slice is not guaranteed to be stable across updates.
 func (ExpirationModelType) Values() []ExpirationModelType {
 	return []ExpirationModelType{
 		"KEY_MATERIAL_EXPIRES",
@@ -266,11 +279,13 @@ const (
 	GrantOperationGenerateDataKeyPairWithoutPlaintext GrantOperation = "GenerateDataKeyPairWithoutPlaintext"
 	GrantOperationGenerateMac                         GrantOperation = "GenerateMac"
 	GrantOperationVerifyMac                           GrantOperation = "VerifyMac"
+	GrantOperationDeriveSharedSecret                  GrantOperation = "DeriveSharedSecret"
 )
 
 // Values returns all known values for GrantOperation. Note that this can be
-// expanded in the future, and so it is only as up to date as the client. The
-// ordering of this slice is not guaranteed to be stable across updates.
+// expanded in the future, and so it is only as up to date as the client.
+//
+// The ordering of this slice is not guaranteed to be stable across updates.
 func (GrantOperation) Values() []GrantOperation {
 	return []GrantOperation{
 		"Decrypt",
@@ -289,6 +304,81 @@ func (GrantOperation) Values() []GrantOperation {
 		"GenerateDataKeyPairWithoutPlaintext",
 		"GenerateMac",
 		"VerifyMac",
+		"DeriveSharedSecret",
+	}
+}
+
+type ImportState string
+
+// Enum values for ImportState
+const (
+	ImportStateImported      ImportState = "IMPORTED"
+	ImportStatePendingImport ImportState = "PENDING_IMPORT"
+)
+
+// Values returns all known values for ImportState. Note that this can be expanded
+// in the future, and so it is only as up to date as the client.
+//
+// The ordering of this slice is not guaranteed to be stable across updates.
+func (ImportState) Values() []ImportState {
+	return []ImportState{
+		"IMPORTED",
+		"PENDING_IMPORT",
+	}
+}
+
+type ImportType string
+
+// Enum values for ImportType
+const (
+	ImportTypeNewKeyMaterial      ImportType = "NEW_KEY_MATERIAL"
+	ImportTypeExistingKeyMaterial ImportType = "EXISTING_KEY_MATERIAL"
+)
+
+// Values returns all known values for ImportType. Note that this can be expanded
+// in the future, and so it is only as up to date as the client.
+//
+// The ordering of this slice is not guaranteed to be stable across updates.
+func (ImportType) Values() []ImportType {
+	return []ImportType{
+		"NEW_KEY_MATERIAL",
+		"EXISTING_KEY_MATERIAL",
+	}
+}
+
+type IncludeKeyMaterial string
+
+// Enum values for IncludeKeyMaterial
+const (
+	IncludeKeyMaterialAllKeyMaterial IncludeKeyMaterial = "ALL_KEY_MATERIAL"
+	IncludeKeyMaterialRotationsOnly  IncludeKeyMaterial = "ROTATIONS_ONLY"
+)
+
+// Values returns all known values for IncludeKeyMaterial. Note that this can be
+// expanded in the future, and so it is only as up to date as the client.
+//
+// The ordering of this slice is not guaranteed to be stable across updates.
+func (IncludeKeyMaterial) Values() []IncludeKeyMaterial {
+	return []IncludeKeyMaterial{
+		"ALL_KEY_MATERIAL",
+		"ROTATIONS_ONLY",
+	}
+}
+
+type KeyAgreementAlgorithmSpec string
+
+// Enum values for KeyAgreementAlgorithmSpec
+const (
+	KeyAgreementAlgorithmSpecEcdh KeyAgreementAlgorithmSpec = "ECDH"
+)
+
+// Values returns all known values for KeyAgreementAlgorithmSpec. Note that this
+// can be expanded in the future, and so it is only as up to date as the client.
+//
+// The ordering of this slice is not guaranteed to be stable across updates.
+func (KeyAgreementAlgorithmSpec) Values() []KeyAgreementAlgorithmSpec {
+	return []KeyAgreementAlgorithmSpec{
+		"ECDH",
 	}
 }
 
@@ -300,8 +390,9 @@ const (
 )
 
 // Values returns all known values for KeyEncryptionMechanism. Note that this can
-// be expanded in the future, and so it is only as up to date as the client. The
-// ordering of this slice is not guaranteed to be stable across updates.
+// be expanded in the future, and so it is only as up to date as the client.
+//
+// The ordering of this slice is not guaranteed to be stable across updates.
 func (KeyEncryptionMechanism) Values() []KeyEncryptionMechanism {
 	return []KeyEncryptionMechanism{
 		"RSAES_OAEP_SHA_256",
@@ -317,8 +408,9 @@ const (
 )
 
 // Values returns all known values for KeyManagerType. Note that this can be
-// expanded in the future, and so it is only as up to date as the client. The
-// ordering of this slice is not guaranteed to be stable across updates.
+// expanded in the future, and so it is only as up to date as the client.
+//
+// The ordering of this slice is not guaranteed to be stable across updates.
 func (KeyManagerType) Values() []KeyManagerType {
 	return []KeyManagerType{
 		"AWS",
@@ -326,28 +418,56 @@ func (KeyManagerType) Values() []KeyManagerType {
 	}
 }
 
+type KeyMaterialState string
+
+// Enum values for KeyMaterialState
+const (
+	KeyMaterialStateNonCurrent                          KeyMaterialState = "NON_CURRENT"
+	KeyMaterialStateCurrent                             KeyMaterialState = "CURRENT"
+	KeyMaterialStatePendingRotation                     KeyMaterialState = "PENDING_ROTATION"
+	KeyMaterialStatePendingMultiRegionImportAndRotation KeyMaterialState = "PENDING_MULTI_REGION_IMPORT_AND_ROTATION"
+)
+
+// Values returns all known values for KeyMaterialState. Note that this can be
+// expanded in the future, and so it is only as up to date as the client.
+//
+// The ordering of this slice is not guaranteed to be stable across updates.
+func (KeyMaterialState) Values() []KeyMaterialState {
+	return []KeyMaterialState{
+		"NON_CURRENT",
+		"CURRENT",
+		"PENDING_ROTATION",
+		"PENDING_MULTI_REGION_IMPORT_AND_ROTATION",
+	}
+}
+
 type KeySpec string
 
 // Enum values for KeySpec
 const (
-	KeySpecRsa2048          KeySpec = "RSA_2048"
-	KeySpecRsa3072          KeySpec = "RSA_3072"
-	KeySpecRsa4096          KeySpec = "RSA_4096"
-	KeySpecEccNistP256      KeySpec = "ECC_NIST_P256"
-	KeySpecEccNistP384      KeySpec = "ECC_NIST_P384"
-	KeySpecEccNistP521      KeySpec = "ECC_NIST_P521"
-	KeySpecEccSecgP256k1    KeySpec = "ECC_SECG_P256K1"
-	KeySpecSymmetricDefault KeySpec = "SYMMETRIC_DEFAULT"
-	KeySpecHmac224          KeySpec = "HMAC_224"
-	KeySpecHmac256          KeySpec = "HMAC_256"
-	KeySpecHmac384          KeySpec = "HMAC_384"
-	KeySpecHmac512          KeySpec = "HMAC_512"
-	KeySpecSm2              KeySpec = "SM2"
+	KeySpecRsa2048             KeySpec = "RSA_2048"
+	KeySpecRsa3072             KeySpec = "RSA_3072"
+	KeySpecRsa4096             KeySpec = "RSA_4096"
+	KeySpecEccNistP256         KeySpec = "ECC_NIST_P256"
+	KeySpecEccNistP384         KeySpec = "ECC_NIST_P384"
+	KeySpecEccNistP521         KeySpec = "ECC_NIST_P521"
+	KeySpecEccSecgP256k1       KeySpec = "ECC_SECG_P256K1"
+	KeySpecSymmetricDefault    KeySpec = "SYMMETRIC_DEFAULT"
+	KeySpecHmac224             KeySpec = "HMAC_224"
+	KeySpecHmac256             KeySpec = "HMAC_256"
+	KeySpecHmac384             KeySpec = "HMAC_384"
+	KeySpecHmac512             KeySpec = "HMAC_512"
+	KeySpecSm2                 KeySpec = "SM2"
+	KeySpecMlDsa44             KeySpec = "ML_DSA_44"
+	KeySpecMlDsa65             KeySpec = "ML_DSA_65"
+	KeySpecMlDsa87             KeySpec = "ML_DSA_87"
+	KeySpecEccNistEdwards25519 KeySpec = "ECC_NIST_EDWARDS25519"
 )
 
 // Values returns all known values for KeySpec. Note that this can be expanded in
-// the future, and so it is only as up to date as the client. The ordering of this
-// slice is not guaranteed to be stable across updates.
+// the future, and so it is only as up to date as the client.
+//
+// The ordering of this slice is not guaranteed to be stable across updates.
 func (KeySpec) Values() []KeySpec {
 	return []KeySpec{
 		"RSA_2048",
@@ -363,6 +483,10 @@ func (KeySpec) Values() []KeySpec {
 		"HMAC_384",
 		"HMAC_512",
 		"SM2",
+		"ML_DSA_44",
+		"ML_DSA_65",
+		"ML_DSA_87",
+		"ECC_NIST_EDWARDS25519",
 	}
 }
 
@@ -381,8 +505,9 @@ const (
 )
 
 // Values returns all known values for KeyState. Note that this can be expanded in
-// the future, and so it is only as up to date as the client. The ordering of this
-// slice is not guaranteed to be stable across updates.
+// the future, and so it is only as up to date as the client.
+//
+// The ordering of this slice is not guaranteed to be stable across updates.
 func (KeyState) Values() []KeyState {
 	return []KeyState{
 		"Creating",
@@ -403,16 +528,19 @@ const (
 	KeyUsageTypeSignVerify        KeyUsageType = "SIGN_VERIFY"
 	KeyUsageTypeEncryptDecrypt    KeyUsageType = "ENCRYPT_DECRYPT"
 	KeyUsageTypeGenerateVerifyMac KeyUsageType = "GENERATE_VERIFY_MAC"
+	KeyUsageTypeKeyAgreement      KeyUsageType = "KEY_AGREEMENT"
 )
 
 // Values returns all known values for KeyUsageType. Note that this can be
-// expanded in the future, and so it is only as up to date as the client. The
-// ordering of this slice is not guaranteed to be stable across updates.
+// expanded in the future, and so it is only as up to date as the client.
+//
+// The ordering of this slice is not guaranteed to be stable across updates.
 func (KeyUsageType) Values() []KeyUsageType {
 	return []KeyUsageType{
 		"SIGN_VERIFY",
 		"ENCRYPT_DECRYPT",
 		"GENERATE_VERIFY_MAC",
+		"KEY_AGREEMENT",
 	}
 }
 
@@ -427,8 +555,9 @@ const (
 )
 
 // Values returns all known values for MacAlgorithmSpec. Note that this can be
-// expanded in the future, and so it is only as up to date as the client. The
-// ordering of this slice is not guaranteed to be stable across updates.
+// expanded in the future, and so it is only as up to date as the client.
+//
+// The ordering of this slice is not guaranteed to be stable across updates.
 func (MacAlgorithmSpec) Values() []MacAlgorithmSpec {
 	return []MacAlgorithmSpec{
 		"HMAC_SHA_224",
@@ -442,17 +571,20 @@ type MessageType string
 
 // Enum values for MessageType
 const (
-	MessageTypeRaw    MessageType = "RAW"
-	MessageTypeDigest MessageType = "DIGEST"
+	MessageTypeRaw        MessageType = "RAW"
+	MessageTypeDigest     MessageType = "DIGEST"
+	MessageTypeExternalMu MessageType = "EXTERNAL_MU"
 )
 
 // Values returns all known values for MessageType. Note that this can be expanded
-// in the future, and so it is only as up to date as the client. The ordering of
-// this slice is not guaranteed to be stable across updates.
+// in the future, and so it is only as up to date as the client.
+//
+// The ordering of this slice is not guaranteed to be stable across updates.
 func (MessageType) Values() []MessageType {
 	return []MessageType{
 		"RAW",
 		"DIGEST",
+		"EXTERNAL_MU",
 	}
 }
 
@@ -465,8 +597,9 @@ const (
 )
 
 // Values returns all known values for MultiRegionKeyType. Note that this can be
-// expanded in the future, and so it is only as up to date as the client. The
-// ordering of this slice is not guaranteed to be stable across updates.
+// expanded in the future, and so it is only as up to date as the client.
+//
+// The ordering of this slice is not guaranteed to be stable across updates.
 func (MultiRegionKeyType) Values() []MultiRegionKeyType {
 	return []MultiRegionKeyType{
 		"PRIMARY",
@@ -485,14 +618,34 @@ const (
 )
 
 // Values returns all known values for OriginType. Note that this can be expanded
-// in the future, and so it is only as up to date as the client. The ordering of
-// this slice is not guaranteed to be stable across updates.
+// in the future, and so it is only as up to date as the client.
+//
+// The ordering of this slice is not guaranteed to be stable across updates.
 func (OriginType) Values() []OriginType {
 	return []OriginType{
 		"AWS_KMS",
 		"EXTERNAL",
 		"AWS_CLOUDHSM",
 		"EXTERNAL_KEY_STORE",
+	}
+}
+
+type RotationType string
+
+// Enum values for RotationType
+const (
+	RotationTypeAutomatic RotationType = "AUTOMATIC"
+	RotationTypeOnDemand  RotationType = "ON_DEMAND"
+)
+
+// Values returns all known values for RotationType. Note that this can be
+// expanded in the future, and so it is only as up to date as the client.
+//
+// The ordering of this slice is not guaranteed to be stable across updates.
+func (RotationType) Values() []RotationType {
+	return []RotationType{
+		"AUTOMATIC",
+		"ON_DEMAND",
 	}
 }
 
@@ -510,11 +663,15 @@ const (
 	SigningAlgorithmSpecEcdsaSha384          SigningAlgorithmSpec = "ECDSA_SHA_384"
 	SigningAlgorithmSpecEcdsaSha512          SigningAlgorithmSpec = "ECDSA_SHA_512"
 	SigningAlgorithmSpecSm2dsa               SigningAlgorithmSpec = "SM2DSA"
+	SigningAlgorithmSpecMlDsaShake256        SigningAlgorithmSpec = "ML_DSA_SHAKE_256"
+	SigningAlgorithmSpecEd25519Sha512        SigningAlgorithmSpec = "ED25519_SHA_512"
+	SigningAlgorithmSpecEd25519PhSha512      SigningAlgorithmSpec = "ED25519_PH_SHA_512"
 )
 
 // Values returns all known values for SigningAlgorithmSpec. Note that this can be
-// expanded in the future, and so it is only as up to date as the client. The
-// ordering of this slice is not guaranteed to be stable across updates.
+// expanded in the future, and so it is only as up to date as the client.
+//
+// The ordering of this slice is not guaranteed to be stable across updates.
 func (SigningAlgorithmSpec) Values() []SigningAlgorithmSpec {
 	return []SigningAlgorithmSpec{
 		"RSASSA_PSS_SHA_256",
@@ -527,6 +684,9 @@ func (SigningAlgorithmSpec) Values() []SigningAlgorithmSpec {
 		"ECDSA_SHA_384",
 		"ECDSA_SHA_512",
 		"SM2DSA",
+		"ML_DSA_SHAKE_256",
+		"ED25519_SHA_512",
+		"ED25519_PH_SHA_512",
 	}
 }
 
@@ -537,16 +697,19 @@ const (
 	WrappingKeySpecRsa2048 WrappingKeySpec = "RSA_2048"
 	WrappingKeySpecRsa3072 WrappingKeySpec = "RSA_3072"
 	WrappingKeySpecRsa4096 WrappingKeySpec = "RSA_4096"
+	WrappingKeySpecSm2     WrappingKeySpec = "SM2"
 )
 
 // Values returns all known values for WrappingKeySpec. Note that this can be
-// expanded in the future, and so it is only as up to date as the client. The
-// ordering of this slice is not guaranteed to be stable across updates.
+// expanded in the future, and so it is only as up to date as the client.
+//
+// The ordering of this slice is not guaranteed to be stable across updates.
 func (WrappingKeySpec) Values() []WrappingKeySpec {
 	return []WrappingKeySpec{
 		"RSA_2048",
 		"RSA_3072",
 		"RSA_4096",
+		"SM2",
 	}
 }
 
@@ -560,6 +723,7 @@ const (
 
 // Values returns all known values for XksProxyConnectivityType. Note that this
 // can be expanded in the future, and so it is only as up to date as the client.
+//
 // The ordering of this slice is not guaranteed to be stable across updates.
 func (XksProxyConnectivityType) Values() []XksProxyConnectivityType {
 	return []XksProxyConnectivityType{

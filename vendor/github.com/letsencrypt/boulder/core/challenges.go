@@ -10,27 +10,28 @@ func newChallenge(challengeType AcmeChallenge, token string) Challenge {
 	}
 }
 
-// HTTPChallenge01 constructs a random http-01 challenge. If token is empty a random token
-// will be generated, otherwise the provided token is used.
+// HTTPChallenge01 constructs a http-01 challenge.
 func HTTPChallenge01(token string) Challenge {
 	return newChallenge(ChallengeTypeHTTP01, token)
 }
 
-// DNSChallenge01 constructs a random dns-01 challenge. If token is empty a random token
-// will be generated, otherwise the provided token is used.
+// DNSChallenge01 constructs a dns-01 challenge.
 func DNSChallenge01(token string) Challenge {
 	return newChallenge(ChallengeTypeDNS01, token)
 }
 
-// TLSALPNChallenge01 constructs a random tls-alpn-01 challenge. If token is empty a random token
-// will be generated, otherwise the provided token is used.
+// TLSALPNChallenge01 constructs a tls-alpn-01 challenge.
 func TLSALPNChallenge01(token string) Challenge {
 	return newChallenge(ChallengeTypeTLSALPN01, token)
 }
 
-// NewChallenge constructs a random challenge of the given kind. It returns an
-// error if the challenge type is unrecognized. If token is empty a random token
-// will be generated, otherwise the provided token is used.
+// DNSAccountChallenge01 constructs a dns-account-01 challenge.
+func DNSAccountChallenge01(token string) Challenge {
+	return newChallenge(ChallengeTypeDNSAccount01, token)
+}
+
+// NewChallenge constructs a challenge of the given kind. It returns an
+// error if the challenge type is unrecognized.
 func NewChallenge(kind AcmeChallenge, token string) (Challenge, error) {
 	switch kind {
 	case ChallengeTypeHTTP01:
@@ -39,6 +40,8 @@ func NewChallenge(kind AcmeChallenge, token string) (Challenge, error) {
 		return DNSChallenge01(token), nil
 	case ChallengeTypeTLSALPN01:
 		return TLSALPNChallenge01(token), nil
+	case ChallengeTypeDNSAccount01:
+		return DNSAccountChallenge01(token), nil
 	default:
 		return Challenge{}, fmt.Errorf("unrecognized challenge type %q", kind)
 	}

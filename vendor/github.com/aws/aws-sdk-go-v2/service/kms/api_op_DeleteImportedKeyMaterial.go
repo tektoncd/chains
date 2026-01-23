@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	awsmiddleware "github.com/aws/aws-sdk-go-v2/aws/middleware"
-	"github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/aws/smithy-go/middleware"
 	smithyhttp "github.com/aws/smithy-go/transport/http"
 )
@@ -14,22 +13,44 @@ import (
 // Deletes key material that was previously imported. This operation makes the
 // specified KMS key temporarily unusable. To restore the usability of the KMS key,
 // reimport the same key material. For more information about importing key
-// material into KMS, see Importing Key Material (https://docs.aws.amazon.com/kms/latest/developerguide/importing-keys.html)
-// in the Key Management Service Developer Guide. When the specified KMS key is in
-// the PendingDeletion state, this operation does not change the KMS key's state.
-// Otherwise, it changes the KMS key's state to PendingImport . The KMS key that
-// you use for this operation must be in a compatible key state. For details, see
-// Key states of KMS keys (https://docs.aws.amazon.com/kms/latest/developerguide/key-state.html)
-// in the Key Management Service Developer Guide. Cross-account use: No. You cannot
-// perform this operation on a KMS key in a different Amazon Web Services account.
-// Required permissions: kms:DeleteImportedKeyMaterial (https://docs.aws.amazon.com/kms/latest/developerguide/kms-api-permissions-reference.html)
-// (key policy) Related operations:
-//   - GetParametersForImport
-//   - ImportKeyMaterial
+// material into KMS, see [Importing Key Material]in the Key Management Service Developer Guide.
+//
+// When the specified KMS key is in the PendingDeletion state, this operation does
+// not change the KMS key's state. Otherwise, it changes the KMS key's state to
+// PendingImport .
+//
+// Considerations for multi-Region symmetric encryption keys
+//
+//   - When you delete the key material of a primary Region key that is in
+//     PENDING_ROTATION or PENDING_MULTI_REGION_IMPORT_AND_ROTATION state, you'll
+//     also be deleting the key materials for the replica Region keys.
+//
+//   - If you delete any key material of a replica Region key, the primary Region
+//     key and other replica Region keys remain unchanged.
+//
+// The KMS key that you use for this operation must be in a compatible key state.
+// For details, see [Key states of KMS keys]in the Key Management Service Developer Guide.
+//
+// Cross-account use: No. You cannot perform this operation on a KMS key in a
+// different Amazon Web Services account.
+//
+// Required permissions: [kms:DeleteImportedKeyMaterial] (key policy)
+//
+// Related operations:
+//
+// # GetParametersForImport
+//
+// # ListKeyRotations
+//
+// # ImportKeyMaterial
 //
 // Eventual consistency: The KMS API follows an eventual consistency model. For
-// more information, see KMS eventual consistency (https://docs.aws.amazon.com/kms/latest/developerguide/programming-eventual-consistency.html)
-// .
+// more information, see [KMS eventual consistency].
+//
+// [Key states of KMS keys]: https://docs.aws.amazon.com/kms/latest/developerguide/key-state.html
+// [kms:DeleteImportedKeyMaterial]: https://docs.aws.amazon.com/kms/latest/developerguide/kms-api-permissions-reference.html
+// [Importing Key Material]: https://docs.aws.amazon.com/kms/latest/developerguide/importing-keys.html
+// [KMS eventual consistency]: https://docs.aws.amazon.com/kms/latest/developerguide/accessing-kms.html#programming-eventual-consistency
 func (c *Client) DeleteImportedKeyMaterial(ctx context.Context, params *DeleteImportedKeyMaterialInput, optFns ...func(*Options)) (*DeleteImportedKeyMaterialOutput, error) {
 	if params == nil {
 		params = &DeleteImportedKeyMaterialInput{}
@@ -48,20 +69,43 @@ func (c *Client) DeleteImportedKeyMaterial(ctx context.Context, params *DeleteIm
 type DeleteImportedKeyMaterialInput struct {
 
 	// Identifies the KMS key from which you are deleting imported key material. The
-	// Origin of the KMS key must be EXTERNAL . Specify the key ID or key ARN of the
-	// KMS key. For example:
+	// Origin of the KMS key must be EXTERNAL .
+	//
+	// Specify the key ID or key ARN of the KMS key.
+	//
+	// For example:
+	//
 	//   - Key ID: 1234abcd-12ab-34cd-56ef-1234567890ab
+	//
 	//   - Key ARN:
 	//   arn:aws:kms:us-east-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab
-	// To get the key ID and key ARN for a KMS key, use ListKeys or DescribeKey .
+	//
+	// To get the key ID and key ARN for a KMS key, use ListKeys or DescribeKey.
 	//
 	// This member is required.
 	KeyId *string
+
+	// Identifies the imported key material you are deleting.
+	//
+	// If no KeyMaterialId is specified, KMS deletes the current key material.
+	//
+	// To get the list of key material IDs associated with a KMS key, use ListKeyRotations.
+	KeyMaterialId *string
 
 	noSmithyDocumentSerde
 }
 
 type DeleteImportedKeyMaterialOutput struct {
+
+	// The Amazon Resource Name ([key ARN] ) of the KMS key from which the key material was
+	// deleted.
+	//
+	// [key ARN]: https://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#key-id-key-ARN
+	KeyId *string
+
+	// Identifies the deleted key material.
+	KeyMaterialId *string
+
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
 
@@ -90,25 +134,28 @@ func (c *Client) addOperationDeleteImportedKeyMaterialMiddlewares(stack *middlew
 	if err = addSetLoggerMiddleware(stack, options); err != nil {
 		return err
 	}
-	if err = awsmiddleware.AddClientRequestIDMiddleware(stack); err != nil {
+	if err = addClientRequestID(stack); err != nil {
 		return err
 	}
-	if err = smithyhttp.AddComputeContentLengthMiddleware(stack); err != nil {
+	if err = addComputeContentLength(stack); err != nil {
 		return err
 	}
 	if err = addResolveEndpointMiddleware(stack, options); err != nil {
 		return err
 	}
-	if err = v4.AddComputePayloadSHA256Middleware(stack); err != nil {
+	if err = addComputePayloadSHA256(stack); err != nil {
 		return err
 	}
-	if err = addRetryMiddlewares(stack, options); err != nil {
+	if err = addRetry(stack, options); err != nil {
 		return err
 	}
-	if err = awsmiddleware.AddRawResponseToMetadata(stack); err != nil {
+	if err = addRawResponseToMetadata(stack); err != nil {
 		return err
 	}
-	if err = awsmiddleware.AddRecordResponseTiming(stack); err != nil {
+	if err = addRecordResponseTiming(stack); err != nil {
+		return err
+	}
+	if err = addSpanRetryLoop(stack, options); err != nil {
 		return err
 	}
 	if err = addClientUserAgent(stack, options); err != nil {
@@ -123,13 +170,22 @@ func (c *Client) addOperationDeleteImportedKeyMaterialMiddlewares(stack *middlew
 	if err = addSetLegacyContextSigningOptionsMiddleware(stack); err != nil {
 		return err
 	}
+	if err = addTimeOffsetBuild(stack, c); err != nil {
+		return err
+	}
+	if err = addUserAgentRetryMode(stack, options); err != nil {
+		return err
+	}
+	if err = addCredentialSource(stack, options); err != nil {
+		return err
+	}
 	if err = addOpDeleteImportedKeyMaterialValidationMiddleware(stack); err != nil {
 		return err
 	}
 	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opDeleteImportedKeyMaterial(options.Region), middleware.Before); err != nil {
 		return err
 	}
-	if err = awsmiddleware.AddRecursionDetection(stack); err != nil {
+	if err = addRecursionDetection(stack); err != nil {
 		return err
 	}
 	if err = addRequestIDRetrieverMiddleware(stack); err != nil {
@@ -142,6 +198,15 @@ func (c *Client) addOperationDeleteImportedKeyMaterialMiddlewares(stack *middlew
 		return err
 	}
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeRetryLoop(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAttempt(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptors(stack, options); err != nil {
 		return err
 	}
 	return nil
