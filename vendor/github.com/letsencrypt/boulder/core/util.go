@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/rand"
@@ -15,7 +16,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
-	mrand "math/rand"
+	mrand "math/rand/v2"
 	"os"
 	"path"
 	"reflect"
@@ -25,7 +26,13 @@ import (
 	"time"
 	"unicode"
 
-	"gopkg.in/go-jose/go-jose.v2"
+	"github.com/go-jose/go-jose/v4"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
+	"github.com/letsencrypt/boulder/identifier"
 )
 
 const Unspecified = "Unspecified"
@@ -74,9 +81,9 @@ func NewToken() string {
 
 var tokenFormat = regexp.MustCompile(`^[\w-]{43}$`)
 
-// LooksLikeAToken checks whether a string represents a 32-octet value in
+// looksLikeAToken checks whether a string represents a 32-octet value in
 // the URL-safe base64 alphabet.
-func LooksLikeAToken(token string) bool {
+func looksLikeAToken(token string) bool {
 	return tokenFormat.MatchString(token)
 }
 
@@ -92,8 +99,7 @@ func Fingerprint256(data []byte) string {
 
 type Sha256Digest [sha256.Size]byte
 
-// KeyDigest produces a Base64-encoded SHA256 digest of a
-// provided public key.
+// KeyDigest produces the SHA256 digest of a provided public key.
 func KeyDigest(key crypto.PublicKey) (Sha256Digest, error) {
 	switch t := key.(type) {
 	case *jose.JSONWebKey:
@@ -207,13 +213,86 @@ func GetBuildHost() (retID string) {
 // IsAnyNilOrZero returns whether any of the supplied values are nil, or (if not)
 // if any of them is its type's zero-value. This is useful for validating that
 // all required fields on a proto message are present.
-func IsAnyNilOrZero(vals ...interface{}) bool {
+func IsAnyNilOrZero(vals ...any) bool {
 	for _, val := range vals {
 		switch v := val.(type) {
 		case nil:
 			return true
+		case bool:
+			if !v {
+				return true
+			}
+		case string:
+			if v == "" {
+				return true
+			}
+		case []string:
+			if len(v) == 0 {
+				return true
+			}
+		case byte:
+			// Byte is an alias for uint8 and will cover that case.
+			if v == 0 {
+				return true
+			}
 		case []byte:
 			if len(v) == 0 {
+				return true
+			}
+		case int:
+			if v == 0 {
+				return true
+			}
+		case int8:
+			if v == 0 {
+				return true
+			}
+		case int16:
+			if v == 0 {
+				return true
+			}
+		case int32:
+			if v == 0 {
+				return true
+			}
+		case int64:
+			if v == 0 {
+				return true
+			}
+		case uint:
+			if v == 0 {
+				return true
+			}
+		case uint16:
+			if v == 0 {
+				return true
+			}
+		case uint32:
+			if v == 0 {
+				return true
+			}
+		case uint64:
+			if v == 0 {
+				return true
+			}
+		case float32:
+			if v == 0 {
+				return true
+			}
+		case float64:
+			if v == 0 {
+				return true
+			}
+		case time.Time:
+			if v.IsZero() {
+				return true
+			}
+		case *timestamppb.Timestamp:
+			if v == nil || v.AsTime().IsZero() {
+				return true
+			}
+		case *durationpb.Duration:
+			if v == nil || v.AsDuration() == time.Duration(0) {
 				return true
 			}
 		default:
@@ -242,11 +321,15 @@ func UniqueLowerNames(names []string) (unique []string) {
 	return
 }
 
-// HashNames returns a hash of the names requested. This is intended for use
-// when interacting with the orderFqdnSets table and rate limiting.
-func HashNames(names []string) []byte {
-	names = UniqueLowerNames(names)
-	hash := sha256.Sum256([]byte(strings.Join(names, ",")))
+// HashIdentifiers returns a hash of the identifiers requested. This is intended
+// for use when interacting with the orderFqdnSets table and rate limiting.
+func HashIdentifiers(idents identifier.ACMEIdentifiers) []byte {
+	var values []string
+	for _, ident := range identifier.Normalize(idents) {
+		values = append(values, ident.Value)
+	}
+
+	hash := sha256.Sum256([]byte(strings.Join(values, ",")))
 	return hash[:]
 }
 
@@ -302,6 +385,14 @@ func IsASCII(str string) bool {
 		}
 	}
 	return true
+}
+
+// IsCanceled returns true if err is non-nil and is either context.Canceled, or
+// has a grpc code of Canceled. This is useful because cancellations propagate
+// through gRPC boundaries, and if we choose to treat in-process cancellations a
+// certain way, we usually want to treat cross-process cancellations the same way.
+func IsCanceled(err error) bool {
+	return errors.Is(err, context.Canceled) || status.Code(err) == codes.Canceled
 }
 
 func Command() string {

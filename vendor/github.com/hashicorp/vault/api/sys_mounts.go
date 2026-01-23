@@ -13,6 +13,39 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
+func (c *Sys) GetMount(path string) (*MountOutput, error) {
+	return c.GetMountWithContext(context.Background(), path)
+}
+
+func (c *Sys) GetMountWithContext(ctx context.Context, path string) (*MountOutput, error) {
+	ctx, cancelFunc := c.c.withConfiguredTimeout(ctx)
+	defer cancelFunc()
+
+	r := c.c.NewRequest(http.MethodGet, fmt.Sprintf("/v1/sys/mounts/%s", path))
+
+	resp, err := c.c.rawRequestWithContext(ctx, r)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	secret, err := ParseSecret(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	if secret == nil || secret.Data == nil {
+		return nil, errors.New("data from server response is empty")
+	}
+
+	mount := MountOutput{}
+	err = mapstructure.Decode(secret.Data, &mount)
+	if err != nil {
+		return nil, err
+	}
+
+	return &mount, nil
+}
+
 func (c *Sys) ListMounts() (map[string]*MountOutput, error) {
 	return c.ListMountsWithContext(context.Background())
 }
@@ -189,11 +222,47 @@ func (c *Sys) RemountStatusWithContext(ctx context.Context, migrationID string) 
 	return &result, err
 }
 
+// TuneMountConfigInput is a pointer-only version of MountConfigInput.  This allows proper update calls where only
+// Values provided by the user are changed, but values can be changed to an empty (but non-nil) value.
+type TuneMountConfigInput struct {
+	Options                    *map[string]string          `json:"options,omitempty" mapstructure:"options"`
+	DefaultLeaseTTL            *string                     `json:"default_lease_ttl,omitempty" mapstructure:"default_lease_ttl"`
+	Description                *string                     `json:"description,omitempty" mapstructure:"description"`
+	MaxLeaseTTL                *string                     `json:"max_lease_ttl,omitempty" mapstructure:"max_lease_ttl"`
+	ForceNoCache               *bool                       `json:"force_no_cache,omitempty" mapstructure:"force_no_cache"`
+	AuditNonHMACRequestKeys    *[]string                   `json:"audit_non_hmac_request_keys,omitempty" mapstructure:"audit_non_hmac_request_keys"`
+	AuditNonHMACResponseKeys   *[]string                   `json:"audit_non_hmac_response_keys,omitempty" mapstructure:"audit_non_hmac_response_keys"`
+	ListingVisibility          *string                     `json:"listing_visibility,omitempty" mapstructure:"listing_visibility"`
+	PassthroughRequestHeaders  *[]string                   `json:"passthrough_request_headers,omitempty" mapstructure:"passthrough_request_headers"`
+	AllowedResponseHeaders     *[]string                   `json:"allowed_response_headers,omitempty" mapstructure:"allowed_response_headers"`
+	TokenType                  *string                     `json:"token_type,omitempty" mapstructure:"token_type"`
+	AllowedManagedKeys         *[]string                   `json:"allowed_managed_keys,omitempty" mapstructure:"allowed_managed_keys"`
+	PluginVersion              *string                     `json:"plugin_version,omitempty"`
+	UserLockoutConfig          *TuneUserLockoutConfigInput `json:"user_lockout_config,omitempty"`
+	DelegatedAuthAccessors     *[]string                   `json:"delegated_auth_accessors,omitempty" mapstructure:"delegated_auth_accessors"`
+	IdentityTokenKey           *string                     `json:"identity_token_key,omitempty" mapstructure:"identity_token_key"`
+	TrimRequestTrailingSlashes *bool                       `json:"trim_request_trailing_slashes,omitempty" mapstructure:"trim_request_trailing_slashes"`
+	// Deprecated: This field will always be blank for newer server responses.
+	PluginName *string `json:"plugin_name,omitempty" mapstructure:"plugin_name"`
+}
+
+type TuneUserLockoutConfigInput struct {
+	LockoutThreshold            *string `json:"lockout_threshold,omitempty" structs:"lockout_threshold" mapstructure:"lockout_threshold"`
+	LockoutDuration             *string `json:"lockout_duration,omitempty" structs:"lockout_duration" mapstructure:"lockout_duration"`
+	LockoutCounterResetDuration *string `json:"lockout_counter_reset_duration,omitempty" structs:"lockout_counter_reset_duration" mapstructure:"lockout_counter_reset_duration"`
+	DisableLockout              *bool   `json:"lockout_disable,omitempty" structs:"lockout_disable" mapstructure:"lockout_disable"`
+}
+
+func (c *Sys) TuneMountAllowNil(path string, config TuneMountConfigInput) error {
+	return c.TuneMountAllowNilWithContext(context.Background(), path, config)
+}
+
+// Deprecated: newer functionality should use TuneMountAllowNil instead so that parameters can be set to the nil value
 func (c *Sys) TuneMount(path string, config MountConfigInput) error {
 	return c.TuneMountWithContext(context.Background(), path, config)
 }
 
-func (c *Sys) TuneMountWithContext(ctx context.Context, path string, config MountConfigInput) error {
+func (c *Sys) TuneMountAllowNilWithContext(ctx context.Context, path string, config TuneMountConfigInput) error {
 	ctx, cancelFunc := c.c.withConfiguredTimeout(ctx)
 	defer cancelFunc()
 
@@ -207,6 +276,83 @@ func (c *Sys) TuneMountWithContext(ctx context.Context, path string, config Moun
 		defer resp.Body.Close()
 	}
 	return err
+}
+
+// Deprecated: newer functionality should use TuneMountAllowNilWithContext instead, so that configuration can be set to
+// a nil value.
+func (c *Sys) TuneMountWithContext(ctx context.Context, path string, config MountConfigInput) error {
+	tuneConfig := TuneMountConfigInput{}
+
+	tuneConfig.Options = &config.Options                 // Not omitted if empty
+	tuneConfig.DefaultLeaseTTL = &config.DefaultLeaseTTL // Not omitted if empty
+	tuneConfig.Description = config.Description          // Already a pointer value
+	tuneConfig.MaxLeaseTTL = &config.MaxLeaseTTL         // Not omitted if empty
+	tuneConfig.ForceNoCache = &config.ForceNoCache       // Not omitted if empty
+
+	if len(config.AuditNonHMACRequestKeys) != 0 { // Because omitempty in the JSON
+		tuneConfig.AuditNonHMACRequestKeys = &config.AuditNonHMACRequestKeys
+	}
+
+	if len(config.AuditNonHMACResponseKeys) != 0 { // Because omitempty in the JSON
+		tuneConfig.AuditNonHMACResponseKeys = &config.AuditNonHMACResponseKeys
+	}
+
+	if config.ListingVisibility != "" { // Because omitempty in the JSON
+		tuneConfig.ListingVisibility = &config.ListingVisibility
+	}
+
+	if len(config.PassthroughRequestHeaders) != 0 { // Because omitempty in the JSON
+		tuneConfig.PassthroughRequestHeaders = &config.PassthroughRequestHeaders
+	}
+
+	if len(config.AllowedResponseHeaders) != 0 { // Because omitempty in the JSON
+		tuneConfig.AllowedResponseHeaders = &config.AllowedResponseHeaders
+	}
+
+	if config.TokenType != "" { // Because omitempty in the JSON
+		tuneConfig.TokenType = &config.TokenType
+	}
+
+	if len(config.AllowedManagedKeys) != 0 { // Because omitempty in the JSON
+		tuneConfig.AllowedManagedKeys = &config.AllowedManagedKeys
+	}
+
+	if config.PluginVersion != "" { // Because omitempty in the JSON
+		tuneConfig.PluginVersion = &config.PluginVersion
+	}
+
+	if config.UserLockoutConfig != nil {
+		userLockoutConfig := TuneUserLockoutConfigInput{}
+		if config.UserLockoutConfig.LockoutDuration != "" {
+			userLockoutConfig.LockoutDuration = &config.UserLockoutConfig.LockoutDuration
+		}
+		if config.UserLockoutConfig.LockoutCounterResetDuration != "" {
+			userLockoutConfig.LockoutCounterResetDuration = &config.UserLockoutConfig.LockoutCounterResetDuration
+		}
+		if config.UserLockoutConfig.LockoutThreshold != "" {
+			userLockoutConfig.LockoutThreshold = &config.UserLockoutConfig.LockoutThreshold
+		}
+		if config.UserLockoutConfig.DisableLockout != nil {
+			userLockoutConfig.DisableLockout = config.UserLockoutConfig.DisableLockout
+		}
+		tuneConfig.UserLockoutConfig = &userLockoutConfig
+	}
+
+	if len(config.DelegatedAuthAccessors) != 0 { // Because omitempty in the JSON
+		tuneConfig.DelegatedAuthAccessors = &config.DelegatedAuthAccessors
+	}
+
+	if config.IdentityTokenKey != "" { // Because omitempty in the JSON
+		tuneConfig.IdentityTokenKey = &config.IdentityTokenKey
+	}
+
+	tuneConfig.TrimRequestTrailingSlashes = config.TrimRequestTrailingSlashes // Already a pointer despite being omitempty
+
+	if config.PluginName != "" { // Because omitempty in the JSON
+		tuneConfig.PluginName = &config.PluginName
+	}
+
+	return c.TuneMountAllowNilWithContext(ctx, path, tuneConfig)
 }
 
 func (c *Sys) MountConfig(path string) (*MountConfigOutput, error) {
@@ -257,20 +403,23 @@ type MountInput struct {
 }
 
 type MountConfigInput struct {
-	Options                   map[string]string       `json:"options" mapstructure:"options"`
-	DefaultLeaseTTL           string                  `json:"default_lease_ttl" mapstructure:"default_lease_ttl"`
-	Description               *string                 `json:"description,omitempty" mapstructure:"description"`
-	MaxLeaseTTL               string                  `json:"max_lease_ttl" mapstructure:"max_lease_ttl"`
-	ForceNoCache              bool                    `json:"force_no_cache" mapstructure:"force_no_cache"`
-	AuditNonHMACRequestKeys   []string                `json:"audit_non_hmac_request_keys,omitempty" mapstructure:"audit_non_hmac_request_keys"`
-	AuditNonHMACResponseKeys  []string                `json:"audit_non_hmac_response_keys,omitempty" mapstructure:"audit_non_hmac_response_keys"`
-	ListingVisibility         string                  `json:"listing_visibility,omitempty" mapstructure:"listing_visibility"`
-	PassthroughRequestHeaders []string                `json:"passthrough_request_headers,omitempty" mapstructure:"passthrough_request_headers"`
-	AllowedResponseHeaders    []string                `json:"allowed_response_headers,omitempty" mapstructure:"allowed_response_headers"`
-	TokenType                 string                  `json:"token_type,omitempty" mapstructure:"token_type"`
-	AllowedManagedKeys        []string                `json:"allowed_managed_keys,omitempty" mapstructure:"allowed_managed_keys"`
-	PluginVersion             string                  `json:"plugin_version,omitempty"`
-	UserLockoutConfig         *UserLockoutConfigInput `json:"user_lockout_config,omitempty"`
+	Options                    map[string]string       `json:"options" mapstructure:"options"`
+	DefaultLeaseTTL            string                  `json:"default_lease_ttl" mapstructure:"default_lease_ttl"`
+	Description                *string                 `json:"description,omitempty" mapstructure:"description"`
+	MaxLeaseTTL                string                  `json:"max_lease_ttl" mapstructure:"max_lease_ttl"`
+	ForceNoCache               bool                    `json:"force_no_cache" mapstructure:"force_no_cache"`
+	AuditNonHMACRequestKeys    []string                `json:"audit_non_hmac_request_keys,omitempty" mapstructure:"audit_non_hmac_request_keys"`
+	AuditNonHMACResponseKeys   []string                `json:"audit_non_hmac_response_keys,omitempty" mapstructure:"audit_non_hmac_response_keys"`
+	ListingVisibility          string                  `json:"listing_visibility,omitempty" mapstructure:"listing_visibility"`
+	PassthroughRequestHeaders  []string                `json:"passthrough_request_headers,omitempty" mapstructure:"passthrough_request_headers"`
+	AllowedResponseHeaders     []string                `json:"allowed_response_headers,omitempty" mapstructure:"allowed_response_headers"`
+	TokenType                  string                  `json:"token_type,omitempty" mapstructure:"token_type"`
+	AllowedManagedKeys         []string                `json:"allowed_managed_keys,omitempty" mapstructure:"allowed_managed_keys"`
+	PluginVersion              string                  `json:"plugin_version,omitempty"`
+	UserLockoutConfig          *UserLockoutConfigInput `json:"user_lockout_config,omitempty"`
+	DelegatedAuthAccessors     []string                `json:"delegated_auth_accessors,omitempty" mapstructure:"delegated_auth_accessors"`
+	IdentityTokenKey           string                  `json:"identity_token_key,omitempty" mapstructure:"identity_token_key"`
+	TrimRequestTrailingSlashes *bool                   `json:"trim_request_trailing_slashes,omitempty" mapstructure:"trim_request_trailing_slashes"`
 	// Deprecated: This field will always be blank for newer server responses.
 	PluginName string `json:"plugin_name,omitempty" mapstructure:"plugin_name"`
 }
@@ -292,17 +441,21 @@ type MountOutput struct {
 }
 
 type MountConfigOutput struct {
-	DefaultLeaseTTL           int                      `json:"default_lease_ttl" mapstructure:"default_lease_ttl"`
-	MaxLeaseTTL               int                      `json:"max_lease_ttl" mapstructure:"max_lease_ttl"`
-	ForceNoCache              bool                     `json:"force_no_cache" mapstructure:"force_no_cache"`
-	AuditNonHMACRequestKeys   []string                 `json:"audit_non_hmac_request_keys,omitempty" mapstructure:"audit_non_hmac_request_keys"`
-	AuditNonHMACResponseKeys  []string                 `json:"audit_non_hmac_response_keys,omitempty" mapstructure:"audit_non_hmac_response_keys"`
-	ListingVisibility         string                   `json:"listing_visibility,omitempty" mapstructure:"listing_visibility"`
-	PassthroughRequestHeaders []string                 `json:"passthrough_request_headers,omitempty" mapstructure:"passthrough_request_headers"`
-	AllowedResponseHeaders    []string                 `json:"allowed_response_headers,omitempty" mapstructure:"allowed_response_headers"`
-	TokenType                 string                   `json:"token_type,omitempty" mapstructure:"token_type"`
-	AllowedManagedKeys        []string                 `json:"allowed_managed_keys,omitempty" mapstructure:"allowed_managed_keys"`
-	UserLockoutConfig         *UserLockoutConfigOutput `json:"user_lockout_config,omitempty"`
+	DefaultLeaseTTL            int                      `json:"default_lease_ttl" mapstructure:"default_lease_ttl"`
+	MaxLeaseTTL                int                      `json:"max_lease_ttl" mapstructure:"max_lease_ttl"`
+	ForceNoCache               bool                     `json:"force_no_cache" mapstructure:"force_no_cache"`
+	AuditNonHMACRequestKeys    []string                 `json:"audit_non_hmac_request_keys,omitempty" mapstructure:"audit_non_hmac_request_keys"`
+	AuditNonHMACResponseKeys   []string                 `json:"audit_non_hmac_response_keys,omitempty" mapstructure:"audit_non_hmac_response_keys"`
+	ListingVisibility          string                   `json:"listing_visibility,omitempty" mapstructure:"listing_visibility"`
+	PassthroughRequestHeaders  []string                 `json:"passthrough_request_headers,omitempty" mapstructure:"passthrough_request_headers"`
+	AllowedResponseHeaders     []string                 `json:"allowed_response_headers,omitempty" mapstructure:"allowed_response_headers"`
+	TokenType                  string                   `json:"token_type,omitempty" mapstructure:"token_type"`
+	AllowedManagedKeys         []string                 `json:"allowed_managed_keys,omitempty" mapstructure:"allowed_managed_keys"`
+	UserLockoutConfig          *UserLockoutConfigOutput `json:"user_lockout_config,omitempty"`
+	DelegatedAuthAccessors     []string                 `json:"delegated_auth_accessors,omitempty" mapstructure:"delegated_auth_accessors"`
+	IdentityTokenKey           string                   `json:"identity_token_key,omitempty" mapstructure:"identity_token_key"`
+	TrimRequestTrailingSlashes bool                     `json:"trim_request_trailing_slashes,omitempty" mapstructure:"trim_request_trailing_slashes"`
+
 	// Deprecated: This field will always be blank for newer server responses.
 	PluginName string `json:"plugin_name,omitempty" mapstructure:"plugin_name"`
 }

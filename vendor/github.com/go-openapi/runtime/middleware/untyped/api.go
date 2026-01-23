@@ -1,16 +1,5 @@
-// Copyright 2015 go-swagger maintainers
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//    http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
 
 package untyped
 
@@ -29,25 +18,10 @@ import (
 	"github.com/go-openapi/runtime"
 )
 
-// NewAPI creates the default untyped API
-func NewAPI(spec *loads.Document) *API {
-	var an *analysis.Spec
-	if spec != nil && spec.Spec() != nil {
-		an = analysis.New(spec.Spec())
-	}
-	api := &API{
-		spec:           spec,
-		analyzer:       an,
-		consumers:      make(map[string]runtime.Consumer, 10),
-		producers:      make(map[string]runtime.Producer, 10),
-		authenticators: make(map[string]runtime.Authenticator),
-		operations:     make(map[string]map[string]runtime.OperationHandler),
-		ServeError:     errors.ServeError,
-		Models:         make(map[string]func() interface{}),
-		formats:        strfmt.NewFormats(),
-	}
-	return api.WithJSONDefaults()
-}
+const (
+	smallPreallocatedSlots  = 10
+	mediumPreallocatedSlots = 30
+)
 
 // API represents an untyped mux for a swagger spec
 type API struct {
@@ -61,8 +35,29 @@ type API struct {
 	authorizer      runtime.Authorizer
 	operations      map[string]map[string]runtime.OperationHandler
 	ServeError      func(http.ResponseWriter, *http.Request, error)
-	Models          map[string]func() interface{}
+	Models          map[string]func() any
 	formats         strfmt.Registry
+}
+
+// NewAPI creates the default untyped API
+func NewAPI(spec *loads.Document) *API {
+	var an *analysis.Spec
+	if spec != nil && spec.Spec() != nil {
+		an = analysis.New(spec.Spec())
+	}
+	api := &API{
+		spec:           spec,
+		analyzer:       an,
+		consumers:      make(map[string]runtime.Consumer, smallPreallocatedSlots),
+		producers:      make(map[string]runtime.Producer, smallPreallocatedSlots),
+		authenticators: make(map[string]runtime.Authenticator),
+		operations:     make(map[string]map[string]runtime.OperationHandler),
+		ServeError:     errors.ServeError,
+		Models:         make(map[string]func() any),
+		formats:        strfmt.NewFormats(),
+	}
+
+	return api.WithJSONDefaults()
 }
 
 // WithJSONDefaults loads the json defaults for this api
@@ -115,7 +110,7 @@ func (d *API) RegisterAuthorizer(handler runtime.Authorizer) {
 // RegisterConsumer registers a consumer for a media type.
 func (d *API) RegisterConsumer(mediaType string, handler runtime.Consumer) {
 	if d.consumers == nil {
-		d.consumers = make(map[string]runtime.Consumer, 10)
+		d.consumers = make(map[string]runtime.Consumer, smallPreallocatedSlots)
 	}
 	d.consumers[strings.ToLower(mediaType)] = handler
 }
@@ -123,7 +118,7 @@ func (d *API) RegisterConsumer(mediaType string, handler runtime.Consumer) {
 // RegisterProducer registers a producer for a media type
 func (d *API) RegisterProducer(mediaType string, handler runtime.Producer) {
 	if d.producers == nil {
-		d.producers = make(map[string]runtime.Producer, 10)
+		d.producers = make(map[string]runtime.Producer, smallPreallocatedSlots)
 	}
 	d.producers[strings.ToLower(mediaType)] = handler
 }
@@ -131,7 +126,7 @@ func (d *API) RegisterProducer(mediaType string, handler runtime.Producer) {
 // RegisterOperation registers an operation handler for an operation name
 func (d *API) RegisterOperation(method, path string, handler runtime.OperationHandler) {
 	if d.operations == nil {
-		d.operations = make(map[string]map[string]runtime.OperationHandler, 30)
+		d.operations = make(map[string]map[string]runtime.OperationHandler, mediumPreallocatedSlots)
 	}
 	um := strings.ToUpper(method)
 	if b, ok := d.operations[um]; !ok || b == nil {
@@ -197,30 +192,31 @@ func (d *API) Validate() error {
 
 // validateWith validates the registrations in this API against the provided spec analyzer
 func (d *API) validate() error {
-	var consumes []string
+	consumes := make([]string, 0, len(d.consumers))
 	for k := range d.consumers {
 		consumes = append(consumes, k)
 	}
 
-	var produces []string
+	produces := make([]string, 0, len(d.producers))
 	for k := range d.producers {
 		produces = append(produces, k)
 	}
 
-	var authenticators []string
+	authenticators := make([]string, 0, len(d.authenticators))
 	for k := range d.authenticators {
 		authenticators = append(authenticators, k)
 	}
 
-	var operations []string
+	operations := make([]string, 0, len(d.operations))
 	for m, v := range d.operations {
 		for p := range v {
 			operations = append(operations, fmt.Sprintf("%s %s", strings.ToUpper(m), p))
 		}
 	}
 
-	var definedAuths []string
-	for k := range d.spec.Spec().SecurityDefinitions {
+	secDefinitions := d.spec.Spec().SecurityDefinitions
+	definedAuths := make([]string, 0, len(secDefinitions))
+	for k := range secDefinitions {
 		definedAuths = append(definedAuths, k)
 	}
 
@@ -267,7 +263,7 @@ func (d *API) verify(name string, registrations []string, expectations []string)
 		delete(expected, k)
 	}
 
-	var unregistered []string
+	unregistered := make([]string, 0, len(expected))
 	for k := range expected {
 		unregistered = append(unregistered, k)
 	}

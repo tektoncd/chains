@@ -9,7 +9,6 @@ import (
 	"go/types"
 
 	"golang.org/x/tools/go/ssa"
-	"golang.org/x/tools/internal/typeparams"
 
 	_ "unsafe" // for linkname hack
 )
@@ -75,8 +74,8 @@ func AllFunctions(prog *ssa.Program) map[*ssa.Function]bool {
 	methodsOf := func(T types.Type) {
 		if !types.IsInterface(T) {
 			mset := prog.MethodSets.MethodSet(T)
-			for i := 0; i < mset.Len(); i++ {
-				function(prog.MethodValue(mset.At(i)))
+			for method := range mset.Methods() {
+				function(prog.MethodValue(method))
 			}
 		}
 	}
@@ -105,7 +104,7 @@ func AllFunctions(prog *ssa.Program) map[*ssa.Function]bool {
 			// Consider only named types.
 			// (Ignore aliases and unsafe.Pointer.)
 			if named, ok := t.Type().(*types.Named); ok {
-				if typeparams.ForNamed(named) == nil {
+				if named.TypeParams() == nil {
 					methodsOf(named)                   //  T
 					methodsOf(types.NewPointer(named)) // *T
 				}

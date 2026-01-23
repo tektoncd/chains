@@ -236,7 +236,7 @@ func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface, opts
 		}
 		s.StringData[p] = string(b)
 	}
-	cosignPriv, err := cosign.LoadPrivateKey([]byte(s.StringData["cosign.key"]), []byte(s.StringData["cosign.password"]))
+	cosignPriv, err := cosign.LoadPrivateKey([]byte(s.StringData["cosign.key"]), []byte(s.StringData["cosign.password"]), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

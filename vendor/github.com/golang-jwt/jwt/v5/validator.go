@@ -1,8 +1,8 @@
 package jwt
 
 import (
-	"crypto/subtle"
 	"fmt"
+	"slices"
 	"time"
 )
 
@@ -28,13 +28,12 @@ type ClaimsValidator interface {
 	Validate() error
 }
 
-// validator is the core of the new Validation API. It is automatically used by
+// Validator is the core of the new Validation API. It is automatically used by
 // a [Parser] during parsing and can be modified with various parser options.
 //
-// Note: This struct is intentionally not exported (yet) as we want to
-// internally finalize its API. In the future, we might make it publicly
-// available.
-type validator struct {
+// The [NewValidator] function should be used to create an instance of this
+// struct.
+type Validator struct {
 	// leeway is an optional leeway that can be provided to account for clock skew.
 	leeway time.Duration
 
@@ -53,8 +52,12 @@ type validator struct {
 	verifyIat bool
 
 	// expectedAud contains the audience this token expects. Supplying an empty
-	// string will disable aud checking.
-	expectedAud string
+	// slice will disable aud checking.
+	expectedAud []string
+
+	// expectAllAud specifies whether all expected audiences must be present in
+	// the token. If false, only one of the expected audiences must be present.
+	expectAllAud bool
 
 	// expectedIss contains the issuer this token expects. Supplying an empty
 	// string will disable iss checking.
@@ -65,19 +68,31 @@ type validator struct {
 	expectedSub string
 }
 
-// newValidator can be used to create a stand-alone validator with the supplied
+// NewValidator can be used to create a stand-alone validator with the supplied
 // options. This validator can then be used to validate already parsed claims.
-func newValidator(opts ...ParserOption) *validator {
+//
+// Note: Under normal circumstances, explicitly creating a validator is not
+// needed and can potentially be dangerous; instead functions of the [Parser]
+// class should be used.
+//
+// The [Validator] is only checking the *validity* of the claims, such as its
+// expiration time, but it does NOT perform *signature verification* of the
+// token.
+func NewValidator(opts ...ParserOption) *Validator {
 	p := NewParser(opts...)
 	return p.validator
 }
 
 // Validate validates the given claims. It will also perform any custom
 // validation if claims implements the [ClaimsValidator] interface.
-func (v *validator) Validate(claims Claims) error {
+//
+// Note: It will NOT perform any *signature verification* on the token that
+// contains the claims and expects that the [Claim] was already successfully
+// verified.
+func (v *Validator) Validate(claims Claims) error {
 	var (
 		now  time.Time
-		errs []error = make([]error, 0, 6)
+		errs = make([]error, 0, 6)
 		err  error
 	)
 
@@ -109,8 +124,8 @@ func (v *validator) Validate(claims Claims) error {
 	}
 
 	// If we have an expected audience, we also require the audience claim
-	if v.expectedAud != "" {
-		if err = v.verifyAudience(claims, v.expectedAud, true); err != nil {
+	if len(v.expectedAud) > 0 {
+		if err = v.verifyAudience(claims, v.expectedAud, v.expectAllAud); err != nil {
 			errs = append(errs, err)
 		}
 	}
@@ -153,7 +168,7 @@ func (v *validator) Validate(claims Claims) error {
 //
 // Additionally, if any error occurs while retrieving the claim, e.g., when its
 // the wrong type, an ErrTokenUnverifiable error will be returned.
-func (v *validator) verifyExpiresAt(claims Claims, cmp time.Time, required bool) error {
+func (v *Validator) verifyExpiresAt(claims Claims, cmp time.Time, required bool) error {
 	exp, err := claims.GetExpirationTime()
 	if err != nil {
 		return err
@@ -174,7 +189,7 @@ func (v *validator) verifyExpiresAt(claims Claims, cmp time.Time, required bool)
 //
 // Additionally, if any error occurs while retrieving the claim, e.g., when its
 // the wrong type, an ErrTokenUnverifiable error will be returned.
-func (v *validator) verifyIssuedAt(claims Claims, cmp time.Time, required bool) error {
+func (v *Validator) verifyIssuedAt(claims Claims, cmp time.Time, required bool) error {
 	iat, err := claims.GetIssuedAt()
 	if err != nil {
 		return err
@@ -195,7 +210,7 @@ func (v *validator) verifyIssuedAt(claims Claims, cmp time.Time, required bool) 
 //
 // Additionally, if any error occurs while retrieving the claim, e.g., when its
 // the wrong type, an ErrTokenUnverifiable error will be returned.
-func (v *validator) verifyNotBefore(claims Claims, cmp time.Time, required bool) error {
+func (v *Validator) verifyNotBefore(claims Claims, cmp time.Time, required bool) error {
 	nbf, err := claims.GetNotBefore()
 	if err != nil {
 		return err
@@ -215,33 +230,39 @@ func (v *validator) verifyNotBefore(claims Claims, cmp time.Time, required bool)
 //
 // Additionally, if any error occurs while retrieving the claim, e.g., when its
 // the wrong type, an ErrTokenUnverifiable error will be returned.
-func (v *validator) verifyAudience(claims Claims, cmp string, required bool) error {
+func (v *Validator) verifyAudience(claims Claims, cmp []string, expectAllAud bool) error {
 	aud, err := claims.GetAudience()
 	if err != nil {
 		return err
 	}
 
-	if len(aud) == 0 {
+	// Check that aud exists and is not empty. We only require the aud claim
+	// if we expect at least one audience to be present.
+	if len(aud) == 0 || len(aud) == 1 && aud[0] == "" {
+		required := len(v.expectedAud) > 0
 		return errorIfRequired(required, "aud")
 	}
 
-	// use a var here to keep constant time compare when looping over a number of claims
-	result := false
-
-	var stringClaims string
-	for _, a := range aud {
-		if subtle.ConstantTimeCompare([]byte(a), []byte(cmp)) != 0 {
-			result = true
+	if !expectAllAud {
+		for _, a := range aud {
+			// If we only expect one match, we can stop early if we find a match
+			if slices.Contains(cmp, a) {
+				return nil
+			}
 		}
-		stringClaims = stringClaims + a
+
+		return ErrTokenInvalidAudience
 	}
 
-	// case where "" is sent in one or many aud claims
-	if stringClaims == "" {
-		return errorIfRequired(required, "aud")
+	// Note that we are looping cmp here to ensure that all expected audiences
+	// are present in the aud claim.
+	for _, a := range cmp {
+		if !slices.Contains(aud, a) {
+			return ErrTokenInvalidAudience
+		}
 	}
 
-	return errorIfFalse(result, ErrTokenInvalidAudience)
+	return nil
 }
 
 // verifyIssuer compares the iss claim in claims against cmp.
@@ -251,7 +272,7 @@ func (v *validator) verifyAudience(claims Claims, cmp string, required bool) err
 //
 // Additionally, if any error occurs while retrieving the claim, e.g., when its
 // the wrong type, an ErrTokenUnverifiable error will be returned.
-func (v *validator) verifyIssuer(claims Claims, cmp string, required bool) error {
+func (v *Validator) verifyIssuer(claims Claims, cmp string, required bool) error {
 	iss, err := claims.GetIssuer()
 	if err != nil {
 		return err
@@ -271,7 +292,7 @@ func (v *validator) verifyIssuer(claims Claims, cmp string, required bool) error
 //
 // Additionally, if any error occurs while retrieving the claim, e.g., when its
 // the wrong type, an ErrTokenUnverifiable error will be returned.
-func (v *validator) verifySubject(claims Claims, cmp string, required bool) error {
+func (v *Validator) verifySubject(claims Claims, cmp string, required bool) error {
 	sub, err := claims.GetSubject()
 	if err != nil {
 		return err

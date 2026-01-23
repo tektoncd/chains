@@ -25,25 +25,37 @@ type Plugin struct {
 	Config any
 }
 
-// MarshalJSON returns the plugin in "one-key object" form, or "single string"
-// form (no config, only plugin source). Plugin sources are marshalled into "full"
-// form.
+// MarshalJSON returns the plugin in "one-key object" form. Plugin sources are
+// marshalled into "full" form. Plugins originally specified as a single string
+// (no config, only source) are canonicalised into "one-key object" with config
+// null.
 func (p *Plugin) MarshalJSON() ([]byte, error) {
 	// NB: MarshalYAML (as seen below) never returns an error.
 	o, _ := p.MarshalYAML()
 	return json.Marshal(o)
 }
 
-// MarshalYAML returns the plugin in either "one-item map" form, or "scalar"
-// form (no config, only plugin source). Plugin sources are marshalled into "full"
-// form.
+// MarshalYAML returns the plugin in "one-item map" form. Plugin sources
+// are marshalled into "full" form.  Plugins originally specified as a single
+// string (no config, only source) are canonicalised into "one-item map" with
+// config nil. Configs that are zero-length maps are canonicalised to nil.
 func (p *Plugin) MarshalYAML() (any, error) {
-	if p.Config == nil {
-		return p.FullSource(), nil
-	}
+	cfg := p.Config
+	switch x := cfg.(type) {
+	case map[string]any:
+		if len(x) == 0 {
+			cfg = nil
+		}
 
+	case []any:
+		// Should be invalid, but a different part of the process should be
+		// responsible for checking and complaining.
+		if len(x) == 0 {
+			cfg = nil
+		}
+	}
 	return map[string]any{
-		p.FullSource(): p.Config,
+		p.FullSource(): cfg,
 	}, nil
 }
 
