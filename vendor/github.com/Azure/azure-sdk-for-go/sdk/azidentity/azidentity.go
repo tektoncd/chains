@@ -15,13 +15,14 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"regexp"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/streaming"
+	"github.com/Azure/azure-sdk-for-go/sdk/azidentity/internal"
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/confidential"
+	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/managedidentity"
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/public"
 )
 
@@ -41,6 +42,12 @@ const (
 	organizationsTenantID   = "organizations"
 	developerSignOnClientID = "04b07795-8ddb-461a-bbee-02f9e1bf7b46"
 	defaultSuffix           = "/.default"
+
+	scopeLogFmt = "%s.GetToken() acquired a token for scope %q"
+
+	traceNamespace      = "Microsoft.Entra"
+	traceOpGetToken     = "GetToken"
+	traceOpAuthenticate = "Authenticate"
 )
 
 var (
@@ -48,6 +55,15 @@ var (
 	cp1                = []string{"CP1"}
 	errInvalidTenantID = errors.New("invalid tenantID. You can locate your tenantID by following the instructions listed here: https://learn.microsoft.com/partner-center/find-ids-and-domain-names")
 )
+
+// Cache represents a persistent cache that makes authentication data available across processes.
+// Construct one with [github.com/Azure/azure-sdk-for-go/sdk/azidentity/cache.New]. This package's
+// [persistent user authentication example] shows how to use a persistent cache to reuse user
+// logins across application runs. For service principal credential types such as
+// [ClientCertificateCredential], simply set the Cache field on the credential options.
+//
+// [persistent user authentication example]: https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/sdk/azidentity#example-package-PersistentUserAuthentication
+type Cache = internal.Cache
 
 // setAuthorityHost initializes the authority host for credentials. Precedence is:
 //  1. cloud.Configuration.ActiveDirectoryAuthorityHost value set by user
@@ -90,7 +106,16 @@ func resolveAdditionalTenants(tenants []string) []string {
 	return cp
 }
 
-// resolveTenant returns the correct tenant for a token request
+// resolveTenant returns the correct tenant for a token request, or "" when the calling credential doesn't
+// have an explicitly configured tenant and the caller didn't specify a tenant for the token request.
+//
+//   - defaultTenant: tenant set when constructing the credential, if any. "" is valid for credentials
+//     having an optional or implicit tenant such as dev tool and interactive user credentials. Those
+//     default to the tool's configured tenant or the user's home tenant, respectively.
+//   - specified: tenant specified for this token request i.e., TokenRequestOptions.TenantID. May be "".
+//   - credName: name of the calling credential type; for error messages
+//   - additionalTenants: optional allow list of tenants the credential may acquire tokens from in
+//     addition to defaultTenant i.e., the credential's AdditionallyAllowedTenants option
 func resolveTenant(defaultTenant, specified, credName string, additionalTenants []string) (string, error) {
 	if specified == "" || specified == defaultTenant {
 		return defaultTenant, nil
@@ -106,32 +131,37 @@ func resolveTenant(defaultTenant, specified, credName string, additionalTenants 
 			return specified, nil
 		}
 	}
+	if len(additionalTenants) == 0 {
+		switch defaultTenant {
+		case "", organizationsTenantID:
+			// The application didn't specify a tenant or allow list when constructing the credential. Allow the
+			// tenant specified for this token request because we have nothing to compare it to (i.e., it vacuously
+			// satisfies the credential's configuration); don't know whether the application is multitenant; and
+			// don't want to return an error in the common case that the specified tenant matches the credential's
+			// default tenant determined elsewhere e.g., in some dev tool's configuration.
+			return specified, nil
+		}
+	}
 	return "", fmt.Errorf(`%s isn't configured to acquire tokens for tenant %q. To enable acquiring tokens for this tenant add it to the AdditionallyAllowedTenants on the credential options, or add "*" to allow acquiring tokens for any tenant`, credName, specified)
 }
 
-// validTenantID return true is it receives a valid tenantID, returns false otherwise
+func alphanumeric(r rune) bool {
+	return ('0' <= r && r <= '9') || ('a' <= r && r <= 'z') || ('A' <= r && r <= 'Z')
+}
+
 func validTenantID(tenantID string) bool {
-	match, err := regexp.MatchString("^[0-9a-zA-Z-.]+$", tenantID)
-	if err != nil {
+	if len(tenantID) < 1 {
 		return false
 	}
-	return match
+	for _, r := range tenantID {
+		if !(alphanumeric(r) || r == '.' || r == '-') {
+			return false
+		}
+	}
+	return true
 }
 
-func newPipelineAdapter(opts *azcore.ClientOptions) pipelineAdapter {
-	pl := runtime.NewPipeline(component, version, runtime.PipelineOptions{}, opts)
-	return pipelineAdapter{pl: pl}
-}
-
-type pipelineAdapter struct {
-	pl runtime.Pipeline
-}
-
-func (p pipelineAdapter) CloseIdleConnections() {
-	// do nothing
-}
-
-func (p pipelineAdapter) Do(r *http.Request) (*http.Response, error) {
+func doForClient(client *azcore.Client, r *http.Request) (*http.Response, error) {
 	req, err := runtime.NewRequest(r.Context(), r.Method, r.URL.String())
 	if err != nil {
 		return nil, err
@@ -153,7 +183,18 @@ func (p pipelineAdapter) Do(r *http.Request) (*http.Response, error) {
 			return nil, err
 		}
 	}
-	resp, err := p.pl.Do(req)
+
+	// copy headers to the new request, ignoring any for which the new request has a value
+	h := req.Raw().Header
+	for key, vals := range r.Header {
+		if _, has := h[key]; !has {
+			for _, val := range vals {
+				h.Add(key, val)
+			}
+		}
+	}
+
+	resp, err := client.Pipeline().Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -166,6 +207,10 @@ type msalConfidentialClient interface {
 	AcquireTokenByAuthCode(ctx context.Context, code string, redirectURI string, scopes []string, options ...confidential.AcquireByAuthCodeOption) (confidential.AuthResult, error)
 	AcquireTokenByCredential(ctx context.Context, scopes []string, options ...confidential.AcquireByCredentialOption) (confidential.AuthResult, error)
 	AcquireTokenOnBehalfOf(ctx context.Context, userAssertion string, scopes []string, options ...confidential.AcquireOnBehalfOfOption) (confidential.AuthResult, error)
+}
+
+type msalManagedIdentityClient interface {
+	AcquireToken(context.Context, string, ...managedidentity.AcquireTokenOption) (managedidentity.AuthResult, error)
 }
 
 // enables fakes for test scenarios

@@ -38,7 +38,7 @@ func (c *Collection) Query() *Query {
 
 // Where expresses a condition on the query.
 // Valid ops are: "=", ">", "<", ">=", "<=, "in", "not-in".
-// Valid values are strings, integers, floating-point numbers, and time.Time values.
+// Valid values are strings, integers, floating-point numbers, time.Time and boolean (only for "=", "in" and "not-in") values.
 func (q *Query) Where(fp FieldPath, op string, value interface{}) *Query {
 	if q.err != nil {
 		return q
@@ -66,13 +66,23 @@ func (q *Query) Where(fp FieldPath, op string, value interface{}) *Query {
 type valueValidator func(interface{}) bool
 
 var validOp = map[string]valueValidator{
-	"=":      validFilterValue,
+	"=":      validEqualValue,
 	">":      validFilterValue,
 	"<":      validFilterValue,
 	">=":     validFilterValue,
 	"<=":     validFilterValue,
 	"in":     validFilterSlice,
 	"not-in": validFilterSlice,
+}
+
+func validEqualValue(v interface{}) bool {
+	if v == nil {
+		return false
+	}
+	if reflect.TypeOf(v).Kind() == reflect.Bool {
+		return true
+	}
+	return validFilterValue(v)
 }
 
 func validFilterValue(v interface{}) bool {
@@ -102,11 +112,30 @@ func validFilterSlice(v interface{}) bool {
 	}
 	vv := reflect.ValueOf(v)
 	for i := 0; i < vv.Len(); i++ {
-		if !validFilterValue(vv.Index(i).Interface()) {
+		if !validEqualValue(vv.Index(i).Interface()) {
 			return false
 		}
 	}
 	return true
+}
+
+// Offset (also commonly referred to as `Skip`) specifies the number of
+// documents to skip before returning results.
+// n must be non-negative.
+// It is an error to specify Offset more than once in a Get query, or
+// at all in a Delete or Update query.
+func (q *Query) Offset(n int) *Query {
+	if q.err != nil {
+		return q
+	}
+	if n < 0 {
+		return q.invalidf("offset value of %d must be non-negative", n)
+	}
+	if q.dq.Offset > 0 {
+		return q.invalidf("query can have at most one offset clause")
+	}
+	q.dq.Offset = n
+	return q
 }
 
 // Limit will limit the results to at most n documents.

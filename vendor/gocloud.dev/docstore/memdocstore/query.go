@@ -45,6 +45,16 @@ func (c *collection) RunGetQuery(_ context.Context, q *driver.Query) (driver.Doc
 		sortDocs(resultDocs, q.OrderByField, q.OrderAscending)
 	}
 
+	// Apply offset
+	if q.Offset > 0 {
+		if q.Offset >= len(resultDocs) {
+			resultDocs = []storedDoc{} // If offset is larger than or equal to the length, result should be an empty slice
+		} else {
+			resultDocs = resultDocs[q.Offset:]
+		}
+	}
+
+	// Apply limit
 	if q.Limit > 0 && len(resultDocs) > q.Limit {
 		resultDocs = resultDocs[:q.Limit]
 	}
@@ -138,6 +148,12 @@ func compare(x1, x2 interface{}) (int, bool) {
 		if t2, ok := x2.(time.Time); ok {
 			return driver.CompareTimes(t1, t2), true
 		}
+	}
+	if v1.Kind() == reflect.Bool && v2.Kind() == reflect.Bool {
+		if v1.Bool() == v2.Bool() {
+			return 0, true
+		}
+		return -1, true
 	}
 	return 0, false
 }

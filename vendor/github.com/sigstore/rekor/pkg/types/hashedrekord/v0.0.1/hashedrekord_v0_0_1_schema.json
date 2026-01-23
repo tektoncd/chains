@@ -1,6 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
-    "$id": "http://rekor.sigstore.dev/types/rekord/rekord_v0_0_1_schema.json",
+    "$id": "http://rekor.sigstore.dev/types/rekord/hashedrekord_v0_0_1_schema.json",
     "title": "Hashed Rekor v0.0.1 Schema",
     "description": "Schema for Hashed Rekord object",
     "type": "object",
@@ -38,16 +38,16 @@
                         "algorithm": {
                             "description": "The hashing function used to compute the hash value",
                             "type": "string",
-                            "enum": [ "sha256" ]
+                            "enum": [ "sha256", "sha384", "sha512" ]
                         },
                         "value": {
-                            "description": "The hash value for the content",
+                            "description": "The hash value for the content, as represented by a lower case hexadecimal string",
                             "type": "string"
                         }
                     },
                     "required": [ "algorithm", "value" ]
                 }
-            }        
+            }
         }
     },
     "required": [ "signature", "data" ]

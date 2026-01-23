@@ -15,9 +15,11 @@
 package cosign
 
 import (
+	"crypto"
 	"errors"
 	"hash"
 	"io"
+	"io/fs"
 	"os"
 )
 
@@ -27,7 +29,7 @@ const (
 
 func FileExists(filename string) (bool, error) {
 	info, err := os.Stat(filename)
-	if os.IsNotExist(err) {
+	if errors.Is(err, fs.ErrNotExist) {
 		return false, nil
 	}
 	if err != nil {
@@ -38,14 +40,17 @@ func FileExists(filename string) (bool, error) {
 
 // HashReader hashes while it reads.
 type HashReader struct {
-	r io.Reader
-	h hash.Hash
+	r  io.Reader
+	h  hash.Hash
+	ch crypto.Hash
 }
 
-func NewHashReader(r io.Reader, h hash.Hash) HashReader {
+func NewHashReader(r io.Reader, ch crypto.Hash) HashReader {
+	h := ch.New()
 	return HashReader{
-		r: io.TeeReader(r, h),
-		h: h,
+		r:  io.TeeReader(r, h),
+		h:  h,
+		ch: ch,
 	}
 }
 
@@ -66,3 +71,6 @@ func (h *HashReader) BlockSize() int { return h.h.BlockSize() }
 
 // Write implements hash.Hash
 func (h *HashReader) Write(p []byte) (int, error) { return 0, errors.New("not implemented") } //nolint: revive
+
+// HashFunc implements cosign.NamedHash
+func (h *HashReader) HashFunc() crypto.Hash { return h.ch }
