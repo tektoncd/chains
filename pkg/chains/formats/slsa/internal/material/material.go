@@ -29,7 +29,6 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"knative.dev/pkg/logging"
 )
 
@@ -79,7 +78,9 @@ func PipelineMaterials(ctx context.Context, pro *objects.PipelineRunObjectV1, sl
 	}
 	pSpec := pro.Status.PipelineSpec
 	if pSpec != nil {
-		pipelineTasks := append(pSpec.Tasks, pSpec.Finally...)
+		pipelineTasks := make([]v1.PipelineTask, 0, len(pSpec.Tasks)+len(pSpec.Finally))
+		pipelineTasks = append(pipelineTasks, pSpec.Tasks...)
+		pipelineTasks = append(pipelineTasks, pSpec.Finally...)
 		for _, t := range pipelineTasks {
 			taskRuns := pro.GetTaskRunsFromTask(t.Name)
 			if len(taskRuns) == 0 {
@@ -306,7 +307,9 @@ func FromPipelineParamsAndResults(ctx context.Context, pro *objects.PipelineRunO
 		// search type hinting param/results from each individual taskruns
 		if slsaconfig.DeepInspectionEnabled {
 			logger := logging.FromContext(ctx)
-			pipelineTasks := append(pSpec.Tasks, pSpec.Finally...)
+			pipelineTasks := make([]v1.PipelineTask, 0, len(pSpec.Tasks)+len(pSpec.Finally))
+			pipelineTasks = append(pipelineTasks, pSpec.Tasks...)
+			pipelineTasks = append(pipelineTasks, pSpec.Finally...)
 			for _, t := range pipelineTasks {
 				taskRuns := pro.GetTaskRunsFromTask(t.Name)
 				if len(taskRuns) == 0 {
