@@ -52,12 +52,14 @@ MC4CAQAwBQYDK2VwBCIEIGQn0bJwshjwuVdnd/FylMk3Gvb89aGgH49bQpgzCY0n
 // npx jwtgen -a HS256 -s "my-secret" -c "iss=user123" -e 3600
 const token = `eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE2Nzc1NjAyMTgsImV4cCI6MTY3NzU2MzgxOCwiaXNzIjoidXNlcjEyMyJ9.c-sDgCyuZA6VaIGl7Y3-9XxttW1PUkBeNBLE9gCKG8s`
 
+const testTrueValue = "true"
+
 func TestCreateSignerFulcioEnabledDefaultTokenFileMissing(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
 	d := t.TempDir()
 
 	data := make(map[string]string)
-	data["signers.x509.fulcio.enabled"] = "true"
+	data["signers.x509.fulcio.enabled"] = testTrueValue
 	cfg, err := config.NewConfigFromMap(data)
 	if err != nil {
 		t.Fatal(err)
@@ -86,7 +88,7 @@ func TestCreateSignerFulcioEnabled(t *testing.T) {
 	}
 
 	data := make(map[string]string)
-	data["signers.x509.fulcio.enabled"] = "true"
+	data["signers.x509.fulcio.enabled"] = testTrueValue
 	data["signers.x509.identity.token.file"] = tk
 	cfg, err := config.NewConfigFromMap(data)
 	if err != nil {
@@ -121,7 +123,7 @@ func TestCreateSignerFulcioEnabledFilesystemProvider(t *testing.T) {
 	}
 
 	data := make(map[string]string)
-	data["signers.x509.fulcio.enabled"] = "true"
+	data["signers.x509.fulcio.enabled"] = testTrueValue
 	data["signers.x509.identity.token.file"] = tk
 	data["signers.x509.fulcio.provider"] = "filesystem"
 	cfg, err := config.NewConfigFromMap(data)

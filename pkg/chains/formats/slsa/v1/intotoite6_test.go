@@ -546,10 +546,8 @@ func TestCreatePayloadError(t *testing.T) {
 		}
 		if err == nil {
 			t.Errorf("Expected error")
-		} else {
-			if err.Error() != "intoto does not support type: not a task ref" {
-				t.Errorf("wrong error returned: '%s'", err.Error())
-			}
+		} else if err.Error() != "intoto does not support type: not a task ref" {
+			t.Errorf("wrong error returned: '%s'", err.Error())
 		}
 	})
 
