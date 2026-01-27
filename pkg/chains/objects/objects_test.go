@@ -178,15 +178,15 @@ func TestPipelineRun_GetResults(t *testing.T) {
 		pr := NewPipelineRunObjectV1(getPipelineRun())
 		got := pr.GetResults()
 		assert.ElementsMatch(t, got, []Result{
-			Result{
+			{
 				Name: "img1_input_ARTIFACT_INPUTS",
 				Value: *v1.NewObject(map[string]string{
 					"uri":    "gcr.io/foo/bar",
 					"digest": "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b7",
 				}),
 			},
-			Result{Name: "mvn1_ARTIFACT_URI", Value: *v1.NewStructuredValues("projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/com.google.guava:guava:31.0-jre")},
-			Result{Name: "mvn1_ARTIFACT_DIGEST", Value: *v1.NewStructuredValues("sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5")},
+			{Name: "mvn1_ARTIFACT_URI", Value: *v1.NewStructuredValues("projects/test-project/locations/us-west4/repositories/test-repo/mavenArtifacts/com.google.guava:guava:31.0-jre")},
+			{Name: "mvn1_ARTIFACT_DIGEST", Value: *v1.NewStructuredValues("sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5")},
 		})
 	})
 
