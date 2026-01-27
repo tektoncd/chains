@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package patch provides helpers to build server-side apply patches
+// for Tekton objects, focusing on structured annotations updates.
 package patch
 
 import (

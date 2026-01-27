@@ -11,6 +11,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package chains provides helpers for Tekton Chains annotations and reconciliation.
 package chains
 
 import (
@@ -30,8 +31,10 @@ const (
 	// ChainsAnnotationPrefix is the prefix for all Chains annotations
 	ChainsAnnotationPrefix = "chains.tekton.dev/"
 	// ChainsAnnotation is the standard annotation to indicate a TR has been signed.
-	ChainsAnnotation             = "chains.tekton.dev/signed"
-	RetryAnnotation              = "chains.tekton.dev/retries"
+	ChainsAnnotation = "chains.tekton.dev/signed"
+	// RetryAnnotation records the number of retries attempted by Chains.
+	RetryAnnotation = "chains.tekton.dev/retries"
+	// ChainsTransparencyAnnotation indicates whether transparency logs are enabled for signing.
 	ChainsTransparencyAnnotation = "chains.tekton.dev/transparency"
 	MaxRetries                   = 3
 )
@@ -103,6 +106,9 @@ func AddRetry(ctx context.Context, obj objects.TektonObject, ps versioned.Interf
 	return AddAnnotation(ctx, obj, ps, RetryAnnotation, fmt.Sprintf("%d", val+1), annotations)
 }
 
+// AddAnnotation applies Chains annotations to the given Tekton object. It merges
+// existing Chains annotations, validates keys have the Chains prefix, and patches
+// the object using server-side apply to persist the updated annotations.
 func AddAnnotation(ctx context.Context, obj objects.TektonObject, ps versioned.Interface, key, value string, annotations map[string]string) error {
 	// Get current annotations from API server to ensure we have the latest state
 	currentAnnotations, err := obj.GetLatestAnnotations(ctx, ps)

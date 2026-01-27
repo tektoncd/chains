@@ -262,6 +262,8 @@ func (o *ObjectSigner) recordError(ctx context.Context, kind string, errType met
 	}
 }
 
+// HandleRetry increments the Chains retry annotation when available; otherwise
+// it marks the Tekton object as failed to prevent further retries.
 func HandleRetry(ctx context.Context, obj objects.TektonObject, ps versioned.Interface, annotations map[string]string) error {
 	if RetryAvailable(obj) {
 		return AddRetry(ctx, obj, ps, annotations)
