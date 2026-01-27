@@ -28,8 +28,9 @@ import (
 	protobundle "github.com/sigstore/protobuf-specs/gen/pb-go/bundle/v1"
 	protocommon "github.com/sigstore/protobuf-specs/gen/pb-go/common/v1"
 	protorekor "github.com/sigstore/protobuf-specs/gen/pb-go/rekor/v1"
-	"github.com/sigstore/rekor-tiles/pkg/client/write"
-	rekortilespb "github.com/sigstore/rekor-tiles/pkg/generated/protobuf"
+	rekortilesclient "github.com/sigstore/rekor-tiles/v2/pkg/client"
+	"github.com/sigstore/rekor-tiles/v2/pkg/client/write"
+	rekortilespb "github.com/sigstore/rekor-tiles/v2/pkg/generated/protobuf"
 	"github.com/sigstore/rekor/pkg/client"
 	"github.com/sigstore/rekor/pkg/generated/client/entries"
 	"github.com/sigstore/rekor/pkg/generated/models"
@@ -191,7 +192,7 @@ func (r *Rekor) getRekorV2TLE(ctx context.Context, keyOrCertPEM []byte, b *proto
 		return nil, fmt.Errorf("unable to find signature in bundle")
 	}
 	if r.options.ClientV2 == nil {
-		client, err := write.NewWriter(r.options.BaseURL)
+		client, err := write.NewWriter(r.options.BaseURL, rekortilesclient.WithUserAgent(util.ConstructUserAgent()))
 		if err != nil {
 			return nil, fmt.Errorf("creating rekor v2 client: %w", err)
 		}

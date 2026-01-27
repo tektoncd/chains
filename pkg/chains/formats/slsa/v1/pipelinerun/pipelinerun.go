@@ -101,7 +101,9 @@ func buildConfig(ctx context.Context, pro *objects.PipelineRunObjectV1) BuildCon
 	if pSpec == nil {
 		return BuildConfig{}
 	}
-	pipelineTasks := append(pSpec.Tasks, pSpec.Finally...)
+	pipelineTasks := make([]v1.PipelineTask, 0, len(pSpec.Tasks)+len(pSpec.Finally))
+	pipelineTasks = append(pipelineTasks, pSpec.Tasks...)
+	pipelineTasks = append(pipelineTasks, pSpec.Finally...)
 
 	var last string
 	for i, t := range pipelineTasks {

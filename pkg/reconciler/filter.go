@@ -14,9 +14,10 @@ limitations under the License.
 package reconciler
 
 import (
+	"slices"
+
 	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	"knative.dev/pkg/controller"
-	"slices"
 )
 
 // PipelineRunInformerFilterFunc returns a filter function
