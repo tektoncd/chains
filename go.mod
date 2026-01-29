@@ -4,7 +4,7 @@ go 1.25.5
 
 require (
 	cloud.google.com/go/compute/metadata v0.9.0
-	cloud.google.com/go/storage v1.59.1
+	cloud.google.com/go/storage v1.59.2
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/golangci/golangci-lint v1.64.8
 	github.com/google/addlicense v1.2.0
