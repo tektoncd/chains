@@ -1,7 +1,6 @@
-
 name: Reusable workflow example
 
-on:
+'on':
   workflow_call:
     inputs:
       pipelines-release:
@@ -23,39 +22,30 @@ jobs:
 
     env:
       GOPATH: ${{ github.workspace }}
-      GO111MODULE: on
+      GO111MODULE: 'on'
       GOFLAGS: -ldflags=-s -ldflags=-w
       KO_DOCKER_REPO: registry.local:5000/knative
       KOCACHE: ~/ko
-      SIGSTORE_SCAFFOLDING_RELEASE_VERSION: "v0.7.12"
-      TEKTON_PIPELINES_RELEASE: "https://storage.googleapis.com/tekton-releases/pipeline/previous/${{ inputs.pipelines-release }}/release.yaml"
+      SIGSTORE_SCAFFOLDING_RELEASE_VERSION: "v0.7.24"
+      TEKTON_PIPELINES_RELEASE: "https://infra.tekton.dev/tekton-releases/pipeline/previous/${{ inputs.pipelines-release }}/release.yaml"
       # Note that we do not include the v prefix here so we can use it in all
       # the places this is used.
-      TEKTON_CLI_RELEASE: "0.30.0"
+      SKIP_INITIALIZE: true
 
     steps:
-    - name: Set up Go
-      uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
-      with:
-        go-version: 1.22.x
-
-    - uses: ko-build/setup-ko@v0.9
-      with:
-        version: tip
-
-    - name: Install tkn cli
-      run: |
-        curl -Lo ./tkn_${{ env.TEKTON_CLI_RELEASE }}_Linux_x86_64.tar.gz https://github.com/tektoncd/cli/releases/download/v${{ env.TEKTON_CLI_RELEASE }}/tkn_${{ env.TEKTON_CLI_RELEASE }}_Linux_x86_64.tar.gz
-        tar xvzf ./tkn_${{ env.TEKTON_CLI_RELEASE }}_Linux_x86_64.tar.gz tkn
-        chmod u+x ./tkn
 
     - name: Check out our repo
-      uses: actions/checkout@6d193bf28034eafb982f37bd894289fe649468fc # v4.1.7
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+
+    - name: Set up Go
+      uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5  # v6.2.0
       with:
-        path: ./src/github.com/tektoncd/chains
+        go-version-file: "go.mod"
+
+    - uses: ko-build/setup-ko@d006021bd0c28d1ce33a07e7943d48b079944c8d # v0.9
 
     - name: Install mirror, kind, knative + sigstore
-      uses: sigstore/scaffolding/actions/setup@main
+      uses: sigstore/scaffolding/actions/setup@8bd68672d418e5bd1b0ee1f2e2981874c3a30967  # v0.7.33
       with:
         k8s-version: ${{ inputs.k8s-version }}
         version: ${{ env.SIGSTORE_SCAFFOLDING_RELEASE_VERSION }}
@@ -72,12 +62,13 @@ jobs:
         # Restart so picks up the changes.
         kubectl -n tekton-pipelines delete po -l app=tekton-pipelines-controller
 
-    - name: Install all the everythings
-      working-directory: ./src/github.com/tektoncd/chains
-      timeout-minutes: 10
+    - name: Run integration tests
       run: |
-        ko apply -BRf ./config/
+        ./test/presubmit-tests.sh --integration-tests
 
+
+    - name: Run tutorial taskrun
+      run: |
         kubectl patch configmap/chains-config \
         --namespace tekton-chains \
         --type merge \
@@ -86,12 +77,13 @@ jobs:
         # Restart chains controller so picks up the changes.
         kubectl -n tekton-chains delete po -l app=tekton-chains-controller
 
-        # TODO(vaikas): Better way to find when the chains has picked up
-        # the changes
-        sleep 10
+        # Wait for chains controller to be ready again
+        echo "Waiting for chains controller to be ready"
+        kubectl wait --for=condition=ready --timeout=2m -n tekton-chains pod -l app=tekton-chains-controller
 
-    - name: Run tutorial taskrun
-      run: |
+        # Give chains a moment to reload the configuration
+        sleep 5
+
         kubectl create -f https://raw.githubusercontent.com/tektoncd/chains/main/examples/taskruns/task-output-image.yaml
 
         # Sleep so the taskrun shows up.
@@ -103,7 +95,7 @@ jobs:
         echo "Waiting for Chains to do it's thing"
         for i in {1..10}
         do
-          ./tkn tr describe --last -o jsonpath="{.metadata.annotations.chains\.tekton\.dev/transparency}" > tektonentry
+          tkn tr describe --last -o jsonpath="{.metadata.annotations.chains\.tekton\.dev/transparency}" > tektonentry
 
           if [ -s ./tektonentry ]; then
             if grep --quiet rekor.rekor-system.svc ./tektonentry ; then
@@ -122,11 +114,14 @@ jobs:
         done
 
         # Did not find entry, fail
+        echo "Failed to find rekor transparency entry after 10 attempts"
+        kubectl get taskruns -oyaml
+        kubectl logs -n tekton-chains -l app=tekton-chains-controller --tail=100
         exit 1
 
     - name: Collect diagnostics
       if: ${{ failure() }}
-      uses: chainguard-dev/actions/kind-diag@9c0be1ee0103db886d1887d114ec97f8766b7ef8 # main
+      uses: chainguard-dev/actions/kind-diag@18e5e3427cf9d6bcfbefe60dca48e40292f000c5  # v1.5.13
       with:
         cluster-resources: nodes
         namespace-resources: pods,taskruns,jobs

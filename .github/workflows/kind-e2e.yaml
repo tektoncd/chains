@@ -19,9 +19,9 @@ jobs:
         # Keep in sync with the list of supported releases: https://kubernetes.io/releases/
         # TODO: add 1.31.x once it is added in https://github.com/sigstore/scaffolding/releases
         k8s-version:
-        - v1.28.x
-        - v1.29.x
-        - v1.30.x
+        - v1.32.x
+        - v1.33.x
+        - v1.34.x
     uses: ./.github/workflows/reusable-e2e.yaml
     with:
       k8s-version: ${{ matrix.k8s-version }}
@@ -38,5 +38,5 @@ jobs:
         - v0.62.0
     uses: ./.github/workflows/reusable-e2e.yaml
     with:
-      k8s-version: v1.28.x
+      k8s-version: v1.32.x
       pipelines-release: ${{ matrix.pipelines-release }}
