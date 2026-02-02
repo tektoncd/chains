@@ -17,7 +17,7 @@ spec:
     resolver: bundles
     params:
       - name: bundle
-        value: gcr.io/tekton-releases/catalog/upstream/git-clone:0.9
+        value: ghcr.io/tekton-releases/catalog/upstream/git-clone:0.9
       - name: name
         value: git-clone
       - name: kind
@@ -47,7 +47,7 @@ The following output was generated. Notice the following below:
     "buildType": "https://chains.tekton.dev/format/slsa/v2alpha1/type/tekton.dev/v1/TaskRun",
     "invocation": {
       "configSource": {
-        "uri": "gcr.io/tekton-releases/catalog/upstream/git-clone",
+        "uri": "ghcr.io/tekton-releases/catalog/upstream/git-clone",
         "digest": {
           "sha256": "1ee0f45892faf152aa631b0745f192e353c684408286bc55e9041edfaf22cb5e"
         },
@@ -196,7 +196,7 @@ The following output was generated. Notice the following below:
             "name": "gitInitImage",
             "type": "string",
             "description": "The image providing the git-init binary that this Task runs.",
-            "default": "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init:v0.40.2"
+            "default": "ghcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init:v0.40.2"
           },
           {
             "name": "userHome",
@@ -209,7 +209,7 @@ The following output was generated. Notice the following below:
         "steps": [
           {
             "name": "clone",
-            "image": "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init:v0.40.2",
+            "image": "ghcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init:v0.40.2",
             "env": [
               {
                 "name": "HOME",
@@ -372,7 +372,7 @@ The following output was generated. Notice the following below:
     },
     "materials": [
       {
-        "uri": "oci://gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+        "uri": "oci://ghcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
         "digest": {
           "sha256": "28ff94e63e4058afc3f15b4c11c08cf3b54fa91faa646a4bbac90380cd7158df"
         }
