@@ -263,10 +263,10 @@ func TestTaskMaterials(t *testing.T) {
 					TaskRunStatusFields: v1.TaskRunStatusFields{
 						Steps: []v1.StepState{{
 							Name:    "git-source-repo-jwqcl",
-							ImageID: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init@sha256:b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
+							ImageID: "ghcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init@sha256:b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 						}, {
 							Name:    "git-source-repo-repeat-again-jwqcl",
-							ImageID: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init@sha256:b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
+							ImageID: "ghcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init@sha256:b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 						}, {
 							Name:    "build",
 							ImageID: "gcr.io/cloud-marketplace-containers/google/bazel@sha256:010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
@@ -276,7 +276,7 @@ func TestTaskMaterials(t *testing.T) {
 			}),
 			want: []common.ProvenanceMaterial{
 				{
-					URI: artifacts.OCIScheme + "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+					URI: artifacts.OCIScheme + "ghcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 					Digest: common.DigestSet{
 						"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 					},
@@ -296,24 +296,24 @@ func TestTaskMaterials(t *testing.T) {
 					TaskRunStatusFields: v1.TaskRunStatusFields{
 						Steps: []v1.StepState{{
 							Name:    "git-source-repo-jwqcl",
-							ImageID: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init@sha256:b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
+							ImageID: "ghcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init@sha256:b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 						}, {
 							Name:    "git-source-repo-repeat-again-jwqcl",
-							ImageID: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init@sha256:b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
+							ImageID: "ghcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init@sha256:b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 						}, {
 							Name:    "build",
 							ImageID: "gcr.io/cloud-marketplace-containers/google/bazel@sha256:010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
 						}},
 						Sidecars: []v1.SidecarState{{
 							Name:    "sidecar-jwqcl",
-							ImageID: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/sidecar-git-init@sha256:a1234f6e7a69617db57b685893256f978436277094c21d43b153994acd8a09567",
+							ImageID: "ghcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/sidecar-git-init@sha256:a1234f6e7a69617db57b685893256f978436277094c21d43b153994acd8a09567",
 						}},
 					},
 				},
 			}),
 			want: []common.ProvenanceMaterial{
 				{
-					URI: artifacts.OCIScheme + "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
+					URI: artifacts.OCIScheme + "ghcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init",
 					Digest: common.DigestSet{
 						"sha256": "b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 					},
@@ -323,7 +323,7 @@ func TestTaskMaterials(t *testing.T) {
 						"sha256": "010a1ecd1a8c3610f12039a25b823e3a17bd3e8ae455a53e340dcfdd37a49964",
 					},
 				}, {
-					URI: artifacts.OCIScheme + "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/sidecar-git-init",
+					URI: artifacts.OCIScheme + "ghcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/sidecar-git-init",
 					Digest: common.DigestSet{
 						"sha256": "a1234f6e7a69617db57b685893256f978436277094c21d43b153994acd8a09567",
 					},

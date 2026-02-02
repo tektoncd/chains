@@ -38,7 +38,7 @@ spec:
       - name: IMAGE_DIGEST
     steps:
     - name: ko
-      image: gcr.io/tekton-releases/dogfooding/ko@sha256:ff918ec2c8bbe416d5a9b6f9d25dfe9012dce673922fe7b2d5d69a99b02df0ac
+      image: ghcr.io/tekton-releases/dogfooding/ko@sha256:ff918ec2c8bbe416d5a9b6f9d25dfe9012dce673922fe7b2d5d69a99b02df0ac
       workingDir: /workspaces
       env:
       - name: KO_DOCKER_REPO

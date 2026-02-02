@@ -19,7 +19,7 @@ spec:
     template:
         spec:
             containers:
-                - image: gcr.io/tekton-releases/github.com/tektoncd/chains/cmd/controller:v0.20.0
+                - image: ghcr.io/tekton-releases/github.com/tektoncd/chains/cmd/controller:v0.20.0
                   args:
                     - --threads-per-controller=32
                     - --kube-api-burst=2

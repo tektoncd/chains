@@ -27,15 +27,20 @@ jobs:
       GOFLAGS: -ldflags=-s -ldflags=-w
       KO_DOCKER_REPO: registry.local:5000/knative
       KOCACHE: ~/ko
-      SIGSTORE_SCAFFOLDING_RELEASE_VERSION: "v0.6.6"
-      TEKTON_PIPELINES_RELEASE: "https://storage.googleapis.com/tekton-releases/pipeline/previous/${{ inputs.pipelines-release }}/release.yaml"
+      SIGSTORE_SCAFFOLDING_RELEASE_VERSION: "v0.7.2"
+      TEKTON_PIPELINES_RELEASE: "https://github.com/tektoncd/pipeline/releases/download/${{ inputs.pipelines-release }}/release.yaml"
       # Note that we do not include the v prefix here so we can use it in all
       # the places this is used.
       TEKTON_CLI_RELEASE: "0.30.0"
 
     steps:
+    - name: Check out our repo
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+      with:
+        path: ./src/github.com/tektoncd/chains
+
     # https://github.com/mvdan/github-actions-golang#how-do-i-set-up-caching-between-builds
-    - uses: actions/cache@v2
+    - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4.3.0
       with:
         # In order:
         # * Module download cache
@@ -48,14 +53,11 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-go-
 
-    - name: Set up Go
-      uses: actions/setup-go@v2
+    - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5  # v6.2.0
       with:
-        go-version: 1.20.x
+        go-version-file: "src/github.com/tektoncd/chains/go.mod"
 
-    - uses: imjasonh/setup-ko@v0.6
-      with:
-        version: tip
+    - uses: ko-build/setup-ko@d006021bd0c28d1ce33a07e7943d48b079944c8d # v0.9
 
     - name: Install tkn cli
       run: |
@@ -63,13 +65,15 @@ jobs:
         tar xvzf ./tkn_${{ env.TEKTON_CLI_RELEASE }}_Linux_x86_64.tar.gz tkn
         chmod u+x ./tkn
 
-    - name: Check out our repo
-      uses: actions/checkout@v2
-      with:
-        path: ./src/github.com/tektoncd/chains
+    - name: Setup Docker daemon config
+      run: |
+        sudo mkdir -p /etc/docker
+        if [ ! -f /etc/docker/daemon.json ]; then
+          echo '{}' | sudo tee /etc/docker/daemon.json
+        fi
 
     - name: Install mirror, kind, knative + sigstore
-      uses: sigstore/scaffolding/actions/setup@main
+      uses: sigstore/scaffolding/actions/setup@039e0ece31c5fc9fe0466d2f7b289ed643b88fdb  # v0.7.2
       with:
         k8s-version: ${{ inputs.k8s-version }}
         version: ${{ env.SIGSTORE_SCAFFOLDING_RELEASE_VERSION }}
@@ -77,14 +81,17 @@ jobs:
 
     - name: Install Tekton pipelines
       run: |
-        while ! kubectl apply --filename ${{ env.TEKTON_PIPELINES_RELEASE }}
-        do
-          echo "waiting for tekton pipelines to get installed"
-          sleep 2
-        done
+        kubectl apply --filename ${{ env.TEKTON_PIPELINES_RELEASE }}
+        
+        # Wait for deployments to be available
+        kubectl wait --for=condition=available --timeout=5m deployment/tekton-pipelines-controller -n tekton-pipelines
+        kubectl wait --for=condition=available --timeout=5m deployment/tekton-pipelines-webhook -n tekton-pipelines
 
-        # Restart so picks up the changes.
-        kubectl -n tekton-pipelines delete po -l app=tekton-pipelines-controller
+        # Restart controller so it picks up the changes
+        kubectl -n tekton-pipelines rollout restart deployment/tekton-pipelines-controller
+        
+        # Wait for controller to be ready after restart
+        kubectl -n tekton-pipelines rollout status deployment/tekton-pipelines-controller --timeout=5m
 
     - name: Install all the everythings
       working-directory: ./src/github.com/tektoncd/chains
@@ -140,7 +147,7 @@ jobs:
 
     - name: Collect diagnostics
       if: ${{ failure() }}
-      uses: chainguard-dev/actions/kind-diag@84c993eaf02da1c325854fb272a4df9184bd80fc # main
+      uses: chainguard-dev/actions/kind-diag@17095df6250b18f9cc2c2e45b179d9a641668d8c # main
       with:
         cluster-resources: nodes
         namespace-resources: pods,taskruns,jobs

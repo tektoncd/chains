@@ -30,7 +30,7 @@ func TestNewRepo(t *testing.T) {
 			expectedRepoName string
 		}{
 			{
-				imageName:        "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init@sha256:bc4f7468f87486e3835b09098c74cd7f54db2cf697cbb9b824271b95a2d0871e",
+				imageName:        "ghcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init@sha256:bc4f7468f87486e3835b09098c74cd7f54db2cf697cbb9b824271b95a2d0871e",
 				expectedRepoName: "example.com/foo",
 			},
 			{

@@ -49,7 +49,7 @@ status:
       resources: {}
   steps:
   - container: step-git-source-repo-jwqcl
-    imageID: gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init@sha256:b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247
+    imageID: ghcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init@sha256:b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247
     name: git-source-repo-jwqcl
     terminated:
       containerID: containerd://3e1aee4d75207745803b904a79dfdec3b9d5e30652b1af9336d0259f86c43873
@@ -69,7 +69,7 @@ status:
 			{
 				EntryPoint: "",
 				Environment: map[string]interface{}{
-					"image":     artifacts.OCIScheme + "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init@sha256:b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
+					"image":     artifacts.OCIScheme + "ghcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init@sha256:b963f6e7a69617db57b685893256f978436277094c21d43b153994acd8a01247",
 					"container": "git-source-repo-jwqcl",
 				},
 				Arguments: interface{}([]string(nil)),

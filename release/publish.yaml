@@ -95,7 +95,7 @@ spec:
       cp ${DOCKER_CONFIG} /workspace/docker-config.json
 
   - name: run-ko
-    image: gcr.io/tekton-releases/dogfooding/ko:latest
+    image: ghcr.io/tekton-releases/dogfooding/ko:latest
     env:
     - name: KO_DOCKER_REPO
       value: $(params.imageRegistry)/$(params.imageRegistryPath)
@@ -145,7 +145,7 @@ spec:
 
 
   - name: koparse
-    image: gcr.io/tekton-releases/dogfooding/koparse:latest
+    image: ghcr.io/tekton-releases/dogfooding/koparse:latest
     script: |
       set -ex
 
