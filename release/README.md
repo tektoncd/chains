@@ -10,6 +10,8 @@ the chains repo, a terminal window and a text editor.
 
 1. `cd` to root of Chains git checkout.
 
+1. Install kustomize if you haven't already.
+
 1. Select the commit you would like to build the release from (NOTE: the commit is full (40-digit) hash.)
     - Select the most recent commit on the ***main branch*** if you are cutting a major or minor release i.e. `x.0.0` or `0.x.0`
     - Select the most recent commit on the ***`release-<version number>x` branch***, e.g. [`release-v0.26.x`](https://github.com/tektoncd/chains/tree/release-v0.26.x) if you are patching a release i.e. `v0.26.2`.
@@ -25,10 +27,11 @@ the chains repo, a terminal window and a text editor.
 
     ```bash
     cat <<EOF > release.env
-    CHAINS_VERSION_TAG= # Example: v0.6.2
-    CHAINS_RELEASE_GIT_SHA= # SHA of the release to be released, e.g. 5b082b1106753e093593d12152c82e1c4b0f37e5
-    CHAINS_OLD_VERSION= # Example: v0.5.0
-    CHAINS_PACKAGE=tektoncd/chains
+    TEKTON_VERSION= # Example: v0.26.2
+    TEKTON_RELEASE_GIT_SHA= # SHA of the release to be released, e.g. 5b082b1106753e093593d12152c82e1c4b0f37e5
+    TEKTON_OLD_VERSION= # Example: v0.26.1
+    TEKTON_PACKAGE=tektoncd/chains
+    TEKTON_REPO_NAME=chains
     EOF
     . ./release.env
     ```
@@ -36,7 +39,7 @@ the chains repo, a terminal window and a text editor.
 1. Confirm commit SHA matches what you want to release.
 
     ```bash
-    git show $CHAINS_RELEASE_GIT_SHA
+    git show $TEKTON_RELEASE_GIT_SHA
     ```
 
 1. Create a workspace template file:
@@ -61,14 +64,20 @@ the chains repo, a terminal window and a text editor.
 
    ```bash
     tkn --context dogfooding pipeline start chains-release \
-      --param=gitRevision="${CHAINS_RELEASE_GIT_SHA}" \
-      --param=versionTag="${CHAINS_VERSION_TAG}" \
-      --param=serviceAccountImagesPath=credentials \
-      --param=releaseBucket=tekton-releases \
-      --param=releaseAsLatest="true" \
+      --filename=release/release-pipeline.yaml \
+      --param package=github.com/tektoncd/chains \
+      --param repoName="${TEKTON_REPO_NAME}" \
+      --param gitRevision="${TEKTON_RELEASE_GIT_SHA}" \
+      --param imageRegistry=ghcr.io \
+      --param imageRegistryPath=tektoncd/chains \
+      --param imageRegistryRegions="" \
+      --param imageRegistryUser=tekton-robot \
+      --param serviceAccountImagesPath=credentials \
+      --param versionTag="${TEKTON_VERSION}" \
+      --param releaseBucket=tekton-releases \
+      --param koExtraArgs="" \
       --workspace name=release-secret,secret=oci-release-secret \
       --workspace name=release-images-secret,secret=ghcr-creds \
-      --use-param-defaults \
       --workspace name=workarea,volumeClaimTemplateFile="${WORKSPACE_TEMPLATE}" \
       --tasks-timeout 2h \
       --pipeline-timeout 3h
@@ -94,7 +103,7 @@ the chains repo, a terminal window and a text editor.
     (...)
     ```
 
-    The `commit-sha` should match `$CHAINS_RELEASE_GIT_SHA`.
+    The `commit-sha` should match `$TEKTON_RELEASE_GIT_SHA`.
     The two URLs can be opened in the browser or via `curl` to download the release manifests.
 
 1. The YAMLs are now released! Anyone installing Tekton Chains will get the new version. Time to create a new GitHub release announcement:
@@ -102,26 +111,39 @@ the chains repo, a terminal window and a text editor.
     1. Find the Rekor UUID for the release
 
     ```bash
-    RELEASE_FILE=https://infra.tekton.dev/tekton-releases/chains/previous/${CHAINS_VERSION_TAG}/release.yaml
+    RELEASE_FILE=https://infra.tekton.dev/tekton-releases/chains/previous/${TEKTON_VERSION}/release.yaml
     CONTROLLER_IMAGE_SHA=$(curl -L $RELEASE_FILE | egrep 'ghcr.io.*controller' | cut -d'@' -f2)
     REKOR_UUID=$(rekor-cli search --sha $CONTROLLER_IMAGE_SHA | grep -v Found | head -1)
     echo -e "CONTROLLER_IMAGE_SHA: ${CONTROLLER_IMAGE_SHA}\nREKOR_UUID: ${REKOR_UUID}"
     ```
 
+    1. Create a pod template file.
+
+        ```bash
+        POD_TEMPLATE=$(mktemp /tmp/pod-template.XXXXXX.yaml)
+        cat <<'EOF' > $POD_TEMPLATE
+        securityContext:
+          fsGroup: 65532
+          runAsUser: 65532
+          runAsNonRoot: true
+        EOF
+        ```    
+
     1. Execute the Draft Release Pipeline.
 
         ```bash
-        tkn --context dogfooding pipeline start \
+        tkn pipeline start \
           --workspace name=shared,volumeClaimTemplateFile="${WORKSPACE_TEMPLATE}" \
           --workspace name=credentials,secret=oci-release-secret \
-          -p package="${CHAINS_PACKAGE}" \
-          -p git-revision="$CHAINS_RELEASE_GIT_SHA" \
-          -p release-tag="${CHAINS_VERSION_TAG}" \
-          -p previous-release-tag="${CHAINS_OLD_VERSION}" \
-          -p release-name="${CHAINS_VERSION_TAG}" \
+          --pod-template "${POD_TEMPLATE}" \
+          -p package="${TEKTON_PACKAGE}" \
+          -p git-revision="$TEKTON_RELEASE_GIT_SHA" \
+          -p release-tag="${TEKTON_VERSION}" \
+          -p previous-release-tag="${TEKTON_OLD_VERSION}" \
+          -p repo-name="${TEKTON_REPO_NAME}" \
           -p bucket="tekton-releases" \
           -p rekor-uuid="$REKOR_UUID" \
-          release-draft
+          release-draft-oci
         ```
 
     1. Watch logs of resulting pipeline run on pipeline `release-draft`
@@ -139,7 +161,7 @@ the chains repo, a terminal window and a text editor.
 1. Create a branch for the release named `release-<version number>x`, e.g. [`release-v0.26.x`](https://github.com/tektoncd/chains/tree/release-v0.26.x)
    and push it to the repo https://github.com/tektoncd/chains.
    (This can be done on the Github UI.)
-   Make sure to fetch the commit specified in `CHAINS_RELEASE_GIT_SHA` to create the released branch.
+   Make sure to fetch the commit specified in `TEKTON_RELEASE_GIT_SHA` to create the released branch.
    > Background: The reason why we need to create a branch for the release named `release-<version number>x` is for future patch releases. Cherrypicked PRs for the patch release will be merged to this branch. For example, [v0.26.0](https://github.com/tektoncd/chains/releases/tag/v0.26.0) has been already released, but later on we found that an important PR should have been included to that release. Therefore, we need to do a patch release i.e. v0.26.1 by cherrypicking this PR, which will trigger tekton-robot to create a new PR to merge the changes to the [release-v0.26.x branch](https://github.com/tektoncd/chains/tree/release-v0.26.x).
 
 1. Edit `releases.md` on the `main` branch, add an entry for the release.
@@ -162,7 +184,7 @@ the chains repo, a terminal window and a text editor.
 
     ```bash
     # Test backport
-    kubectl --context my-dev-cluster apply --filename https://infra.tekton.dev/tekton-releases/chains/previous/$CHAINS_VERSION_TAG/release.yaml
+    kubectl --context my-dev-cluster apply --filename https://infra.tekton.dev/tekton-releases/chains/previous/$TEKTON_VERSION/release.yaml
     ```
 
 1. Announce the release in Slack channels #general, #chains and #announcements.
