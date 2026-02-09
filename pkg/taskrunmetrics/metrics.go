@@ -20,11 +20,10 @@ import (
 	"context"
 	"sync"
 
-	"go.opencensus.io/stats"
-	"go.opencensus.io/stats/view"
-	"go.opencensus.io/tag"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 	"knative.dev/pkg/logging"
-	"knative.dev/pkg/metrics"
 
 	common "github.com/tektoncd/chains/pkg/metrics"
 )
@@ -42,47 +41,18 @@ const (
 	taskRunErrorCountDesc string        = "Total number of TaskRun signing failures"
 )
 
-var (
-	sgCountView *view.View
-
-	sgCount = stats.Float64(string(taskRunSignedName),
-		taskRunSignedDesc,
-		stats.UnitDimensionless)
-
-	plCount = stats.Float64(string(taskRunUploadedName),
-		taskRunUploadedDesc,
-		stats.UnitDimensionless)
-
-	plCountView *view.View
-
-	stCount = stats.Float64(string(taskRunStoredName),
-		taskRunStoredDesc,
-		stats.UnitDimensionless)
-
-	stCountView *view.View
-
-	mrCount = stats.Float64(string(taskRunMarkedName),
-		taskRunMarkedDesc,
-		stats.UnitDimensionless)
-
-	mrCountView *view.View
-
-	taskRunErrorCount = stats.Float64(
-		string(taskRunErrorCountName),
-		taskRunErrorCountDesc,
-		stats.UnitDimensionless,
-	)
-
-	errorCountView *view.View
-
-	errorTypeKey, _ = tag.NewKey("error_type")
-)
-
 var _ common.Recorder = &Recorder{}
 
 // Recorder is used to actually record TaskRun metrics.
 type Recorder struct {
-	initialized bool
+	initialized     bool
+	meter           metric.Meter
+	mutex           sync.Mutex
+	signedCounter   metric.Int64Counter
+	uploadedCounter metric.Int64Counter
+	storedCounter   metric.Int64Counter
+	markedCounter   metric.Int64Counter
+	errorCounter    metric.Int64Counter
 }
 
 // We cannot register the view multiple times, so NewRecorder lazily
@@ -101,11 +71,12 @@ func NewRecorder(ctx context.Context) (*Recorder, error) {
 	once.Do(func() {
 		r = &Recorder{
 			initialized: true,
+			meter:       otel.GetMeterProvider().Meter("tekton_chains"),
 		}
-		errRegistering = viewRegister()
+		errRegistering = r.registerMetrics()
 		if errRegistering != nil {
 			r.initialized = false
-			logger.Errorf("View Register Failed ", r.initialized)
+			logger.Errorf("Failed to register metrics: %v", errRegistering)
 			return
 		}
 	})
@@ -113,46 +84,50 @@ func NewRecorder(ctx context.Context) (*Recorder, error) {
 	return r, errRegistering
 }
 
-func viewRegister() error {
+func (r *Recorder) registerMetrics() error {
+	var err error
 
-	sgCountView = &view.View{
-		Description: sgCount.Description(),
-		Measure:     sgCount,
-		Aggregation: view.Count(),
-	}
-
-	plCountView = &view.View{
-		Description: plCount.Description(),
-		Measure:     plCount,
-		Aggregation: view.Count(),
-	}
-
-	stCountView = &view.View{
-		Description: stCount.Description(),
-		Measure:     stCount,
-		Aggregation: view.Count(),
-	}
-
-	mrCountView = &view.View{
-		Description: mrCount.Description(),
-		Measure:     mrCount,
-		Aggregation: view.Count(),
-	}
-
-	errorCountView = &view.View{
-		Description: taskRunErrorCount.Description(),
-		Measure:     taskRunErrorCount,
-		TagKeys:     []tag.Key{errorTypeKey},
-		Aggregation: view.Count(),
-	}
-
-	return view.Register(
-		sgCountView,
-		plCountView,
-		stCountView,
-		mrCountView,
-		errorCountView,
+	r.signedCounter, err = r.meter.Int64Counter(
+		string(taskRunSignedName),
+		metric.WithDescription(taskRunSignedDesc),
 	)
+	if err != nil {
+		return err
+	}
+
+	r.uploadedCounter, err = r.meter.Int64Counter(
+		string(taskRunUploadedName),
+		metric.WithDescription(taskRunUploadedDesc),
+	)
+	if err != nil {
+		return err
+	}
+
+	r.storedCounter, err = r.meter.Int64Counter(
+		string(taskRunStoredName),
+		metric.WithDescription(taskRunStoredDesc),
+	)
+	if err != nil {
+		return err
+	}
+
+	r.markedCounter, err = r.meter.Int64Counter(
+		string(taskRunMarkedName),
+		metric.WithDescription(taskRunMarkedDesc),
+	)
+	if err != nil {
+		return err
+	}
+
+	r.errorCounter, err = r.meter.Int64Counter(
+		string(taskRunErrorCountName),
+		metric.WithDescription(taskRunErrorCountDesc),
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // RecordCountMetrics implements github.com/tektoncd/chains/pkg/metrics.Recorder.RecordCountMetrics
@@ -160,29 +135,37 @@ func (r *Recorder) RecordCountMetrics(ctx context.Context, metricType common.Met
 	logger := logging.FromContext(ctx)
 
 	if !r.initialized {
-		logger.Errorf("ignoring the metrics recording as recorder not initialized ")
+		logger.Errorf("ignoring the metrics recording as recorder not initialized")
+		return
 	}
+
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
 	switch mt := metricType; mt {
 	case common.SignedMessagesCount:
-		r.countMetrics(ctx, sgCount)
+		r.signedCounter.Add(ctx, 1)
 	case common.PayloadUploadeCount:
-		r.countMetrics(ctx, plCount)
+		r.uploadedCounter.Add(ctx, 1)
 	case common.SignsStoredCount:
-		r.countMetrics(ctx, stCount)
+		r.storedCounter.Add(ctx, 1)
 	case common.MarkedAsSignedCount:
-		r.countMetrics(ctx, mrCount)
+		r.markedCounter.Add(ctx, 1)
 	default:
 		logger.Errorf("Ignoring the metrics recording as valid Metric type matching %v was not found", mt)
 	}
 }
 
-func (r *Recorder) countMetrics(ctx context.Context, measure *stats.Float64Measure) {
-	metrics.Record(ctx, measure.M(1))
-}
-
 // RecordErrorMetric records a TaskRun signing failure with a given error type tag.
 func (r *Recorder) RecordErrorMetric(ctx context.Context, errType common.MetricErrorType) {
-	// Add the error_type tag to the context.
-	ctx, _ = tag.New(ctx, tag.Upsert(errorTypeKey, string(errType)))
-	metrics.Record(ctx, taskRunErrorCount.M(1))
+	if !r.initialized {
+		return
+	}
+
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	r.errorCounter.Add(ctx, 1, metric.WithAttributes(
+		attribute.String("error_type", string(errType)),
+	))
 }
