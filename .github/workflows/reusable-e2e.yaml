@@ -121,7 +121,7 @@ jobs:
 
     - name: Collect diagnostics
       if: ${{ failure() }}
-      uses: chainguard-dev/actions/kind-diag@fac81f8edade777ac0bedfa9f4a42591accab9c8  # v1.5.14
+      uses: chainguard-dev/actions/kind-diag@0cf1221da92242205c2d9f8a63add344ebd6b304  # v1.6.1
       with:
         cluster-resources: nodes
         namespace-resources: pods,taskruns,jobs
