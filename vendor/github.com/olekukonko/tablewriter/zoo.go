@@ -3,21 +3,38 @@ package tablewriter
 import (
 	"database/sql"
 	"fmt"
-	"github.com/olekukonko/errors"
-	"github.com/olekukonko/tablewriter/pkg/twwidth"
-	"github.com/olekukonko/tablewriter/tw"
 	"io"
 	"math"
 	"reflect"
 	"strconv"
 	"strings"
+
+	"github.com/olekukonko/errors"
+	"github.com/olekukonko/tablewriter/pkg/twwidth"
+	"github.com/olekukonko/tablewriter/tw"
 )
 
 // applyHierarchicalMerges applies hierarchical merges to row content.
 // Parameters ctx and mctx hold rendering and merge state.
 // No return value.
 func (t *Table) applyHierarchicalMerges(ctx *renderContext, mctx *mergeContext) {
-	ctx.logger.Debug("Applying hierarchical merges (left-to-right vertical flow - snapshot comparison)")
+	// First, ensure we should even run this logic.
+	// Check both the new CellMerging struct and the deprecated Formatting field.
+	mergeMode := t.config.Row.Merging.Mode
+	if mergeMode == 0 {
+		mergeMode = t.config.Row.Formatting.MergeMode
+	}
+	if !(mergeMode&tw.MergeHierarchical != 0) {
+		return
+	}
+
+	mergeColumnMapper := t.config.Row.Merging.ByColumnIndex
+	if mergeColumnMapper != nil {
+		ctx.logger.Debugf("Applying hierarchical merges ONLY to specified columns: %v", mergeColumnMapper.Keys())
+	} else {
+		ctx.logger.Debug("Applying hierarchical merges (left-to-right vertical flow - snapshot comparison)")
+	}
+
 	if len(ctx.rowLines) <= 1 {
 		ctx.logger.Debug("Skipping hierarchical merges - less than 2 rows")
 		return
@@ -40,6 +57,12 @@ func (t *Table) applyHierarchicalMerges(ctx *renderContext, mctx *mergeContext) 
 		leftCellContinuedHierarchical := false
 
 		for c := 0; c < numCols; c++ {
+			// If a column map is specified, skip columns that are not in it.
+			if mergeColumnMapper != nil && !mergeColumnMapper.Has(c) {
+				leftCellContinuedHierarchical = false // Reset hierarchy tracking
+				continue
+			}
+
 			if mctx.rowMerges[r] == nil {
 				mctx.rowMerges[r] = make(map[int]tw.MergeState)
 			}
@@ -145,15 +168,15 @@ func (t *Table) applyHierarchicalMerges(ctx *renderContext, mctx *mergeContext) 
 	ctx.logger.Debug("Hierarchical merge processing completed")
 }
 
-// applyHorizontalMergeWidths adjusts column widths for horizontal merges.
+// applyHorizontalMerges adjusts column widths for horizontal merges.
 // Parameters include position, ctx for rendering, and mergeStates for merges.
 // No return value.
-func (t *Table) applyHorizontalMergeWidths(position tw.Position, ctx *renderContext, mergeStates map[int]tw.MergeState) {
+func (t *Table) applyHorizontalMerges(position tw.Position, ctx *renderContext, mergeStates map[int]tw.MergeState) {
 	if mergeStates == nil {
-		t.logger.Debugf("applyHorizontalMergeWidths: Skipping %s - no merge states", position)
+		t.logger.Debugf("applyHorizontalMerges: Skipping %s - no merge states", position)
 		return
 	}
-	t.logger.Debugf("applyHorizontalMergeWidths: Applying HMerge width recalc for %s", position)
+	t.logger.Debugf("applyHorizontalMerges: Applying HMerge width recalc for %s", position)
 
 	numCols := ctx.numCols
 	targetWidthsMap := ctx.widths[position]
@@ -210,16 +233,31 @@ func (t *Table) applyHorizontalMergeWidths(position tw.Position, ctx *renderCont
 			}
 		}
 	}
-	ctx.logger.Debugf("applyHorizontalMergeWidths: Final widths for %s: %v", position, targetWidthsMap)
+	ctx.logger.Debugf("applyHorizontalMerges: Final widths for %s: %v", position, targetWidthsMap)
 }
 
 // applyVerticalMerges applies vertical merges to row content.
 // Parameters ctx and mctx hold rendering and merge state.
 // No return value.
 func (t *Table) applyVerticalMerges(ctx *renderContext, mctx *mergeContext) {
-	ctx.logger.Debugf("Applying vertical merges across %d rows", len(ctx.rowLines))
-	numCols := ctx.numCols
+	// First, ensure we should even run this logic.
+	// Check both the new CellMerging struct and the deprecated Formatting field.
+	mergeMode := t.config.Row.Merging.Mode
+	if mergeMode == 0 {
+		mergeMode = t.config.Row.Formatting.MergeMode
+	}
+	if !(mergeMode&tw.MergeVertical != 0) {
+		return
+	}
 
+	mergeColumnMapper := t.config.Row.Merging.ByColumnIndex
+	if mergeColumnMapper != nil {
+		ctx.logger.Debugf("Applying vertical merges ONLY to specified columns: %v", mergeColumnMapper.Keys())
+	} else {
+		ctx.logger.Debugf("Applying vertical merges across %d rows", len(ctx.rowLines))
+	}
+
+	numCols := ctx.numCols
 	mergeStartRow := make(map[int]int)
 	mergeStartContent := make(map[int]string)
 
@@ -242,6 +280,11 @@ func (t *Table) applyVerticalMerges(ctx *renderContext, mctx *mergeContext) {
 		currentLineContent := ctx.rowLines[i]
 
 		for col := 0; col < numCols; col++ {
+			// If a column map is specified, skip columns that are not in it.
+			if mergeColumnMapper != nil && !mergeColumnMapper.Has(col) {
+				continue
+			}
+
 			// Join all lines of the cell to compare full content
 			var currentVal strings.Builder
 			for _, line := range currentLineContent {
@@ -542,10 +585,7 @@ func (t *Table) buildCoreCellContexts(line []string, merges map[int]tw.MergeStat
 // It generates a []string where each element is the padding content for a column, using the specified padChar.
 func (t *Table) buildPaddingLineContents(padChar string, widths tw.Mapper[int, int], numCols int, merges map[int]tw.MergeState) []string {
 	line := make([]string, numCols)
-	padWidth := twwidth.Width(padChar)
-	if padWidth < 1 {
-		padWidth = 1
-	}
+	padWidth := max(twwidth.Width(padChar), 1)
 	for j := 0; j < numCols; j++ {
 		mergeState := tw.MergeState{}
 		if merges != nil {
@@ -580,11 +620,6 @@ func (t *Table) buildPaddingLineContents(padChar string, widths tw.Mapper[int, i
 func (t *Table) calculateAndNormalizeWidths(ctx *renderContext) error {
 	ctx.logger.Debugf("calculateAndNormalizeWidths: Computing and normalizing widths for %d columns. Compact: %v",
 		ctx.numCols, t.config.Behavior.Compact.Merge.Enabled())
-
-	// Initialize width maps
-	//t.headerWidths = tw.NewMapper[int, int]()
-	//t.rowWidths = tw.NewMapper[int, int]()
-	//t.footerWidths = tw.NewMapper[int, int]()
 
 	// Compute content-based widths for each section
 	for _, lines := range ctx.headerLines {
@@ -720,7 +755,7 @@ func (t *Table) calculateAndNormalizeWidths(ctx *renderContext) error {
 				twwidth.Width(headerCellPadding.Left) +
 				twwidth.Width(headerCellPadding.Right)
 			currentSumOfColumnWidths := 0
-			workingWidths.Each(func(_ int, w int) { currentSumOfColumnWidths += w })
+			workingWidths.Each(func(_, w int) { currentSumOfColumnWidths += w })
 			numSeparatorsInFullSpan := 0
 			if ctx.numCols > 1 {
 				if t.renderer != nil && t.renderer.Config().Settings.Separators.BetweenColumns.Enabled() {
@@ -733,7 +768,7 @@ func (t *Table) calculateAndNormalizeWidths(ctx *renderContext) error {
 					mergedContentString, actualMergedHeaderContentPhysicalWidth, totalCurrentSpanPhysicalWidth)
 				shortfall := actualMergedHeaderContentPhysicalWidth - totalCurrentSpanPhysicalWidth
 				numNonZeroCols := 0
-				workingWidths.Each(func(_ int, w int) {
+				workingWidths.Each(func(_, w int) {
 					if w > 0 {
 						numNonZeroCols++
 					}
@@ -744,7 +779,7 @@ func (t *Table) calculateAndNormalizeWidths(ctx *renderContext) error {
 				if numNonZeroCols > 0 && shortfall > 0 {
 					extraPerColumn := int(math.Ceil(float64(shortfall) / float64(numNonZeroCols)))
 					finalSumAfterExpansion := 0
-					workingWidths.Each(func(colIdx int, currentW int) {
+					workingWidths.Each(func(colIdx, currentW int) {
 						if currentW > 0 || (numNonZeroCols == ctx.numCols && ctx.numCols > 0) {
 							newWidth := currentW + extraPerColumn
 							workingWidths.Set(colIdx, newWidth)
@@ -782,7 +817,7 @@ func (t *Table) calculateAndNormalizeWidths(ctx *renderContext) error {
 	if t.config.Widths.Global > 0 {
 		ctx.logger.Debugf("Applying global width constraint: %d", t.config.Widths.Global)
 		currentSumOfFinalColWidths := 0
-		finalWidths.Each(func(_ int, w int) { currentSumOfFinalColWidths += w })
+		finalWidths.Each(func(_, w int) { currentSumOfFinalColWidths += w })
 		numSeparators := 0
 		if ctx.numCols > 1 && t.renderer != nil && t.renderer.Config().Settings.Separators.BetweenColumns.Enabled() {
 			numSeparators = (ctx.numCols - 1) * twwidth.Width(t.renderer.Config().Symbols.Column())
@@ -790,16 +825,13 @@ func (t *Table) calculateAndNormalizeWidths(ctx *renderContext) error {
 		totalCurrentTablePhysicalWidth := currentSumOfFinalColWidths + numSeparators
 		if totalCurrentTablePhysicalWidth > t.config.Widths.Global {
 			ctx.logger.Debugf("Table width %d exceeds global limit %d. Shrinking.", totalCurrentTablePhysicalWidth, t.config.Widths.Global)
-			targetTotalColumnContentWidth := t.config.Widths.Global - numSeparators
-			if targetTotalColumnContentWidth < 0 {
-				targetTotalColumnContentWidth = 0
-			}
+			targetTotalColumnContentWidth := max(t.config.Widths.Global-numSeparators, 0)
 			if ctx.numCols > 0 && targetTotalColumnContentWidth < ctx.numCols {
 				targetTotalColumnContentWidth = ctx.numCols
 			}
 			hardMinimums := tw.NewMapper[int, int]()
 			sumOfHardMinimums := 0
-			isHeaderContentHardToWrap := !(t.config.Header.Formatting.AutoWrap == tw.WrapNormal || t.config.Header.Formatting.AutoWrap == tw.WrapBreak)
+			isHeaderContentHardToWrap := t.config.Header.Formatting.AutoWrap != tw.WrapNormal && t.config.Header.Formatting.AutoWrap != tw.WrapBreak
 			for i := 0; i < ctx.numCols; i++ {
 				minW := 1
 				if isHeaderContentHardToWrap && len(ctx.headerLines) > 0 {
@@ -820,7 +852,7 @@ func (t *Table) calculateAndNormalizeWidths(ctx *renderContext) error {
 				}
 				tempSum := 0
 				scaledHardMinimums := tw.NewMapper[int, int]()
-				hardMinimums.Each(func(colIdx int, currentMinW int) {
+				hardMinimums.Each(func(colIdx, currentMinW int) {
 					scaledMinW := int(math.Round(float64(currentMinW) * scaleFactorMin))
 					if scaledMinW < 1 && targetTotalColumnContentWidth > 0 {
 						scaledMinW = 1
@@ -894,31 +926,29 @@ func (t *Table) calculateAndNormalizeWidths(ctx *renderContext) error {
 								if errorInDist < 0 {
 									adj = -1
 								}
-								if !(adj < 0 && w+adj < hardMinimums.Get(colToAdjust)) {
+								if adj >= 0 || w+adj >= hardMinimums.Get(colToAdjust) {
 									finalWidths.Set(colToAdjust, w+adj)
 								} else if adj > 0 {
 									finalWidths.Set(colToAdjust, w+adj)
 								}
 							}
 						}
-					} else {
-						if ctx.numCols > 0 {
-							extraPerCol := remainingWidthToDistribute / ctx.numCols
-							rem := remainingWidthToDistribute % ctx.numCols
-							for i := 0; i < ctx.numCols; i++ {
-								currentW := finalWidths.Get(i)
-								add := extraPerCol
-								if i < rem {
-									add++
-								}
-								finalWidths.Set(i, currentW+add)
+					} else if ctx.numCols > 0 {
+						extraPerCol := remainingWidthToDistribute / ctx.numCols
+						rem := remainingWidthToDistribute % ctx.numCols
+						for i := 0; i < ctx.numCols; i++ {
+							currentW := finalWidths.Get(i)
+							add := extraPerCol
+							if i < rem {
+								add++
 							}
+							finalWidths.Set(i, currentW+add)
 						}
 					}
 				}
 			}
 			finalSumCheck := 0
-			finalWidths.Each(func(idx int, w int) {
+			finalWidths.Each(func(idx, w int) {
 				if w < 1 && targetTotalColumnContentWidth > 0 {
 					finalWidths.Set(idx, 1)
 				} else if w < 0 {
@@ -945,10 +975,7 @@ func (t *Table) calculateContentMaxWidth(colIdx int, config tw.CellConfig, padLe
 
 	if isStreaming {
 		// Existing streaming logic remains unchanged
-		totalColumnWidthFromStream := t.streamWidths.Get(colIdx)
-		if totalColumnWidthFromStream < 0 {
-			totalColumnWidthFromStream = 0
-		}
+		totalColumnWidthFromStream := max(t.streamWidths.Get(colIdx), 0)
 		effectiveContentMaxWidth = totalColumnWidthFromStream - padLeftWidth - padRightWidth
 		if effectiveContentMaxWidth < 1 && totalColumnWidthFromStream > (padLeftWidth+padRightWidth) {
 			effectiveContentMaxWidth = 1
@@ -1037,23 +1064,22 @@ func (t *Table) convertToStringer(input interface{}) ([]string, error) {
 	t.logger.Debugf("convertToString attempt %v using %v", input, t.stringer)
 
 	inputType := reflect.TypeOf(input)
-	stringerFuncVal := reflect.ValueOf(t.stringer)
-	stringerFuncType := stringerFuncVal.Type()
 
-	// Cache lookup (simplified, actual cache logic can be more complex)
-	if t.stringerCacheEnabled {
-		t.stringerCacheMu.RLock()
-		cachedFunc, ok := t.stringerCache[inputType]
-		t.stringerCacheMu.RUnlock()
-		if ok {
-			// Add proper type checking for cachedFunc against input here if necessary
+	// Cache lookup using twcache.LRU
+	// This assumes t.stringerCache is *twcache.LRU[reflect.Type, reflect.Value]
+	if t.stringerCache != nil {
+		if cachedFunc, ok := t.stringerCache.Get(inputType); ok {
 			t.logger.Debugf("convertToStringer: Cache hit for type %v", inputType)
+			// We can proceed to call it immediately because it's already been validated/cached
 			results := cachedFunc.Call([]reflect.Value{reflect.ValueOf(input)})
 			if len(results) == 1 && results[0].Type() == reflect.TypeOf([]string{}) {
 				return results[0].Interface().([]string), nil
 			}
 		}
 	}
+
+	stringerFuncVal := reflect.ValueOf(t.stringer)
+	stringerFuncType := stringerFuncVal.Type()
 
 	// Robust type checking for the stringer function
 	validSignature := stringerFuncVal.Kind() == reflect.Func &&
@@ -1078,10 +1104,6 @@ func (t *Table) convertToStringer(input interface{}) ([]string, error) {
 		}
 	} else if paramType.Kind() == reflect.Interface || (paramType.Kind() == reflect.Ptr && paramType.Elem().Kind() != reflect.Interface) {
 		// If input is nil, it can be assigned if stringer expects an interface or a pointer type
-		// (but not a pointer to an interface, which is rare for stringers).
-		// A nil value for a concrete type parameter would cause a panic on Call.
-		// So, if paramType is not an interface/pointer, and input is nil, it's an issue.
-		// This needs careful handling. For now, assume assignable if interface/pointer.
 		assignable = true
 	}
 
@@ -1093,7 +1115,6 @@ func (t *Table) convertToStringer(input interface{}) ([]string, error) {
 	if input == nil {
 		// If input is nil, we must pass a zero value of the stringer's parameter type
 		// if that type is a pointer or interface.
-		// Passing reflect.ValueOf(nil) directly will cause issues if paramType is concrete.
 		callArgs = []reflect.Value{reflect.Zero(paramType)}
 	} else {
 		callArgs = []reflect.Value{reflect.ValueOf(input)}
@@ -1101,10 +1122,9 @@ func (t *Table) convertToStringer(input interface{}) ([]string, error) {
 
 	resultValues := stringerFuncVal.Call(callArgs)
 
-	if t.stringerCacheEnabled && inputType != nil { // Only cache if inputType is valid
-		t.stringerCacheMu.Lock()
-		t.stringerCache[inputType] = stringerFuncVal
-		t.stringerCacheMu.Unlock()
+	// Add to cache if enabled (not nil) and input type is valid
+	if t.stringerCache != nil && inputType != nil {
+		t.stringerCache.Add(inputType, stringerFuncVal)
 	}
 
 	return resultValues[0].Interface().([]string), nil
@@ -1252,7 +1272,7 @@ func (t *Table) convertCellsToStrings(rowInput interface{}, cellCfg tw.CellConfi
 	var err error
 
 	switch v := rowInput.(type) {
-	//Directly supported slice types
+	// Directly supported slice types
 	case []string:
 		cells = v
 	case []interface{}: // Catches variadic simple types grouped by Append
@@ -1338,7 +1358,7 @@ func (t *Table) convertCellsToStrings(rowInput interface{}, cellCfg tw.CellConfi
 			cells[i] = val.String()
 		}
 
-	//Cases for single items that are NOT slices
+	// Cases for single items that are NOT slices
 	// These are now dispatched to convertItemToCells by the default case.
 	// Keeping direct tw.Formatter and fmt.Stringer here could be a micro-optimization
 	// if `rowInput` is *exactly* that type (not a struct implementing it),
@@ -1448,7 +1468,7 @@ func (t *Table) getColMaxWidths(position tw.Position) tw.CellWidth {
 // getEmptyColumnInfo identifies empty columns in row data.
 // Parameter numOriginalCols specifies the total column count.
 // Returns a boolean slice (true for empty) and visible column count.
-func (t *Table) getEmptyColumnInfo(numOriginalCols int) (isEmpty []bool, visibleColCount int) {
+func (t *Table) getEmptyColumnInfo(processedRows [][][]string, numOriginalCols int) (isEmpty []bool, visibleColCount int) {
 	isEmpty = make([]bool, numOriginalCols)
 	for i := range isEmpty {
 		isEmpty[i] = true
@@ -1463,9 +1483,9 @@ func (t *Table) getEmptyColumnInfo(numOriginalCols int) (isEmpty []bool, visible
 		return isEmpty, visibleColCount
 	}
 
-	t.logger.Debugf("getEmptyColumnInfo: Checking %d rows for %d columns...", len(t.rows), numOriginalCols)
+	t.logger.Debugf("getEmptyColumnInfo: Checking %d rows for %d columns...", len(processedRows), numOriginalCols)
 
-	for rowIdx, logicalRow := range t.rows {
+	for rowIdx, logicalRow := range processedRows {
 		for lineIdx, visualLine := range logicalRow {
 			for colIdx, cellContent := range visualLine {
 				if colIdx >= numOriginalCols {
@@ -1577,15 +1597,6 @@ func (t *Table) processVariadic(elements []any) []any {
 	return elements
 }
 
-// toStringLines converts raw cells to formatted lines for table output
-func (t *Table) toStringLines(row interface{}, config tw.CellConfig) ([][]string, error) {
-	cells, err := t.convertCellsToStrings(row, config)
-	if err != nil {
-		return nil, err
-	}
-	return t.prepareContent(cells, config), nil
-}
-
 // updateWidths updates the width map based on cell content and padding.
 // Parameters include row content, widths map, and padding configuration.
 // No return value.
@@ -1608,10 +1619,9 @@ func (t *Table) updateWidths(row []string, widths tw.Mapper[int, int], padding t
 		lines := strings.Split(cell, tw.NewLine)
 		contentWidth := 0
 		for _, line := range lines {
+			// Always measure the raw line width, because the renderer
+			// will receive the raw line. Do not trim before measuring.
 			lineWidth := twwidth.Width(line)
-			if t.config.Behavior.TrimSpace.Enabled() {
-				lineWidth = twwidth.Width(t.Trimmer(line))
-			}
 			if lineWidth > contentWidth {
 				contentWidth = lineWidth
 			}

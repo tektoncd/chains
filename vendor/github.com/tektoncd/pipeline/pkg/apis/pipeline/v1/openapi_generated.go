@@ -173,6 +173,13 @@ func schema_pkg_apis_pipeline_pod_AffinityAssistantTemplate(ref common.Reference
 							Format:      "",
 						},
 					},
+					"serviceAccountName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ServiceAccountName is the name of the ServiceAccount to use for the affinity assistant pod. If not specified, the affinity assistant will inherit the serviceAccountName from the PipelineRun's taskRunTemplate. If that is also not specified, the pod will use the namespace's default ServiceAccount. More info: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 				},
 			},
 		},
@@ -365,6 +372,13 @@ func schema_pkg_apis_pipeline_pod_Template(ref common.ReferenceCallback) common.
 					"hostNetwork": {
 						SchemaProps: spec.SchemaProps{
 							Description: "HostNetwork specifies whether the pod may use the node network namespace",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"hostUsers": {
+						SchemaProps: spec.SchemaProps{
+							Description: "HostUsers indicates whether the pod will use the host's user namespace. Optional: Default to true. If set to true or not present, the pod will be run in the host user namespace, useful for when the pod needs a feature only available to the host user namespace, such as loading a kernel module with CAP_SYS_MODULE. When set to false, a new user namespace is created for the pod. Setting false is useful to mitigating container breakout vulnerabilities such as allowing containers to run as root without their user having root privileges on the host. This field depends on the kubernetes feature gate UserNamespacesSupport being enabled.",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
@@ -1250,6 +1264,7 @@ func schema_pkg_apis_pipeline_v1_PipelineRunList(ref common.ReferenceCallback) c
 						},
 					},
 				},
+				Required: []string{"items"},
 			},
 		},
 		Dependencies: []string{
@@ -1422,6 +1437,13 @@ func schema_pkg_apis_pipeline_v1_PipelineRunSpec(ref common.ReferenceCallback) c
 									},
 								},
 							},
+						},
+					},
+					"managedBy": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ManagedBy indicates which controller is responsible for reconciling this resource. If unset or set to \"tekton.dev/pipeline\", the default Tekton controller will manage this resource. This field is immutable.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 				},
@@ -1999,7 +2021,7 @@ func schema_pkg_apis_pipeline_v1_PipelineTask(ref common.ReferenceCallback) comm
 					},
 					"timeout": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Time after which the TaskRun times out. Defaults to 1 hour. Refer Go's ParseDuration documentation for expected format: https://golang.org/pkg/time/#ParseDuration",
+							Description: "Duration after which the TaskRun times out. Defaults to 1 hour. Refer Go's ParseDuration documentation for expected format: https://golang.org/pkg/time/#ParseDuration",
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
 						},
 					},
@@ -2191,11 +2213,17 @@ func schema_pkg_apis_pipeline_v1_PipelineTaskRunSpec(ref common.ReferenceCallbac
 							Ref:         ref("k8s.io/api/core/v1.ResourceRequirements"),
 						},
 					},
+					"timeout": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Duration after which the TaskRun times out. Overrides the timeout specified on the Task's spec if specified. Takes lower precedence to PipelineRun's `spec.timeouts.tasks` Refer Go's ParseDuration documentation for expected format: https://golang.org/pkg/time/#ParseDuration",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/tektoncd/pipeline/pkg/apis/pipeline/pod.Template", "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1.PipelineTaskMetadata", "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1.TaskRunSidecarSpec", "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1.TaskRunStepSpec", "k8s.io/api/core/v1.ResourceRequirements"},
+			"github.com/tektoncd/pipeline/pkg/apis/pipeline/pod.Template", "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1.PipelineTaskMetadata", "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1.TaskRunSidecarSpec", "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1.TaskRunStepSpec", "k8s.io/api/core/v1.ResourceRequirements", "k8s.io/apimachinery/pkg/apis/meta/v1.Duration"},
 	}
 }
 
@@ -2857,6 +2885,13 @@ func schema_pkg_apis_pipeline_v1_Step(ref common.ReferenceCallback) common.OpenA
 						SchemaProps: spec.SchemaProps{
 							Description: "Name of the Step specified as a DNS_LABEL. Each Step in a Task must have a unique name.",
 							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"displayName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "DisplayName is a user-facing name of the step that may be used to populate a UI.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -4053,6 +4088,13 @@ func schema_pkg_apis_pipeline_v1_TaskRunSpec(ref common.ReferenceCallback) commo
 						SchemaProps: spec.SchemaProps{
 							Description: "Compute resources to use for this TaskRun",
 							Ref:         ref("k8s.io/api/core/v1.ResourceRequirements"),
+						},
+					},
+					"managedBy": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ManagedBy indicates which controller is responsible for reconciling this resource. If unset or set to \"tekton.dev/pipeline\", the default Tekton controller will manage this resource. This field is immutable.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 				},

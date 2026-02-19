@@ -1,4 +1,4 @@
-# Copyright 2021 The Tekton Authors
+# Copyright 2025 The Tekton Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,19 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Modified for chains from tekton triggers: https://github.com/tektoncd/triggers/blob/main/tekton/release-pipeline.yaml
+# Modified for chains from tekton pipelines: https://github.com/tektoncd/pipeline/blob/main/tekton/release-pipeline.yaml
 ---
 apiVersion: tekton.dev/v1
 kind: Pipeline
 metadata:
   name: chains-release
-  annotations:
-    chains.tekton.dev/transparency-upload: "true"
 spec:
   params:
     - name: package
       description: package to release
       default: github.com/tektoncd/chains
+    - name: repoName
+      description: repository name (e.g., pipeline, triggers, etc.)
+      default: chains
     - name: gitRevision
       description: the git revision to release
     - name: imageRegistry
@@ -32,27 +33,33 @@ spec:
       default: ghcr.io
     - name: imageRegistryPath
       description: The path (project) in the image registry
-      default: tektoncd/chains
+      default: "tekton-releases-nightly"  # Will be overridden based on releaseMode
     - name: imageRegistryRegions
       description: The target image registry regions
-      default: ""
+      default: ""  # Empty for GHCR, "us eu asia" for GCR
     - name: imageRegistryUser
       description: The user for the image registry credentials
-      default: tekton-robot
+      default: _json_key
     - name: versionTag
-      description: The X.Y.Z version that the artifacts should be tagged with
+      description: Version tag (vX.Y.Z for stable, vYYYYMMDD-abc1234 for nightly)
     - name: releaseBucket
       description: bucket where the release is stored. The bucket must be project specific.
-      default: tekton-releases
+      default: "tekton-releases"  # Will be overridden based on releaseMode
     - name: releaseAsLatest
-      description: Whether to tag and publish this release as chains' latest
-      default: "true"
-    - name: platforms
-      description: Platforms to publish for the images (e.g. linux/amd64,linux/arm64)
-      default: linux/amd64,linux/arm64,linux/ppc64le,linux/s390x
+      description: Whether to tag and publish this release as latest
+      default: "true"  # Will be overridden based on releaseMode
+    - name: buildPlatforms
+      description: Platforms to build images for (e.g. linux/amd64,linux/arm64)
+      default: linux/amd64,linux/arm64,linux/s390x,linux/ppc64le
+    - name: publishPlatforms
+      description: |
+        Platforms to publish images for (e.g. linux/amd64,linux/arm64,windows/amd64). This
+        can differ from buildPlatforms due to the fact that a windows-compatible base image
+        is constructed for the publishing phase.)
+      default: linux/amd64,linux/arm64,linux/s390x,linux/ppc64le,windows/amd64
     - name: koExtraArgs
       description: Extra args to be passed to ko
-      default: ""
+      default: "--preserve-import-paths"
     - name: serviceAccountImagesPath
       description: The path to the service account file or credentials within the release-images-secret workspace
     - name: runTests
@@ -95,6 +102,7 @@ spec:
           value: https://$(params.package)
         - name: revision
           value: $(params.gitRevision)
+
     - name: precheck
       runAfter: [git-clone]
       taskRef:
@@ -112,13 +120,14 @@ spec:
         - name: versionTag
           value: $(params.versionTag)
         - name: releaseBucket
-          value: $(params.releaseBucket)/chains
+          value: $(params.releaseBucket)/$(params.repoName)
       workspaces:
         - name: source-to-release
           workspace: workarea
           subPath: git
         - name: oci-credentials
           workspace: release-secret
+
     - name: unit-tests
       runAfter: [precheck]
       when:
@@ -135,12 +144,15 @@ spec:
       params:
         - name: package
           value: $(params.package)
+        - name: packages
+          value: "./..."
         - name: flags
           value: -v -mod=vendor
       workspaces:
         - name: source
           workspace: workarea
           subPath: git
+
     - name: build
       runAfter: [precheck]
       when:
@@ -163,8 +175,9 @@ spec:
         - name: source
           workspace: workarea
           subPath: git
+
     - name: publish-images
-      runAfter: [build, unit-tests]
+      runAfter: [unit-tests, build]
       taskRef:
         resolver: git
         params:
@@ -194,7 +207,7 @@ spec:
         - name: serviceAccountPath
           value: $(params.serviceAccountImagesPath)
         - name: platforms
-          value: $(params.platforms)
+          value: $(params.publishPlatforms)
         - name: koExtraArgs
           value: $(params.koExtraArgs)
         - name: CHAINS-GIT_COMMIT
@@ -210,6 +223,8 @@ spec:
           subPath: bucket
         - name: release-secret
           workspace: release-images-secret
+      timeout: 3h
+
     - name: publish-to-bucket
       runAfter: [publish-images]
       taskRef:
@@ -233,11 +248,12 @@ spec:
         - name: bucketName
           value: $(params.releaseBucket)
         - name: objectPrefix
-          value: chains/previous/$(params.versionTag)/
+          value: $(params.repoName)/previous/$(params.versionTag)/
         - name: replaceExistingFiles
           value: "true"
         - name: recursive
           value: "true"
+
     - name: publish-to-bucket-latest
       runAfter: [publish-images]
       when:
@@ -265,13 +281,14 @@ spec:
         - name: bucketName
           value: $(params.releaseBucket)
         - name: objectPrefix
-          value: chains/latest/
+          value: $(params.repoName)/latest/
         - name: replaceExistingFiles
           value: "true"
         - name: recursive
           value: "true"
         - name: deleteExtraFiles
-          value: "true" # Uses sync to copy content into latest
+          value: "true"  # Uses sync to copy content into latest
+
     - name: report-bucket
       runAfter: [publish-to-bucket]
       params:
@@ -279,10 +296,13 @@ spec:
           value: $(params.releaseBucket)
         - name: versionTag
           value: $(params.versionTag)
+        - name: repoName
+          value: $(params.repoName)
       taskSpec:
         params:
           - name: releaseBucket
           - name: versionTag
+          - name: repoName
         results:
           - name: release
             description: The full URL of the release file in the bucket
@@ -296,10 +316,12 @@ spec:
                 value: $(params.releaseBucket)
               - name: VERSION_TAG
                 value: $(params.versionTag)
+              - name: REPO_NAME
+                value: $(params.repoName)
             script: |
               # Oracle Cloud Storage: Construct public URL
-              # Format: https://infra.tekton.dev/<releaseBucket>/chains/previous/<versionTag>
-              BASE_URL="https://infra.tekton.dev/${RELEASE_BUCKET}/chains/previous/${VERSION_TAG}"
+              # Format: https://infra.tekton.dev/<releaseBucket>/<repoName>/previous/<versionTag>
+              BASE_URL="https://infra.tekton.dev/${RELEASE_BUCKET}/${REPO_NAME}/previous/${VERSION_TAG}"
 
               echo "${BASE_URL}/release.yaml" > $(results.release.path)
               echo "${BASE_URL}/release.notag.yaml" > $(results.release-no-tag.path)
