@@ -98,7 +98,7 @@ the chains repo, a terminal window and a text editor.
     NAME                    VALUE
     ∙ commit-sha            420adfcdf225326605f2b2c2264b42a2f7b86e4e
     ∙ release-file           https://infra.tekton.dev/tekton-releases/chains/previous/v0.13.0/release.yaml
-    ∙ release-file-no-tag    https://infra.tekton.dev/tekton-releases/chains/previous/v0.13.0/release.notag.yaml
+    ∙ release-file-no-tag    https://infra.tekton.dev/tekton-releases/chains/previous/v0.13.0/release.notags.yaml
 
     (...)
     ```
