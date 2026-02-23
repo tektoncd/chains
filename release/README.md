@@ -57,7 +57,7 @@ the chains repo, a terminal window and a text editor.
    ```
 
 1. Execute the release pipeline (takes ~45 mins).
-    
+
     **The minimum required tkn version is v0.30.0 or later**
 
     **If you are back-porting include this flag: `--param=releaseAsLatest="false"`**
@@ -98,7 +98,7 @@ the chains repo, a terminal window and a text editor.
     NAME                    VALUE
     ∙ commit-sha            420adfcdf225326605f2b2c2264b42a2f7b86e4e
     ∙ release-file           https://infra.tekton.dev/tekton-releases/chains/previous/v0.13.0/release.yaml
-    ∙ release-file-no-tag    https://infra.tekton.dev/tekton-releases/chains/previous/v0.13.0/release.notag.yaml
+    ∙ release-file-no-tag    https://infra.tekton.dev/tekton-releases/chains/previous/v0.13.0/release.notags.yaml
 
     (...)
     ```
@@ -127,7 +127,7 @@ the chains repo, a terminal window and a text editor.
           runAsUser: 65532
           runAsNonRoot: true
         EOF
-        ```    
+        ```
 
     1. Execute the Draft Release Pipeline.
 
