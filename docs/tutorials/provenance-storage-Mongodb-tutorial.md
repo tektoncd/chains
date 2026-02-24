@@ -24,10 +24,10 @@ Before starting, ensure you have the following installed:
 
 ```shell
 # Install Tekton Pipelines
-kubectl apply -f https://storage.googleapis.com/tekton-releases/pipeline/latest/release.yaml
+kubectl apply -f  https://infra.tekton.dev/tekton-releases/pipeline/latest/release.yaml
 
 # Install Tekton Chains
-kubectl apply -f https://storage.googleapis.com/tekton-releases/chains/latest/release.yaml
+kubectl apply -f https://infra.tekton.dev/tekton-releases/chains/latest/release.yaml
 ```
 
 Wait for the components to be ready:
