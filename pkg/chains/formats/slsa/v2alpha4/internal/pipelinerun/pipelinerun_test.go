@@ -109,6 +109,12 @@ func TestGenerateAttestation(t *testing.T) {
 						"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7",
 					},
 				},
+				{
+					Name: "index.docker.io/library/abc",
+					Digest: common.DigestSet{
+						"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7",
+					},
+				},
 			},
 			expectedResolvedDependencies: []*intoto.ResourceDescriptor{
 				{
@@ -182,6 +188,12 @@ func TestGenerateAttestation(t *testing.T) {
 				},
 				{
 					Name: "test.io/test/image",
+					Digest: common.DigestSet{
+						"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7",
+					},
+				},
+				{
+					Name: "index.docker.io/library/abc",
 					Digest: common.DigestSet{
 						"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7",
 					},
@@ -312,6 +324,12 @@ func TestGenerateAttestation(t *testing.T) {
 				},
 				{
 					Name: "test.io/test/image",
+					Digest: common.DigestSet{
+						"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7",
+					},
+				},
+				{
+					Name: "index.docker.io/library/abc",
 					Digest: common.DigestSet{
 						"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7",
 					},
