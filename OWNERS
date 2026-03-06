@@ -2,11 +2,8 @@
 
 approvers:
 - anithapriyanatarajan
-- chuangw6
-- chitrangpatel
 - jkhelil
 - lcarva
-- priyawadhwa
 - PuneetPunamiya
 - vdemeester
 - wlynch
@@ -14,7 +11,6 @@ approvers:
 reviewers:
 - anithapriyanatarajan
 - aaron-prindle
-- chitrangpatel
 - jkhelil
 - lcarva
 - PuneetPunamiya
@@ -27,3 +23,6 @@ emeritus_approvers:
 - lukehinds
 - mattmoor
 - mpeters
+- chuangw6
+- chitrangpatel
+- priyawadhwa
