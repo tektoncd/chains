@@ -183,12 +183,15 @@ func TestExtractOCIImagesFromResults(t *testing.T) {
 		{Name: "img5_IMAGE_DIGEST", Value: *v1.NewStructuredValues("sha123:abc")},
 		{Name: "empty_str_IMAGE_DIGEST", Value: *v1.NewStructuredValues("")},
 		{Name: "empty_str_IMAGE_URL", Value: *v1.NewStructuredValues("")},
+		// structured ARTIFACT_OUTPUTS should also be detected as OCI images when marked as build artifacts
+		{Name: "art1-ARTIFACT_OUTPUTS", Value: v1.ParamValue{ObjectVal: map[string]string{"uri": "gcr.io/new/image", "digest": digest2, isBuildArtifactField: "true"}}},
 	}
 
 	want := []interface{}{
 		createDigest(t, fmt.Sprintf("img1@%s", digest1)),
 		createDigest(t, fmt.Sprintf("img2@%s", digest2)),
 		createDigest(t, fmt.Sprintf("img3@%s", digest1)),
+		createDigest(t, fmt.Sprintf("gcr.io/new/image@%s", digest2)),
 	}
 	ctx := logtesting.TestContextWithLogger(t)
 	got := ExtractOCIImagesFromResults(ctx, results)
