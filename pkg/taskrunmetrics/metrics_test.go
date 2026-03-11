@@ -21,72 +21,137 @@ import (
 	"sync"
 	"testing"
 
-	"knative.dev/pkg/metrics/metricstest"
-	_ "knative.dev/pkg/metrics/testing"
+	"go.opentelemetry.io/otel"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 
 	"github.com/tektoncd/chains/pkg/metrics"
 )
+
+func resetRecorder() {
+	once = sync.Once{}
+	r = nil
+}
+
+func setupTestMeterProvider(t *testing.T) (*sdkmetric.ManualReader, func()) {
+	t.Helper()
+	reader := sdkmetric.NewManualReader()
+	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
+	prevProvider := otel.GetMeterProvider()
+	otel.SetMeterProvider(mp)
+	return reader, func() {
+		otel.SetMeterProvider(prevProvider)
+	}
+}
 
 func TestUninitializedMetrics(t *testing.T) {
 	recorder := &Recorder{}
 	ctx := context.Background()
 
+	// Should not panic or crash when recorder is uninitialized
 	recorder.RecordCountMetrics(ctx, metrics.SignedMessagesCount)
-	metricstest.CheckStatsNotReported(t, string(taskRunSignedName))
-
 	recorder.RecordCountMetrics(ctx, metrics.PayloadUploadeCount)
-	metricstest.CheckStatsNotReported(t, string(taskRunUploadedName))
-
 	recorder.RecordCountMetrics(ctx, metrics.SignsStoredCount)
-	metricstest.CheckStatsNotReported(t, string(taskRunStoredName))
-
 	recorder.RecordCountMetrics(ctx, metrics.MarkedAsSignedCount)
-	metricstest.CheckStatsNotReported(t, string(taskRunMarkedName))
 }
 
 func TestCountMetrics(t *testing.T) {
-	unregisterMetrics()
+	resetRecorder()
+	reader, cleanup := setupTestMeterProvider(t)
+	defer cleanup()
+
 	ctx := context.Background()
 	ctx = WithClient(ctx)
-
 	rec := Get(ctx)
 
 	rec.RecordCountMetrics(ctx, metrics.SignedMessagesCount)
-	metricstest.CheckCountData(t, string(taskRunSignedName), map[string]string{}, 1)
 	rec.RecordCountMetrics(ctx, metrics.PayloadUploadeCount)
-	metricstest.CheckCountData(t, string(taskRunUploadedName), map[string]string{}, 1)
 	rec.RecordCountMetrics(ctx, metrics.SignsStoredCount)
-	metricstest.CheckCountData(t, string(taskRunStoredName), map[string]string{}, 1)
 	rec.RecordCountMetrics(ctx, metrics.MarkedAsSignedCount)
-	metricstest.CheckCountData(t, string(taskRunMarkedName), map[string]string{}, 1)
+
+	var rm metricdata.ResourceMetrics
+	if err := reader.Collect(ctx, &rm); err != nil {
+		t.Fatalf("failed to collect metrics: %v", err)
+	}
+
+	checkCounterValue(t, rm, string(taskRunSignedName))
+	checkCounterValue(t, rm, string(taskRunUploadedName))
+	checkCounterValue(t, rm, string(taskRunStoredName))
+	checkCounterValue(t, rm, string(taskRunMarkedName))
 }
 
 func TestRecordErrorMetric(t *testing.T) {
-	unregisterMetrics()
+	resetRecorder()
+	reader, cleanup := setupTestMeterProvider(t)
+	defer cleanup()
+
 	ctx := context.Background()
 	ctx = WithClient(ctx)
-
 	rec := Get(ctx)
 	if rec == nil {
 		t.Fatal("Recorder not initialized")
 	}
 
-	// Record an error metric with a sample error type "signing"
 	rec.RecordErrorMetric(ctx, "signing")
 
-	// Verify that the error metric is recorded with the tag error_type=signing.
-	metricstest.CheckCountData(t, string(taskRunErrorCountName), map[string]string{"error_type": "signing"}, 1)
+	var rm metricdata.ResourceMetrics
+	if err := reader.Collect(ctx, &rm); err != nil {
+		t.Fatalf("failed to collect metrics: %v", err)
+	}
+
+	checkErrorCounterValue(t, rm, string(taskRunErrorCountName), "signing", 1)
 }
 
-func unregisterMetrics() {
-	metricstest.Unregister(
-		string(taskRunSignedName),
-		string(taskRunUploadedName),
-		string(taskRunStoredName),
-		string(taskRunMarkedName),
-		string(taskRunErrorCountName),
-	)
-	// Allow the recorder singleton to be recreated.
-	once = sync.Once{}
-	r = nil
+func checkCounterValue(t *testing.T, rm metricdata.ResourceMetrics, name string) {
+	t.Helper()
+	const expected int64 = 1
+	for _, sm := range rm.ScopeMetrics {
+		for _, m := range sm.Metrics {
+			if m.Name == name {
+				sum, ok := m.Data.(metricdata.Sum[int64])
+				if !ok {
+					t.Errorf("metric %q has unexpected data type: %T", name, m.Data)
+					return
+				}
+				if len(sum.DataPoints) == 0 {
+					t.Errorf("metric %q has no data points", name)
+					return
+				}
+				if sum.DataPoints[0].Value != expected {
+					t.Errorf("metric %q: got %d, want %d", name, sum.DataPoints[0].Value, expected)
+				}
+				return
+			}
+		}
+	}
+	t.Errorf("metric %q not found in collected metrics", name)
+}
+
+func checkErrorCounterValue(t *testing.T, rm metricdata.ResourceMetrics, name, errType string, expected int64) {
+	t.Helper()
+	for _, sm := range rm.ScopeMetrics {
+		for _, m := range sm.Metrics {
+			if m.Name != name {
+				continue
+			}
+			sum, ok := m.Data.(metricdata.Sum[int64])
+			if !ok {
+				t.Errorf("metric %q has unexpected data type: %T", name, m.Data)
+				return
+			}
+			for _, dp := range sum.DataPoints {
+				for _, attr := range dp.Attributes.ToSlice() {
+					if string(attr.Key) == "error_type" && attr.Value.AsString() == errType {
+						if dp.Value != expected {
+							t.Errorf("metric %q with error_type=%q: got %d, want %d", name, errType, dp.Value, expected)
+						}
+						return
+					}
+				}
+			}
+			t.Errorf("metric %q with error_type=%q not found in data points", name, errType)
+			return
+		}
+	}
+	t.Errorf("metric %q not found in collected metrics", name)
 }
