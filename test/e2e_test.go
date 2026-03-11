@@ -1,6 +1,8 @@
 //go:build e2e
 // +build e2e
 
+// Package test contains end-to-end tests for Tekton Chains.
+
 /*
 Copyright 2019 The Tekton Authors
 

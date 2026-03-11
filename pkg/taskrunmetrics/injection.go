@@ -36,6 +36,7 @@ func WithClient(ctx context.Context) context.Context {
 	rec, err := NewRecorder(ctx)
 	if err != nil {
 		logging.FromContext(ctx).Errorf("Failed to create taskrun metrics recorder %v", err)
+		return ctx
 	}
 	return context.WithValue(ctx, RecorderKey{}, rec)
 }
@@ -44,7 +45,8 @@ func WithClient(ctx context.Context) context.Context {
 func Get(ctx context.Context) *Recorder {
 	untyped := ctx.Value(RecorderKey{})
 	if untyped == nil {
-		logging.FromContext(ctx).Panic("Unable to fetch *taskrunmetrics.Recorder from context.")
+		logging.FromContext(ctx).Errorf("Unable to fetch *taskrunmetrics.Recorder from context.")
+		return nil
 	}
 	return untyped.(*Recorder)
 }

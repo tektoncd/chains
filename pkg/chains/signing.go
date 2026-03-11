@@ -148,7 +148,7 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 			payload, err := payloader.CreatePayload(ctx, obj)
 			if err != nil {
 				logger.Error(err)
-				o.recordError(ctx, signableType.Type(), metrics.PayloadCreationError)
+				o.recordError(ctx, signableType, metrics.PayloadCreationError)
 				continue
 			}
 			logger.Infof("Created payload of type %s for %s %s/%s", string(payloadFormat), tektonObj.GetGVK(), tektonObj.GetNamespace(), tektonObj.GetName())
@@ -174,14 +174,14 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 			rawPayload, err := getRawPayload(payload)
 			if err != nil {
 				logger.Warnf("Unable to marshal payload for %s: %v", signerType, err)
-				o.recordError(ctx, signableType.Type(), metrics.MarshalPayloadError)
+				o.recordError(ctx, signableType, metrics.MarshalPayloadError)
 				continue
 			}
 
 			signature, err := signer.SignMessage(bytes.NewReader(rawPayload))
 			if err != nil {
 				logger.Error(err)
-				o.recordError(ctx, signableType.Type(), metrics.SigningError)
+				o.recordError(ctx, signableType, metrics.SigningError)
 				continue
 			}
 			measureMetrics(ctx, metrics.SignedMessagesCount, o.Recorder)
@@ -192,7 +192,7 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 				if !ok {
 					backendErr := fmt.Errorf("could not find backend '%s' in configured backends (%v) while trying sign: %s/%s", backend, maps.Keys(o.Backends), tektonObj.GetKindName(), tektonObj.GetName())
 					logger.Error(backendErr)
-					o.recordError(ctx, signableType.Type(), metrics.StorageError)
+					o.recordError(ctx, signableType, metrics.StorageError)
 					merr = multierror.Append(merr, backendErr)
 					continue
 				}
@@ -206,7 +206,7 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 				}
 				if err := b.StorePayload(ctx, tektonObj, rawPayload, string(signature), storageOpts); err != nil {
 					logger.Error(err)
-					o.recordError(ctx, signableType.Type(), metrics.StorageError)
+					o.recordError(ctx, signableType, metrics.StorageError)
 					merr = multierror.Append(merr, err)
 				} else {
 					measureMetrics(ctx, metrics.SignsStoredCount, o.Recorder)
@@ -222,12 +222,12 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 				entry, err := rekorClient.UploadTlog(ctx, signer, signature, rawPayload, signer.Cert(), string(payloadFormat))
 				if err != nil {
 					logger.Warnf("error uploading entry to tlog: %v", err)
-					o.recordError(ctx, signableType.Type(), metrics.TlogError)
+					o.recordError(ctx, signableType, metrics.TlogError)
 					merr = multierror.Append(merr, err)
 				} else {
 					logger.Infof("Uploaded entry to %s with index %d", cfg.Transparency.URL, *entry.LogIndex)
 					extraAnnotations[annotations.ChainsTransparencyAnnotation] = fmt.Sprintf("%s/api/v1/log/entries?logIndex=%d", cfg.Transparency.URL, *entry.LogIndex)
-					measureMetrics(ctx, metrics.PayloadUploadeCount, o.Recorder)
+					measureMetrics(ctx, metrics.PayloadUploadedCount, o.Recorder)
 				}
 			}
 
@@ -255,11 +255,15 @@ func measureMetrics(ctx context.Context, metrictype metrics.Metric, mtr metrics.
 	}
 }
 
-// recordError abstracts the check and calls RecordErrorMetric if appropriate.
-func (o *ObjectSigner) recordError(ctx context.Context, kind string, errType metrics.MetricErrorType) {
-	shouldRecordError := kind == "TaskRunArtifact" || kind == "PipelineRunArtifact"
-	if shouldRecordError && o.Recorder != nil {
-		o.Recorder.RecordErrorMetric(ctx, errType)
+// recordError calls RecordErrorMetric when the signable type is a TaskRun or
+// PipelineRun artifact. OCI artifacts are excluded because they share the same
+// counter namespace (and the recorder is bound per-run-type).
+func (o *ObjectSigner) recordError(ctx context.Context, signable artifacts.Signable, errType metrics.MetricErrorType) {
+	switch signable.(type) {
+	case *artifacts.TaskRunArtifact, *artifacts.PipelineRunArtifact:
+		if o.Recorder != nil {
+			o.Recorder.RecordErrorMetric(ctx, errType)
+		}
 	}
 }
 
