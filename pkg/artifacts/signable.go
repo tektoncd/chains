@@ -200,6 +200,20 @@ func ExtractOCIImagesFromResults(ctx context.Context, results []objects.Result) 
 		}
 	}
 
+	// Also check structured ARTIFACT_OUTPUTS for OCI artifacts that are marked as build artifacts
+	// These are results that contain object values with "uri", "digest" and isBuildArtifact=="true"
+	for _, s := range ExtractBuildArtifactsFromResults(ctx, results) {
+		if !hasImageRequirements(*s) {
+			continue
+		}
+		dgst, err := name.NewDigest(fmt.Sprintf("%s@%s", s.URI, s.Digest))
+		if err != nil {
+			logger.Errorf("error getting digest for structured output %s@%s: %v", s.URI, s.Digest, err)
+			continue
+		}
+		objs = append(objs, dgst)
+	}
+
 	return objs
 }
 
