@@ -39,7 +39,7 @@ require (
 	gocloud.dev/pubsub/kafkapubsub v0.43.0
 	golang.org/x/crypto v0.49.0
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b
-	google.golang.org/grpc v1.79.2
+	google.golang.org/grpc v1.79.3
 	google.golang.org/protobuf v1.36.11
 	k8s.io/api v0.35.2
 	k8s.io/apimachinery v0.35.2
