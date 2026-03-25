@@ -41,15 +41,9 @@ kubectl wait --for=condition=Ready pods --all -n tekton-chains --timeout=60s
 Generate a key pair for signing artifacts and store it as a Kubernetes Secret.
 
 ```shell
-# Generate key pair
-cosign generate-key-pair
+# Generate key pair and create the secret
+cosign generate-key-pair k8s://tekton-chains/signing-secrets
 
-# Create the secret in the tekton-chains namespace
-kubectl create secret generic signing-secrets \
-  -n tekton-chains \
-  --from-file=cosign.key \
-  --dry-run=client -o yaml | kubectl apply -f -
-```
 
 ## Step 3: Deploy a MongoDB Instance
 
@@ -133,7 +127,7 @@ kubectl patch configmap chains-config -n tekton-chains --type merge -p '{
   "data": {
     "artifacts.taskrun.storage": "docdb",
     "artifacts.pipelinerun.storage": "docdb",
-    "storage.docdb.url": "mongo://tekton-chains/attestations?id_field=_id",
+    "storage.docdb.url": "mongo://tekton-chains/attestations?id_field=name",
     "storage.docdb.mongo-server-url-path": "/etc/secrets/mongo/mongo-url"
   }
 }'
