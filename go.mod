@@ -32,9 +32,9 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/tektoncd/pipeline v1.10.2
 	github.com/tektoncd/plumbing v0.0.0-20250115133002-f515628dffea
-	go.opentelemetry.io/otel v1.40.0
-	go.opentelemetry.io/otel/metric v1.40.0
-	go.opentelemetry.io/otel/sdk/metric v1.40.0
+	go.opentelemetry.io/otel v1.42.0
+	go.opentelemetry.io/otel/metric v1.42.0
+	go.opentelemetry.io/otel/sdk/metric v1.42.0
 	go.uber.org/zap v1.27.1
 	gocloud.dev v0.43.0
 	gocloud.dev/docstore/mongodocstore v0.43.0
@@ -446,8 +446,8 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.40.0 // indirect
 	go.opentelemetry.io/otel/exporters/prometheus v0.62.0 // indirect
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.40.0 // indirect
-	go.opentelemetry.io/otel/sdk v1.40.0 // indirect
-	go.opentelemetry.io/otel/trace v1.40.0 // indirect
+	go.opentelemetry.io/otel/sdk v1.42.0 // indirect
+	go.opentelemetry.io/otel/trace v1.42.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.9.0 // indirect
 	go.step.sm/crypto v0.75.0 // indirect
 	go.uber.org/automaxprocs v1.6.0 // indirect
