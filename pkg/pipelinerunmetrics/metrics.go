@@ -20,62 +20,25 @@ import (
 	"context"
 	"sync"
 
-	"go.opencensus.io/stats"
-	"go.opencensus.io/stats/view"
-	"go.opencensus.io/tag"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	otelmetric "go.opentelemetry.io/otel/metric"
 	"knative.dev/pkg/logging"
-	"knative.dev/pkg/metrics"
 
 	common "github.com/tektoncd/chains/pkg/metrics"
 )
 
 const (
-	pipelineRunSignedName     common.Metric = "pipelinerun_sign_created_total"
+	pipelineRunSignedName     common.Metric = "watcher_pipelinerun_sign_created_total"
 	pipelineRunSignedDesc     string        = "Total number of signed messages for pipelineruns"
-	pipelineRunUploadedName   common.Metric = "pipelinerun_payload_uploaded_total"
+	pipelineRunUploadedName   common.Metric = "watcher_pipelinerun_payload_uploaded_total"
 	pipelineRunUploadedDesc   string        = "Total number of uploaded payloads for pipelineruns"
-	pipelineRunStoredName     common.Metric = "pipelinerun_payload_stored_total"
+	pipelineRunStoredName     common.Metric = "watcher_pipelinerun_payload_stored_total"
 	pipelineRunStoredDesc     string        = "Total number of stored payloads for pipelineruns"
-	pipelineRunMarkedName     common.Metric = "pipelinerun_marked_signed_total"
+	pipelineRunMarkedName     common.Metric = "watcher_pipelinerun_marked_signed_total"
 	pipelineRunMarkedDesc     string        = "Total number of objects marked as signed for pipelineruns"
-	pipelineRunErrorCountName common.Metric = "pipelinerun_signing_failures_total"
+	pipelineRunErrorCountName common.Metric = "watcher_pipelinerun_signing_failures_total"
 	pipelineRunErrorCountDesc string        = "Total number of PipelineRun signing failures"
-)
-
-var (
-	sgCount = stats.Float64(string(pipelineRunSignedName),
-		pipelineRunSignedDesc,
-		stats.UnitDimensionless)
-
-	sgCountView *view.View
-
-	plCount = stats.Float64(string(pipelineRunUploadedName),
-		pipelineRunUploadedDesc,
-		stats.UnitDimensionless)
-
-	plCountView *view.View
-
-	stCount = stats.Float64(string(pipelineRunStoredName),
-		pipelineRunStoredDesc,
-		stats.UnitDimensionless)
-
-	stCountView *view.View
-
-	mrCount = stats.Float64(string(pipelineRunMarkedName),
-		pipelineRunMarkedDesc,
-		stats.UnitDimensionless)
-
-	mrCountView *view.View
-
-	pipelineRunErrorCount = stats.Float64(
-		string(pipelineRunErrorCountName),
-		pipelineRunErrorCountDesc,
-		stats.UnitDimensionless,
-	)
-
-	pipelineErrorView *view.View
-
-	errorTypeKey, _ = tag.NewKey("error_type")
 )
 
 var _ common.Recorder = &Recorder{}
@@ -83,105 +46,116 @@ var _ common.Recorder = &Recorder{}
 // Recorder holds keys for PipelineRun metrics.
 type Recorder struct {
 	initialized bool
+	sgCount     otelmetric.Int64Counter
+	plCount     otelmetric.Int64Counter
+	stCount     otelmetric.Int64Counter
+	mrCount     otelmetric.Int64Counter
+	errCount    otelmetric.Int64Counter
 }
 
-// We cannot register the view multiple times, so NewRecorder lazily
-// initializes this singleton and returns the same recorder across any
-// subsequent invocations.
+// NewRecorder lazily initializes this singleton. Unlike sync.Once, the
+// mutex-based guard allows a retry if initialization fails (e.g. the OTel
+// provider is not yet ready). Only a fully-initialized recorder is stored in r.
 var (
-	once sync.Once
-	r    *Recorder
+	mu sync.Mutex
+	r  *Recorder
 )
 
 // NewRecorder creates a new metrics recorder instance
-// to log the PipelineRun related metrics.
+// to log PipelineRun related metrics.
 func NewRecorder(ctx context.Context) (*Recorder, error) {
-	var errRegistering error
+	mu.Lock()
+	defer mu.Unlock()
+	if r != nil && r.initialized {
+		return r, nil
+	}
+
 	logger := logging.FromContext(ctx)
-	once.Do(func() {
-		r = &Recorder{
-			initialized: true,
-		}
-		errRegistering = viewRegister()
-		if errRegistering != nil {
-			r.initialized = false
-			logger.Errorf("View Register Failed ", r.initialized)
-			return
-		}
-	})
+	newR := &Recorder{}
+	meter := otel.Meter("github.com/tektoncd/chains/pkg/pipelinerunmetrics")
 
-	return r, errRegistering
-}
-
-func viewRegister() error {
-	sgCountView = &view.View{
-		Description: sgCount.Description(),
-		Measure:     sgCount,
-		Aggregation: view.Count(),
-	}
-
-	plCountView = &view.View{
-		Description: plCount.Description(),
-		Measure:     plCount,
-		Aggregation: view.Count(),
-	}
-
-	stCountView = &view.View{
-		Description: stCount.Description(),
-		Measure:     stCount,
-		Aggregation: view.Count(),
-	}
-
-	mrCountView = &view.View{
-		Description: mrCount.Description(),
-		Measure:     mrCount,
-		Aggregation: view.Count(),
-	}
-
-	pipelineErrorView = &view.View{
-		Description: pipelineRunErrorCount.Description(),
-		Measure:     pipelineRunErrorCount,
-		TagKeys:     []tag.Key{errorTypeKey},
-		Aggregation: view.Count(),
-	}
-
-	return view.Register(
-		sgCountView,
-		plCountView,
-		stCountView,
-		mrCountView,
-		pipelineErrorView,
+	var err error
+	newR.sgCount, err = meter.Int64Counter(
+		string(pipelineRunSignedName),
+		otelmetric.WithDescription(pipelineRunSignedDesc),
 	)
+	if err != nil {
+		logger.Errorf("Failed to create %s counter: %v", pipelineRunSignedName, err)
+		return nil, err
+	}
+
+	newR.plCount, err = meter.Int64Counter(
+		string(pipelineRunUploadedName),
+		otelmetric.WithDescription(pipelineRunUploadedDesc),
+	)
+	if err != nil {
+		logger.Errorf("Failed to create %s counter: %v", pipelineRunUploadedName, err)
+		return nil, err
+	}
+
+	newR.stCount, err = meter.Int64Counter(
+		string(pipelineRunStoredName),
+		otelmetric.WithDescription(pipelineRunStoredDesc),
+	)
+	if err != nil {
+		logger.Errorf("Failed to create %s counter: %v", pipelineRunStoredName, err)
+		return nil, err
+	}
+
+	newR.mrCount, err = meter.Int64Counter(
+		string(pipelineRunMarkedName),
+		otelmetric.WithDescription(pipelineRunMarkedDesc),
+	)
+	if err != nil {
+		logger.Errorf("Failed to create %s counter: %v", pipelineRunMarkedName, err)
+		return nil, err
+	}
+
+	newR.errCount, err = meter.Int64Counter(
+		string(pipelineRunErrorCountName),
+		otelmetric.WithDescription(pipelineRunErrorCountDesc),
+	)
+	if err != nil {
+		logger.Errorf("Failed to create %s counter: %v", pipelineRunErrorCountName, err)
+		return nil, err
+	}
+
+	newR.initialized = true
+	r = newR
+	return r, nil
 }
 
 // RecordCountMetrics implements github.com/tektoncd/chains/pkg/metrics.Recorder.RecordCountMetrics
 func (r *Recorder) RecordCountMetrics(ctx context.Context, metricType common.Metric) {
+	if r == nil {
+		return
+	}
 	logger := logging.FromContext(ctx)
 	if !r.initialized {
-		logger.Errorf("Ignoring the metrics recording as recorder not initialized ")
+		logger.Debugf("Ignoring the metrics recording as recorder not initialized")
 		return
 	}
 	switch mt := metricType; mt {
 	case common.SignedMessagesCount:
-		r.countMetrics(ctx, sgCount)
-	case common.PayloadUploadeCount:
-		r.countMetrics(ctx, plCount)
+		r.sgCount.Add(ctx, 1)
+	case common.PayloadUploadedCount:
+		r.plCount.Add(ctx, 1)
 	case common.SignsStoredCount:
-		r.countMetrics(ctx, stCount)
+		r.stCount.Add(ctx, 1)
 	case common.MarkedAsSignedCount:
-		r.countMetrics(ctx, mrCount)
+		r.mrCount.Add(ctx, 1)
 	default:
 		logger.Errorf("Ignoring the metrics recording as valid Metric type matching %v was not found", mt)
 	}
 }
 
-func (r *Recorder) countMetrics(ctx context.Context, measure *stats.Float64Measure) {
-	metrics.Record(ctx, measure.M(1))
-}
-
-// RecordErrorMetric records a PipelineRun signing failure with a given error type tag.
+// RecordErrorMetric records a PipelineRun signing failure with a given error type.
 func (r *Recorder) RecordErrorMetric(ctx context.Context, errType common.MetricErrorType) {
-	// Add the error_type tag to the context.
-	ctx, _ = tag.New(ctx, tag.Upsert(errorTypeKey, string(errType)))
-	metrics.Record(ctx, pipelineRunErrorCount.M(1))
+	if r == nil {
+		return
+	}
+	if !r.initialized {
+		return
+	}
+	r.errCount.Add(ctx, 1, otelmetric.WithAttributes(attribute.String(common.ErrorTypeAttrKey, string(errType))))
 }

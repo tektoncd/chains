@@ -20,10 +20,10 @@ type Metric string
 
 // Common metric names
 const (
-	SignedMessagesCount Metric = "sgcount"
-	SignsStoredCount    Metric = "stcount"
-	PayloadUploadeCount Metric = "plcount"
-	MarkedAsSignedCount Metric = "mrcount"
+	SignedMessagesCount  Metric = "sgcount"
+	SignsStoredCount     Metric = "stcount"
+	PayloadUploadedCount Metric = "plcount"
+	MarkedAsSignedCount  Metric = "mrcount"
 )
 
 // MetricErrorType is a string name of a well-known error type. Any error metrics recorded should be faceted by MetricErrorType
@@ -37,6 +37,9 @@ const (
 	StorageError         MetricErrorType = "storage"
 	TlogError            MetricErrorType = "tlog"
 )
+
+// ErrorTypeAttrKey is the OpenTelemetry attribute key used to label error metrics by type.
+const ErrorTypeAttrKey = "error_type"
 
 // Recorder is an interface for any object which may record metrics
 type Recorder interface {

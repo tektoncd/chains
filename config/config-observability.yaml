@@ -21,6 +21,9 @@ metadata:
     app.kubernetes.io/instance: default
     app.kubernetes.io/part-of: tekton-chains
 data:
+  # metrics-protocol specifies the OpenTelemetry export protocol for metrics.
+  # Supported values: prometheus (default), grpc, http/protobuf, none.
+  metrics-protocol: prometheus
   _example: |
     ################################
     #                              #
@@ -36,23 +39,17 @@ data:
     # this example block and unindented to be in the data block
     # to actually change the configuration.
     #
-    # metrics.backend-destination field specifies the system metrics destination.
-    # It supports either prometheus (the default) or stackdriver.
-    # Note: Using Stackdriver will incur additional charges.
+    # metrics-protocol specifies the OpenTelemetry export protocol.
+    # Supported values: prometheus (default), grpc, http/protobuf, none.
     #
-    metrics.backend-destination: prometheus
+    metrics-protocol: prometheus
     #
-    # metrics.stackdriver-project-id field specifies the Stackdriver project ID. This
-    # field is optional. When running on GCE, application default credentials will be
-    # used and metrics will be sent to the cluster's project if this field is
-    # not provided.
+    # metrics-endpoint is the OTLP collector endpoint to send metrics to.
+    # Required when metrics-protocol is grpc or http/protobuf.
     #
-    metrics.stackdriver-project-id: "<your stackdriver project id>"
+    metrics-endpoint: "otel-collector.observability.svc.cluster.local:4317"
     #
-    # metrics.allow-stackdriver-custom-metrics indicates whether it is allowed
-    # to send metrics to Stackdriver using "global" resource type and custom
-    # metric type. Setting this flag to "true" could cause extra Stackdriver
-    # charge.  If metrics.backend-destination is not Stackdriver, this is
-    # ignored.
+    # metrics-export-interval is the interval at which metrics are exported.
+    # Uses Go duration format (e.g. 30s, 1m). Defaults to 30s.
     #
-    metrics.allow-stackdriver-custom-metrics: "false"
+    metrics-export-interval: 30s

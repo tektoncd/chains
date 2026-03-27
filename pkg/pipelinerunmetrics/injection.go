@@ -36,6 +36,7 @@ func WithClient(ctx context.Context) context.Context {
 	rec, err := NewRecorder(ctx)
 	if err != nil {
 		logging.FromContext(ctx).Errorf("Failed to create pipelinerun metrics recorder %v", err)
+		return ctx
 	}
 	return context.WithValue(ctx, RecorderKey{}, rec)
 }
@@ -45,6 +46,7 @@ func Get(ctx context.Context) *Recorder {
 	untyped := ctx.Value(RecorderKey{})
 	if untyped == nil {
 		logging.FromContext(ctx).Errorf("Unable to fetch *pipelinerunmetrics.Recorder from context.")
+		return nil
 	}
 	return untyped.(*Recorder)
 }
