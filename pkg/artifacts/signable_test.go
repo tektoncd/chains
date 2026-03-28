@@ -205,6 +205,74 @@ func TestExtractOCIImagesFromResults(t *testing.T) {
 	}
 }
 
+func TestExtractOCIImagesFromResults_CrossFormatDedup(t *testing.T) {
+	// Same image appears via IMAGE_URL/IMAGE_DIGEST and IMAGES — should be deduplicated.
+	results := []objects.Result{
+		{Name: "IMAGE_URL", Value: *v1.NewStructuredValues("img1")},
+		{Name: "IMAGE_DIGEST", Value: *v1.NewStructuredValues(digest1)},
+		{Name: "IMAGES", Value: *v1.NewStructuredValues(fmt.Sprintf("img1@%s", digest1))},
+	}
+
+	want := []interface{}{
+		createDigest(t, fmt.Sprintf("img1@%s", digest1)),
+	}
+	ctx := logtesting.TestContextWithLogger(t)
+	got := ExtractOCIImagesFromResults(ctx, results)
+	if !cmp.Equal(got, want, ignore...) {
+		t.Fatalf("expected dedup across type-hint formats, got %s", cmp.Diff(want, got, ignore...))
+	}
+}
+
+func TestExtractOCIImagesFromResults_ArtifactOutputsDedup(t *testing.T) {
+	// Same image appears via IMAGE_URL/IMAGE_DIGEST and ARTIFACT_OUTPUTS — should be deduplicated.
+	results := []objects.Result{
+		{Name: "IMAGE_URL", Value: *v1.NewStructuredValues("gcr.io/foo/bar")},
+		{Name: "IMAGE_DIGEST", Value: *v1.NewStructuredValues(digest1)},
+		{Name: "build-image_ARTIFACT_OUTPUTS", Value: v1.ParamValue{
+			Type: v1.ParamTypeObject,
+			ObjectVal: map[string]string{
+				"uri":             "gcr.io/foo/bar",
+				"digest":          digest1,
+				"isBuildArtifact": "true",
+			},
+		}},
+	}
+
+	want := []interface{}{
+		createDigest(t, fmt.Sprintf("gcr.io/foo/bar@%s", digest1)),
+	}
+	ctx := logtesting.TestContextWithLogger(t)
+	got := ExtractOCIImagesFromResults(ctx, results)
+	if !cmp.Equal(got, want, ignore...) {
+		t.Fatalf("expected dedup across IMAGE_URL and ARTIFACT_OUTPUTS, got %s", cmp.Diff(want, got, ignore...))
+	}
+}
+
+func TestExtractOCIImagesFromResults_DifferentReposSameDigest(t *testing.T) {
+	// Two different repositories with the same digest should NOT be deduplicated.
+	results := []objects.Result{
+		{Name: "img1_IMAGE_URL", Value: *v1.NewStructuredValues("gcr.io/project/img1")},
+		{Name: "img1_IMAGE_DIGEST", Value: *v1.NewStructuredValues(digest1)},
+		{Name: "img2_IMAGE_URL", Value: *v1.NewStructuredValues("quay.io/project/img2")},
+		{Name: "img2_IMAGE_DIGEST", Value: *v1.NewStructuredValues(digest1)},
+	}
+
+	want := []interface{}{
+		createDigest(t, fmt.Sprintf("gcr.io/project/img1@%s", digest1)),
+		createDigest(t, fmt.Sprintf("quay.io/project/img2@%s", digest1)),
+	}
+	ctx := logtesting.TestContextWithLogger(t)
+	got := ExtractOCIImagesFromResults(ctx, results)
+	sort.Slice(got, func(i, j int) bool {
+		a := got[i].(name.Digest)
+		b := got[j].(name.Digest)
+		return a.String() < b.String()
+	})
+	if !cmp.Equal(got, want, ignore...) {
+		t.Fatalf("different repos with same digest should not be deduped: %s", cmp.Diff(want, got, ignore...))
+	}
+}
+
 func TestExtractSignableTargetFromResults(t *testing.T) {
 	tr := &v1.TaskRun{
 		Status: v1.TaskRunStatus{
