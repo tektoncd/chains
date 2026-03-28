@@ -164,6 +164,7 @@ func (oa *OCIArtifact) ExtractObjects(ctx context.Context, obj objects.TektonObj
 func ExtractOCIImagesFromResults(ctx context.Context, results []objects.Result) []interface{} {
 	logger := logging.FromContext(ctx)
 	objs := []interface{}{}
+	seen := map[string]bool{}
 
 	extractor := structuredSignableExtractor{
 		uriSuffix:    OCIImageURLResultName,
@@ -176,6 +177,11 @@ func ExtractOCIImagesFromResults(ctx context.Context, results []objects.Result) 
 			logger.Errorf("error getting digest: %v", err)
 			continue
 		}
+		if seen[dgst.DigestStr()] {
+			logger.Debugf("skipping duplicate digest %s", dgst.DigestStr())
+			continue
+		}
+		seen[dgst.DigestStr()] = true
 		objs = append(objs, dgst)
 	}
 
@@ -196,6 +202,11 @@ func ExtractOCIImagesFromResults(ctx context.Context, results []objects.Result) 
 				logger.Errorf("error getting digest for img %s: %v", trimmed, err)
 				continue
 			}
+			if seen[dgst.DigestStr()] {
+				logger.Debugf("skipping duplicate digest %s", dgst.DigestStr())
+				continue
+			}
+			seen[dgst.DigestStr()] = true
 			objs = append(objs, dgst)
 		}
 	}

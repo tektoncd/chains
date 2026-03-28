@@ -188,7 +188,6 @@ func TestExtractOCIImagesFromResults(t *testing.T) {
 	want := []interface{}{
 		createDigest(t, fmt.Sprintf("img1@%s", digest1)),
 		createDigest(t, fmt.Sprintf("img2@%s", digest2)),
-		createDigest(t, fmt.Sprintf("img3@%s", digest1)),
 	}
 	ctx := logtesting.TestContextWithLogger(t)
 	got := ExtractOCIImagesFromResults(ctx, results)
@@ -199,6 +198,24 @@ func TestExtractOCIImagesFromResults(t *testing.T) {
 	})
 	if !cmp.Equal(got, want, ignore...) {
 		t.Fatalf("not the same %s", cmp.Diff(want, got, ignore...))
+	}
+}
+
+func TestExtractOCIImagesFromResults_CrossFormatDedup(t *testing.T) {
+	// Same image appears via IMAGE_URL/IMAGE_DIGEST and IMAGES — should be deduplicated.
+	results := []objects.Result{
+		{Name: "IMAGE_URL", Value: *v1.NewStructuredValues("img1")},
+		{Name: "IMAGE_DIGEST", Value: *v1.NewStructuredValues(digest1)},
+		{Name: "IMAGES", Value: *v1.NewStructuredValues(fmt.Sprintf("img1@%s", digest1))},
+	}
+
+	want := []interface{}{
+		createDigest(t, fmt.Sprintf("img1@%s", digest1)),
+	}
+	ctx := logtesting.TestContextWithLogger(t)
+	got := ExtractOCIImagesFromResults(ctx, results)
+	if !cmp.Equal(got, want, ignore...) {
+		t.Fatalf("expected dedup across type-hint formats, got %s", cmp.Diff(want, got, ignore...))
 	}
 }
 
