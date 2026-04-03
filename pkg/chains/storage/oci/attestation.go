@@ -73,6 +73,9 @@ func (s *AttestationStorer) Store(ctx context.Context, req *api.StoreRequest[nam
 	if req.Bundle.Cert != nil {
 		attOpts = append(attOpts, static.WithCertChain(req.Bundle.Cert, req.Bundle.Chain))
 	}
+	if req.Bundle.RekorBundle != nil {
+		attOpts = append(attOpts, static.WithBundle(req.Bundle.RekorBundle))
+	}
 	att, err := static.NewAttestation(req.Bundle.Signature, attOpts...)
 	if err != nil {
 		return nil, err

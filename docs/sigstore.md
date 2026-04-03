@@ -35,6 +35,16 @@ Right now, Chains default to storing entries in the public Rekor instance
 kubectl patch configmap chains-config -n tekton-chains -p='{"data":{"transparency.url": "<YOUR URL>"}}'
 ```
 
+### Offline Verification with Rekor Bundle
+
+When transparency is enabled and the OCI storage backend is used, Chains automatically embeds the Rekor bundle (`dev.sigstore.cosign/bundle`) in the OCI attestation layer annotations. This enables offline verification of transparency log entries without querying the Rekor server.
+
+This applies to **attestations only** (in-toto / DSSE-wrapped SLSA provenance stored via `cosign verify-attestation`). OCI image signatures using the simplesigning format do not currently embed the bundle, so `cosign verify` will not find it.
+
+No additional configuration is required — the bundle is embedded automatically when `transparency.enabled` is set to `true` and attestations are stored in an OCI registry.
+
+> **Note:** If the Rekor upload fails (e.g. due to a transient network error), attestation storage still proceeds but the bundle annotation will be absent. Consumers that rely on the bundle for offline verification will silently receive an attestation without it.
+
 ## Keyless Signing Mode
 
 Chains also supports a keyless signing mode with

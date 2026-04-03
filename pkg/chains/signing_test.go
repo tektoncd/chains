@@ -40,6 +40,11 @@ import (
 	_ "github.com/tektoncd/chains/pkg/chains/formats/all"
 )
 
+const (
+	testLogID    = "test-log-id"
+	testRekorURL = "https://rekor.example.com"
+)
+
 func TestSigner_Sign(t *testing.T) {
 	// Sign does three main things:
 	// - generates payloads
@@ -334,6 +339,203 @@ func TestSigner_Transparency(t *testing.T) {
 	}
 }
 
+func TestSigner_TransparencyRekorBundle(t *testing.T) {
+	// Verify that when transparency is enabled, the Rekor bundle is passed through to storage opts.
+	tests := []struct {
+		name         string
+		cfg          *config.Config
+		getNewObject func(string) objects.TektonObject
+	}{
+		{
+			name: "taskrun with transparency enabled",
+			cfg: &config.Config{
+				Artifacts: config.ArtifactConfigs{
+					TaskRuns: config.Artifact{
+						Format:         "slsa/v1",
+						StorageBackend: sets.New[string]("mock"),
+						Signer:         "x509",
+					},
+				},
+				Transparency: config.TransparencyConfig{
+					Enabled: true,
+					URL:     testRekorURL,
+				},
+			},
+			getNewObject: func(name string) objects.TektonObject {
+				return objects.NewTaskRunObjectV1(&v1.TaskRun{
+					ObjectMeta: metav1.ObjectMeta{Name: name},
+				})
+			},
+		},
+		{
+			name: "pipelinerun with transparency enabled",
+			cfg: &config.Config{
+				Artifacts: config.ArtifactConfigs{
+					PipelineRuns: config.Artifact{
+						Format:         "slsa/v1",
+						StorageBackend: sets.New[string]("mock"),
+						Signer:         "x509",
+					},
+				},
+				Transparency: config.TransparencyConfig{
+					Enabled: true,
+					URL:     testRekorURL,
+				},
+			},
+			getNewObject: func(name string) objects.TektonObject {
+				return objects.NewPipelineRunObjectV1(&v1.PipelineRun{
+					ObjectMeta: metav1.ObjectMeta{Name: name},
+				})
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rekor := &mockRekor{}
+			backend := &mockBackend{backendType: "mock"}
+			cleanup := setupMocks(rekor)
+			defer cleanup()
+
+			ctx, _ := rtesting.SetupFakeContext(t)
+			ps := fakepipelineclient.Get(ctx)
+			ctx = config.ToContext(ctx, tt.cfg.DeepCopy())
+
+			os := &ObjectSigner{
+				Backends:          fakeAllBackends([]*mockBackend{backend}),
+				SecretPath:        "./signing/x509/testdata/",
+				Pipelineclientset: ps,
+			}
+
+			obj := tt.getNewObject("test-rekor-bundle")
+			tekton.CreateObject(t, ctx, ps, obj)
+
+			if err := os.Sign(ctx, obj); err != nil {
+				t.Fatalf("Signer.Sign() error = %v", err)
+			}
+
+			if len(rekor.entries) != 1 {
+				t.Fatalf("expected 1 transparency log entry, got %d", len(rekor.entries))
+			}
+
+			if backend.storedOpts.RekorBundle == nil {
+				t.Fatal("expected RekorBundle to be set in StorageOpts, got nil")
+			}
+
+			if string(backend.storedOpts.RekorBundle.SignedEntryTimestamp) != "signed-entry-timestamp" {
+				t.Errorf("unexpected SignedEntryTimestamp: %s", string(backend.storedOpts.RekorBundle.SignedEntryTimestamp))
+			}
+
+			if backend.storedOpts.RekorBundle.Payload.IntegratedTime != 1234567890 {
+				t.Errorf("unexpected IntegratedTime: %d", backend.storedOpts.RekorBundle.Payload.IntegratedTime)
+			}
+
+			if backend.storedOpts.RekorBundle.Payload.LogID != testLogID {
+				t.Errorf("unexpected LogID: %s", backend.storedOpts.RekorBundle.Payload.LogID)
+			}
+		})
+	}
+}
+
+func TestSigner_NilVerificationSkipsBundle(t *testing.T) {
+	// When Rekor upload succeeds but the entry has no Verification data,
+	// RekorBundle should be nil in StorageOpts (exercises the "Rekor entry
+	// missing verification data, skipping bundle" path).
+	backend := &mockBackend{backendType: "mock"}
+	rekor := &mockRekorNilVerification{}
+	cleanup := setupMocks(rekor)
+	defer cleanup()
+
+	cfg := &config.Config{
+		Artifacts: config.ArtifactConfigs{
+			TaskRuns: config.Artifact{
+				Format:         "slsa/v1",
+				StorageBackend: sets.New[string]("mock"),
+				Signer:         "x509",
+			},
+		},
+		Transparency: config.TransparencyConfig{
+			Enabled: true,
+			URL:     testRekorURL,
+		},
+	}
+
+	ctx, _ := rtesting.SetupFakeContext(t)
+	ps := fakepipelineclient.Get(ctx)
+	ctx = config.ToContext(ctx, cfg.DeepCopy())
+
+	os := &ObjectSigner{
+		Backends:          fakeAllBackends([]*mockBackend{backend}),
+		SecretPath:        "./signing/x509/testdata/",
+		Pipelineclientset: ps,
+	}
+
+	obj := objects.NewTaskRunObjectV1(&v1.TaskRun{
+		ObjectMeta: metav1.ObjectMeta{Name: "test-nil-verification"},
+	})
+	tekton.CreateObject(t, ctx, ps, obj)
+
+	if err := os.Sign(ctx, obj); err != nil {
+		t.Fatalf("Signer.Sign() error = %v", err)
+	}
+
+	if len(rekor.entries) != 1 {
+		t.Fatalf("expected 1 transparency log entry, got %d", len(rekor.entries))
+	}
+
+	if backend.storedOpts.RekorBundle != nil {
+		t.Error("expected RekorBundle to be nil when Verification is nil")
+	}
+}
+
+func TestSigner_NoRekorBundleWithoutTransparency(t *testing.T) {
+	// Verify that RekorBundle is nil when transparency is disabled.
+	backend := &mockBackend{backendType: "mock"}
+	rekor := &mockRekor{}
+	cleanup := setupMocks(rekor)
+	defer cleanup()
+
+	cfg := &config.Config{
+		Artifacts: config.ArtifactConfigs{
+			TaskRuns: config.Artifact{
+				Format:         "slsa/v1",
+				StorageBackend: sets.New[string]("mock"),
+				Signer:         "x509",
+			},
+		},
+		Transparency: config.TransparencyConfig{
+			Enabled: false,
+		},
+	}
+
+	ctx, _ := rtesting.SetupFakeContext(t)
+	ps := fakepipelineclient.Get(ctx)
+	ctx = config.ToContext(ctx, cfg.DeepCopy())
+
+	os := &ObjectSigner{
+		Backends:          fakeAllBackends([]*mockBackend{backend}),
+		SecretPath:        "./signing/x509/testdata/",
+		Pipelineclientset: ps,
+	}
+
+	obj := objects.NewTaskRunObjectV1(&v1.TaskRun{
+		ObjectMeta: metav1.ObjectMeta{Name: "test-no-rekor-bundle"},
+	})
+	tekton.CreateObject(t, ctx, ps, obj)
+
+	if err := os.Sign(ctx, obj); err != nil {
+		t.Fatalf("Signer.Sign() error = %v", err)
+	}
+
+	if len(rekor.entries) != 0 {
+		t.Fatalf("expected no transparency log entries, got %d", len(rekor.entries))
+	}
+
+	if backend.storedOpts.RekorBundle != nil {
+		t.Error("expected RekorBundle to be nil when transparency is disabled")
+	}
+}
+
 func TestSigningObjects(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -556,7 +758,7 @@ func TestObjectSigner_Sign_OCIDisabled(t *testing.T) {
 	}
 }
 
-func setupMocks(rekor *mockRekor) func() {
+func setupMocks(rekor rekorClient) func() {
 	oldRekor := getRekor
 	getRekor = func(_ string) (rekorClient, error) {
 		return rekor, nil
@@ -573,13 +775,22 @@ type mockRekor struct {
 func (r *mockRekor) UploadTlog(ctx context.Context, signer signing.Signer, signature, rawPayload []byte, cert, payloadFormat string) (*models.LogEntryAnon, error) {
 	r.entries = append(r.entries, signature)
 	index := int64(len(r.entries) - 1)
+	logID := testLogID
+	integratedTime := int64(1234567890)
 	return &models.LogEntryAnon{
-		LogIndex: &index,
+		LogIndex:       &index,
+		LogID:          &logID,
+		IntegratedTime: &integratedTime,
+		Body:           "dGVzdC1ib2R5", // base64("test-body")
+		Verification: &models.LogEntryAnonVerification{
+			SignedEntryTimestamp: []byte("signed-entry-timestamp"),
+		},
 	}, nil
 }
 
 type mockBackend struct {
 	storedPayload []byte
+	storedOpts    config.StorageOpts
 	shouldErr     bool
 	backendType   string
 }
@@ -590,6 +801,7 @@ func (b *mockBackend) StorePayload(ctx context.Context, _ objects.TektonObject, 
 		return errors.New("mock error storing")
 	}
 	b.storedPayload = rawPayload
+	b.storedOpts = opts
 	return nil
 }
 
@@ -603,4 +815,22 @@ func (b *mockBackend) RetrievePayloads(ctx context.Context, _ objects.TektonObje
 
 func (b *mockBackend) RetrieveSignatures(ctx context.Context, _ objects.TektonObject, opts config.StorageOpts) (map[string][]string, error) {
 	return nil, fmt.Errorf("not implemented")
+}
+
+type mockRekorNilVerification struct {
+	entries [][]byte
+}
+
+func (r *mockRekorNilVerification) UploadTlog(_ context.Context, _ signing.Signer, signature, _ []byte, _, _ string) (*models.LogEntryAnon, error) {
+	r.entries = append(r.entries, signature)
+	index := int64(len(r.entries) - 1)
+	logID := testLogID
+	integratedTime := int64(1234567890)
+	return &models.LogEntryAnon{
+		LogIndex:       &index,
+		LogID:          &logID,
+		IntegratedTime: &integratedTime,
+		Body:           "dGVzdC1ib2R5",
+		Verification:   nil,
+	}, nil
 }
