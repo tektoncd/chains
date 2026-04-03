@@ -204,10 +204,11 @@ func (b *Backend) uploadAttestation(ctx context.Context, attestation *intoto.Sta
 			Artifact: ref,
 			Payload:  attestation,
 			Bundle: &signing.Bundle{
-				Content:   nil,
-				Signature: []byte(signature),
-				Cert:      []byte(storageOpts.Cert),
-				Chain:     []byte(storageOpts.Chain),
+				Content:     nil,
+				Signature:   []byte(signature),
+				Cert:        []byte(storageOpts.Cert),
+				Chain:       []byte(storageOpts.Chain),
+				RekorBundle: storageOpts.RekorBundle,
 			},
 		}); err != nil {
 			return err
