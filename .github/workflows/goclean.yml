@@ -1,5 +1,8 @@
 name: goclean
 
+permissions:
+  contents: read
+
 on:
   push:
     paths:
