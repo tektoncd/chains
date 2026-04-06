@@ -36,7 +36,10 @@ import (
 	"github.com/spiffe/go-spiffe/v2/svid/jwtsvid"
 	"github.com/spiffe/go-spiffe/v2/workloadapi"
 	"github.com/tektoncd/chains/pkg/chains/signing"
+	"knative.dev/pkg/logging"
 )
+
+const defaultOIDCTokenPath = "/var/run/secrets/kubernetes.io/serviceaccount/token" //nolint:gosec // Not a credential, this is the path to read the K8s SA token file from
 
 // Signer exposes methods to sign payloads using a KMS
 type Signer struct {
@@ -125,6 +128,25 @@ func NewSigner(ctx context.Context, cfg config.KMSSigner) (*Signer, error) {
 		}
 		rpcAuth.OIDC.Token = token
 	}
+
+	if rpcAuth.OIDC.Token == "" && rpcAuth.Token == "" && cfg.Auth.OIDC.Path != "" && cfg.Auth.OIDC.Role != "" {
+		tokenPath := cfg.Auth.OIDC.TokenPath
+		if tokenPath == "" {
+			tokenPath = defaultOIDCTokenPath
+		}
+		logger := logging.FromContext(ctx)
+		logger.Debugw("OIDC token path for Vault JWT auth", "path", tokenPath)
+		token, err := os.ReadFile(tokenPath)
+		if err != nil {
+			return nil, fmt.Errorf("reading OIDC token from %q: %w", tokenPath, err)
+		}
+		oidcToken := strings.TrimSpace(string(token))
+		if oidcToken == "" {
+			return nil, fmt.Errorf("OIDC token file %q is empty", tokenPath)
+		}
+		rpcAuth.OIDC.Token = oidcToken
+	}
+
 	kmsOpts = append(kmsOpts, options.WithRPCAuthOpts(rpcAuth))
 	// get the signer/verifier from sigstore
 	k, err := kms.Get(ctx, cfg.KMSRef, crypto.SHA256, kmsOpts...)
