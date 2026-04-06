@@ -85,3 +85,24 @@ func TestArtifact_Enabled(t *testing.T) {
 		})
 	}
 }
+
+func TestNewConfigFromMap_KMSAuthOIDC(t *testing.T) {
+	data := map[string]string{
+		"signers.kms.auth.oidc.path":       "jwt",
+		"signers.kms.auth.oidc.role":       "tekton-chains",
+		"signers.kms.auth.oidc.token-path": "/var/run/secrets/tokens/vault-token",
+	}
+	cfg, err := NewConfigFromMap(data)
+	if err != nil {
+		t.Fatalf("NewConfigFromMap() error = %v", err)
+	}
+	if cfg.Signers.KMS.Auth.OIDC.Path != "jwt" {
+		t.Errorf("OIDC.Path = %q, want %q", cfg.Signers.KMS.Auth.OIDC.Path, "jwt")
+	}
+	if cfg.Signers.KMS.Auth.OIDC.Role != "tekton-chains" {
+		t.Errorf("OIDC.Role = %q, want %q", cfg.Signers.KMS.Auth.OIDC.Role, "tekton-chains")
+	}
+	if cfg.Signers.KMS.Auth.OIDC.TokenPath != "/var/run/secrets/tokens/vault-token" {
+		t.Errorf("OIDC.TokenPath = %q, want %q", cfg.Signers.KMS.Auth.OIDC.TokenPath, "/var/run/secrets/tokens/vault-token")
+	}
+}
