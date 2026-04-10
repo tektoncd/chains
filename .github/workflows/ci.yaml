@@ -14,7 +14,6 @@ defaults:
 
 permissions:
   contents: read
-  checks: write  # Used to annotate code in the PR
 
 jobs:
   changes:
@@ -31,10 +30,11 @@ jobs:
       with:
         ref: ${{ github.event.pull_request.head.sha }}
         fetch-depth: ${{ steps.base-depth.outputs.base-depth }}
+        persist-credentials: false
     - name: detect
       id: detect
       run: |
-        git fetch origin ${{ github.base_ref }}
+        git fetch origin ${GITHUB_BASE_REF}
         CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }} | tr ' ' '\n')
 
         echo -e "Changed files:\n${CHANGED_FILES}"
@@ -55,6 +55,8 @@ jobs:
     if: ${{ needs.changes.outputs.non-docs == 'true' }}
     steps:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+      with:
+        persist-credentials: false
     - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5  # v6.2.0
       with:
         go-version-file: "go.mod"
@@ -64,11 +66,15 @@ jobs:
   linting:
     name: lint
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write  # Used by golangci-lint to annotate code in the PR
     needs: [changes]
     steps:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       with:
         fetch-depth: 0
+        persist-credentials: false
     - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5  # v6.2.0
       with:
         go-version-file: "go.mod"
@@ -102,6 +108,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+      with:
+        persist-credentials: false
     - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5  # v6.2.0
       with:
         go-version-file: "go.mod"
@@ -121,10 +129,10 @@ jobs:
     - name: Check CI results
       run: |
         results=(
-          "build=${{ needs.build.result }}"
-          "linting=${{ needs.linting.result }}"
-          "tests=${{ needs.tests.result }}"
-          "e2e-tests=${{ needs.e2e-tests.result }}"
+          "build=${NEEDS_BUILD_RESULT}"
+          "linting=${NEEDS_LINTING_RESULT}"
+          "tests=${NEEDS_TESTS_RESULT}"
+          "e2e-tests=${NEEDS_E2E_TESTS_RESULT}"
         )
         failed=0
         for r in "${results[@]}"; do
@@ -142,3 +150,8 @@ jobs:
         fi
         echo ""
         echo "All CI checks passed"
+      env:
+        NEEDS_BUILD_RESULT: ${{ needs.build.result }}
+        NEEDS_LINTING_RESULT: ${{ needs.linting.result }}
+        NEEDS_TESTS_RESULT: ${{ needs.tests.result }}
+        NEEDS_E2E_TESTS_RESULT: ${{ needs.e2e-tests.result }}

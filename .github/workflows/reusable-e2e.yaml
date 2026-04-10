@@ -36,6 +36,8 @@ jobs:
 
     - name: Check out our repo
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+      with:
+        persist-credentials: false
 
     - name: Set up Go
       uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5  # v6.2.0
@@ -53,7 +55,7 @@ jobs:
 
     - name: Install Tekton pipelines
       run: |
-        while ! kubectl apply --filename ${{ env.TEKTON_PIPELINES_RELEASE }}
+        while ! kubectl apply --filename ${TEKTON_PIPELINES_RELEASE}
         do
           echo "waiting for tekton pipelines to get installed"
           sleep 2

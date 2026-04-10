@@ -16,6 +16,8 @@ defaults:
 
 jobs:
   k8s:
+    permissions:
+      contents: read
     concurrency:
       group: ${{ github.workflow }}-${{ matrix.k8s-version }}-${{ github.event.pull_request.number || github.ref }}
       cancel-in-progress: true
@@ -33,6 +35,8 @@ jobs:
       k8s-version: ${{ matrix.k8s-version }}
       pipelines-release: v1.2.0  # Latest version
   pipelines-lts:
+    permissions:
+      contents: read
     concurrency:
       group: ${{ github.workflow }}-${{ matrix.pipelines-release }}-${{ github.event.pull_request.number || github.ref }}
       cancel-in-progress: true
