@@ -14,6 +14,7 @@ limitations under the License.
 package signing
 
 import (
+	"github.com/sigstore/cosign/v2/pkg/cosign/bundle"
 	"github.com/sigstore/sigstore/pkg/signature"
 )
 
@@ -41,4 +42,6 @@ type Bundle struct {
 	Cert []byte
 	// Cert is an optional PEM encoded x509 certificate chain, if one was used for signing.
 	Chain []byte
+	// RekorBundle is an optional Rekor transparency log bundle, populated when transparency is enabled.
+	RekorBundle *bundle.RekorBundle
 }
