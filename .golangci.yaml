@@ -1,6 +1,11 @@
-# Documentation: https://golangci-lint.run/usage/configuration/
+version: "2"
+run:
+  build-tags:
+    - e2e
+  modules-download-mode: vendor
+  issues-exit-code: 1
 linters:
-  disable-all: true
+  default: none
   enable:
     - bodyclose
     - containedctx
@@ -16,11 +21,8 @@ linters:
     - exhaustive
     - goconst
     - gocritic
-    - gofmt
-    - goimports
     - gomodguard
     - gosec
-    - gosimple
     - govet
     - ireturn
     - maintidx
@@ -36,40 +38,45 @@ linters:
     - revive
     - staticcheck
     - thelper
-    - typecheck
     - unconvert
     - unparam
     - unused
     - usestdlibvars
     - whitespace
-linters-settings:
-  depguard:
+  settings:
+    depguard:
+      rules:
+        main:
+          list-mode: lax
+          allow:
+            - $gostd
+  exclusions:
+    generated: lax
+    presets:
+      - common-false-positives
+      - legacy
+      - std-error-handling
     rules:
-      main:
-        list-mode: lax
-        allow:
-          - $gostd
-output:
-  uniq-by-line: false
+      - linters:
+          - errcheck
+          - gosec
+        path: _test\.go
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
 issues:
-  # Only flag new issues
-  new: true
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - errcheck
-        - gosec
   max-issues-per-linter: 0
   max-same-issues: 0
-  include:
-    # Enable off-by-default rules for revive requiring that all exported elements have a properly formatted comment.
-    - EXC0012 # https://golangci-lint.run/usage/false-positives/#exc0012
-    - EXC0014 # https://golangci-lint.run/usage/false-positives/#exc0014
-run:
-  issues-exit-code: 1
-  build-tags:
-    - e2e
-  # skip-dirs:
-  #   - vendor
-  timeout: 20m
-  modules-download-mode: vendor
+  new: true
+  uniq-by-line: false
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
