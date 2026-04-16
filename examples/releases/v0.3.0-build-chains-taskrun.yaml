@@ -56,7 +56,7 @@ spec:
         git clone $(params.url) $(workspaces.sources)
         cd $(workspaces.sources)
         git checkout $(params.revision)
-        
+
         # For each cmd/* directory, include a full gzipped tar of all source in
         # vendor/. This is overkill. Some deps' licenses require the source to be
         # included in the container image when they're used as a dependency.
