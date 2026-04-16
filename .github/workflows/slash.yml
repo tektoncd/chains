@@ -14,4 +14,4 @@ jobs:
       issues: write # for peter-evans/slash-command-dispatch to create issue reaction
       pull-requests: write # for peter-evans/slash-command-dispatch to create PR reaction
     uses: tektoncd/plumbing/.github/workflows/_slash.yml@5fcd73e7a60655e2cc717015e91be844523ab8f1 # main
-    secrets: inherit
+    secrets: inherit # zizmor: ignore[secrets-inherit]
