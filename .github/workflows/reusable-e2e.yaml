@@ -1,7 +1,6 @@
-
 name: Reusable workflow example
 
-on:
+'on':
   workflow_call:
     inputs:
       pipelines-release:
@@ -23,33 +22,32 @@ jobs:
 
     env:
       GOPATH: ${{ github.workspace }}
-      GO111MODULE: on
+      GO111MODULE: 'on'
       GOFLAGS: -ldflags=-s -ldflags=-w
       KO_DOCKER_REPO: registry.local:5000/knative
       KOCACHE: ~/ko
       SIGSTORE_SCAFFOLDING_RELEASE_VERSION: "v0.7.24"
-      TEKTON_PIPELINES_RELEASE: "https://storage.googleapis.com/tekton-releases/pipeline/previous/${{ inputs.pipelines-release }}/release.yaml"
+      TEKTON_PIPELINES_RELEASE: "https://infra.tekton.dev/tekton-releases/pipeline/previous/${{ inputs.pipelines-release }}/release.yaml"
       # Note that we do not include the v prefix here so we can use it in all
       # the places this is used.
       SKIP_INITIALIZE: true
 
     steps:
-    - name: Set up Go
-      uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
-      with:
-        go-version: 1.22.x
-
-    - uses: ko-build/setup-ko@d006021bd0c28d1ce33a07e7943d48b079944c8d # v0.9
-      with:
-        version: tip
 
     - name: Check out our repo
-      uses: actions/checkout@6d193bf28034eafb982f37bd894289fe649468fc # v4.1.7
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       with:
-        path: ./src/github.com/tektoncd/chains
+        persist-credentials: false
+
+    - name: Set up Go
+      uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c  # v6.4.0
+      with:
+        go-version-file: "go.mod"
+
+    - uses: ko-build/setup-ko@d006021bd0c28d1ce33a07e7943d48b079944c8d # v0.9
 
     - name: Install mirror, kind, knative + sigstore
-      uses: sigstore/scaffolding/actions/setup@d40cf576f588d980142f0b8462c425d7b32f00b1 # v0.7.25
+      uses: sigstore/scaffolding/actions/setup@8bd68672d418e5bd1b0ee1f2e2981874c3a30967  # v0.7.33
       with:
         k8s-version: ${{ inputs.k8s-version }}
         version: ${{ env.SIGSTORE_SCAFFOLDING_RELEASE_VERSION }}
@@ -57,7 +55,7 @@ jobs:
 
     - name: Install Tekton pipelines
       run: |
-        while ! kubectl apply --filename ${{ env.TEKTON_PIPELINES_RELEASE }}
+        while ! kubectl apply --filename ${TEKTON_PIPELINES_RELEASE}
         do
           echo "waiting for tekton pipelines to get installed"
           sleep 2
@@ -67,7 +65,6 @@ jobs:
         kubectl -n tekton-pipelines delete po -l app=tekton-pipelines-controller
 
     - name: Run integration tests
-      working-directory: ./src/github.com/tektoncd/chains
       run: |
         ./test/presubmit-tests.sh --integration-tests
 
@@ -82,9 +79,12 @@ jobs:
         # Restart chains controller so picks up the changes.
         kubectl -n tekton-chains delete po -l app=tekton-chains-controller
 
-        # TODO(vaikas): Better way to find when the chains has picked up
-        # the changes
-        sleep 20
+        # Wait for chains controller to be ready again
+        echo "Waiting for chains controller to be ready"
+        kubectl wait --for=condition=ready --timeout=2m -n tekton-chains pod -l app=tekton-chains-controller
+
+        # Give chains a moment to reload the configuration
+        sleep 5
 
         kubectl create -f https://raw.githubusercontent.com/tektoncd/chains/main/examples/taskruns/task-output-image.yaml
 
@@ -116,11 +116,14 @@ jobs:
         done
 
         # Did not find entry, fail
+        echo "Failed to find rekor transparency entry after 10 attempts"
+        kubectl get taskruns -oyaml
+        kubectl logs -n tekton-chains -l app=tekton-chains-controller --tail=100
         exit 1
 
     - name: Collect diagnostics
       if: ${{ failure() }}
-      uses: chainguard-dev/actions/kind-diag@5363dd9eb48083bbf7674a4bbe62d71c3b230edd # v1.1.2
+      uses: chainguard-dev/actions/kind-diag@de68b87302e6266db5fb5220246f8aa46fe94b67  # v1.6.14
       with:
         cluster-resources: nodes
         namespace-resources: pods,taskruns,jobs

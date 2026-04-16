@@ -11,7 +11,7 @@ spec:
         properties:
           uri: {}
           digest: {}
-      
+
       - name: second-ARTIFACT_OUTPUTS
         description: The second artifact built
         type: object
@@ -19,7 +19,7 @@ spec:
           uri: {}
           digest: {}
           isBuildArtifact: {}
-      
+
       - name: third-IMAGE_URL
         type: string
       - name: third-IMAGE_DIGEST

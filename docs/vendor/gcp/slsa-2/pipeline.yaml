@@ -17,7 +17,7 @@ kind: Pipeline
 metadata:
   name: slsa-demo-pipeline
 spec:
-  description: | 
+  description: |
     This pipeline clones a git repo, builds a Docker image with Kaniko and
     pushes it to a registry
   params:

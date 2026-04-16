@@ -1,14 +1,12 @@
 name: Chains kind E2E Tests
 
-on:
-  pull_request:
-    branches:
-      - main
-      - release-*
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
-  cancel-in-progress: true
+'on':
+  workflow_call: {}
+# on:
+#   pull_request:
+#     branches:
+#       - main
+#       - release-*
 
 defaults:
   run:
@@ -17,6 +15,11 @@ defaults:
 
 jobs:
   k8s:
+    permissions:
+      contents: read
+    concurrency:
+      group: ${{ github.workflow }}-${{ matrix.k8s-version }}-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
     strategy:
       fail-fast: false # Keep running if one leg fails.
       matrix:
