@@ -84,9 +84,11 @@ func NewNamespacesScopedController(namespaces []string) func(ctx context.Context
 
 			return controller.Options{
 				// The chains reconciler shouldn't mutate the taskrun's status.
-				SkipStatusUpdates: true,
-				ConfigStore:       cfgStore,
-				FinalizerName:     "chains.tekton.dev/taskrun",
+				SkipStatusUpdates:               true,
+				ConfigStore:                     cfgStore,
+				FinalizerName:                   "chains.tekton.dev/taskrun",
+				UseServerSideApplyForFinalizers: true,
+				FinalizerFieldManager:           "tekton-chains-controller/finalizers",
 			}
 		})
 
