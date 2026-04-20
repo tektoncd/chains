@@ -49,8 +49,10 @@ const ed25519Priv = `-----BEGIN PRIVATE KEY-----
 MC4CAQAwBQYDK2VwBCIEIGQn0bJwshjwuVdnd/FylMk3Gvb89aGgH49bQpgzCY0n
 -----END PRIVATE KEY-----`
 
-// npx jwtgen -a HS256 -s "my-secret" -c "iss=user123" -e 3600
-const token = `eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE2Nzc1NjAyMTgsImV4cCI6MTY3NzU2MzgxOCwiaXNzIjoidXNlcjEyMyJ9.c-sDgCyuZA6VaIGl7Y3-9XxttW1PUkBeNBLE9gCKG8s`
+// Generated with RS256 algorithm (required for cosign v2.6.0+)
+// openssl genrsa -out private.pem 2048
+// python3 -c "import jwt; import time; private_key = open('/tmp/private.pem').read(); payload = {'iat': int(time.time()), 'exp': int(time.time()) + 3600 * 24 * 365 * 10, 'iss': 'user123'}; print(jwt.encode(payload, private_key, algorithm='RS256'))"
+const token = `eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3NjIzMTIzOTQsImV4cCI6MjA3NzY3MjM5NCwiaXNzIjoidXNlcjEyMyJ9.Adm27mf955gZA2pcWLqF4LLrqzFbXYsdYNg1sScF9MbyeuE-4eVpqV91Rk-iRwwIrtKuOVkEDdulrAqeuIhMxGB7jNXWXxf6sVEHV57_QgB0KR_z-JVxEbTZBu6nIVBwDxmVFGQFVMtZbqsyX8J4F_jp0pSInFPqYQbS9xAGhvOnni_owp325Siev2Z-kWsnTTFOTi0C9g9BApPxXQEE17COYdXjxsBCJQQttb1Ww7IQLCf59wU5ZpNM7npzxvKuOBT1kmHPp1ZDCNxfA_a6JMIB4NQAzYV0ULRbXNftxwglFoyitWge-SyxohnTVfV1gplE8qi6kR2CQJORBMvx6w`
 
 func TestCreateSignerFulcioEnabledDefaultTokenFileMissing(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
