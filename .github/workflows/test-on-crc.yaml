@@ -50,7 +50,7 @@ jobs:
 
     - name: Set the crc config
       env:
-         PULL_SECRET_CONTENT: ${{ secrets.CRC_TOKEN }}
+        PULL_SECRET_CONTENT: ${{ secrets.CRC_TOKEN }}
       run: |
         crc config set preset microshift
         echo "$PULL_SECRET_CONTENT" > pull-secret
