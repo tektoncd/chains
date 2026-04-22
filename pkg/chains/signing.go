@@ -21,6 +21,7 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	intoto "github.com/in-toto/attestation/go/v1"
+	cbundle "github.com/sigstore/cosign/v2/pkg/cosign/bundle"
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/annotations"
 	"github.com/tektoncd/chains/pkg/chains/formats"
@@ -186,6 +187,32 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 			}
 			measureMetrics(ctx, metrics.SignedMessagesCount, o.Recorder)
 
+			// Upload to Rekor before storage so the bundle is available for OCI attestation annotations.
+			var rekorBundle *cbundle.RekorBundle
+			if shouldUploadTlog(cfg, tektonObj) {
+				rekorClient, err := getRekor(cfg.Transparency.URL)
+				if err != nil {
+					return err
+				}
+
+				entry, err := rekorClient.UploadTlog(ctx, signer, signature, rawPayload, signer.Cert(), string(payloadFormat))
+				if err != nil {
+					logger.Warnf("error uploading entry to tlog: %v", err)
+					o.recordError(ctx, signableType, metrics.TlogError)
+					merr = multierror.Append(merr, err)
+				} else {
+					logger.Infof("Uploaded entry to %s with index %d", cfg.Transparency.URL, *entry.LogIndex)
+					extraAnnotations[annotations.ChainsTransparencyAnnotation] = fmt.Sprintf("%s/api/v1/log/entries?logIndex=%d", cfg.Transparency.URL, *entry.LogIndex)
+					rekorBundle = cbundle.EntryToBundle(entry)
+					if rekorBundle != nil {
+						logger.Infof("Resolved Rekor bundle for offline verification (logIndex: %d)", rekorBundle.Payload.LogIndex)
+					} else {
+						logger.Warn("Rekor entry missing verification data, skipping bundle for offline verification")
+					}
+					measureMetrics(ctx, metrics.PayloadUploadedCount, o.Recorder)
+				}
+			}
+
 			// Now store those!
 			for _, backend := range sets.List[string](signableType.StorageBackend(cfg)) {
 				b, ok := o.Backends[backend]
@@ -203,6 +230,7 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 					Cert:          signer.Cert(),
 					Chain:         signer.Chain(),
 					PayloadFormat: payloadFormat,
+					RekorBundle:   rekorBundle,
 				}
 				if err := b.StorePayload(ctx, tektonObj, rawPayload, string(signature), storageOpts); err != nil {
 					logger.Error(err)
@@ -210,24 +238,6 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 					merr = multierror.Append(merr, err)
 				} else {
 					measureMetrics(ctx, metrics.SignsStoredCount, o.Recorder)
-				}
-			}
-
-			if shouldUploadTlog(cfg, tektonObj) {
-				rekorClient, err := getRekor(cfg.Transparency.URL)
-				if err != nil {
-					return err
-				}
-
-				entry, err := rekorClient.UploadTlog(ctx, signer, signature, rawPayload, signer.Cert(), string(payloadFormat))
-				if err != nil {
-					logger.Warnf("error uploading entry to tlog: %v", err)
-					o.recordError(ctx, signableType, metrics.TlogError)
-					merr = multierror.Append(merr, err)
-				} else {
-					logger.Infof("Uploaded entry to %s with index %d", cfg.Transparency.URL, *entry.LogIndex)
-					extraAnnotations[annotations.ChainsTransparencyAnnotation] = fmt.Sprintf("%s/api/v1/log/entries?logIndex=%d", cfg.Transparency.URL, *entry.LogIndex)
-					measureMetrics(ctx, metrics.PayloadUploadedCount, o.Recorder)
 				}
 			}
 
