@@ -30,7 +30,7 @@ require (
 	github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.10.5
 	github.com/spiffe/go-spiffe/v2 v2.6.0
 	github.com/stretchr/testify v1.11.1
-	github.com/tektoncd/pipeline v1.11.0
+	github.com/tektoncd/pipeline v1.11.1
 	github.com/tektoncd/plumbing v0.0.0-20250115133002-f515628dffea
 	go.opentelemetry.io/otel v1.43.0
 	go.opentelemetry.io/otel/metric v1.43.0
