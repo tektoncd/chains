@@ -1,0 +1,128 @@
+name: Tekton Chains Nightly Build
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+'on':
+  schedule:
+    # Run at 03:00 UTC daily
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+    inputs:
+      kubernetes_version:
+        description: 'Kubernetes version to test with'
+        required: false
+      nightly_bucket:
+        description: 'Nightly bucket for builds'
+        required: false
+
+env:
+  KUBERNETES_VERSION: ${{ inputs.kubernetes_version || 'v1.33.x' }}
+  REGISTRY: ghcr.io
+  BUCKET: ${{ inputs.nightly_bucket || 'tekton-nightly' }}
+  IMAGE_REGISTRY_PATH: ${{ github.repository }}
+  IMAGE_REGISTRY_USER: tekton-robot
+  REPO_NAME: ${{ github.event.repository.name }}
+
+jobs:
+  build:
+    name: Nightly Build
+    runs-on: ubuntu-24.04
+    if: github.repository_owner == 'tektoncd'  # do not run this elsewhere
+
+    permissions:
+      contents: read
+      packages: write  # to push container images to ghcr.io
+      id-token: write  # to mint OIDC tokens for keyless signing
+
+    steps:
+      # - name: Harden runner
+      #   uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+      #   with:
+      #     egress-policy: audit
+
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Generate version info
+        id: version
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          date_tag=$(date +v%Y%m%d-${GITHUB_SHA:0:10})
+          echo "version_tag=${date_tag}" >> "$GITHUB_OUTPUT"
+          echo "latest_sha=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Tekton Nightly Infra
+        uses: tektoncd/plumbing/.github/actions/setup-nightly-infra@c4d1d3e6b8e8ac398636f75aef0faf50784a5ca7 # main
+        with:
+          kubernetes_version: ${{ env.KUBERNETES_VERSION }}
+          image_registry_user: ${{ env.IMAGE_REGISTRY_USER }}
+          ghcr_token: ${{ secrets.GHCR_TOKEN }}
+          oci_api_key: ${{ secrets.OCI_API_KEY }}
+          oci_fingerprint: ${{ secrets.OCI_FINGERPRINT }}
+          oci_tenancy_ocid: ${{ secrets.OCI_TENANCY_OCID }}
+          oci_user_ocid: ${{ secrets.OCI_USER_OCID }}
+          oci_region: ${{ secrets.OCI_REGION }}
+
+      - name: Apply Build Pipeline Definition
+        run: |
+          kustomize build release | kubectl apply -f -
+
+      - name: Start Tekton Build Pipeline
+        env:
+          GIT_REVISION: ${{ steps.version.outputs.latest_sha }}
+          VERSION_TAG: ${{ steps.version.outputs.version_tag }}
+          RELEASE_BUCKET: ${{ env.BUCKET }}
+          IMAGE_REGISTRY: ${{ env.REGISTRY }}
+          IMAGE_REGISTRY_PATH: ${{ env.IMAGE_REGISTRY_PATH }}
+          IMAGE_REGISTRY_USER: ${{ env.IMAGE_REGISTRY_USER }}
+          REPO_NAME: ${{ env.REPO_NAME }}
+        run: |
+          set -euo pipefail  # Exit on any error, undefined variables, or pipe failures
+
+          echo "Starting Tekton pipeline…"
+
+          PIPELINE_RUN=$(tkn pipeline start chains-release \
+            --serviceaccount=release-right-meow \
+            --param gitRevision="${GIT_REVISION}" \
+            --param versionTag="${VERSION_TAG}" \
+            --param releaseBucket="${RELEASE_BUCKET}" \
+            --param imageRegistry="${IMAGE_REGISTRY}" \
+            --param imageRegistryPath="${IMAGE_REGISTRY_PATH}" \
+            --param imageRegistryUser="${IMAGE_REGISTRY_USER}" \
+            --param imageRegistryRegions="" \
+            --param koExtraArgs="" \
+            --param repoName="${REPO_NAME}" \
+            --param serviceAccountImagesPath=credentials \
+            --param releaseAsLatest="true" \
+            --workspace name=workarea,volumeClaimTemplateFile=workspace-template.yaml \
+            --workspace name=release-secret,secret=release-secret \
+            --workspace name=release-images-secret,secret=ghcr-creds \
+            --tasks-timeout 1h \
+            --pipeline-timeout 2h \
+            --use-param-defaults \
+            --output name) || {
+            echo "Failed to start Tekton pipeline!"
+            echo "$PIPELINE_RUN"
+            exit 1
+          }
+
+          echo "Pipeline started: ${PIPELINE_RUN}"
+          tkn pipelinerun logs "${PIPELINE_RUN}" -f
+
+          # Check if pipeline succeeded
+          tkn pipelinerun describe "${PIPELINE_RUN}" --output jsonpath='{.status.conditions[?(@.type=="Succeeded")].status}' | grep -q "True" || {
+            echo "Pipeline failed!"
+            tkn pipelinerun describe "${PIPELINE_RUN}"
+            exit 1
+          }
+
+          echo "✅ Pipeline Run completed successfully!"
