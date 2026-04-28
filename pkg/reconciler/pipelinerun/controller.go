@@ -88,9 +88,11 @@ func NewNamespacesScopedController(namespaces []string) func(ctx context.Context
 
 			return controller.Options{
 				// The chains reconciler shouldn't mutate the pipelinerun's status.
-				SkipStatusUpdates: true,
-				ConfigStore:       cfgStore,
-				FinalizerName:     "chains.tekton.dev/pipelinerun", // TODO: unique name required?
+				SkipStatusUpdates:               true,
+				ConfigStore:                     cfgStore,
+				FinalizerName:                   "chains.tekton.dev/pipelinerun", // TODO: unique name required?
+				UseServerSideApplyForFinalizers: true,
+				FinalizerFieldManager:           "tekton-chains-controller/finalizers",
 			}
 		})
 
