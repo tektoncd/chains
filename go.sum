@@ -1296,8 +1296,8 @@ github.com/syndtr/goleveldb v1.0.1-0.20220721030215-126854af5e6d h1:vfofYNRScrDd
 github.com/syndtr/goleveldb v1.0.1-0.20220721030215-126854af5e6d/go.mod h1:RRCYJbIwD5jmqPI9XoAFR0OcDxqUctll6zUj/+B4S48=
 github.com/tdakkota/asciicheck v0.4.1 h1:bm0tbcmi0jezRA2b5kg4ozmMuGAFotKI3RZfrhfovg8=
 github.com/tdakkota/asciicheck v0.4.1/go.mod h1:0k7M3rCfRXb0Z6bwgvkEIMleKH3kXNz9UqJ9Xuqopr8=
-github.com/tektoncd/pipeline v1.0.1 h1:M/zKgke+OwxH+96JtvPACMhQD7We5UyDEJKGmaZ6Dms=
-github.com/tektoncd/pipeline v1.0.1/go.mod h1:6t5Dz42fVra9z+y3bcOzSwQADh9gEkOPGVUh8jrI/jg=
+github.com/tektoncd/pipeline v1.0.2 h1:WBvXquuTxDS1feNnTJ8uKuCEBzvRMTPkRa8cmXAMyk4=
+github.com/tektoncd/pipeline v1.0.2/go.mod h1:CbqDSVgytHYm6T3UYz/NQYmzKOv18sD/hNh06CYw77o=
 github.com/tektoncd/plumbing v0.0.0-20250115133002-f515628dffea h1:z7uBS+485zM5dFs/ixc708MgIO8eCWPCRCreUQC/pzI=
 github.com/tektoncd/plumbing v0.0.0-20250115133002-f515628dffea/go.mod h1:Ks1fp1nPnhJxxT810eOkq2skeIiDuYjq3cIgpS5Gxk4=
 github.com/tenntenn/modver v1.0.1 h1:2klLppGhDgzJrScMpkj9Ujy3rXPUspSjAcev9tSEBgA=
