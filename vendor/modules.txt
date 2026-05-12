@@ -4,8 +4,8 @@
 # 4d63.com/gochecknoglobals v0.2.1
 ## explicit; go 1.15
 4d63.com/gochecknoglobals/checknoglobals
-# cel.dev/expr v0.24.0
-## explicit; go 1.22.0
+# cel.dev/expr v0.25.1
+## explicit; go 1.23.0
 cel.dev/expr
 # cloud.google.com/go v0.121.6
 ## explicit; go 1.23.0
@@ -597,7 +597,7 @@ github.com/cloudevents/sdk-go/v2/protocol/http
 github.com/cloudevents/sdk-go/v2/types
 # github.com/cloudflare/circl v1.3.5
 ## explicit; go 1.19
-# github.com/cncf/xds/go v0.0.0-20251022180443-0feb69152e9f
+# github.com/cncf/xds/go v0.0.0-20251210132809-ee656c7534f5
 ## explicit; go 1.24
 github.com/cncf/xds/go/udpa/annotations
 github.com/cncf/xds/go/udpa/type/v1
@@ -688,7 +688,7 @@ github.com/emirpasic/gods/lists/arraylist
 github.com/emirpasic/gods/trees
 github.com/emirpasic/gods/trees/binaryheap
 github.com/emirpasic/gods/utils
-# github.com/envoyproxy/go-control-plane/envoy v1.35.0
+# github.com/envoyproxy/go-control-plane/envoy v1.36.0
 ## explicit; go 1.23.0
 github.com/envoyproxy/go-control-plane/envoy/admin/v3
 github.com/envoyproxy/go-control-plane/envoy/annotations
@@ -696,6 +696,7 @@ github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3
 github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3
 github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3
 github.com/envoyproxy/go-control-plane/envoy/config/common/matcher/v3
+github.com/envoyproxy/go-control-plane/envoy/config/common/mutation_rules/v3
 github.com/envoyproxy/go-control-plane/envoy/config/core/v3
 github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3
 github.com/envoyproxy/go-control-plane/envoy/config/listener/v3
@@ -728,7 +729,7 @@ github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3
 github.com/envoyproxy/go-control-plane/envoy/type/metadata/v3
 github.com/envoyproxy/go-control-plane/envoy/type/tracing/v3
 github.com/envoyproxy/go-control-plane/envoy/type/v3
-# github.com/envoyproxy/protoc-gen-validate v1.2.1
+# github.com/envoyproxy/protoc-gen-validate v1.3.0
 ## explicit; go 1.21.1
 github.com/envoyproxy/protoc-gen-validate/validate
 # github.com/esimonov/ifshort v1.0.4
@@ -2195,8 +2196,8 @@ go.opencensus.io/trace/tracestate
 ## explicit; go 1.24.0
 go.opentelemetry.io/auto/sdk
 go.opentelemetry.io/auto/sdk/internal/telemetry
-# go.opentelemetry.io/contrib/detectors/gcp v1.38.0
-## explicit; go 1.23.8
+# go.opentelemetry.io/contrib/detectors/gcp v1.39.0
+## explicit; go 1.24.0
 go.opentelemetry.io/contrib/detectors/gcp
 # go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.63.0
 ## explicit; go 1.23.0
@@ -2207,11 +2208,12 @@ go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc/inte
 go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp
 go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp/internal/request
 go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp/internal/semconv
-# go.opentelemetry.io/otel v1.38.0
-## explicit; go 1.23.0
+# go.opentelemetry.io/otel v1.39.0
+## explicit; go 1.24.0
 go.opentelemetry.io/otel
 go.opentelemetry.io/otel/attribute
 go.opentelemetry.io/otel/attribute/internal
+go.opentelemetry.io/otel/attribute/internal/xxhash
 go.opentelemetry.io/otel/baggage
 go.opentelemetry.io/otel/codes
 go.opentelemetry.io/otel/internal/baggage
@@ -2219,28 +2221,31 @@ go.opentelemetry.io/otel/internal/global
 go.opentelemetry.io/otel/propagation
 go.opentelemetry.io/otel/semconv/v1.37.0
 go.opentelemetry.io/otel/semconv/v1.37.0/httpconv
+go.opentelemetry.io/otel/semconv/v1.37.0/otelconv
 go.opentelemetry.io/otel/semconv/v1.37.0/rpcconv
-# go.opentelemetry.io/otel/metric v1.38.0
-## explicit; go 1.23.0
+# go.opentelemetry.io/otel/metric v1.39.0
+## explicit; go 1.24.0
 go.opentelemetry.io/otel/metric
 go.opentelemetry.io/otel/metric/embedded
 go.opentelemetry.io/otel/metric/noop
-# go.opentelemetry.io/otel/sdk v1.38.0
-## explicit; go 1.23.0
+# go.opentelemetry.io/otel/sdk v1.39.0
+## explicit; go 1.24.0
 go.opentelemetry.io/otel/sdk
 go.opentelemetry.io/otel/sdk/instrumentation
 go.opentelemetry.io/otel/sdk/internal/x
 go.opentelemetry.io/otel/sdk/resource
-# go.opentelemetry.io/otel/sdk/metric v1.38.0
-## explicit; go 1.23.0
+# go.opentelemetry.io/otel/sdk/metric v1.39.0
+## explicit; go 1.24.0
 go.opentelemetry.io/otel/sdk/metric
 go.opentelemetry.io/otel/sdk/metric/exemplar
 go.opentelemetry.io/otel/sdk/metric/internal
 go.opentelemetry.io/otel/sdk/metric/internal/aggregate
+go.opentelemetry.io/otel/sdk/metric/internal/observ
+go.opentelemetry.io/otel/sdk/metric/internal/reservoir
 go.opentelemetry.io/otel/sdk/metric/internal/x
 go.opentelemetry.io/otel/sdk/metric/metricdata
-# go.opentelemetry.io/otel/trace v1.38.0
-## explicit; go 1.23.0
+# go.opentelemetry.io/otel/trace v1.39.0
+## explicit; go 1.24.0
 go.opentelemetry.io/otel/trace
 go.opentelemetry.io/otel/trace/embedded
 go.opentelemetry.io/otel/trace/internal/telemetry
@@ -2366,7 +2371,7 @@ golang.org/x/net/internal/socks
 golang.org/x/net/internal/timeseries
 golang.org/x/net/proxy
 golang.org/x/net/trace
-# golang.org/x/oauth2 v0.33.0
+# golang.org/x/oauth2 v0.34.0
 ## explicit; go 1.24.0
 golang.org/x/oauth2
 golang.org/x/oauth2/authhandler
@@ -2538,7 +2543,7 @@ google.golang.org/genproto/googleapis/type/expr
 google.golang.org/genproto/googleapis/type/latlng
 google.golang.org/genproto/googleapis/type/timeofday
 google.golang.org/genproto/protobuf/field_mask
-# google.golang.org/genproto/googleapis/api v0.0.0-20251022142026-3a174f9686a8
+# google.golang.org/genproto/googleapis/api v0.0.0-20251202230838-ff82c1b0f217
 ## explicit; go 1.24.0
 google.golang.org/genproto/googleapis/api
 google.golang.org/genproto/googleapis/api/annotations
@@ -2553,7 +2558,7 @@ google.golang.org/genproto/googleapis/api/monitoredres
 google.golang.org/genproto/googleapis/rpc/code
 google.golang.org/genproto/googleapis/rpc/errdetails
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.77.0
+# google.golang.org/grpc v1.79.3
 ## explicit; go 1.24.0
 google.golang.org/grpc
 google.golang.org/grpc/attributes
@@ -2688,6 +2693,7 @@ google.golang.org/grpc/internal/xds/xdsclient/xdslbregistry
 google.golang.org/grpc/internal/xds/xdsclient/xdslbregistry/converter
 google.golang.org/grpc/internal/xds/xdsclient/xdsresource
 google.golang.org/grpc/internal/xds/xdsclient/xdsresource/version
+google.golang.org/grpc/internal/xds/xdsdepmgr
 google.golang.org/grpc/keepalive
 google.golang.org/grpc/mem
 google.golang.org/grpc/metadata
