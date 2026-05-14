@@ -43,10 +43,10 @@ require (
 	golang.org/x/exp v0.0.0-20260312153236-7ab1446f8b90
 	google.golang.org/grpc v1.81.0
 	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
-	k8s.io/api v0.36.0
-	k8s.io/apimachinery v0.36.0
-	k8s.io/client-go v0.36.0
-	k8s.io/code-generator v0.36.0
+	k8s.io/api v0.36.1
+	k8s.io/apimachinery v0.36.1
+	k8s.io/client-go v0.36.1
+	k8s.io/code-generator v0.36.1
 	knative.dev/pkg v0.0.0-20260318013857-98d5a706d4fd
 	sigs.k8s.io/yaml v1.6.0
 )
