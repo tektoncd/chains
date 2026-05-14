@@ -149,6 +149,7 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 			if err != nil {
 				logger.Error(err)
 				o.recordError(ctx, signableType, metrics.PayloadCreationError)
+				merr = multierror.Append(merr, fmt.Errorf("creating payload for %s: %w", signableType.Type(), err))
 				continue
 			}
 			logger.Infof("Created payload of type %s for %s %s/%s", string(payloadFormat), tektonObj.GetGVK(), tektonObj.GetNamespace(), tektonObj.GetName())
@@ -175,6 +176,7 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 			if err != nil {
 				logger.Warnf("Unable to marshal payload for %s: %v", signerType, err)
 				o.recordError(ctx, signableType, metrics.MarshalPayloadError)
+				merr = multierror.Append(merr, fmt.Errorf("marshalling payload for %s: %w", signableType.Type(), err))
 				continue
 			}
 
@@ -182,6 +184,7 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 			if err != nil {
 				logger.Error(err)
 				o.recordError(ctx, signableType, metrics.SigningError)
+				merr = multierror.Append(merr, fmt.Errorf("signing payload for %s: %w", signableType.Type(), err))
 				continue
 			}
 			measureMetrics(ctx, metrics.SignedMessagesCount, o.Recorder)
