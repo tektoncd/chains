@@ -17,11 +17,14 @@ package kms
 
 import (
 	"context"
+	"encoding/json"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/tektoncd/chains/pkg/config"
@@ -124,6 +127,216 @@ func TestValidVaultAddressConnection(t *testing.T) {
 			t.Errorf("Expected error message '%s', but got '%s'", expectedErrorMessage, err.Error())
 		}
 	})
+}
+
+// TestOIDCTokenEndToEnd proves the full flow: JWT file → rpcAuth.OIDC.Token
+// → ApplyRPCAuthOpts → oidcLogin → Vault HTTP request.
+// A mock Vault server captures the login request and verifies the JWT, role,
+// and auth path arrive exactly as configured.
+func TestOIDCTokenEndToEnd(t *testing.T) {
+	var mu sync.Mutex
+	var loginCalled bool
+	var receivedJWT, receivedRole, receivedPath string
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+
+		switch {
+		case r.URL.Path == "/v1/auth/jwt/login" && r.Method == http.MethodPut:
+			loginCalled = true
+			receivedPath = "jwt"
+
+			var body map[string]interface{}
+			if err := json.NewDecoder(r.Body).Decode(&body); err == nil {
+				if v, ok := body["jwt"].(string); ok {
+					receivedJWT = v
+				}
+				if v, ok := body["role"].(string); ok {
+					receivedRole = v
+				}
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			resp := `{"auth":{"client_token":"hvs.mock-vault-token","policies":["default"],"lease_duration":3600,"renewable":true}}`
+			w.Write([]byte(resp))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	tokenFile, err := os.CreateTemp("", "jwt-token")
+	if err != nil {
+		t.Fatalf("creating temp file: %v", err)
+	}
+	defer os.Remove(tokenFile.Name())
+
+	err = os.WriteFile(tokenFile.Name(), []byte("eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.test-payload\n"), 0644)
+	if err != nil {
+		t.Fatalf("writing temp file: %v", err)
+	}
+
+	cfg := config.KMSSigner{
+		KMSRef: "hashivault://supply-chain",
+		Auth: config.KMSAuth{
+			Address: server.URL,
+			OIDC: config.KMSAuthOIDC{
+				Path:      "jwt",
+				Role:      "tekton-chains",
+				TokenPath: tokenFile.Name(),
+			},
+		},
+	}
+
+	signer, err := NewSigner(context.Background(), cfg)
+
+	// The signer should be created successfully — oidcLogin exchanges the
+	// JWT for a Vault token, newHashivaultClient stores it, no transit API
+	// call happens during construction.
+	if err != nil {
+		t.Fatalf("NewSigner should succeed when OIDC login returns a valid token, got: %v", err)
+	}
+	if signer == nil {
+		t.Fatal("signer must not be nil")
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+	assert.True(t, loginCalled, "Vault auth/jwt/login endpoint must have been called")
+	assert.Equal(t, "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.test-payload", receivedJWT,
+		"JWT sent to Vault must match the trimmed file contents")
+	assert.Equal(t, "tekton-chains", receivedRole,
+		"role sent to Vault must match the configured OIDC role")
+	assert.Equal(t, "jwt", receivedPath,
+		"auth path must match the configured OIDC path")
+}
+
+// TestOIDCTokenFallbackToDefaultPath proves that when oidc.path/role are set
+// but no token-path is given, the code tries the default K8s SA token path.
+func TestOIDCTokenFallbackToDefaultPath(t *testing.T) {
+	cfg := config.KMSSigner{
+		Auth: config.KMSAuth{
+			OIDC: config.KMSAuthOIDC{
+				Path: "jwt",
+				Role: "tekton-chains",
+			},
+		},
+	}
+
+	_, err := NewSigner(context.Background(), cfg)
+
+	if err == nil {
+		t.Fatal("expected error when default SA token path does not exist")
+	}
+	assert.Contains(t, err.Error(), "reading OIDC token")
+	assert.Contains(t, err.Error(), defaultOIDCTokenPath,
+		"error must reference the default K8s SA token path")
+}
+
+// TestOIDCTokenSkippedWhenNotConfigured proves the OIDC block is not entered
+// when neither oidc.path nor oidc.role are set.
+func TestOIDCTokenSkippedWhenNotConfigured(t *testing.T) {
+	cfg := config.KMSSigner{}
+
+	_, err := NewSigner(context.Background(), cfg)
+
+	if err == nil {
+		t.Fatal("expected error when no KMS config is set")
+	}
+	assert.NotContains(t, err.Error(), "reading OIDC token",
+		"OIDC reading must not be attempted when OIDC is not configured")
+	assert.NotContains(t, err.Error(), "OIDC token file",
+		"OIDC empty-file check must not be reached when OIDC is not configured")
+}
+
+// TestOIDCTokenSkippedWhenStaticTokenSet proves that the file-based OIDC
+// token reading is skipped when a static Vault token is already set, even if
+// oidc.path/oidc.role are configured. This prevents breaking existing users
+// who have both a static token and leftover OIDC config.
+func TestOIDCTokenSkippedWhenStaticTokenSet(t *testing.T) {
+	cfg := config.KMSSigner{
+		Auth: config.KMSAuth{
+			Token: "my-static-vault-token",
+			OIDC: config.KMSAuthOIDC{
+				Path: "jwt",
+				Role: "tekton-chains",
+			},
+		},
+	}
+
+	_, err := NewSigner(context.Background(), cfg)
+
+	if err == nil {
+		t.Fatal("expected error (no KMSRef), but should NOT be an OIDC reading error")
+	}
+	assert.NotContains(t, err.Error(), "reading OIDC token",
+		"OIDC file reading must be skipped when a static token is set")
+	assert.NotContains(t, err.Error(), "OIDC token file",
+		"OIDC empty check must be skipped when a static token is set")
+}
+
+// TestOIDCTokenEmptyFileErrors proves that an empty token file produces a
+// clear error rather than silently breaking OIDC.
+func TestOIDCTokenEmptyFileErrors(t *testing.T) {
+	tokenFile, err := os.CreateTemp("", "empty-jwt")
+	if err != nil {
+		t.Fatalf("creating temp file: %v", err)
+	}
+	defer os.Remove(tokenFile.Name())
+
+	cfg := config.KMSSigner{
+		Auth: config.KMSAuth{
+			OIDC: config.KMSAuthOIDC{
+				Path:      "jwt",
+				Role:      "tekton-chains",
+				TokenPath: tokenFile.Name(),
+			},
+		},
+	}
+
+	_, err = NewSigner(context.Background(), cfg)
+
+	if err == nil {
+		t.Fatal("expected error for empty OIDC token file")
+	}
+	assert.Contains(t, err.Error(), "OIDC token file")
+	assert.Contains(t, err.Error(), "is empty")
+}
+
+// TestOIDCTokenNotReadWhenSpireConfigured proves that the file-based OIDC
+// token reading is skipped when Spire is configured (Spire takes precedence).
+// The Spire gRPC client retries indefinitely, so we use a short-lived context
+// to make it fail quickly and verify the error is about Spire, not file-based
+// OIDC.
+func TestOIDCTokenNotReadWhenSpireConfigured(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	cfg := config.KMSSigner{
+		Auth: config.KMSAuth{
+			OIDC: config.KMSAuthOIDC{
+				Path: "jwt",
+				Role: "tekton-chains",
+			},
+			Spire: config.KMSAuthSpire{
+				Sock:     "unix:///tmp/nonexistent-spire.sock",
+				Audience: "test",
+			},
+		},
+	}
+
+	_, err := NewSigner(ctx, cfg)
+
+	if err == nil {
+		t.Fatal("expected error when Spire socket does not exist")
+	}
+	// The error should be about Spire/context, NOT about reading an OIDC
+	// token file — proving the Spire block runs and the file block is skipped.
+	assert.NotContains(t, err.Error(), "reading OIDC token",
+		"file-based OIDC reading must be skipped when Spire is configured")
+	assert.NotContains(t, err.Error(), "OIDC token file",
+		"file-based OIDC empty check must be skipped when Spire is configured")
 }
 
 // Test for getKMSAuthToken with non-directory path
