@@ -27,13 +27,13 @@ jobs:
         # Keep in sync with the list of supported releases: https://kubernetes.io/releases/
         # Add latest k8s-version once it is added in https://github.com/sigstore/scaffolding/releases
         k8s-version:
-          - v1.31.x
           - v1.32.x
           - v1.33.x
+          - v1.34.x
     uses: ./.github/workflows/reusable-e2e.yaml
     with:
       k8s-version: ${{ matrix.k8s-version }}
-      pipelines-release: v1.2.0  # Latest version
+      pipelines-release: v1.12.0  # Latest version
   pipelines-lts:
     permissions:
       contents: read
@@ -46,11 +46,10 @@ jobs:
         pipelines-release:
           # This should follow the list of versions from https://github.com/tektoncd/pipeline/blob/main/releases.md#release
           # TODO: Ideally, we should get this directly from pipeline repository
-          - v0.68.1  # LTS
-          - v1.0.0   # LTS
-          - v1.3.2   # LTS
-          - v1.6.0   # LTS
+          - v1.3.4   # LTS
+          - v1.6.2   # LTS
+          - v1.9.3   # LTS
     uses: ./.github/workflows/reusable-e2e.yaml
     with:
-      k8s-version: v1.33.x  # intersection of the latest version and scaffolding
+      k8s-version: v1.34.x  # intersection of the latest version and scaffolding
       pipelines-release: ${{ matrix.pipelines-release }}
