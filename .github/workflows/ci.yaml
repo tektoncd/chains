@@ -25,7 +25,9 @@ jobs:
     steps:
     - name: Get base depth
       id: base-depth
-      run: echo "base-depth=$(expr ${{ github.event.pull_request.commits }} + 1)" >> $GITHUB_OUTPUT
+      env:
+        PR_COMMITS: ${{ github.event.pull_request.commits }}
+      run: echo "base-depth=$(expr ${PR_COMMITS} + 1)" >> $GITHUB_OUTPUT
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       with:
         ref: ${{ github.event.pull_request.head.sha }}
@@ -33,9 +35,12 @@ jobs:
         persist-credentials: false
     - name: detect
       id: detect
+      env:
+        BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       run: |
         git fetch origin ${GITHUB_BASE_REF}
-        CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }} | tr ' ' '\n')
+        CHANGED_FILES=$(git diff --name-only ${BASE_SHA}...${HEAD_SHA} | tr ' ' '\n')
 
         echo -e "Changed files:\n${CHANGED_FILES}"
 

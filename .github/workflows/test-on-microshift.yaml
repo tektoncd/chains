@@ -48,6 +48,8 @@ jobs:
 
     - name: Install Tekton Chains and Run e2e tests
       working-directory: ${{ github.workspace }}/src/github.com/tektoncd/chains
+      env:
+        WORKSPACE: ${{ github.workspace }}
 
       run: |
           echo -e "\n************************ Install openshift client ************************\n"
@@ -67,4 +69,4 @@ jobs:
 
           export KUBECONFIG=$HOME/.kube/config
 
-          source ${{ github.workspace }}/src/github.com/tektoncd/chains/test/microshift_test.sh
+          source ${WORKSPACE}/src/github.com/tektoncd/chains/test/microshift_test.sh
