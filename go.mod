@@ -4,12 +4,12 @@ go 1.26.1
 
 require (
 	cloud.google.com/go/compute/metadata v0.9.0
-	cloud.google.com/go/storage v1.62.1
+	cloud.google.com/go/storage v1.62.2
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/golangci/golangci-lint v1.64.8
 	github.com/google/addlicense v1.2.0
 	github.com/google/go-cmp v0.7.0
-	github.com/google/go-containerregistry v0.21.5
+	github.com/google/go-containerregistry v0.21.6
 	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20260414223304-7a662782a11f
 	github.com/google/go-licenses v1.6.0
 	github.com/grafeas/grafeas v0.2.3
@@ -39,7 +39,7 @@ require (
 	gocloud.dev v0.43.0
 	gocloud.dev/docstore/mongodocstore v0.43.0
 	gocloud.dev/pubsub/kafkapubsub v0.43.0
-	golang.org/x/crypto v0.51.0
+	golang.org/x/crypto v0.52.0
 	golang.org/x/exp v0.0.0-20260312153236-7ab1446f8b90
 	google.golang.org/grpc v1.81.1
 	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
@@ -170,7 +170,6 @@ require (
 	github.com/cloudevents/sdk-go/v2 v2.16.2 // indirect
 	github.com/cncf/xds/go v0.0.0-20260202195803-dba9d589def2 // indirect
 	github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be // indirect
-	github.com/containerd/stargz-snapshotter/estargz v0.18.2 // indirect
 	github.com/coreos/go-oidc/v3 v3.17.0 // indirect
 	github.com/curioswitch/go-reassign v0.3.0 // indirect
 	github.com/cyberphone/json-canonicalization v0.0.0-20241213102144-19d51d7fe467 // indirect
@@ -180,7 +179,7 @@ require (
 	github.com/digitorus/pkcs7 v0.0.0-20250730155240-ffadbf3f398c // indirect
 	github.com/digitorus/timestamp v0.0.0-20250524132541-c45532741eea // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
-	github.com/docker/cli v29.4.0+incompatible // indirect
+	github.com/docker/cli v29.4.3+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.9.5 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/eapache/go-resiliency v1.7.0 // indirect
@@ -304,7 +303,7 @@ require (
 	github.com/kevinburke/ssh_config v1.6.0 // indirect
 	github.com/kisielk/errcheck v1.9.0 // indirect
 	github.com/kkHAIKE/contextcheck v1.1.6 // indirect
-	github.com/klauspost/compress v1.18.5 // indirect
+	github.com/klauspost/compress v1.18.6 // indirect
 	github.com/kulti/thelper v0.6.3 // indirect
 	github.com/kunwardeep/paralleltest v1.0.10 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
@@ -417,7 +416,6 @@ require (
 	github.com/ultraware/whitespace v0.2.0 // indirect
 	github.com/uudashr/gocognit v1.2.0 // indirect
 	github.com/uudashr/iface v1.3.1 // indirect
-	github.com/vbatts/tar-split v0.12.2 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
@@ -455,15 +453,15 @@ require (
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20250210185358-939b2ce775ac // indirect
-	golang.org/x/mod v0.35.0 // indirect
-	golang.org/x/net v0.53.0 // indirect
+	golang.org/x/mod v0.36.0 // indirect
+	golang.org/x/net v0.54.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/sys v0.44.0 // indirect
+	golang.org/x/sys v0.45.0 // indirect
 	golang.org/x/term v0.43.0 // indirect
 	golang.org/x/text v0.37.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
-	golang.org/x/tools v0.44.0 // indirect
+	golang.org/x/tools v0.45.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	gomodules.xyz/jsonpatch/v2 v2.5.0 // indirect
 	google.golang.org/api v0.275.0 // indirect
