@@ -26,6 +26,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/google/go-containerregistry/pkg/v1/types"
 	intoto "github.com/in-toto/attestation/go/v1"
+	ociremote "github.com/sigstore/cosign/v2/pkg/oci/remote"
 	"github.com/tektoncd/chains/pkg/chains/signing"
 	"github.com/tektoncd/chains/pkg/chains/storage/api"
 	logtesting "knative.dev/pkg/logging/testing"
@@ -107,5 +108,129 @@ func TestAttestationStorer_Store(t *testing.T) {
 				t.Fatalf("error during Store(): %s", err)
 			}
 		})
+	}
+}
+
+func TestAttestationStorer_Store_Dedup(t *testing.T) {
+	s := httptest.NewServer(registry.New())
+	defer s.Close()
+	registryName := strings.TrimPrefix(s.URL, "http://")
+
+	img, err := random.Image(1024, 2)
+	if err != nil {
+		t.Fatalf("failed to create random image: %s", err)
+	}
+	imgDigest, err := img.Digest()
+	if err != nil {
+		t.Fatalf("failed to get image digest: %v", err)
+	}
+	ref, err := name.NewDigest(fmt.Sprintf("%s/test/img@%s", registryName, imgDigest))
+	if err != nil {
+		t.Fatalf("failed to parse digest: %v", err)
+	}
+	if err := remote.Write(ref, img); err != nil {
+		t.Fatalf("failed to write image to mock registry: %v", err)
+	}
+
+	storer, err := NewAttestationStorer(WithTargetRepository(ref.Repository))
+	if err != nil {
+		t.Fatalf("failed to create storer: %v", err)
+	}
+
+	ctx := logtesting.TestContextWithLogger(t)
+	req := &api.StoreRequest[name.Digest, *intoto.Statement]{
+		Artifact: ref,
+		Payload:  &intoto.Statement{},
+		Bundle:   &signing.Bundle{Signature: []byte("sig1")},
+	}
+
+	// Store the same attestation twice.
+	if _, err := storer.Store(ctx, req); err != nil {
+		t.Fatalf("first Store() failed: %s", err)
+	}
+	if _, err := storer.Store(ctx, req); err != nil {
+		t.Fatalf("second Store() failed: %s", err)
+	}
+
+	// Verify only one attestation layer exists.
+	se, err := ociremote.SignedEntity(ref)
+	if err != nil {
+		t.Fatalf("failed to get signed entity: %v", err)
+	}
+	atts, err := se.Attestations()
+	if err != nil {
+		t.Fatalf("failed to get attestations: %v", err)
+	}
+	layers, err := atts.Get()
+	if err != nil {
+		t.Fatalf("failed to get attestation layers: %v", err)
+	}
+	if got := len(layers); got != 1 {
+		t.Errorf("expected 1 attestation layer, got %d", got)
+	}
+}
+
+func TestAttestationStorer_Store_DistinctNotDeduped(t *testing.T) {
+	s := httptest.NewServer(registry.New())
+	defer s.Close()
+	registryName := strings.TrimPrefix(s.URL, "http://")
+
+	img, err := random.Image(1024, 2)
+	if err != nil {
+		t.Fatalf("failed to create random image: %s", err)
+	}
+	imgDigest, err := img.Digest()
+	if err != nil {
+		t.Fatalf("failed to get image digest: %v", err)
+	}
+	ref, err := name.NewDigest(fmt.Sprintf("%s/test/img@%s", registryName, imgDigest))
+	if err != nil {
+		t.Fatalf("failed to parse digest: %v", err)
+	}
+	if err := remote.Write(ref, img); err != nil {
+		t.Fatalf("failed to write image to mock registry: %v", err)
+	}
+
+	storer, err := NewAttestationStorer(WithTargetRepository(ref.Repository))
+	if err != nil {
+		t.Fatalf("failed to create storer: %v", err)
+	}
+
+	ctx := logtesting.TestContextWithLogger(t)
+
+	// Store two attestations with different signatures (different layer content).
+	req1 := &api.StoreRequest[name.Digest, *intoto.Statement]{
+		Artifact: ref,
+		Payload:  &intoto.Statement{},
+		Bundle:   &signing.Bundle{Signature: []byte("sig1")},
+	}
+	req2 := &api.StoreRequest[name.Digest, *intoto.Statement]{
+		Artifact: ref,
+		Payload:  &intoto.Statement{},
+		Bundle:   &signing.Bundle{Signature: []byte("sig2")},
+	}
+
+	if _, err := storer.Store(ctx, req1); err != nil {
+		t.Fatalf("first Store() failed: %s", err)
+	}
+	if _, err := storer.Store(ctx, req2); err != nil {
+		t.Fatalf("second Store() failed: %s", err)
+	}
+
+	// Verify both attestation layers are kept.
+	se, err := ociremote.SignedEntity(ref)
+	if err != nil {
+		t.Fatalf("failed to get signed entity: %v", err)
+	}
+	atts, err := se.Attestations()
+	if err != nil {
+		t.Fatalf("failed to get attestations: %v", err)
+	}
+	layers, err := atts.Get()
+	if err != nil {
+		t.Fatalf("failed to get attestation layers: %v", err)
+	}
+	if got := len(layers); got != 2 {
+		t.Errorf("expected 2 distinct attestation layers, got %d", got)
 	}
 }

@@ -25,6 +25,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/random"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/google/go-containerregistry/pkg/v1/types"
+	ociremote "github.com/sigstore/cosign/v2/pkg/oci/remote"
 	"github.com/tektoncd/chains/pkg/chains/formats/simple"
 	"github.com/tektoncd/chains/pkg/chains/signing"
 	"github.com/tektoncd/chains/pkg/chains/storage/api"
@@ -106,5 +107,129 @@ func TestSimpleStorer_Store(t *testing.T) {
 				t.Fatalf("error during Store(): %s", err)
 			}
 		})
+	}
+}
+
+func TestSimpleStorer_Store_Dedup(t *testing.T) {
+	s := httptest.NewServer(registry.New())
+	defer s.Close()
+	registryName := strings.TrimPrefix(s.URL, "http://")
+
+	img, err := random.Image(1024, 2)
+	if err != nil {
+		t.Fatalf("failed to create random image: %s", err)
+	}
+	imgDigest, err := img.Digest()
+	if err != nil {
+		t.Fatalf("failed to get image digest: %v", err)
+	}
+	ref, err := name.NewDigest(fmt.Sprintf("%s/test/img@%s", registryName, imgDigest))
+	if err != nil {
+		t.Fatalf("failed to parse digest: %v", err)
+	}
+	if err := remote.Write(ref, img); err != nil {
+		t.Fatalf("failed to write image to mock registry: %v", err)
+	}
+
+	storer, err := NewSimpleStorerFromConfig(WithTargetRepository(ref.Repository))
+	if err != nil {
+		t.Fatalf("failed to create storer: %v", err)
+	}
+
+	ctx := logtesting.TestContextWithLogger(t)
+	req := &api.StoreRequest[name.Digest, simple.SimpleContainerImage]{
+		Artifact: ref,
+		Payload:  simple.NewSimpleStruct(ref),
+		Bundle:   &signing.Bundle{Content: []byte("payload"), Signature: []byte("sig1")},
+	}
+
+	// Store the same signature twice.
+	if _, err := storer.Store(ctx, req); err != nil {
+		t.Fatalf("first Store() failed: %s", err)
+	}
+	if _, err := storer.Store(ctx, req); err != nil {
+		t.Fatalf("second Store() failed: %s", err)
+	}
+
+	// Verify only one signature layer exists.
+	se, err := ociremote.SignedEntity(ref)
+	if err != nil {
+		t.Fatalf("failed to get signed entity: %v", err)
+	}
+	sigs, err := se.Signatures()
+	if err != nil {
+		t.Fatalf("failed to get signatures: %v", err)
+	}
+	layers, err := sigs.Get()
+	if err != nil {
+		t.Fatalf("failed to get signature layers: %v", err)
+	}
+	if got := len(layers); got != 1 {
+		t.Errorf("expected 1 signature layer, got %d", got)
+	}
+}
+
+func TestSimpleStorer_Store_DistinctNotDeduped(t *testing.T) {
+	s := httptest.NewServer(registry.New())
+	defer s.Close()
+	registryName := strings.TrimPrefix(s.URL, "http://")
+
+	img, err := random.Image(1024, 2)
+	if err != nil {
+		t.Fatalf("failed to create random image: %s", err)
+	}
+	imgDigest, err := img.Digest()
+	if err != nil {
+		t.Fatalf("failed to get image digest: %v", err)
+	}
+	ref, err := name.NewDigest(fmt.Sprintf("%s/test/img@%s", registryName, imgDigest))
+	if err != nil {
+		t.Fatalf("failed to parse digest: %v", err)
+	}
+	if err := remote.Write(ref, img); err != nil {
+		t.Fatalf("failed to write image to mock registry: %v", err)
+	}
+
+	storer, err := NewSimpleStorerFromConfig(WithTargetRepository(ref.Repository))
+	if err != nil {
+		t.Fatalf("failed to create storer: %v", err)
+	}
+
+	ctx := logtesting.TestContextWithLogger(t)
+
+	// Store two signatures with different content (different layer digests).
+	req1 := &api.StoreRequest[name.Digest, simple.SimpleContainerImage]{
+		Artifact: ref,
+		Payload:  simple.NewSimpleStruct(ref),
+		Bundle:   &signing.Bundle{Content: []byte("payload1"), Signature: []byte("sig1")},
+	}
+	req2 := &api.StoreRequest[name.Digest, simple.SimpleContainerImage]{
+		Artifact: ref,
+		Payload:  simple.NewSimpleStruct(ref),
+		Bundle:   &signing.Bundle{Content: []byte("payload2"), Signature: []byte("sig2")},
+	}
+
+	if _, err := storer.Store(ctx, req1); err != nil {
+		t.Fatalf("first Store() failed: %s", err)
+	}
+	if _, err := storer.Store(ctx, req2); err != nil {
+		t.Fatalf("second Store() failed: %s", err)
+	}
+
+	// Verify both signature layers are kept.
+	se, err := ociremote.SignedEntity(ref)
+	if err != nil {
+		t.Fatalf("failed to get signed entity: %v", err)
+	}
+	sigs, err := se.Signatures()
+	if err != nil {
+		t.Fatalf("failed to get signatures: %v", err)
+	}
+	layers, err := sigs.Get()
+	if err != nil {
+		t.Fatalf("failed to get signature layers: %v", err)
+	}
+	if got := len(layers); got != 2 {
+		t.Errorf("expected 2 distinct signature layers, got %d", got)
 	}
 }
