@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Modified for chains from tekton triggers: https://github.com/tektoncd/triggers/blob/main/tekton/publish.yaml
-apiVersion: tekton.dev/v1beta1
+apiVersion: tekton.dev/v1
 kind: Task
 metadata:
   name: publish-chains-release
@@ -43,7 +43,7 @@ spec:
     default: ""
   - name: imageRegistryUser
     description: Username to be used to login to the container registry
-    default: "tekton-robot"
+    default: "_json_key"
   - name: releaseAsLatest
     description: Whether to tag and publish this release as chainss' latest
     default: "true"
@@ -89,7 +89,7 @@ spec:
   steps:
 
   - name: container-registry-auth
-    image: cgr.dev/chainguard/crane:latest-dev@sha256:81a5126672ca23e7706f2c838c841790274641d50c5ff852542062cefde0f36a
+    image: cgr.dev/chainguard/crane:latest-dev@sha256:91d5d0d8eab3ad0a4bf9d082e2ab28e496d662d0b2c1a51cc1e6e4c380ffb14c
     script: |
       #!/bin/sh
       set -ex
@@ -109,12 +109,10 @@ spec:
 
 
   - name: run-ko
-    image: ghcr.io/tektoncd/plumbing/ko@sha256:990ec7fc709567e0d26fa40788a040b97598343d2fcb7252751316e34f31c4cc
+    image: ghcr.io/tektoncd/plumbing/ko@sha256:f84dda0237cdaf9a6c2f15a56a380bd97ac2d5a554714818d7500056d2c7d449
     env:
     - name: KO_DOCKER_REPO
       value: $(params.imageRegistry)/$(params.imageRegistryPath)
-    - name: GO111MODULE
-      value: "off"
     - name: GOFLAGS
       value: "-mod=vendor"
     script: |
@@ -125,6 +123,9 @@ spec:
       DOCKER_CONFIG=~/.docker
       mkdir -p ${DOCKER_CONFIG}
       cp /workspace/docker-config.json ${DOCKER_CONFIG}/config.json
+
+      # Fix Git ownership issue for the repository directory
+      git config --global --add safe.directory ${PROJECT_ROOT}
 
       # Change to directory with our .ko.yaml
       cd ${PROJECT_ROOT}
@@ -168,7 +169,7 @@ spec:
       sed -i -e 's/\(pipeline.tekton.dev\/release\): "devel"/\1: "$(params.versionTag)"/g' -e 's/\(app.kubernetes.io\/version\): "devel"/\1: "$(params.versionTag)"/g' -e 's/\(version\): "devel"/\1: "$(params.versionTag)"/g' ${OUTPUT_RELEASE_DIR}/release.yaml
       sed -i -e 's/\(pipeline.tekton.dev\/release\): "devel"/\1: "$(params.versionTag)"/g' -e 's/\(app.kubernetes.io\/version\): "devel"/\1: "$(params.versionTag)"/g' -e 's/\(version\): "devel"/\1: "$(params.versionTag)"/g' ${OUTPUT_RELEASE_DIR}/release.notags.yaml
   - name: koparse
-    image: ghcr.io/tektoncd/plumbing/koparse@sha256:7ea59fefb312a512973f743298c17217ca96f0e9303f8d40ebbf2d27ceb9f21e
+    image: ghcr.io/tektoncd/plumbing/koparse@sha256:939dad5cf7c613b6b54387dfceca51e9a0f367e3cc5fbd04c7012af6c38e0717
     script: |
       set -ex
 
@@ -202,7 +203,7 @@ spec:
         ${PRESERVE_IMPORT_PATH} > /workspace/built_images
 
   - name: tag-images
-    image: cgr.dev/chainguard/crane:latest-dev@sha256:81a5126672ca23e7706f2c838c841790274641d50c5ff852542062cefde0f36a
+    image: cgr.dev/chainguard/crane:latest-dev@sha256:91d5d0d8eab3ad0a4bf9d082e2ab28e496d662d0b2c1a51cc1e6e4c380ffb14c
     script: |
       #!/bin/sh
       set -ex
@@ -238,6 +239,8 @@ spec:
             TAG="$(params.versionTag)"
             crane cp ${IMAGE_WITH_SHA} ${REGION}.${IMAGE_WITHOUT_SHA_AND_TAG}:$TAG
           fi
-          echo ${REGION}.$IMAGE_WITH_SHA, >> $(results.IMAGES.path)
+          # Until we are able to store larger results, we cannot include the
+          # regional copies of the images in the result - see https://github.com/tektoncd/pipeline/issues/4282
+          # echo ${REGION}.$IMAGE_WITH_SHA, >> $(results.IMAGES.path)
         done
       done
