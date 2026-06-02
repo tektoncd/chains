@@ -186,6 +186,16 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 			}
 			measureMetrics(ctx, metrics.SignedMessagesCount, o.Recorder)
 
+			// Attempt to extract the public key so storage backends that need it
+			// (e.g. protobuf-bundle OCI format) can use it without re-fetching.
+			// This is intentionally non-fatal: for the default legacy format the
+			// key is never used, so a transient KMS error here must not prevent
+			// signatures from being stored.
+			pubKey, pubKeyErr := signer.PublicKey()
+			if pubKeyErr != nil {
+				logger.Warnf("Could not extract public key from signer (will be unavailable to storage backends): %v", pubKeyErr)
+			}
+
 			// Now store those!
 			for _, backend := range sets.List[string](signableType.StorageBackend(cfg)) {
 				b, ok := o.Backends[backend]
@@ -202,6 +212,7 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 					FullKey:       signableType.FullKey(obj),
 					Cert:          signer.Cert(),
 					Chain:         signer.Chain(),
+					PublicKey:     pubKey,
 					PayloadFormat: payloadFormat,
 				}
 				if err := b.StorePayload(ctx, tektonObj, rawPayload, string(signature), storageOpts); err != nil {

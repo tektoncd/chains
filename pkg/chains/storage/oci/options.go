@@ -52,3 +52,38 @@ func (o *targetRepoOption) applySimpleStorer(s *SimpleStorer) error {
 	s.repo = &o.repo
 	return nil
 }
+
+// WithDistributionMethod configures where and how artifacts are attached to images in the registry.
+//
+// Supported values are the OCIDistribution* constants in pkg/config:
+//   - OCIDistributionLegacy      (default) – tag-based storage
+//   - OCIDistributionReferrersAPI          – OCI 1.1 Referrers API
+//
+//nolint:ireturn // returning interface is the intended pattern here
+func WithDistributionMethod(method string) Option {
+	return &distributionMethodOption{method: method}
+}
+
+type distributionMethodOption struct {
+	method string
+}
+
+func (o *distributionMethodOption) applyAttestationStorer(s *AttestationStorer) error {
+	s.distributionMethod = o.method
+	return nil
+}
+
+func (o *distributionMethodOption) applySimpleStorer(s *SimpleStorer) error {
+	s.distributionMethod = o.method
+	return nil
+}
+
+// referrersRepoOverrideIgnored reports whether a configured repository override
+// would be silently dropped for an OCI 1.1 referrer write. Referrers must be
+// colocated with their subject image (the referrer manifest references the
+// subject by digest within the same repository), so a storage.oci.repository
+// override cannot redirect them to a different repository. The override only
+// applies to the legacy tag-based storage path.
+func referrersRepoOverrideIgnored(override, artifactRepo name.Repository) bool {
+	return override.String() != artifactRepo.String()
+}

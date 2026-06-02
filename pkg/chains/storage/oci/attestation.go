@@ -16,16 +16,23 @@ package oci
 
 import (
 	"context"
+	"crypto"
+	"crypto/x509"
+	"encoding/pem"
 
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	intoto "github.com/in-toto/attestation/go/v1"
 	"github.com/pkg/errors"
+	cbundle "github.com/sigstore/cosign/v2/pkg/cosign/bundle"
+	"github.com/sigstore/cosign/v2/pkg/oci"
 	"github.com/sigstore/cosign/v2/pkg/oci/mutate"
 	ociremote "github.com/sigstore/cosign/v2/pkg/oci/remote"
 	"github.com/sigstore/cosign/v2/pkg/oci/static"
 	"github.com/sigstore/cosign/v2/pkg/types"
+	"github.com/sigstore/rekor/pkg/generated/models"
 	"github.com/tektoncd/chains/pkg/chains/storage/api"
+	"github.com/tektoncd/chains/pkg/config"
 	"knative.dev/pkg/logging"
 )
 
@@ -40,6 +47,8 @@ type AttestationStorer struct {
 	repo *name.Repository
 	// remoteOpts are additional remote options (i.e. auth) to use for client operations.
 	remoteOpts []remote.Option
+	// distributionMethod specifies how artifacts are attached ("legacy" tag-based or "referrers-api").
+	distributionMethod string
 }
 
 func NewAttestationStorer(opts ...AttestationStorerOption) (*AttestationStorer, error) {
@@ -52,10 +61,8 @@ func NewAttestationStorer(opts ...AttestationStorerOption) (*AttestationStorer, 
 	return s, nil
 }
 
-// Store saves the given statement.
+// Store saves the given statement using the configured OCI storage format.
 func (s *AttestationStorer) Store(ctx context.Context, req *api.StoreRequest[name.Digest, *intoto.Statement]) (*api.StoreResponse, error) {
-	logger := logging.FromContext(ctx)
-
 	repo := req.Artifact.Repository
 	if s.repo != nil {
 		repo = *s.repo
@@ -65,20 +72,45 @@ func (s *AttestationStorer) Store(ctx context.Context, req *api.StoreRequest[nam
 	if errors.As(err, &entityNotFoundError) {
 		se = ociremote.SignedUnknown(req.Artifact, ociremote.WithRemoteOptions(s.remoteOpts...))
 	} else if err != nil {
-		return nil, errors.Wrap(err, "getting signed image")
+		return nil, errors.Wrap(err, "getting signed entity")
 	}
 
-	// Create the new attestation for this entity.
+	switch s.distributionMethod {
+	case config.OCIDistributionReferrersAPI:
+		return s.storeReferrers(ctx, req, repo)
+	default: // OCIDistributionLegacy or empty
+		return s.storeLegacy(ctx, req, se, repo)
+	}
+}
+
+// storeReferrers writes the attestation via the OCI 1.1 Referrers API using the
+// Sigstore protobuf-bundle format. When the registry has no native Referrers API,
+// cosign/go-containerregistry transparently uses the OCI referrers tag schema;
+// either way no .att tags are created.
+func (s *AttestationStorer) storeReferrers(ctx context.Context, req *api.StoreRequest[name.Digest, *intoto.Statement], repo name.Repository) (*api.StoreResponse, error) {
+	logger := logging.FromContext(ctx)
+
+	if referrersRepoOverrideIgnored(repo, req.Artifact.Repository) {
+		logger.Warnf("storage.oci.repository override %q is ignored in referrers-api mode; OCI 1.1 referrers are stored alongside their subject image in %q", repo.String(), req.Artifact.Repository.String())
+	}
+
+	return s.storeWithProtobufBundle(ctx, req)
+}
+
+// storeLegacy is the default tag-based attestation upload path.
+func (s *AttestationStorer) storeLegacy(ctx context.Context, req *api.StoreRequest[name.Digest, *intoto.Statement], se oci.SignedEntity, repo name.Repository) (*api.StoreResponse, error) {
+	logger := logging.FromContext(ctx)
+
 	attOpts := []static.Option{static.WithLayerMediaType(types.DssePayloadType)}
 	if req.Bundle.Cert != nil {
 		attOpts = append(attOpts, static.WithCertChain(req.Bundle.Cert, req.Bundle.Chain))
 	}
 	att, err := static.NewAttestation(req.Bundle.Signature, attOpts...)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "creating attestation")
 	}
 
-	// Check if an attestation with the same digest already exists.
+	// Skip upload if identical attestation already exists.
 	newDigest, err := att.Digest()
 	if err != nil {
 		return nil, errors.Wrap(err, "getting new attestation digest")
@@ -98,14 +130,74 @@ func (s *AttestationStorer) Store(ctx context.Context, req *api.StoreRequest[nam
 
 	newImage, err := mutate.AttachAttestationToEntity(se, att)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "attaching attestation to entity")
 	}
-
-	// Publish the signatures associated with this entity
 	if err := ociremote.WriteAttestations(repo, newImage, ociremote.WithRemoteOptions(s.remoteOpts...)); err != nil {
+		return nil, errors.Wrap(err, "writing attestations")
+	}
+	logger.Infof("Successfully uploaded attestation using legacy format for %s", req.Artifact.String())
+	return &api.StoreResponse{}, nil
+}
+
+// storeWithProtobufBundle uploads attestations using cosign's protobuf bundle
+// format over the OCI 1.1 Referrers API.
+func (s *AttestationStorer) storeWithProtobufBundle(ctx context.Context, req *api.StoreRequest[name.Digest, *intoto.Statement]) (*api.StoreResponse, error) {
+	logger := logging.FromContext(ctx)
+	logger.Infof("Using protobuf bundle format for attestation storage (%s)", req.Artifact.String())
+
+	predicateType := req.Payload.PredicateType
+	if predicateType == "" {
+		return nil, errors.New("PredicateType is required for protobuf-bundle format")
+	}
+
+	pubKey, err := resolvePubKey(req.Bundle.PublicKey, req.Bundle.Cert)
+	if err != nil {
 		return nil, err
 	}
-	logger.Infof("Successfully uploaded attestation for %s", req.Artifact.String())
 
+	// req.Bundle.Signature is already a complete DSSE envelope (JSON) produced by
+	// the wrapped signer: its signature is computed over the DSSE PAE. MakeNewBundle
+	// expects exactly this envelope JSON as its `sig` argument - it extracts the
+	// PayloadType and the raw signature from it. Re-wrapping it in another envelope
+	// would place the whole envelope JSON into the inner sig field, producing a
+	// bundle whose signature does not verify ("Found: 0").
+	var rekorEntry *models.LogEntryAnon
+	var timestampBytes []byte
+	var signerBytes []byte
+	if req.Bundle.Cert != nil {
+		signerBytes = req.Bundle.Cert
+	}
+
+	bundleBytes, err := cbundle.MakeNewBundle(pubKey, rekorEntry, req.Bundle.Content, req.Bundle.Signature, signerBytes, timestampBytes)
+	if err != nil {
+		return nil, errors.Wrap(err, "creating protobuf bundle")
+	}
+	if err := ociremote.WriteAttestationNewBundleFormat(req.Artifact, bundleBytes, predicateType, ociremote.WithRemoteOptions(s.remoteOpts...)); err != nil {
+		return nil, errors.Wrap(err, "writing protobuf bundle attestation")
+	}
+	logger.Infof("Successfully uploaded attestation using protobuf bundle format for %s", req.Artifact.String())
 	return &api.StoreResponse{}, nil
+}
+
+// resolvePubKey returns the public key from the Bundle's explicit PublicKey field,
+// or falls back to extracting it from the signer certificate bytes.
+func resolvePubKey(explicit crypto.PublicKey, certPEM []byte) (crypto.PublicKey, error) {
+	if explicit != nil {
+		return explicit, nil
+	}
+	if len(certPEM) == 0 {
+		return nil, errors.New("no public key available: neither from signer nor from certificate")
+	}
+	block, _ := pem.Decode(certPEM)
+	var certBytes []byte
+	if block != nil {
+		certBytes = block.Bytes
+	} else {
+		certBytes = certPEM // assume DER
+	}
+	cert, err := x509.ParseCertificate(certBytes)
+	if err != nil {
+		return nil, errors.Wrap(err, "parsing certificate for public key extraction")
+	}
+	return cert.PublicKey, nil
 }

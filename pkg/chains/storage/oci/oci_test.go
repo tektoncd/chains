@@ -31,6 +31,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/google/go-containerregistry/pkg/authn"
+	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/registry"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	intoto "github.com/in-toto/attestation/go/v1"
@@ -372,4 +373,135 @@ func generateSelfSignedCert() (tls.Certificate, error) {
 	}
 
 	return cert, nil
+}
+
+// TestWithDistributionMethod_AttestationStorer verifies that WithDistributionMethod
+// correctly sets the distributionMethod field on an AttestationStorer.
+func TestWithDistributionMethod_AttestationStorer(t *testing.T) {
+	repo, err := name.NewRepository("example.com/test")
+	if err != nil {
+		t.Fatalf("name.NewRepository: %v", err)
+	}
+	for _, method := range []string{config.OCIDistributionLegacy, config.OCIDistributionReferrersAPI} {
+		t.Run(method, func(t *testing.T) {
+			storer, err := NewAttestationStorer(
+				WithTargetRepository(repo),
+				WithDistributionMethod(method),
+			)
+			if err != nil {
+				t.Fatalf("NewAttestationStorer: %v", err)
+			}
+			if storer.distributionMethod != method {
+				t.Errorf("distributionMethod = %q, want %q", storer.distributionMethod, method)
+			}
+		})
+	}
+}
+
+// TestWithDistributionMethod_SimpleStorer verifies that WithDistributionMethod
+// correctly sets the distributionMethod field on a SimpleStorer.
+func TestWithDistributionMethod_SimpleStorer(t *testing.T) {
+	repo, err := name.NewRepository("example.com/test")
+	if err != nil {
+		t.Fatalf("name.NewRepository: %v", err)
+	}
+	for _, method := range []string{config.OCIDistributionLegacy, config.OCIDistributionReferrersAPI} {
+		t.Run(method, func(t *testing.T) {
+			storer, err := NewSimpleStorerFromConfig(
+				WithTargetRepository(repo),
+				WithDistributionMethod(method),
+			)
+			if err != nil {
+				t.Fatalf("NewSimpleStorerFromConfig: %v", err)
+			}
+			if storer.distributionMethod != method {
+				t.Errorf("distributionMethod = %q, want %q", storer.distributionMethod, method)
+			}
+		})
+	}
+}
+
+// TestDefaultsAreEmpty verifies that omitting the option leaves distributionMethod
+// empty (which the Store methods treat as legacy).
+func TestDefaultsAreEmpty(t *testing.T) {
+	repo, err := name.NewRepository("example.com/test")
+	if err != nil {
+		t.Fatalf("name.NewRepository: %v", err)
+	}
+
+	attestStorer, err := NewAttestationStorer(WithTargetRepository(repo))
+	if err != nil {
+		t.Fatalf("NewAttestationStorer: %v", err)
+	}
+	if attestStorer.distributionMethod != "" {
+		t.Errorf("AttestationStorer.distributionMethod without option = %q, want empty", attestStorer.distributionMethod)
+	}
+
+	simpleStorer, err := NewSimpleStorerFromConfig(WithTargetRepository(repo))
+	if err != nil {
+		t.Fatalf("NewSimpleStorerFromConfig: %v", err)
+	}
+	if simpleStorer.distributionMethod != "" {
+		t.Errorf("SimpleStorer.distributionMethod without option = %q, want empty", simpleStorer.distributionMethod)
+	}
+}
+
+// TestOCIBackend_DistributionMethodConfig verifies that the Backend struct properly
+// exposes the single distribution-method OCI configuration.
+func TestOCIBackend_DistributionMethodConfig(t *testing.T) {
+	for _, method := range []string{config.OCIDistributionLegacy, config.OCIDistributionReferrersAPI} {
+		t.Run(method, func(t *testing.T) {
+			backend := &Backend{
+				cfg: config.Config{
+					Storage: config.StorageConfigs{
+						OCI: config.OCIStorageConfig{
+							Repository:         "example.com/repo",
+							DistributionMethod: method,
+						},
+					},
+				},
+			}
+			if backend.cfg.Storage.OCI.DistributionMethod != method {
+				t.Errorf("DistributionMethod = %q, want %q",
+					backend.cfg.Storage.OCI.DistributionMethod, method)
+			}
+		})
+	}
+}
+
+// TestReferrersRepoOverrideIgnored verifies the helper that flags when a
+// storage.oci.repository override cannot be honoured in referrers-api mode.
+// Referrers are colocated with their subject image, so an override pointing at a
+// different repository is reported as ignored, while an override that matches the
+// artifact repository (the no-op case) is not.
+func TestReferrersRepoOverrideIgnored(t *testing.T) {
+	artifact, err := name.NewRepository("registry.example.com/team/app")
+	if err != nil {
+		t.Fatalf("name.NewRepository: %v", err)
+	}
+	differentRepo, err := name.NewRepository("registry.example.com/team/signatures")
+	if err != nil {
+		t.Fatalf("name.NewRepository: %v", err)
+	}
+	differentRegistry, err := name.NewRepository("other.example.com/team/app")
+	if err != nil {
+		t.Fatalf("name.NewRepository: %v", err)
+	}
+
+	tests := []struct {
+		name     string
+		override name.Repository
+		want     bool
+	}{
+		{name: "same repository is not ignored", override: artifact, want: false},
+		{name: "different repository in same registry is ignored", override: differentRepo, want: true},
+		{name: "different registry is ignored", override: differentRegistry, want: true},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := referrersRepoOverrideIgnored(tc.override, artifact); got != tc.want {
+				t.Errorf("referrersRepoOverrideIgnored(%q, %q) = %v, want %v", tc.override, artifact, got, tc.want)
+			}
+		})
+	}
 }

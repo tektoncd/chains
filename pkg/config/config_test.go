@@ -85,3 +85,48 @@ func TestArtifact_Enabled(t *testing.T) {
 		})
 	}
 }
+
+func TestOCIDistributionMethodDefault(t *testing.T) {
+	cfg, err := NewConfigFromMap(map[string]string{})
+	if err != nil {
+		t.Fatalf("NewConfigFromMap() error: %v", err)
+	}
+	if cfg.Storage.OCI.DistributionMethod != OCIDistributionLegacy {
+		t.Errorf("default DistributionMethod = %q, want %q", cfg.Storage.OCI.DistributionMethod, OCIDistributionLegacy)
+	}
+}
+
+func TestOCIDistributionMethodExplicit(t *testing.T) {
+	for _, method := range []string{OCIDistributionLegacy, OCIDistributionReferrersAPI} {
+		t.Run(method, func(t *testing.T) {
+			cfg, err := NewConfigFromMap(map[string]string{ociDistributionMethodKey: method})
+			if err != nil {
+				t.Fatalf("NewConfigFromMap() error: %v", err)
+			}
+			if cfg.Storage.OCI.DistributionMethod != method {
+				t.Errorf("DistributionMethod = %q, want %q", cfg.Storage.OCI.DistributionMethod, method)
+			}
+		})
+	}
+}
+
+func TestOCIDistributionMethodInvalid(t *testing.T) {
+	_, err := NewConfigFromMap(map[string]string{ociDistributionMethodKey: "unknown-method"})
+	if err == nil {
+		t.Error("expected error for invalid distribution method, got nil")
+	}
+}
+
+func TestValidateOCIDistributionMethod(t *testing.T) {
+	if err := validateOCIDistributionMethod(""); err != nil {
+		t.Errorf("empty string: unexpected error: %v", err)
+	}
+	for _, valid := range []string{OCIDistributionLegacy, OCIDistributionReferrersAPI} {
+		if err := validateOCIDistributionMethod(valid); err != nil {
+			t.Errorf("valid %q: unexpected error: %v", valid, err)
+		}
+	}
+	if err := validateOCIDistributionMethod("bad-method"); err == nil {
+		t.Error("expected error for invalid method, got nil")
+	}
+}

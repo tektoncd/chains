@@ -98,6 +98,16 @@ func (b *Backend) StorePayload(ctx context.Context, obj objects.TektonObject, ra
 			return errors.Wrap(err, "unmarshal attestation")
 		}
 
+		// Extract predicate type from the raw JSON payload because it may be cleared
+		// during proto unmarshal.
+		var rawStmt struct {
+			PredicateType string `json:"predicateType"`
+		}
+		if err := json.Unmarshal(rawPayload, &rawStmt); err != nil {
+			return errors.Wrap(err, "extracting predicate type from raw payload")
+		}
+		attestation.PredicateType = rawStmt.PredicateType
+
 		// This can happen if the Task/TaskRun does not adhere to specific naming conventions
 		// like *IMAGE_URL that would serve as hints. This may be intentional for a Task/TaskRun
 		// that is not intended to produce an image, e.g. git-clone.
@@ -107,7 +117,7 @@ func (b *Backend) StorePayload(ctx context.Context, obj objects.TektonObject, ra
 			return nil
 		}
 
-		return b.uploadAttestation(ctx, &attestation, signature, storageOpts, remoteOpts...)
+		return b.uploadAttestation(ctx, &attestation, rawPayload, signature, storageOpts, remoteOpts...)
 	}
 
 	// Fallback in case unsupported payload format is used or the deprecated "tekton" format
@@ -153,11 +163,13 @@ func (b *Backend) uploadSignature(ctx context.Context, format simple.SimpleConta
 		return errors.Wrapf(err, "getting storage repo for sub %s", imageName)
 	}
 
-	store, err := NewSimpleStorerFromConfig(WithTargetRepository(repo))
+	store, err := NewSimpleStorerFromConfig(
+		WithTargetRepository(repo),
+		WithDistributionMethod(b.cfg.Storage.OCI.DistributionMethod),
+	)
 	if err != nil {
 		return err
 	}
-	// TODO: make these creation opts.
 	store.remoteOpts = remoteOpts
 	if _, err := store.Store(ctx, &api.StoreRequest[name.Digest, simple.SimpleContainerImage]{
 		Object:   nil,
@@ -168,6 +180,7 @@ func (b *Backend) uploadSignature(ctx context.Context, format simple.SimpleConta
 			Signature: []byte(signature),
 			Cert:      []byte(storageOpts.Cert),
 			Chain:     []byte(storageOpts.Chain),
+			PublicKey: storageOpts.PublicKey,
 		},
 	}); err != nil {
 		return err
@@ -175,7 +188,7 @@ func (b *Backend) uploadSignature(ctx context.Context, format simple.SimpleConta
 	return nil
 }
 
-func (b *Backend) uploadAttestation(ctx context.Context, attestation *intoto.Statement, signature string, storageOpts config.StorageOpts, remoteOpts ...remote.Option) error {
+func (b *Backend) uploadAttestation(ctx context.Context, attestation *intoto.Statement, rawPayload []byte, signature string, storageOpts config.StorageOpts, remoteOpts ...remote.Option) error {
 	logger := logging.FromContext(ctx)
 	// upload an attestation for each subject
 	logger.Info("Starting to upload attestations to OCI ...")
@@ -193,21 +206,24 @@ func (b *Backend) uploadAttestation(ctx context.Context, attestation *intoto.Sta
 			return errors.Wrapf(err, "getting storage repo for sub %s", imageName)
 		}
 
-		store, err := NewAttestationStorer(WithTargetRepository(repo))
+		store, err := NewAttestationStorer(
+			WithTargetRepository(repo),
+			WithDistributionMethod(b.cfg.Storage.OCI.DistributionMethod),
+		)
 		if err != nil {
 			return err
 		}
-		// TODO: make these creation opts.
 		store.remoteOpts = remoteOpts
 		if _, err := store.Store(ctx, &api.StoreRequest[name.Digest, *intoto.Statement]{
 			Object:   nil,
 			Artifact: ref,
 			Payload:  attestation,
 			Bundle: &signing.Bundle{
-				Content:   nil,
+				Content:   rawPayload,
 				Signature: []byte(signature),
 				Cert:      []byte(storageOpts.Cert),
 				Chain:     []byte(storageOpts.Chain),
+				PublicKey: storageOpts.PublicKey,
 			},
 		}); err != nil {
 			return err

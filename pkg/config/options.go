@@ -16,6 +16,8 @@ limitations under the License.
 
 package config
 
+import "crypto"
+
 // PayloadType specifies the format to store payload in.
 // - For OCI artifact, Chains only supports `simplesigning` format. https://www.redhat.com/en/blog/container-image-signing
 // - For Tekton artifacts, Chains supports `tekton` and `in-toto` format. https://slsa.dev/provenance/v0.2
@@ -44,6 +46,11 @@ type StorageOpts struct {
 	// This chain MAY be used by implementations to verify the certificate property.
 	// https://github.com/sigstore/cosign/blob/main/specs/SIGNATURE_SPEC.md
 	Chain string
+
+	// PublicKey is the public key used to create the signature.
+	// Extracted from the signer and available for storage backends that need it
+	// (e.g. to create a cosign protobuf bundle).
+	PublicKey crypto.PublicKey
 
 	// PayloadFormat is the format to store payload in.
 	PayloadFormat PayloadType
