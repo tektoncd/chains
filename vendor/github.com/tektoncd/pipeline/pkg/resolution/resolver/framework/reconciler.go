@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"time"
 
+	pipelineapi "github.com/tektoncd/pipeline/pkg/apis/pipeline"
 	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	pipelinev1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/apis/resolution/v1beta1"
@@ -71,6 +72,12 @@ var _ reconciler.LeaderAware = &Reconciler{}
 // the framework.TimedResolution interface.
 const defaultMaximumResolutionDuration = time.Minute
 
+var allowedResourceKinds = []string{
+	pipelineapi.PipelineControllerName,
+	pipelineapi.TaskControllerName,
+	pipelinev1beta1.StepActionKind,
+}
+
 // Reconcile receives the string key of a ResolutionRequest object, looks
 // it up, checks it for common errors, and then delegates
 // resolver-specific functionality to the reconciler's embedded
@@ -89,7 +96,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, key string) error {
 		return controller.NewPermanentError(err)
 	}
 
-	if rr.IsDone() {
+	// If the pipelines controller has a deep queue, resolvers may reprocess
+	// a ResolutionRequest before the pipelines controller marks the resolved
+	// request as Done.
+	if rr.IsResolved() || rr.IsDone() {
 		return nil
 	}
 
@@ -106,8 +116,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, key string) error {
 }
 
 func (r *Reconciler) resolve(ctx context.Context, key string, rr *v1beta1.ResolutionRequest) error {
-	errChan := make(chan error)
-	resourceChan := make(chan ResolvedResource)
+	errChan := make(chan error, 1)
+	resourceChan := make(chan ResolvedResource, 1)
 
 	paramsMap := make(map[string]string)
 	for _, p := range rr.Spec.Params {
@@ -144,6 +154,14 @@ func (r *Reconciler) resolve(ctx context.Context, key string, rr *v1beta1.Resolu
 				ResolverName: r.resolver.GetName(resolutionCtx),
 				Key:          key,
 				Original:     resolveErr,
+			}
+			return
+		}
+		if err := ValidateResolvedResource(resource); err != nil {
+			errChan <- &resolutioncommon.GetResourceError{
+				ResolverName: r.resolver.GetName(resolutionCtx),
+				Key:          key,
+				Original:     fmt.Errorf("resolved resource validation error: %w", err),
 			}
 			return
 		}
