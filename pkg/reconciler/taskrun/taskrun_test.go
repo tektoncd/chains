@@ -174,3 +174,166 @@ func TestReconciler_handleTaskRun(t *testing.T) {
 		})
 	}
 }
+
+func TestFinalizeKind_SSAMigration(t *testing.T) {
+	now := metav1.Now()
+	mergePatchFieldsV1 := metav1.NewFieldsV1(
+		`{"f:metadata":{"f:finalizers":{".":{},"v:\"chains.tekton.dev/taskrun\"":{}}}}`,
+	)
+	ssaFieldsV1 := metav1.NewFieldsV1(
+		`{"f:metadata":{"f:finalizers":{".":{},"v:\"chains.tekton.dev/taskrun\"":{}}}}`,
+	)
+
+	tests := []struct {
+		name                   string
+		tr                     *v1.TaskRun
+		expectFinalizerRemoved bool
+	}{
+		{
+			name: "migration removes merge-patch finalizer on deletion",
+			tr: &v1.TaskRun{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              "taskrun",
+					Namespace:         "default",
+					DeletionTimestamp: &now,
+					Finalizers:        []string{taskRunFinalizerName, "other.finalizer"},
+					Annotations:       map[string]string{annotations.ChainsAnnotation: "true"},
+					ManagedFields: []metav1.ManagedFieldsEntry{
+						{
+							Operation: metav1.ManagedFieldsOperationUpdate,
+							FieldsV1:  mergePatchFieldsV1,
+						},
+					},
+				},
+				Status: v1.TaskRunStatus{
+					Status: duckv1.Status{
+						Conditions: []apis.Condition{{Type: apis.ConditionSucceeded}},
+					},
+				},
+			},
+			expectFinalizerRemoved: true,
+		},
+		{
+			name: "migration skips when no DeletionTimestamp",
+			tr: &v1.TaskRun{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "taskrun",
+					Namespace:   "default",
+					Finalizers:  []string{taskRunFinalizerName},
+					Annotations: map[string]string{annotations.ChainsAnnotation: "true"},
+					ManagedFields: []metav1.ManagedFieldsEntry{
+						{
+							Operation: metav1.ManagedFieldsOperationUpdate,
+							FieldsV1:  mergePatchFieldsV1,
+						},
+					},
+				},
+				Status: v1.TaskRunStatus{
+					Status: duckv1.Status{
+						Conditions: []apis.Condition{{Type: apis.ConditionSucceeded}},
+					},
+				},
+			},
+			expectFinalizerRemoved: false,
+		},
+		{
+			name: "migration skips when finalizer is SSA-owned",
+			tr: &v1.TaskRun{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              "taskrun",
+					Namespace:         "default",
+					DeletionTimestamp: &now,
+					Finalizers:        []string{taskRunFinalizerName},
+					Annotations:       map[string]string{annotations.ChainsAnnotation: "true"},
+					ManagedFields: []metav1.ManagedFieldsEntry{
+						{
+							Operation: metav1.ManagedFieldsOperationApply,
+							FieldsV1:  ssaFieldsV1,
+						},
+					},
+				},
+				Status: v1.TaskRunStatus{
+					Status: duckv1.Status{
+						Conditions: []apis.Condition{{Type: apis.ConditionSucceeded}},
+					},
+				},
+			},
+			expectFinalizerRemoved: false,
+		},
+		{
+			name: "migration skips when no managed fields match",
+			tr: &v1.TaskRun{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              "taskrun",
+					Namespace:         "default",
+					DeletionTimestamp: &now,
+					Finalizers:        []string{taskRunFinalizerName},
+					Annotations:       map[string]string{annotations.ChainsAnnotation: "true"},
+				},
+				Status: v1.TaskRunStatus{
+					Status: duckv1.Status{
+						Conditions: []apis.Condition{{Type: apis.ConditionSucceeded}},
+					},
+				},
+			},
+			expectFinalizerRemoved: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, _ := rtesting.SetupFakeContext(t)
+			c := fakepipelineclient.Get(ctx)
+
+			// Create the object in the fake client (without DeletionTimestamp since
+			// the fake client does not allow creating objects with it set).
+			createObj := tt.tr.DeepCopy()
+			createObj.DeletionTimestamp = nil
+			if _, err := c.TektonV1().TaskRuns(createObj.Namespace).Create(ctx, createObj, metav1.CreateOptions{}); err != nil {
+				t.Fatal(err)
+			}
+
+			r := &Reconciler{
+				TaskRunSigner:     &mocksigner.Signer{},
+				Pipelineclientset: c,
+			}
+			ctx = config.ToContext(ctx, &config.Config{})
+
+			if err := r.FinalizeKind(ctx, tt.tr); err != nil {
+				t.Fatalf("FinalizeKind() error = %v", err)
+			}
+
+			got, err := c.TektonV1().TaskRuns(tt.tr.Namespace).Get(ctx, tt.tr.Name, metav1.GetOptions{})
+			if err != nil {
+				t.Fatalf("Get() error = %v", err)
+			}
+
+			hasChainsFinalizer := false
+			for _, f := range got.Finalizers {
+				if f == taskRunFinalizerName {
+					hasChainsFinalizer = true
+				}
+			}
+
+			if tt.expectFinalizerRemoved && hasChainsFinalizer {
+				t.Errorf("expected chains finalizer to be removed, but it is still present: %v", got.Finalizers)
+			}
+			if !tt.expectFinalizerRemoved && !hasChainsFinalizer && len(tt.tr.Finalizers) > 0 {
+				t.Errorf("expected chains finalizer to be preserved, but it was removed: %v", got.Finalizers)
+			}
+
+			// For the positive case, verify other finalizers are preserved.
+			if tt.expectFinalizerRemoved {
+				hasOther := false
+				for _, f := range got.Finalizers {
+					if f == "other.finalizer" {
+						hasOther = true
+					}
+				}
+				if !hasOther {
+					t.Errorf("expected other.finalizer to be preserved, but got: %v", got.Finalizers)
+				}
+			}
+		})
+	}
+}
