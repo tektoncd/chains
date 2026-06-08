@@ -88,7 +88,7 @@ test-unit-verbose-and-race: ARGS=-v -race
 $(TEST_UNIT_TARGETS): test-unit
 .PHONY: $(TEST_UNIT_TARGETS) test-unit
 test-unit: ## Run unit tests
-	$(GO) test -timeout $(TIMEOUT_UNIT) $(ARGS) ./...
+	$(GO) test -timeout $(TIMEOUT_UNIT) $(ARGS) $(or $(PKG),./...)
 
 TEST_E2E_TARGETS := test-e2e-short test-e2e-verbose test-e2e-race
 test-e2e-short:   ARGS=-short
@@ -171,7 +171,7 @@ $(BIN)/golangci-lint-$(GOLANGCI_VERSION): ; $(info $(M) getting golangci-lint $(
 .PHONY: golangci-lint
 golangci-lint: | $(GOLANGCILINT) ; $(info $(M) running golangci-lint…) @ ## Run golangci-lint
 	$Q $(GOLANGCILINT) config verify
-	$Q $(GOLANGCILINT) run --modules-download-mode=vendor --max-issues-per-linter=0 --max-same-issues=0 --timeout 5m
+	$Q $(GOLANGCILINT) run --modules-download-mode=vendor --max-issues-per-linter=0 --max-same-issues=0 --timeout 5m $(PKG)
 
 .PHONY: golangci-lint-check
 golangci-lint-check: | $(GOLANGCILINT) ; $(info $(M) Testing if golint has been done…) @ ## Run golangci-lint for build tests CI job
