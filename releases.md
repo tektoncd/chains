@@ -98,11 +98,16 @@ Deprecation notices will be included in
 [release notes](https://github.com/tektoncd/chains/releases). Any relevant
 deprecation window timers begin from when the release is published.
 
-## Current Releases
+## Release
+
+### v0.27 (LTS)
+- **Latest Release**: v0.27.0 (TBD)
+- **Initial Release**: v0.27.0 (TBD)
+
 ### v0.26 (LTS)
 - **Latest Release**: [v0.26.2][v0-26-2] (2026-02-06)([docs][v0-26-2-docs], [examples][v0-26-2-examples])
 - **Initial Release**: [v0.26.0][v0-26-0] (2025-11-05)
-- **Patch Releases: [v0.26.0][v0-26-0],[v0.26.1][v0-26-1],[v0.26.2][v0-26-2]
+- **Patch Releases**: [v0.26.0][v0-26-0], [v0.26.1][v0-26-1], [v0.26.2][v0-26-2]
 
 [v0-26-0]: https://github.com/tektoncd/chains/releases/tag/v0.26.0
 [v0-26-1]: https://github.com/tektoncd/chains/releases/tag/v0.26.1
@@ -110,19 +115,26 @@ deprecation window timers begin from when the release is published.
 [v0-26-2-docs]: https://github.com/tektoncd/chains/tree/v0.26.2/docs
 [v0-26-2-examples]: https://github.com/tektoncd/chains/tree/v0.26.2/examples
 
-
 ### v0.25 (LTS)
 - **Latest Release**: [v0.25.0][v0-25-0] (2025-05-13)
 - **Initial Release**: [v0.25.0][v0-25-0] (2025-05-13)
 
 [v0-25-0]: https://github.com/tektoncd/chains/releases/tag/v0.25.0
-[v0-25-0]: https://github.com/tektoncd/chains/releases/tag/v0.25.0
+
+### v0.20 (LTS)
+- **Latest Release**: [v0.20.0][v0-20-0] (2023-11-06)
+- **Initial Release**: [v0.20.0][v0-20-0] (2023-11-06)
+
+[v0-20-0]: https://github.com/tektoncd/chains/releases/tag/v0.20.0
+
+## Older Releases
+
+Older releases are EOL and available on [GitHub][tekton-chains-releases].
 
 ### v0.24 (LTS)
 - **Latest Release**: [v0.24.0][v0-24-0] (2025-02-11)
 - **Initial Release**: [v0.24.0][v0-24-0] (2025-02-11)
 
-[v0-24-0]: https://github.com/tektoncd/chains/releases/tag/v0.24.0
 [v0-24-0]: https://github.com/tektoncd/chains/releases/tag/v0.24.0
 
 ### v0.23 (LTS)
@@ -138,10 +150,6 @@ deprecation window timers begin from when the release is published.
 
 [v0-22-0]: https://github.com/tektoncd/chains/releases/tag/v0.22.0
 [v0-22-3]: https://github.com/tektoncd/chains/releases/tag/v0.22.3
-
-## Older Releases
-
-Older releases are EOL and available on [GitHub][tekton-chains-releases].
 
 [release-policy]: https://github.com/tektoncd/community/blob/main/releases.md
 [sigstore]: https://sigstore.dev
