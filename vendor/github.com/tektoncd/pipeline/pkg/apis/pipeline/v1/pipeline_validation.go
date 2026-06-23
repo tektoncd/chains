@@ -382,7 +382,7 @@ func validatePipelineTaskParameterUsage(tasks []PipelineTask, params ParamSpecs)
 	}
 	errs = errs.Also(validatePipelineParametersVariables(tasks, "params", allParamNames, arrayParamNames, objectParameterNameKeys))
 	for i, task := range tasks {
-		errs = errs.Also(task.Params.validateDuplicateParameters().ViaFieldIndex("params", i))
+		errs = errs.Also(task.Params.validateDuplicateParameters().ViaField("params").ViaIndex(i))
 	}
 	return errs
 }
@@ -786,6 +786,10 @@ func findAndValidateResultRefsForMatrix(tasks []PipelineTask, taskMapping map[st
 func validateMatrixedPipelineTaskConsumed(expressions []string, taskMapping map[string]PipelineTask) (resultRefs []*ResultRef, errs *apis.FieldError) {
 	var filteredExpressions []string
 	for _, expression := range expressions {
+		// if it is not matrix result ref expression, skip
+		if !resultref.LooksLikeResultRef(expression) {
+			continue
+		}
 		// ie. "tasks.<pipelineTaskName>.results.<resultName>[*]"
 		subExpressions := strings.Split(expression, ".")
 		pipelineTask := subExpressions[1] // pipelineTaskName
