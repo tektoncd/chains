@@ -41,9 +41,6 @@ updates:
         - kind/misc
       cooldown:
         default-days: 7
-        semver-major-days: 30
-        semver-minor-days: 7
-        semver-patch-days: 3
     - package-ecosystem: gomod
       directory: /
       target-branch: release-v0.27.x
@@ -89,9 +86,6 @@ updates:
             - version-update:semver-minor
       cooldown:
         default-days: 7
-        semver-major-days: 30
-        semver-minor-days: 7
-        semver-patch-days: 3
     - package-ecosystem: gomod
       directory: /
       target-branch: release-v0.26.x
@@ -137,9 +131,6 @@ updates:
             - version-update:semver-minor
       cooldown:
         default-days: 7
-        semver-major-days: 30
-        semver-minor-days: 7
-        semver-patch-days: 3
     - package-ecosystem: gomod
       directory: /
       target-branch: release-v0.25.x
@@ -185,9 +176,6 @@ updates:
             - version-update:semver-minor
       cooldown:
         default-days: 7
-        semver-major-days: 30
-        semver-minor-days: 7
-        semver-patch-days: 3
     - package-ecosystem: gomod
       directory: /
       target-branch: release-v0.20.x
@@ -233,6 +221,3 @@ updates:
             - version-update:semver-minor
       cooldown:
         default-days: 7
-        semver-major-days: 30
-        semver-minor-days: 7
-        semver-patch-days: 3
