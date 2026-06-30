@@ -57,6 +57,12 @@ type Result struct {
 	Value v1.ParamValue
 }
 
+// StepProvenance associates a step name with its remote StepAction provenanance
+type StepProvenance struct {
+	StepName   string
+	Provenance *v1.Provenance
+}
+
 // Tekton object is an extended Kubernetes object with operations specific
 // to Tekton objects.
 type TektonObject interface {
@@ -170,6 +176,20 @@ func (tro *TaskRunObjectV1) GetStepResults() []Result {
 		}
 	}
 	return res
+}
+
+// GetRemoteStepActions returns the provenance of each step that used a remotely resolved StepAction.
+func (tro *TaskRunObjectV1) GetRemoteStepActions() []StepProvenance {
+	var remoteSteps []StepProvenance
+	for _, step := range tro.Status.Steps {
+		if step.Provenance != nil && step.Provenance.RefSource != nil {
+			remoteSteps = append(remoteSteps, StepProvenance{
+				StepName:   step.Name,
+				Provenance: step.Provenance,
+			})
+		}
+	}
+	return remoteSteps
 }
 
 func (tro *TaskRunObjectV1) GetStepImages() []string {

@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	intoto "github.com/in-toto/attestation/go/v1"
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
@@ -43,6 +44,8 @@ const (
 	InputResultName = "inputs/result"
 	// PipelineResourceName is the name of the resolved dependency of pipeline resource.
 	PipelineResourceName = "pipelineResource"
+	// StepActionConfigName is the name of the resolved dependencies of remote StepAction
+	StepActionConfigName = "stepAction"
 )
 
 // AddTaskDescriptorContent is used to toggle the fields in  see AddTektonTaskDescriptor and AddSLSATaskDescriptor
@@ -95,7 +98,8 @@ func RemoveDuplicateResolvedDependencies(resolvedDependencies []*intoto.Resource
 			// we would put this in invocation.ConfigSource. In order to ensure that it is present in
 			// the resolved dependencies, we dont want to skip it if another resolved dependency from the same
 			// uri+digest pair was already included before.
-			if !(resolvedDependency.Name == TaskConfigName || resolvedDependency.Name == PipelineConfigName) {
+			if resolvedDependency.Name != TaskConfigName && resolvedDependency.Name != PipelineConfigName &&
+				!strings.HasPrefix(resolvedDependency.Name, StepActionConfigName+"/") {
 				continue
 			}
 		}
@@ -139,7 +143,7 @@ func AddSLSATaskDescriptor(tr *objects.TaskRunObjectV1) (*intoto.ResourceDescrip
 
 // fromPipelineTask adds the resolved dependencies from pipeline tasks
 // such as pipeline task uri/digest for remote pipeline tasks and step and sidecar images.
-func fromPipelineTask(logger *zap.SugaredLogger, pro *objects.PipelineRunObjectV1, addTasks AddTaskDescriptorContent) ([]*intoto.ResourceDescriptor, error) {
+func fromPipelineTask(logger *zap.SugaredLogger, pro *objects.PipelineRunObjectV1, opts ResolveOptions, addTasks AddTaskDescriptorContent) ([]*intoto.ResourceDescriptor, error) {
 	pSpec := pro.Status.PipelineSpec
 	resolvedDependencies := []*intoto.ResourceDescriptor{}
 	if pSpec != nil {
@@ -183,12 +187,29 @@ func fromPipelineTask(logger *zap.SugaredLogger, pro *objects.PipelineRunObjectV
 				mats = append(mats, sidecarMaterials...)
 
 				// convert materials to resolved dependencies
+				if opts.WithStepActionsResults {
+					resolvedDependencies = append(resolvedDependencies, fromRemoteStepActions(tr)...)
+				}
 				resolvedDependencies = append(resolvedDependencies, ConvertMaterialsToResolvedDependencies(mats, "")...)
 
 			}
 		}
 	}
 	return resolvedDependencies, nil
+}
+
+// fromRemoteStepActions converts remote StepAction provenance into resolved dependencies
+func fromRemoteStepActions(tro *objects.TaskRunObjectV1) []*intoto.ResourceDescriptor {
+	var rds []*intoto.ResourceDescriptor
+	for _, stepProv := range tro.GetRemoteStepActions() {
+		rd := &intoto.ResourceDescriptor{
+			Name:   fmt.Sprintf("%s/%s", StepActionConfigName, stepProv.StepName),
+			Uri:    stepProv.Provenance.RefSource.URI,
+			Digest: stepProv.Provenance.RefSource.Digest,
+		}
+		rds = append(rds, rd)
+	}
+	return rds
 }
 
 // taskDependencies gather all dependencies in a task and adds them to resolvedDependencies
@@ -214,6 +235,7 @@ func taskDependencies(ctx context.Context, opts ResolveOptions, tro *objects.Tas
 	if opts.WithStepActionsResults {
 		mats = material.FromStepActionsResults(ctx, tro)
 		resolvedDependencies = append(resolvedDependencies, ConvertMaterialsToResolvedDependencies(mats, InputResultName)...)
+		resolvedDependencies = append(resolvedDependencies, fromRemoteStepActions(tro)...)
 	}
 
 	mats = material.FromTaskParamsAndResults(ctx, tro)
@@ -274,7 +296,7 @@ func PipelineRun(ctx context.Context, pro *objects.PipelineRunObjectV1, slsaconf
 	}
 
 	// add resolved dependencies from pipeline tasks
-	rds, err := fromPipelineTask(logger, pro, addTasks)
+	rds, err := fromPipelineTask(logger, pro, opts, addTasks)
 	if err != nil {
 		return nil, err
 	}

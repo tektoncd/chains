@@ -489,6 +489,124 @@ func TestTaskRun(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "resolvedDependencies from remote StepAction",
+			resolveOpts: ResolveOptions{
+				WithStepActionsResults: true,
+			},
+			obj: objects.NewTaskRunObjectV1(&v1.TaskRun{
+				Status: v1.TaskRunStatus{
+					TaskRunStatusFields: v1.TaskRunStatusFields{
+						Steps: []v1.StepState{
+							{
+								Name:    "remote-build",
+								ImageID: "gcr.io/test/build@sha256:aaa111",
+								Provenance: &v1.Provenance{
+									RefSource: &v1.RefSource{
+										URI:    "git+https://github.com/tektoncd/stepactions",
+										Digest: map[string]string{"sha256": "bbb222"},
+									},
+								},
+							},
+						},
+					},
+				},
+			}),
+			want: []*intoto.ResourceDescriptor{
+				{
+					Uri:    "oci://gcr.io/test/build",
+					Digest: common.DigestSet{"sha256": "aaa111"},
+				},
+				{
+					Name:   "stepAction/remote-build",
+					Uri:    "git+https://github.com/tektoncd/stepactions",
+					Digest: common.DigestSet{"sha256": "bbb222"},
+				},
+			},
+		},
+		{
+			name: "local StepAction excluded from resolvedDependencies",
+			obj: objects.NewTaskRunObjectV1(&v1.TaskRun{
+				Status: v1.TaskRunStatus{
+					TaskRunStatusFields: v1.TaskRunStatusFields{
+						Steps: []v1.StepState{
+							{
+								Name:    "local-step",
+								ImageID: "gcr.io/test/local@sha256:ccc333",
+							},
+						},
+					},
+				},
+			}),
+			want: []*intoto.ResourceDescriptor{
+				{
+					Uri:    "oci://gcr.io/test/local",
+					Digest: common.DigestSet{"sha256": "ccc333"},
+				},
+			},
+		},
+		{
+			name: "multiple remote StepActions produce distinct resolvedDependencies",
+			resolveOpts: ResolveOptions{
+				WithStepActionsResults: true,
+			},
+			obj: objects.NewTaskRunObjectV1(&v1.TaskRun{
+				Status: v1.TaskRunStatus{
+					TaskRunStatusFields: v1.TaskRunStatusFields{
+						Steps: []v1.StepState{
+							{
+								Name:    "git-clone",
+								ImageID: "gcr.io/test/git@sha256:aaa111",
+								Provenance: &v1.Provenance{
+									RefSource: &v1.RefSource{
+										URI:    "git+https://github.com/tektoncd/stepactions",
+										Digest: map[string]string{"sha256": "step1digest"},
+									},
+								},
+							},
+							{
+								Name:    "build",
+								ImageID: "gcr.io/test/build@sha256:bbb222",
+								Provenance: &v1.Provenance{
+									RefSource: &v1.RefSource{
+										URI:    "git+https://github.com/tektoncd/stepactions",
+										Digest: map[string]string{"sha256": "step2digest"},
+									},
+								},
+							},
+							{
+								Name:    "local-lint",
+								ImageID: "gcr.io/test/lint@sha256:ccc333",
+							},
+						},
+					},
+				},
+			}),
+			want: []*intoto.ResourceDescriptor{
+				{
+					Uri:    "oci://gcr.io/test/git",
+					Digest: common.DigestSet{"sha256": "aaa111"},
+				},
+				{
+					Uri:    "oci://gcr.io/test/build",
+					Digest: common.DigestSet{"sha256": "bbb222"},
+				},
+				{
+					Uri:    "oci://gcr.io/test/lint",
+					Digest: common.DigestSet{"sha256": "ccc333"},
+				},
+				{
+					Name:   "stepAction/git-clone",
+					Uri:    "git+https://github.com/tektoncd/stepactions",
+					Digest: common.DigestSet{"sha256": "step1digest"},
+				},
+				{
+					Name:   "stepAction/build",
+					Uri:    "git+https://github.com/tektoncd/stepactions",
+					Digest: common.DigestSet{"sha256": "step2digest"},
+				},
+			},
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
