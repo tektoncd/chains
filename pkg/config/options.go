@@ -16,6 +16,10 @@ limitations under the License.
 
 package config
 
+import (
+	"github.com/sigstore/cosign/v2/pkg/cosign/bundle"
+)
+
 // PayloadType specifies the format to store payload in.
 // - For OCI artifact, Chains only supports `simplesigning` format. https://www.redhat.com/en/blog/container-image-signing
 // - For Tekton artifacts, Chains supports `tekton` and `in-toto` format. https://slsa.dev/provenance/v0.2
@@ -47,4 +51,7 @@ type StorageOpts struct {
 
 	// PayloadFormat is the format to store payload in.
 	PayloadFormat PayloadType
+
+	// RekorBundle is an optional Rekor transparency log bundle for offline verification.
+	RekorBundle *bundle.RekorBundle
 }
