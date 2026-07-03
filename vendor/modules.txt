@@ -1385,8 +1385,8 @@ github.com/in-toto/archivista/pkg/http-client
 ## explicit; go 1.22
 github.com/in-toto/attestation/go/predicates/provenance/v1
 github.com/in-toto/attestation/go/v1
-# github.com/in-toto/go-witness v0.8.4
-## explicit; go 1.23.4
+# github.com/in-toto/go-witness v0.8.6
+## explicit; go 1.23.8
 github.com/in-toto/go-witness/cryptoutil
 github.com/in-toto/go-witness/dsse
 github.com/in-toto/go-witness/log
@@ -1833,7 +1833,7 @@ github.com/securego/gosec/v2/analyzers
 github.com/securego/gosec/v2/cwe
 github.com/securego/gosec/v2/issue
 github.com/securego/gosec/v2/rules
-# github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3
+# github.com/sergi/go-diff v1.4.0
 ## explicit; go 1.13
 github.com/sergi/go-diff/diffmatchpatch
 # github.com/shibumi/go-pathspec v1.3.0
@@ -2078,7 +2078,7 @@ github.com/syndtr/goleveldb/leveldb/util
 # github.com/tdakkota/asciicheck v0.4.1
 ## explicit; go 1.22.0
 github.com/tdakkota/asciicheck
-# github.com/tektoncd/pipeline v1.0.3
+# github.com/tektoncd/pipeline v1.0.4
 ## explicit; go 1.24.0
 github.com/tektoncd/pipeline/internal/artifactref
 github.com/tektoncd/pipeline/pkg/apis/config
