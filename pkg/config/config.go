@@ -101,8 +101,9 @@ type KMSAuth struct {
 
 // KMSAuthOIDC configures settings to authenticate with OIDC
 type KMSAuthOIDC struct {
-	Path string
-	Role string
+	Path      string
+	Role      string
+	TokenPath string
 }
 
 // KMSAuthSpire configures settings to get an auth token from spire
@@ -204,8 +205,9 @@ const (
 	kmsAuthAddress       = "signers.kms.auth.address"
 	kmsAuthToken         = "signers.kms.auth.token"
 	kmsAuthOIDCPath      = "signers.kms.auth.oidc.path"
-	kmsAuthTokenPath     = "signers.kms.auth.token-path" // #nosec G101
 	kmsAuthOIDCRole      = "signers.kms.auth.oidc.role"
+	kmsAuthOIDCTokenPath = "signers.kms.auth.oidc.token-path" // #nosec G101
+	kmsAuthTokenPath     = "signers.kms.auth.token-path"      // #nosec G101
 	kmsAuthSpireSock     = "signers.kms.auth.spire.sock"
 	kmsAuthSpireAudience = "signers.kms.auth.spire.audience"
 
@@ -335,6 +337,7 @@ func NewConfigFromMap(data map[string]string) (*Config, error) {
 		asString(kmsAuthTokenPath, &cfg.Signers.KMS.Auth.TokenPath),
 		asString(kmsAuthOIDCPath, &cfg.Signers.KMS.Auth.OIDC.Path),
 		asString(kmsAuthOIDCRole, &cfg.Signers.KMS.Auth.OIDC.Role),
+		asString(kmsAuthOIDCTokenPath, &cfg.Signers.KMS.Auth.OIDC.TokenPath),
 		asString(kmsAuthSpireSock, &cfg.Signers.KMS.Auth.Spire.Sock),
 		asString(kmsAuthSpireAudience, &cfg.Signers.KMS.Auth.Spire.Audience),
 

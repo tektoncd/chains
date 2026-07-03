@@ -177,6 +177,7 @@ chains.tekton.dev/transparency-upload: "true"
 | `signers.kms.auth.token-path`     | Path to store KMS server Auth token (e.g. `/etc/kms-secrets`)                               |                  |
 | `signers.kms.auth.oidc.path`      | Path used for OIDC authentication (e.g. `jwt` for Vault)                                    |                  |
 | `signers.kms.auth.oidc.role`      | Role used for OIDC authentication                                                           |                  |
+| `signers.kms.auth.oidc.token-path`| Path to a file containing the JWT token for OIDC authentication. If not set, defaults to the Kubernetes service account token at `/var/run/secrets/kubernetes.io/serviceaccount/token`. |                  | `/var/run/secrets/kubernetes.io/serviceaccount/token` |
 | `signers.kms.auth.spire.sock`     | URI of the Spire socket used for KMS token (e.g. `unix:///tmp/spire-agent/public/api.sock`) |                  |
 | `signers.kms.auth.spire.audience` | Audience for requesting a SVID from Spire                                                   |                  |
 
