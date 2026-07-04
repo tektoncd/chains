@@ -37,7 +37,8 @@ const (
 	// SecretPath contains the path to the secrets volume that is mounted in.
 	SecretPath = "/etc/signing-secrets"
 
-	taskRunFinalizerName = "chains.tekton.dev/taskrun"
+	taskRunFinalizerName    = "chains.tekton.dev/taskrun"
+	oldTaskRunFinalizerName = "chains.tekton.dev"
 )
 
 type Reconciler struct {
@@ -53,18 +54,6 @@ var _ taskrunreconciler.Finalizer = (*Reconciler)(nil)
 // This is the main entrypoint for chains business logic.
 func (r *Reconciler) ReconcileKind(ctx context.Context, tr *v1.TaskRun) pkgreconciler.Event {
 	return r.FinalizeKind(ctx, tr)
-}
-
-// 01-Jul-2025; this is a temp solution util we consider the old finalizer name no longer used.
-// removeOldFinalizerIfExists removes the old finalizer from the TaskRun if it exists.
-func removeOldFinalizerIfExists(tr *v1.TaskRun) {
-	const oldFinalizerName = "chains.tekton.dev"
-	for i, f := range tr.ObjectMeta.Finalizers {
-		if f == oldFinalizerName {
-			tr.ObjectMeta.Finalizers = append(tr.ObjectMeta.Finalizers[:i], tr.ObjectMeta.Finalizers[i+1:]...)
-			break
-		}
-	}
 }
 
 // FinalizeKind implements taskrunreconciler.Finalizer
@@ -110,14 +99,12 @@ func (r *Reconciler) FinalizeKind(ctx context.Context, tr *v1.TaskRun) (result p
 	// Check to see if it has already been signed.
 	if annotations.Reconciled(ctx, r.Pipelineclientset, obj) {
 		logging.FromContext(ctx).Infof("taskrun %s/%s has been reconciled", tr.Namespace, tr.Name)
-		removeOldFinalizerIfExists(tr)
 		return nil
 	}
 
 	if err := r.TaskRunSigner.Sign(ctx, obj); err != nil {
 		return err
 	}
-	removeOldFinalizerIfExists(tr)
 	return nil
 }
 
@@ -133,7 +120,8 @@ func (r *Reconciler) isFinalizerOwnedByMergePatch(tr *v1.TaskRun) bool {
 			raw := mf.FieldsV1.GetRawBytes()
 			if raw != nil {
 				if bytes.Contains(raw, []byte(`"f:finalizers"`)) &&
-					bytes.Contains(raw, []byte(`v:\"chains.tekton.dev/taskrun\"`)) {
+					(bytes.Contains(raw, []byte(`v:\"chains.tekton.dev/taskrun\"`)) ||
+						bytes.Contains(raw, []byte(`v:\"chains.tekton.dev\"`))) {
 					return true
 				}
 			}
@@ -151,7 +139,7 @@ func (r *Reconciler) isFinalizerOwnedByMergePatch(tr *v1.TaskRun) bool {
 func (r *Reconciler) removeFinalizerViaMergePatch(ctx context.Context, tr *v1.TaskRun) error {
 	var newFinalizers []string
 	for _, f := range tr.Finalizers {
-		if f != taskRunFinalizerName {
+		if f != taskRunFinalizerName && f != oldTaskRunFinalizerName {
 			newFinalizers = append(newFinalizers, f)
 		}
 	}

@@ -180,6 +180,9 @@ func TestFinalizeKind_SSAMigration(t *testing.T) {
 	mergePatchFieldsV1 := metav1.NewFieldsV1(
 		`{"f:metadata":{"f:finalizers":{".":{},"v:\"chains.tekton.dev/taskrun\"":{}}}}`,
 	)
+	mergePatchFieldsV1Old := metav1.NewFieldsV1(
+		`{"f:metadata":{"f:finalizers":{".":{},"v:\"chains.tekton.dev\"":{}}}}`,
+	)
 	ssaFieldsV1 := metav1.NewFieldsV1(
 		`{"f:metadata":{"f:finalizers":{".":{},"v:\"chains.tekton.dev/taskrun\"":{}}}}`,
 	)
@@ -278,6 +281,62 @@ func TestFinalizeKind_SSAMigration(t *testing.T) {
 			},
 			expectFinalizerRemoved: false,
 		},
+		{
+			name: "migration removes old merge-patch finalizer on deletion",
+			tr: &v1.TaskRun{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              "taskrun",
+					Namespace:         "default",
+					DeletionTimestamp: &now,
+					Finalizers:        []string{oldTaskRunFinalizerName, "other.finalizer"},
+					Annotations:       map[string]string{annotations.ChainsAnnotation: "true"},
+					ManagedFields: []metav1.ManagedFieldsEntry{
+						{
+							Operation: metav1.ManagedFieldsOperationUpdate,
+							FieldsV1:  mergePatchFieldsV1Old,
+						},
+						{
+							Operation: metav1.ManagedFieldsOperationApply,
+							FieldsV1:  ssaFieldsV1,
+						},
+					},
+				},
+				Status: v1.TaskRunStatus{
+					Status: duckv1.Status{
+						Conditions: []apis.Condition{{Type: apis.ConditionSucceeded}},
+					},
+				},
+			},
+			expectFinalizerRemoved: true,
+		},
+		{
+			name: "migration removes old merge-patch finalizer on deletion together with new one",
+			tr: &v1.TaskRun{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              "taskrun",
+					Namespace:         "default",
+					DeletionTimestamp: &now,
+					Finalizers:        []string{taskRunFinalizerName, oldTaskRunFinalizerName, "other.finalizer"},
+					Annotations:       map[string]string{annotations.ChainsAnnotation: "true"},
+					ManagedFields: []metav1.ManagedFieldsEntry{
+						{
+							Operation: metav1.ManagedFieldsOperationUpdate,
+							FieldsV1:  mergePatchFieldsV1Old,
+						},
+						{
+							Operation: metav1.ManagedFieldsOperationApply,
+							FieldsV1:  ssaFieldsV1,
+						},
+					},
+				},
+				Status: v1.TaskRunStatus{
+					Status: duckv1.Status{
+						Conditions: []apis.Condition{{Type: apis.ConditionSucceeded}},
+					},
+				},
+			},
+			expectFinalizerRemoved: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -309,13 +368,17 @@ func TestFinalizeKind_SSAMigration(t *testing.T) {
 			}
 
 			hasChainsFinalizer := false
+			hasOldChainsFinalizer := false
 			for _, f := range got.Finalizers {
 				if f == taskRunFinalizerName {
 					hasChainsFinalizer = true
 				}
+				if f == oldTaskRunFinalizerName {
+					hasOldChainsFinalizer = true
+				}
 			}
 
-			if tt.expectFinalizerRemoved && hasChainsFinalizer {
+			if tt.expectFinalizerRemoved && (hasChainsFinalizer || hasOldChainsFinalizer) {
 				t.Errorf("expected chains finalizer to be removed, but it is still present: %v", got.Finalizers)
 			}
 			if !tt.expectFinalizerRemoved && !hasChainsFinalizer && len(tt.tr.Finalizers) > 0 {
