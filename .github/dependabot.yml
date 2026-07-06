@@ -39,6 +39,10 @@ updates:
         - dependencies
         - release-note-none
         - kind/misc
+      groups:
+        all:
+            patterns:
+                - '*'
       cooldown:
         default-days: 7
     - package-ecosystem: gomod
@@ -84,6 +88,10 @@ updates:
           update-types:
             - version-update:semver-major
             - version-update:semver-minor
+      groups:
+        all:
+            patterns:
+                - '*'
       cooldown:
         default-days: 7
     - package-ecosystem: gomod
@@ -129,6 +137,10 @@ updates:
           update-types:
             - version-update:semver-major
             - version-update:semver-minor
+      groups:
+        all:
+            patterns:
+                - '*'
       cooldown:
         default-days: 7
     - package-ecosystem: gomod
@@ -174,6 +186,10 @@ updates:
           update-types:
             - version-update:semver-major
             - version-update:semver-minor
+      groups:
+        all:
+            patterns:
+                - '*'
       cooldown:
         default-days: 7
     - package-ecosystem: gomod
@@ -219,5 +235,9 @@ updates:
           update-types:
             - version-update:semver-major
             - version-update:semver-minor
+      groups:
+        all:
+            patterns:
+                - '*'
       cooldown:
         default-days: 7
