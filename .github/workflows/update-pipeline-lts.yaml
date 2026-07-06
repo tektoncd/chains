@@ -1,10 +1,11 @@
 name: Update Pipeline LTS versions
 
-on:
+'on':
   schedule:
     # Run every Monday at 9:00 UTC
     - cron: '0 9 * * 1'
-  workflow_dispatch: # Allow manual triggering
+  # Allow manual triggering
+  workflow_dispatch: {}
 
 permissions:
   contents: write
