@@ -1,0 +1,89 @@
+name: Update Pipeline LTS versions
+
+on:
+  schedule:
+    # Run every Monday at 9:00 UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch: # Allow manual triggering
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Update Pipeline LTS versions
+        run: ./hack/update-pipeline-lts.sh
+
+      - name: Check for changes
+        id: check-changes
+        run: |
+          if git diff --quiet .github/pipeline-lts.json; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "No changes detected"
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Changes detected:"
+            git diff .github/pipeline-lts.json
+          fi
+
+      - name: Create Pull Request
+        if: steps.check-changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          BRANCH="update-pipeline-lts-$(date +%Y%m%d)"
+          git checkout -b "${BRANCH}"
+
+          git add .github/pipeline-lts.json
+          git commit -s -m "Update Pipeline LTS versions
+
+          Automatically generated from tektoncd/pipeline releases.md.
+
+          $(cat .github/pipeline-lts.json)"
+
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+          git push origin "${BRANCH}:${BRANCH}"
+
+          gh pr create \
+            --title "Update Pipeline LTS versions" \
+            --body "## Automated Pipeline LTS Update
+
+          This PR updates the Pipeline LTS versions used in e2e testing.
+
+          **Updated versions:**
+          \`\`\`json
+          $(cat .github/pipeline-lts.json)
+          \`\`\`
+
+          Source: [tektoncd/pipeline releases.md](https://github.com/tektoncd/pipeline/blob/main/releases.md)
+
+          ---
+          🤖 This PR was automatically created by the \`Update Pipeline LTS versions\` workflow." \
+            --base main \
+            --head "${BRANCH}"
+
+      - name: Summary
+        env:
+          CHANGED: ${{ steps.check-changes.outputs.changed }}
+        run: |
+          if [ "${CHANGED}" = "true" ]; then
+            echo "✅ Pull request created with updated Pipeline LTS versions"
+          else
+            echo "✅ Pipeline LTS versions are up-to-date"
+          fi
