@@ -73,7 +73,7 @@ jobs:
         fi
 
     - name: Install mirror, kind, knative + sigstore
-      uses: sigstore/scaffolding/actions/setup@039e0ece31c5fc9fe0466d2f7b289ed643b88fdb  # v0.7.2
+      uses: sigstore/scaffolding/actions/setup@fb8d1817d2571303daf88f49d3a23daeb7474e84  # v0.7.2
       with:
         k8s-version: ${{ inputs.k8s-version }}
         version: ${{ env.SIGSTORE_SCAFFOLDING_RELEASE_VERSION }}
