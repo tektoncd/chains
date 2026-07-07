@@ -39,7 +39,7 @@ import (
 	"knative.dev/pkg/logging"
 )
 
-const defaultOIDCTokenPath = "/var/run/secrets/kubernetes.io/serviceaccount/token" //nolint:gosec // Not a credential, this is the path to read the K8s SA token file from
+var defaultOIDCTokenPath = "/var/run/secrets/kubernetes.io/serviceaccount/token" //nolint:gosec // Not a credential, this is the path to read the K8s SA token file from
 
 // Signer exposes methods to sign payloads using a KMS
 type Signer struct {
