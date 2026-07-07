@@ -215,6 +215,10 @@ func TestOIDCTokenEndToEnd(t *testing.T) {
 // TestOIDCTokenFallbackToDefaultPath proves that when oidc.path/role are set
 // but no token-path is given, the code tries the default K8s SA token path.
 func TestOIDCTokenFallbackToDefaultPath(t *testing.T) {
+	orig := defaultOIDCTokenPath
+	defaultOIDCTokenPath = t.TempDir() + "/nonexistent-sa-token"
+	t.Cleanup(func() { defaultOIDCTokenPath = orig })
+
 	cfg := config.KMSSigner{
 		Auth: config.KMSAuth{
 			OIDC: config.KMSAuthOIDC{
