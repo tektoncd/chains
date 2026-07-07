@@ -61,7 +61,7 @@ function install_pipeline_crd() {
 
 function install_chains() {
   echo ">> Deploying Tekton Chains"
-  ko apply -f config/ || fail_test "Tekton Chains installation failed"
+  ko apply ${KO_FLAGS:-} -f config/ || fail_test "Tekton Chains installation failed"
 
   # Wait for pods to be running in the namespaces we are deploying to
   wait_until_pods_running ${namespace} || fail_test "Tekton Chains did not come up"

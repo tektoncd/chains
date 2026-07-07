@@ -25,6 +25,9 @@ jobs:
       GO111MODULE: 'on'
       GOFLAGS: -ldflags=-s -ldflags=-w
       KO_DOCKER_REPO: registry.local:5000/knative
+      # registry.local:5000 is a plain-HTTP KinD registry; tell ko to skip TLS
+      # so that both image pushes and SBOM writes (ko >=v0.19) use plain HTTP.
+      KO_FLAGS: --insecure-registry
       KOCACHE: ~/ko
       SIGSTORE_SCAFFOLDING_RELEASE_VERSION: "v0.7.31"
       TEKTON_PIPELINES_RELEASE: "https://infra.tekton.dev/tekton-releases/pipeline/previous/${{ inputs.pipelines-release }}/release.yaml"
@@ -45,8 +48,6 @@ jobs:
         go-version-file: "go.mod"
 
     - uses: ko-build/setup-ko@61b4d1d396f5b2e7d6bb6fefdce3dc38d1a13445 # v0.10
-      with:
-        version: v0.18.1
 
     - name: Install mirror, kind, knative + sigstore
       uses: sigstore/scaffolding/actions/setup@8bd68672d418e5bd1b0ee1f2e2981874c3a30967  # v0.7.33
