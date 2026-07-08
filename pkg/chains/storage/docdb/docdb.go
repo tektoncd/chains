@@ -152,6 +152,10 @@ func WatchBackend(ctx context.Context, cfg config.Config, watcherStop chan bool)
 					}
 				}
 
+				if updatedEnv == "" {
+					continue
+				}
+
 				if updatedEnv != os.Getenv("MONGO_SERVER_URL") {
 					logger.Info("Mongo server url has been updated, reconfiguring backend...")
 
