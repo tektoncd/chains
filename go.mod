@@ -1,6 +1,6 @@
 module github.com/tektoncd/chains
 
-go 1.25.8
+go 1.25.10
 
 require (
 	cloud.google.com/go/compute/metadata v0.9.0
@@ -30,7 +30,7 @@ require (
 	github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.10.8
 	github.com/spiffe/go-spiffe/v2 v2.6.0
 	github.com/stretchr/testify v1.11.1
-	github.com/tektoncd/pipeline v1.9.5
+	github.com/tektoncd/pipeline v1.9.6
 	github.com/tektoncd/plumbing v0.0.0-20250115133002-f515628dffea
 	go.opencensus.io v0.24.0
 	go.uber.org/zap v1.27.1
