@@ -29,7 +29,6 @@ func (b *BucketHandle) IAM() *iam.Handle {
 		userProject: b.userProject,
 		retry:       b.retry,
 		client:      b.c,
-		bucket:      b.name,
 	}, b.name)
 }
 
@@ -38,7 +37,6 @@ type iamClient struct {
 	userProject string
 	retry       *retryConfig
 	client      *Client
-	bucket      string
 }
 
 func (c *iamClient) Get(ctx context.Context, resource string) (p *iampb.Policy, err error) {
@@ -46,7 +44,7 @@ func (c *iamClient) Get(ctx context.Context, resource string) (p *iampb.Policy, 
 }
 
 func (c *iamClient) GetWithVersion(ctx context.Context, resource string, requestedPolicyVersion int32) (p *iampb.Policy, err error) {
-	ctx, _ = startSpanWithBucket(ctx, c.client, c.bucket, "storage.IAM.Get")
+	ctx, _ = startSpan(ctx, "storage.IAM.Get")
 	defer func() { endSpan(ctx, err) }()
 
 	o := makeStorageOpts(true, c.retry, c.userProject)
@@ -54,7 +52,7 @@ func (c *iamClient) GetWithVersion(ctx context.Context, resource string, request
 }
 
 func (c *iamClient) Set(ctx context.Context, resource string, p *iampb.Policy) (err error) {
-	ctx, _ = startSpanWithBucket(ctx, c.client, c.bucket, "storage.IAM.Set")
+	ctx, _ = startSpan(ctx, "storage.IAM.Set")
 	defer func() { endSpan(ctx, err) }()
 
 	isIdempotent := len(p.Etag) > 0
@@ -63,7 +61,7 @@ func (c *iamClient) Set(ctx context.Context, resource string, p *iampb.Policy) (
 }
 
 func (c *iamClient) Test(ctx context.Context, resource string, perms []string) (permissions []string, err error) {
-	ctx, _ = startSpanWithBucket(ctx, c.client, c.bucket, "storage.IAM.Test")
+	ctx, _ = startSpan(ctx, "storage.IAM.Test")
 	defer func() { endSpan(ctx, err) }()
 
 	o := makeStorageOpts(true, c.retry, c.userProject)

@@ -80,7 +80,7 @@ type Copier struct {
 
 // Run performs the copy.
 func (c *Copier) Run(ctx context.Context) (attrs *ObjectAttrs, err error) {
-	ctx, _ = startSpanWithBucket(ctx, c.dst.c, c.dst.bucket, "Copier.Run")
+	ctx, _ = startSpan(ctx, "Copier.Run")
 	defer func() { endSpan(ctx, err) }()
 
 	if err := c.src.validate(); err != nil {
@@ -172,17 +172,13 @@ type Composer struct {
 	// the checksum, the compose will be rejected.
 	SendCRC32C bool
 
-	// DeleteSourceObjects specifies whether to delete the source objects after a
-	// successful composition.
-	DeleteSourceObjects bool
-
 	dst  *ObjectHandle
 	srcs []*ObjectHandle
 }
 
 // Run performs the compose operation.
 func (c *Composer) Run(ctx context.Context) (attrs *ObjectAttrs, err error) {
-	ctx, _ = startSpanWithBucket(ctx, c.dst.c, c.dst.bucket, "Composer.Run")
+	ctx, _ = startSpan(ctx, "Composer.Run")
 	defer func() { endSpan(ctx, err) }()
 
 	if err := c.dst.validate(); err != nil {
@@ -208,10 +204,9 @@ func (c *Composer) Run(ctx context.Context) (attrs *ObjectAttrs, err error) {
 	}
 
 	req := &composeObjectRequest{
-		dstBucket:           c.dst.bucket,
-		predefinedACL:       c.PredefinedACL,
-		sendCRC32C:          c.SendCRC32C,
-		deleteSourceObjects: c.DeleteSourceObjects,
+		dstBucket:     c.dst.bucket,
+		predefinedACL: c.PredefinedACL,
+		sendCRC32C:    c.SendCRC32C,
 	}
 	req.dstObject = destinationObject{
 		name:          c.dst.object,
