@@ -183,8 +183,7 @@
                 "networkAcls": "[variables('networkAcls')]",
                 "supportsHttpsTrafficOnly": true,
                 "encryption": "[variables('encryption')]",
-                "accessTier": "Hot",
-                "allowSharedKeyAccess": false
+                "accessTier": "Hot"
             }
         },
         {

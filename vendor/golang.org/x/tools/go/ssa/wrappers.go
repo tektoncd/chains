@@ -40,14 +40,14 @@ import (
 // following axes of variation when making changes:
 //   - optional receiver indirection
 //   - optional implicit field selections
-//   - optional method type arguments
 //   - meth.Obj() may denote a concrete or an interface method
 //   - the result may be a thunk or a wrapper.
-func createWrapper(prog *Program, sel *selection, targs []types.Type) *Function {
-	obj := sel.obj.(*types.Func) // the declared function
-	name, sig := maybeInstance(prog, obj.Name(), sel.typ.(*types.Signature), targs)
+func createWrapper(prog *Program, sel *selection) *Function {
+	obj := sel.obj.(*types.Func)      // the declared function
+	sig := sel.typ.(*types.Signature) // type of this wrapper
 
 	var recv *types.Var // wrapper's receiver or thunk's params[0]
+	name := obj.Name()
 	var description string
 	if sel.kind == types.MethodExpr {
 		name += "$thunk"
@@ -58,7 +58,7 @@ func createWrapper(prog *Program, sel *selection, targs []types.Type) *Function 
 		recv = sig.Recv()
 	}
 
-	description = fmt.Sprintf("%s for %s", description, obj)
+	description = fmt.Sprintf("%s for %s", description, sel.obj)
 	if prog.mode&LogSource != 0 {
 		defer logStack("create %s to (%s)", description, recv.Type())()
 	}
@@ -71,27 +71,12 @@ func createWrapper(prog *Program, sel *selection, targs []types.Type) *Function 
 		Synthetic: description,
 		Prog:      prog,
 		pos:       obj.Pos(),
-		typeargs:  targs,
 		// wrappers have no syntax
 		build:     (*builder).buildWrapper,
 		syntax:    nil,
 		info:      nil,
 		goversion: "",
 	}
-}
-
-// maybeInstance returns name and sig instantiated to reflect any type arguments in targs.
-func maybeInstance(prog *Program, name string, sig *types.Signature, targs []types.Type) (string, *types.Signature) {
-	if len(targs) > 0 {
-		name = fmt.Sprintf("%s%s", name, targstr(targs))
-		instSig, err := types.Instantiate(prog.ctxt, sig, targs, false)
-		if err != nil {
-			// validate was false, we should never get an error
-			panic(err)
-		}
-		sig = prog.canon.Type(instSig).(*types.Signature)
-	}
-	return name, sig
 }
 
 // buildWrapper builds fn.Body for a method wrapper.
@@ -152,7 +137,7 @@ func (b *builder) buildWrapper(fn *Function) {
 		if !isPointer(r) {
 			v = emitLoad(fn, v)
 		}
-		c.Call.Value = fn.Prog.objectMethod(fn.object, fn.typeargs, b)
+		c.Call.Value = fn.Prog.objectMethod(fn.object, b)
 		c.Call.Args = append(c.Call.Args, v)
 	} else {
 		c.Call.Method = fn.object
@@ -199,22 +184,19 @@ func createParams(fn *Function, start int) {
 // Unlike createWrapper, createBound need perform no indirection or field
 // selections because that can be done before the closure is
 // constructed.
-func createBound(prog *Program, obj *types.Func, targs []types.Type) *Function {
+func createBound(prog *Program, obj *types.Func) *Function {
 	description := fmt.Sprintf("bound method wrapper for %s", obj)
 	if prog.mode&LogSource != 0 {
 		defer logStack("%s", description)()
 	}
-	name, sig := maybeInstance(prog, obj.Name(), obj.Type().(*types.Signature), targs)
-
 	/* bound method wrapper */
 	fn := &Function{
-		name:      name + "$bound",
+		name:      obj.Name() + "$bound",
 		object:    obj,
-		Signature: changeRecv(sig, nil), // drop receiver
+		Signature: changeRecv(obj.Type().(*types.Signature), nil), // drop receiver
 		Synthetic: description,
 		Prog:      prog,
 		pos:       obj.Pos(),
-		typeargs:  targs,
 		// wrappers have no syntax
 		build:     (*builder).buildBound,
 		syntax:    nil,
@@ -233,7 +215,7 @@ func (b *builder) buildBound(fn *Function) {
 
 	recv := fn.FreeVars[0]
 	if !types.IsInterface(recvType(fn.object)) { // concrete
-		c.Call.Value = fn.Prog.objectMethod(fn.object, fn.typeargs, b)
+		c.Call.Value = fn.Prog.objectMethod(fn.object, b)
 		c.Call.Args = []Value{recv}
 	} else {
 		c.Call.Method = fn.object
@@ -264,12 +246,12 @@ func (b *builder) buildBound(fn *Function) {
 // f is a synthetic wrapper defined as if by:
 //
 //	f := func(t T) { return t.meth() }
-func createThunk(prog *Program, sel *selection, targs []types.Type) *Function {
+func createThunk(prog *Program, sel *selection) *Function {
 	if sel.kind != types.MethodExpr {
 		panic(sel)
 	}
 
-	fn := createWrapper(prog, sel, targs)
+	fn := createWrapper(prog, sel)
 	if fn.Signature.Recv() != nil {
 		panic(fn) // unexpected receiver
 	}

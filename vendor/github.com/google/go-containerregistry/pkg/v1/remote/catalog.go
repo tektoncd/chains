@@ -122,7 +122,7 @@ func (f *fetcher) catalogPage(ctx context.Context, reg name.Registry, next strin
 		return nil, err
 	}
 
-	uri, err := getNextPageURLForRegistry(resp, reg)
+	uri, err := getNextPageURL(resp)
 	if err != nil {
 		return nil, err
 	}

@@ -60,7 +60,7 @@ var Statuses = map[int]string{
 	444: "No Response",
 	449: "Retry With",
 	450: "Blocked by Windows Parental Controls",
-	451: "Unavailable For Legal Reasons",
+	451: "Wrong Exchange Server",
 	499: "Client Closed Request",
 	500: "Internal Server Error",
 	501: "Not Implemented",

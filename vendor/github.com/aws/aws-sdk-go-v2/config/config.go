@@ -96,8 +96,6 @@ var defaultAWSConfigResolvers = []awsConfigResolver{
 
 	// Sets the ServiceOptions if present in LoadOptions
 	resolveServiceOptions,
-
-	resolveRestrictFilePermissions,
 }
 
 // A Config represents a generic configuration value or set of values. This type

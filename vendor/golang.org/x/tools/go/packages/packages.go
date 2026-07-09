@@ -539,11 +539,6 @@ type Package struct {
 
 	// depsErrors is the DepsErrors field from the go list response, if any.
 	depsErrors []*packagesinternal.PackageError
-
-	// exportDataError is the error encountered reading export data, if any.
-	// Decoding export data should ordinarily be infallible, so this typically
-	// indicates a producer/consumer version skew.
-	exportDataError error
 }
 
 // Module provides module information for a package.
@@ -815,12 +810,6 @@ func (ld *loader) refine(response *DriverResponse) ([]*Package, error) {
 			needsrc:   needsrc,
 			goVersion: response.GoVersion,
 		}
-		// Don't trust the driver to respond with duplicate-free
-		// package names (go.dev/issue/63822).
-		if _, ok := ld.pkgs[lpkg.ID]; ok {
-			return nil, fmt.Errorf("%s response contained duplicate packages for ID %q",
-				cond(ld.externalDriver, "go/packages driver", "go list"), lpkg.ID)
-		}
 		ld.pkgs[lpkg.ID] = lpkg
 		if rootIndex >= 0 {
 			initial[rootIndex] = lpkg
@@ -1084,11 +1073,10 @@ func (ld *loader) loadPackage(lpkg *loaderPackage) {
 	}
 
 	// TODO(adonovan): this condition looks wrong:
-	// I think it should be lpkg.needtypes && !lpkg.needsrc,
+	// I think it should be lpkg.needtypes && !lpg.needsrc,
 	// so that NeedSyntax without NeedTypes can be satisfied by export data.
 	if !lpkg.needsrc {
 		if err := ld.loadFromExportData(lpkg); err != nil {
-			lpkg.exportDataError = err
 			lpkg.Errors = append(lpkg.Errors, Error{
 				Pos:  "-",
 				Msg:  err.Error(),
@@ -1227,13 +1215,7 @@ func (ld *loader) loadPackage(lpkg *loaderPackage) {
 		if ipkg.Types != nil && ipkg.Types.Complete() {
 			return ipkg.Types, nil
 		}
-
-		// If types are unavailable, there must be an export data error.
-		if ipkg.exportDataError != nil {
-			return nil, ipkg.exportDataError
-		}
-
-		log.Fatalf("internal error: expected complete types for package %q", path)
+		log.Fatalf("internal error: package %q without types was imported from %q", path, lpkg)
 		panic("unreachable")
 	})
 
@@ -1595,11 +1577,3 @@ func usesExportData(cfg *Config) bool {
 }
 
 type unit struct{}
-
-func cond[T any](cond bool, t, f T) T {
-	if cond {
-		return t
-	} else {
-		return f
-	}
-}

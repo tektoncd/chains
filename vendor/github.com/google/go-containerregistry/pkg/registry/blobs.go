@@ -59,7 +59,7 @@ type BlobHandler interface {
 // backend that can serve metadata about blobs.
 type BlobStatHandler interface {
 	// Stat returns the size of the blob, or errNotFound if the blob wasn't
-	// found, or RedirectError if the blob can be found elsewhere.
+	// found, or redirectError if the blob can be found elsewhere.
 	Stat(ctx context.Context, repo string, h v1.Hash) (int64, error)
 }
 
@@ -82,10 +82,10 @@ type BlobDeleteHandler interface {
 	Delete(ctx context.Context, repo string, h v1.Hash) error
 }
 
-// RedirectError represents a signal that the blob handler doesn't have the blob
+// redirectError represents a signal that the blob handler doesn't have the blob
 // contents, but that those contents are at another location which registry
 // clients should redirect to.
-type RedirectError struct {
+type redirectError struct {
 	// Location is the location to find the contents.
 	Location string
 
@@ -101,10 +101,10 @@ func (r *bytesCloser) Close() error {
 	return nil
 }
 
-func (e RedirectError) Error() string { return fmt.Sprintf("redirecting (%d): %s", e.Code, e.Location) }
+func (e redirectError) Error() string { return fmt.Sprintf("redirecting (%d): %s", e.Code, e.Location) }
 
-// ErrNotFound represents an error locating the blob.
-var ErrNotFound = errors.New("not found")
+// errNotFound represents an error locating the blob.
+var errNotFound = errors.New("not found")
 
 type memHandler struct {
 	m    map[string][]byte
@@ -119,7 +119,7 @@ func (m *memHandler) Stat(_ context.Context, _ string, h v1.Hash) (int64, error)
 
 	b, found := m.m[h.String()]
 	if !found {
-		return 0, ErrNotFound
+		return 0, errNotFound
 	}
 	return int64(len(b)), nil
 }
@@ -130,7 +130,7 @@ func (m *memHandler) Get(_ context.Context, _ string, h v1.Hash) (io.ReadCloser,
 
 	b, found := m.m[h.String()]
 	if !found {
-		return nil, ErrNotFound
+		return nil, errNotFound
 	}
 	return &bytesCloser{bytes.NewReader(b)}, nil
 }
@@ -153,7 +153,7 @@ func (m *memHandler) Delete(_ context.Context, _ string, h v1.Hash) error {
 	defer m.lock.Unlock()
 
 	if _, found := m.m[h.String()]; !found {
-		return ErrNotFound
+		return errNotFound
 	}
 
 	delete(m.m, h.String())
@@ -206,10 +206,10 @@ func (b *blobs) handle(resp http.ResponseWriter, req *http.Request) *regError {
 		var size int64
 		if bsh, ok := b.blobHandler.(BlobStatHandler); ok {
 			size, err = bsh.Stat(req.Context(), repo, h)
-			if errors.Is(err, ErrNotFound) {
+			if errors.Is(err, errNotFound) {
 				return regErrBlobUnknown
 			} else if err != nil {
-				var rerr RedirectError
+				var rerr redirectError
 				if errors.As(err, &rerr) {
 					http.Redirect(resp, req, rerr.Location, rerr.Code)
 					return nil
@@ -218,10 +218,10 @@ func (b *blobs) handle(resp http.ResponseWriter, req *http.Request) *regError {
 			}
 		} else {
 			rc, err := b.blobHandler.Get(req.Context(), repo, h)
-			if errors.Is(err, ErrNotFound) {
+			if errors.Is(err, errNotFound) {
 				return regErrBlobUnknown
 			} else if err != nil {
-				var rerr RedirectError
+				var rerr redirectError
 				if errors.As(err, &rerr) {
 					http.Redirect(resp, req, rerr.Location, rerr.Code)
 					return nil
@@ -254,10 +254,10 @@ func (b *blobs) handle(resp http.ResponseWriter, req *http.Request) *regError {
 		var r io.Reader
 		if bsh, ok := b.blobHandler.(BlobStatHandler); ok {
 			size, err = bsh.Stat(req.Context(), repo, h)
-			if errors.Is(err, ErrNotFound) {
+			if errors.Is(err, errNotFound) {
 				return regErrBlobUnknown
 			} else if err != nil {
-				var rerr RedirectError
+				var rerr redirectError
 				if errors.As(err, &rerr) {
 					http.Redirect(resp, req, rerr.Location, rerr.Code)
 					return nil
@@ -266,10 +266,10 @@ func (b *blobs) handle(resp http.ResponseWriter, req *http.Request) *regError {
 			}
 
 			rc, err := b.blobHandler.Get(req.Context(), repo, h)
-			if errors.Is(err, ErrNotFound) {
+			if errors.Is(err, errNotFound) {
 				return regErrBlobUnknown
 			} else if err != nil {
-				var rerr RedirectError
+				var rerr redirectError
 				if errors.As(err, &rerr) {
 					http.Redirect(resp, req, rerr.Location, rerr.Code)
 					return nil
@@ -283,10 +283,10 @@ func (b *blobs) handle(resp http.ResponseWriter, req *http.Request) *regError {
 
 		} else {
 			tmp, err := b.blobHandler.Get(req.Context(), repo, h)
-			if errors.Is(err, ErrNotFound) {
+			if errors.Is(err, errNotFound) {
 				return regErrBlobUnknown
 			} else if err != nil {
-				var rerr RedirectError
+				var rerr redirectError
 				if errors.As(err, &rerr) {
 					http.Redirect(resp, req, rerr.Location, rerr.Code)
 					return nil
@@ -424,8 +424,7 @@ func (b *blobs) handle(resp http.ResponseWriter, req *http.Request) *regError {
 			b.uploads[target] = l.Bytes()
 			resp.Header().Set("Location", "/"+path.Join("v2", path.Join(elem[1:len(elem)-3]...), "blobs/uploads", target))
 			resp.Header().Set("Range", fmt.Sprintf("0-%d", len(l.Bytes())-1))
-			// OCI Distribution spec §10.5 requires 202 Accepted for chunk uploads.
-			resp.WriteHeader(http.StatusAccepted)
+			resp.WriteHeader(http.StatusNoContent)
 			return nil
 		}
 
@@ -445,8 +444,7 @@ func (b *blobs) handle(resp http.ResponseWriter, req *http.Request) *regError {
 		b.uploads[target] = l.Bytes()
 		resp.Header().Set("Location", "/"+path.Join("v2", path.Join(elem[1:len(elem)-3]...), "blobs/uploads", target))
 		resp.Header().Set("Range", fmt.Sprintf("0-%d", len(l.Bytes())-1))
-		// OCI Distribution spec §10.5 requires 202 Accepted for chunk uploads.
-		resp.WriteHeader(http.StatusAccepted)
+		resp.WriteHeader(http.StatusNoContent)
 		return nil
 
 	case http.MethodPut:

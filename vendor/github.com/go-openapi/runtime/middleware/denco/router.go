@@ -9,7 +9,6 @@ package denco
 import (
 	"errors"
 	"fmt"
-	"slices"
 	"sort"
 	"strings"
 )
@@ -30,8 +29,8 @@ const (
 	// PathParamCharacter indicates a RESTCONF path param.
 	PathParamCharacter = '='
 
-	// MaxSize is the maximum size of records and internal slice (encoded over 22 bits).
-	MaxSize = (1 << baseBits) - 1
+	// MaxSize is max size of records and internal slice.
+	MaxSize = (1 << 22) - 1 //nolint:mnd
 )
 
 // Router represents a URL router.
@@ -54,12 +53,9 @@ func New() *Router {
 	}
 }
 
-// Lookup returns data and path parameters which are associated to the path.
-//
+// Lookup returns data and path parameters that associated with path.
 // params is a slice of the [Param] that arranged in the order in which parameters appeared.
-//
-// e.g. when built routing path is "/path/to/:id/:name" and given path is "/path/to/1/alice",
-// params order is [{"id": "1"}, {"name": "alice"}], not [{"name": "alice"}, {"id": "1"}].
+// e.g. when built routing path is "/path/to/:id/:name" and given path is "/path/to/1/alice". params order is [{"id": "1"}, {"name": "alice"}], not [{"name": "alice"}, {"id": "1"}].
 func (rt *Router) Lookup(path string) (data any, params Params, found bool) {
 	if data, found = rt.static[path]; found {
 		return data, nil, true
@@ -148,7 +144,6 @@ func newDoubleArray() *doubleArray {
 type baseCheck uint32
 
 const (
-	baseBits  = 22
 	flagsBits = 10
 	checkBits = 8
 )
@@ -162,7 +157,7 @@ func (bc *baseCheck) SetBase(base int) {
 }
 
 func (bc baseCheck) Check() byte {
-	return byte(bc) //nolint:gosec // integer conversion is ok: we pick the last 8 bits
+	return byte(bc) //nolint:gosec // integer conversion is ok
 }
 
 func (bc *baseCheck) SetCheck(check byte) {
@@ -218,8 +213,8 @@ func (da *doubleArray) lookup(path string, params []Param, idx int) (*node, []Pa
 	}
 
 BACKTRACKING:
-	for _, j := range slices.Backward(indices) {
-		i, idx := int(j>>indexOffset), int(j&indexMask)
+	for j := len(indices) - 1; j >= 0; j-- {
+		i, idx := int(indices[j]>>indexOffset), int(indices[j]&indexMask)
 		if da.bc[idx].IsSingleParam() {
 			nextIdx := nextIndex(da.bc[idx].Base(), ParamCharacter)
 			if nextIdx >= len(da.bc) {

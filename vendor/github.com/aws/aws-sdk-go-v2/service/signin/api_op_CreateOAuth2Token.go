@@ -8,7 +8,6 @@ import (
 	awsmiddleware "github.com/aws/aws-sdk-go-v2/aws/middleware"
 	"github.com/aws/aws-sdk-go-v2/service/signin/types"
 	"github.com/aws/smithy-go/middleware"
-	"github.com/aws/smithy-go/ptr"
 	smithyhttp "github.com/aws/smithy-go/transport/http"
 )
 
@@ -83,11 +82,6 @@ type CreateOAuth2TokenInput struct {
 	TokenInput *types.CreateOAuth2TokenRequestBody
 
 	noSmithyDocumentSerde
-}
-
-func (in *CreateOAuth2TokenInput) bindEndpointParams(p *EndpointParameters) {
-
-	p.IsControlPlane = ptr.Bool(false)
 }
 
 // Output structure for CreateOAuth2Token operation

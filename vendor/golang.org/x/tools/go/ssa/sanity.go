@@ -454,7 +454,7 @@ func (s *sanity) checkFunctionParams() {
 		}
 
 		if !types.Identical(sigType, param.Type()) {
-			s.errorf("expect type %s in signature but got type %s in param %d", sigType, param.Type(), i)
+			s.errorf("expect type %s in signature but got type %s in param %d", param.Type(), sigType, i)
 		}
 	}
 }
@@ -529,16 +529,16 @@ func (s *sanity) checkFunction(fn *Function) bool {
 			strings.HasSuffix(fn.name, "Error") ||
 			strings.HasPrefix(fn.Synthetic, "instance ") ||
 			strings.HasPrefix(fn.Synthetic, "instantiation ") ||
-			fn.parent != nil && fn.parent.hasTypeArgs() /* anon fun in instance */ {
+			(fn.parent != nil && len(fn.typeargs) > 0) /* anon fun in instance */ {
 			// ok
 		} else {
 			s.errorf("nil Pkg")
 		}
 	}
 	if src, syn := fn.Synthetic == "", fn.Syntax() != nil; src != syn {
-		if fn.hasTypeArgs() && fn.Prog.mode&InstantiateGenerics != 0 {
+		if len(fn.typeargs) > 0 && fn.Prog.mode&InstantiateGenerics != 0 {
 			// ok (instantiation with InstantiateGenerics on)
-		} else if fn.hasTypeArgs() && fn.topLevelOrigin != nil {
+		} else if fn.topLevelOrigin != nil && len(fn.typeargs) > 0 {
 			// ok (we always have the syntax set for instantiation)
 		} else if _, rng := fn.syntax.(*ast.RangeStmt); rng && fn.Synthetic == "range-over-func yield" {
 			// ok (range-func-yields are both synthetic and keep syntax)

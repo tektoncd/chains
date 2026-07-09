@@ -6,9 +6,8 @@ package yamlpc
 import (
 	"io"
 
-	yaml "go.yaml.in/yaml/v3"
-
 	"github.com/go-openapi/runtime"
+	yaml "go.yaml.in/yaml/v3"
 )
 
 // YAMLConsumer creates a consumer for [yaml] data.

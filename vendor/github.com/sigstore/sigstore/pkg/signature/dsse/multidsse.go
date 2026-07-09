@@ -20,7 +20,6 @@ import (
 	"crypto"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
@@ -87,25 +86,13 @@ func (wL *wrappedMultiSigner) SignMessage(r io.Reader, _ ...signature.SignOption
 }
 
 type wrappedMultiVerifier struct {
-	vLAdapters []dsse.Verifier
-	threshold  int
-	cfg        wrapConfig
+	vLAdapters  []dsse.Verifier
+	threshold   int
+	payloadType string
 }
 
-// WrapMultiVerifier returns a signature.Verifier that uses the DSSE encoding format.
-//
-// Deprecated: Use WrapMultiVerifierWithOpts instead.
+// WrapMultiVerifier returns a signature.Verifier that uses the DSSE encoding format
 func WrapMultiVerifier(payloadType string, threshold int, vL ...signature.Verifier) signature.Verifier {
-	return WrapMultiVerifierWithOpts(payloadType, threshold, vL)
-}
-
-// WrapMultiVerifierWithOpts returns a signature.Verifier that uses the DSSE encoding format.
-// If payloadType is non-empty, WithExpectedPayloadType is automatically applied
-// before any caller-supplied options.
-func WrapMultiVerifierWithOpts(payloadType string, threshold int, vL []signature.Verifier, opts ...Option) signature.Verifier {
-	if payloadType != "" {
-		opts = append([]Option{WithExpectedPayloadType(payloadType)}, opts...)
-	}
 	verifierAdapterL := make([]dsse.Verifier, 0, len(vL))
 	for _, v := range vL {
 		pub, err := v.PublicKey()
@@ -127,11 +114,10 @@ func WrapMultiVerifierWithOpts(payloadType string, threshold int, vL []signature
 		verifierAdapterL = append(verifierAdapterL, verifierAdapter)
 	}
 
-	cfg := applyWrapOpts(opts)
 	return &wrappedMultiVerifier{
-		vLAdapters: verifierAdapterL,
-		threshold:  threshold,
-		cfg:        cfg,
+		vLAdapters:  verifierAdapterL,
+		payloadType: payloadType,
+		threshold:   threshold,
 	}
 }
 
@@ -152,36 +138,17 @@ func (wL *wrappedMultiVerifier) VerifySignature(s, _ io.Reader, _ ...signature.V
 		return err
 	}
 
-	if wL.cfg.expectedPayloadType != "" && env.PayloadType != wL.cfg.expectedPayloadType {
-		return fmt.Errorf("dsse: unexpected payload type: got %q, want %q", env.PayloadType, wL.cfg.expectedPayloadType)
-	}
-
 	envVerifier, err := dsse.NewMultiEnvelopeVerifier(wL.threshold, wL.vLAdapters...)
 	if err != nil {
 		return err
 	}
 
-	_, payload, err := envVerifier.VerifyAndDecode(context.Background(), &env)
-	if err != nil {
-		return err
-	}
-	if wL.cfg.decodedPayload != nil {
-		*wL.cfg.decodedPayload = payload
-	}
-	return nil
+	_, err = envVerifier.Verify(context.Background(), &env)
+	return err
 }
 
-// WrapMultiSignerVerifier returns a signature.SignerVerifier that uses the DSSE encoding format.
-//
-// Deprecated: Use WrapMultiSignerVerifierWithOpts instead.
+// WrapMultiSignerVerifier returns a signature.SignerVerifier that uses the DSSE encoding format
 func WrapMultiSignerVerifier(payloadType string, threshold int, svL ...signature.SignerVerifier) signature.SignerVerifier {
-	return WrapMultiSignerVerifierWithOpts(payloadType, threshold, svL)
-}
-
-// WrapMultiSignerVerifierWithOpts returns a signature.SignerVerifier that uses the DSSE encoding format.
-// The payloadType is automatically enforced during verification via
-// WrapMultiVerifierWithOpts; callers may supply additional Option values.
-func WrapMultiSignerVerifierWithOpts(payloadType string, threshold int, svL []signature.SignerVerifier, opts ...Option) signature.SignerVerifier {
 	signerL := make([]signature.Signer, 0, len(svL))
 	verifierL := make([]signature.Verifier, 0, len(svL))
 	for _, sv := range svL {
@@ -190,7 +157,7 @@ func WrapMultiSignerVerifierWithOpts(payloadType string, threshold int, svL []si
 	}
 
 	sL := WrapMultiSigner(payloadType, signerL...)
-	vL := WrapMultiVerifierWithOpts(payloadType, threshold, verifierL, opts...)
+	vL := WrapMultiVerifier(payloadType, threshold, verifierL...)
 
 	return &wrappedMultiSignerVerifier{
 		signer:   sL,

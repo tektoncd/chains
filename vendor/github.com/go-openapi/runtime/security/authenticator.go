@@ -19,8 +19,8 @@ const (
 	accessTokenParam = "access_token"
 )
 
-// HTTPAuthenticator is a function that authenticates a HTTP request.
-func HTTPAuthenticator(handler func(*http.Request) (bool, any, error)) runtime.Authenticator {
+// HttpAuthenticator is a function that authenticates a HTTP request.
+func HttpAuthenticator(handler func(*http.Request) (bool, any, error)) runtime.Authenticator { //nolint:revive
 	return runtime.AuthenticatorFunc(func(params any) (bool, any, error) {
 		if request, ok := params.(*http.Request); ok {
 			return handler(request)
@@ -32,14 +32,7 @@ func HTTPAuthenticator(handler func(*http.Request) (bool, any, error)) runtime.A
 	})
 }
 
-// HttpAuthenticator aliases [HTTPAuthenticator] for backward-compatibility.
-//
-// Deprecated: use [HTTPAuthenticator] instead.
-func HttpAuthenticator(handler func(*http.Request) (bool, any, error)) runtime.Authenticator { //nolint:revive
-	return HTTPAuthenticator(handler)
-}
-
-// ScopedAuthenticator is a function that authenticates an [http.Request] against a list of valid scopes.
+// ScopedAuthenticator is a function that authenticates a HTTP request against a list of valid scopes.
 func ScopedAuthenticator(handler func(*ScopedAuthRequest) (bool, any, error)) runtime.Authenticator {
 	return runtime.AuthenticatorFunc(func(params any) (bool, any, error) {
 		if request, ok := params.(*ScopedAuthRequest); ok {
@@ -49,42 +42,22 @@ func ScopedAuthenticator(handler func(*ScopedAuthRequest) (bool, any, error)) ru
 	})
 }
 
-// UserPassAuthentication validates a basic-auth credential.
-//
-// Implementations comparing the password (or any derived secret) against a
-// known value MUST use [crypto/subtle.ConstantTimeCompare]: the runtime
-// extracts the credential from the request and delegates the comparison
-// here, and does not enforce a constant-time posture on the caller's behalf.
+// UserPassAuthentication authentication function.
 type UserPassAuthentication func(string, string) (any, error)
 
-// UserPassAuthenticationCtx is the [context.Context]-aware variant of
-// [UserPassAuthentication]. The same constant-time-comparison guidance
-// applies.
+// UserPassAuthenticationCtx authentication function with [context.Context].
 type UserPassAuthenticationCtx func(context.Context, string, string) (context.Context, any, error)
 
-// TokenAuthentication validates an API-key token.
-//
-// Implementations comparing the token against a known value MUST use
-// [crypto/subtle.ConstantTimeCompare]; the runtime delegates the comparison
-// here and does not enforce a constant-time posture on the caller's behalf.
+// TokenAuthentication authentication function.
 type TokenAuthentication func(string) (any, error)
 
-// TokenAuthenticationCtx is the [context.Context]-aware variant of
-// [TokenAuthentication]. The same constant-time-comparison guidance
-// applies.
+// TokenAuthenticationCtx authentication function with [context.Context].
 type TokenAuthenticationCtx func(context.Context, string) (context.Context, any, error)
 
-// ScopedTokenAuthentication validates a bearer/OAuth2 token along with the
-// scopes required for the operation.
-//
-// Implementations comparing the token against a known value MUST use
-// [crypto/subtle.ConstantTimeCompare]; the runtime delegates the comparison
-// here and does not enforce a constant-time posture on the caller's behalf.
+// ScopedTokenAuthentication authentication function.
 type ScopedTokenAuthentication func(string, []string) (any, error)
 
-// ScopedTokenAuthenticationCtx is the [context.Context]-aware variant of
-// [ScopedTokenAuthentication]. The same constant-time-comparison guidance
-// applies.
+// ScopedTokenAuthenticationCtx authentication function with [context.Context].
 type ScopedTokenAuthenticationCtx func(context.Context, string, []string) (context.Context, any, error)
 
 var DefaultRealmName = "API"
@@ -226,7 +199,7 @@ func APIKeyAuthCtx(name, in string, authenticate TokenAuthenticationCtx) runtime
 	})
 }
 
-// ScopedAuthRequest contains both the [http.Request] and the required scopes for a particular operation.
+// ScopedAuthRequest contains both a [http] request and the required scopes for a particular operation.
 type ScopedAuthRequest struct {
 	Request        *http.Request
 	RequiredScopes []string

@@ -21,7 +21,6 @@ import (
 	"github.com/go-openapi/spec"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag/stringutils"
-	"github.com/go-openapi/swag/typeutils"
 )
 
 // RouteParam is a object to capture route params in a framework agnostic way.
@@ -293,7 +292,7 @@ func (ras RouteAuthenticators) Authenticate(req *http.Request, route *MatchedRou
 			continue
 		}
 		applies, usr, err := ra.Authenticate(req, route)
-		if !applies || err != nil || typeutils.IsZero(usr) {
+		if !applies || err != nil || usr == nil {
 			if err != nil {
 				lastError = err
 			}
@@ -349,62 +348,49 @@ func (m *MatchedRoute) NeedsAuth() bool {
 func (d *defaultRouter) Lookup(method, path string) (*MatchedRoute, bool) {
 	mth := strings.ToUpper(method)
 	d.debugLogf("looking up route for %s %s", method, path)
-	if len(d.routers) == 0 {
-		if Debug {
+	if Debug {
+		if len(d.routers) == 0 {
 			d.debugLogf("there are no known routers")
 		}
-		panic("internal error: no router is configured")
-	}
-
-	if Debug {
 		for meth := range d.routers {
 			d.debugLogf("got a router for %s", meth)
 		}
 	}
-
-	router, ok := d.routers[mth]
-	if !ok {
-		d.debugLogf("couldn't find a route by method for %s %s", method, path)
-		return nil, false
-	}
-
-	m, rp, ok := router.Lookup(fpath.Clean(escapeLiteralColons(path)))
-	if !ok || m == nil {
-		d.debugLogf("couldn't find a route by path for %s %s", method, path)
-		return nil, false
-	}
-
-	entry, ok := m.(*routeEntry)
-	if !ok {
-		return nil, false
-	}
-
-	d.debugLogf("found a route for %s %s with %d parameters", method, path, len(entry.Parameters))
-	var params RouteParams
-	for _, p := range rp {
-		v, err := url.PathUnescape(p.Value)
-		if err != nil {
-			d.debugLogf("failed to escape %q: %v", p.Value, err)
-			v = p.Value
-		}
-
-		// a workaround to handle fragment/composing parameters until they are supported in denco router
-		// check if this parameter is a fragment within a path segment
-		const enclosureSize = 2
-		if xpos := strings.Index(entry.PathPattern, fmt.Sprintf("{%s}", p.Name)) + len(p.Name) + enclosureSize; xpos < len(entry.PathPattern) && entry.PathPattern[xpos] != '/' {
-			// extract fragment parameters
-			ep := strings.Split(entry.PathPattern[xpos:], "/")[0]
-			pnames, pvalues := decodeCompositParams(p.Name, v, ep, nil, nil)
-			for i, pname := range pnames {
-				params = append(params, RouteParam{Name: pname, Value: pvalues[i]})
+	if router, ok := d.routers[mth]; ok {
+		if m, rp, ok := router.Lookup(fpath.Clean(path)); ok && m != nil {
+			if entry, ok := m.(*routeEntry); ok {
+				d.debugLogf("found a route for %s %s with %d parameters", method, path, len(entry.Parameters))
+				var params RouteParams
+				for _, p := range rp {
+					v, err := url.PathUnescape(p.Value)
+					if err != nil {
+						d.debugLogf("failed to escape %q: %v", p.Value, err)
+						v = p.Value
+					}
+					// a workaround to handle fragment/composing parameters until they are supported in denco router
+					// check if this parameter is a fragment within a path segment
+					const enclosureSize = 2
+					if xpos := strings.Index(entry.PathPattern, fmt.Sprintf("{%s}", p.Name)) + len(p.Name) + enclosureSize; xpos < len(entry.PathPattern) && entry.PathPattern[xpos] != '/' {
+						// extract fragment parameters
+						ep := strings.Split(entry.PathPattern[xpos:], "/")[0]
+						pnames, pvalues := decodeCompositParams(p.Name, v, ep, nil, nil)
+						for i, pname := range pnames {
+							params = append(params, RouteParam{Name: pname, Value: pvalues[i]})
+						}
+					} else {
+						// use the parameter directly
+						params = append(params, RouteParam{Name: p.Name, Value: v})
+					}
+				}
+				return &MatchedRoute{routeEntry: *entry, Params: params}, true
 			}
 		} else {
-			// use the parameter directly
-			params = append(params, RouteParam{Name: p.Name, Value: v})
+			d.debugLogf("couldn't find a route by path for %s %s", method, path)
 		}
+	} else {
+		d.debugLogf("couldn't find a route by method for %s %s", method, path)
 	}
-
-	return &MatchedRoute{routeEntry: *entry, Params: params}, true
+	return nil, false
 }
 
 func (d *defaultRouter) OtherMethods(method, path string) []string {
@@ -412,7 +398,7 @@ func (d *defaultRouter) OtherMethods(method, path string) []string {
 	var methods []string
 	for k, v := range d.routers {
 		if k != mn {
-			if _, _, ok := v.Lookup(fpath.Clean(escapeLiteralColons(path))); ok {
+			if _, _, ok := v.Lookup(fpath.Clean(path)); ok {
 				methods = append(methods, k)
 				continue
 			}
@@ -428,39 +414,28 @@ func (d *defaultRouter) SetLogger(lg logger.Logger) {
 // convert swagger parameters per path segment into a denco parameter as multiple parameters per segment are not supported in denco.
 var pathConverter = regexp.MustCompile(`{(.+?)}([^/]*)`)
 
-// escapeLiteralColons replaces literal ':' characters with their URL-encoded
-// equivalent "%3A". This prevents the denco router from misinterpreting ':'
-// in URL path segments as parameter delimiters. The ':' character is valid in
-// URL paths per RFC 3986 section 3.3.
-func escapeLiteralColons(path string) string {
-	return strings.ReplaceAll(path, ":", "%3A")
-}
-
 func decodeCompositParams(name string, value string, pattern string, names []string, values []string) ([]string, []string) {
 	pleft := strings.Index(pattern, "{")
 	names = append(names, name)
-
 	if pleft < 0 {
 		if strings.HasSuffix(value, pattern) {
 			values = append(values, value[:len(value)-len(pattern)])
 		} else {
 			values = append(values, "")
 		}
-
-		return names, values
-	}
-
-	toskip := pattern[:pleft]
-	pright := strings.Index(pattern, "}")
-	vright := strings.Index(value, toskip)
-	if vright >= 0 {
-		values = append(values, value[:vright])
 	} else {
-		values = append(values, "")
-		value = ""
+		toskip := pattern[:pleft]
+		pright := strings.Index(pattern, "}")
+		vright := strings.Index(value, toskip)
+		if vright >= 0 {
+			values = append(values, value[:vright])
+		} else {
+			values = append(values, "")
+			value = ""
+		}
+		return decodeCompositParams(pattern[pleft+1:pright], value[vright+len(toskip):], pattern[pright+1:], names, values)
 	}
-
-	return decodeCompositParams(pattern[pleft+1:pright], value[vright+len(toskip):], pattern[pright+1:], names, values)
+	return names, values
 }
 
 func (d *defaultRouteBuilder) AddRoute(method, path string, operation *spec.Operation) {
@@ -488,7 +463,7 @@ func (d *defaultRouteBuilder) AddRoute(method, path string, operation *spec.Oper
 
 		requestBinder := NewUntypedRequestBinder(parameters, d.spec.Spec(), d.api.Formats())
 		requestBinder.setDebugLogf(d.debugLogf)
-		record := denco.NewRecord(pathConverter.ReplaceAllString(escapeLiteralColons(path), ":$1"), &routeEntry{
+		record := denco.NewRecord(pathConverter.ReplaceAllString(path, ":$1"), &routeEntry{
 			BasePath:       bp,
 			PathPattern:    path,
 			Operation:      operation,

@@ -154,6 +154,7 @@ func (l *listenerWrapper) maybeUpdateFilterChains() {
 	}
 
 	l.mu.Lock()
+	l.switchModeLocked(connectivity.ServingModeServing, nil)
 	// "Updates to a Listener cause all older connections on that Listener to be
 	// gracefully shut down with a grace period of 10 minutes for long-lived
 	// RPC's, such that clients will reconnect and have the updated
@@ -188,7 +189,6 @@ func (l *listenerWrapper) maybeUpdateFilterChains() {
 			delete(l.httpFilters, key)
 		}
 	}
-	l.switchModeLocked(connectivity.ServingModeServing, nil)
 	l.mu.Unlock()
 
 	go func() {
@@ -210,10 +210,14 @@ func (l *listenerWrapper) handleRDSUpdate(routeName string, rcu rdsWatcherUpdate
 				continue
 			}
 			if rcu.err != nil && rcu.data == nil { // Either NACK before update, or resource not found triggers this conditional.
-				fc.updateUsableRouteConfiguration(nil, rcu.err, l.getOrCreateServerFilterLocked, l.xdsNodeID)
+				urc := &usableRouteConfiguration{err: rcu.err}
+				urc.nodeID = l.xdsNodeID
+				fc.usableRouteConfiguration.Store(urc)
 				continue
 			}
-			fc.updateUsableRouteConfiguration(rcu.data, nil, l.getOrCreateServerFilterLocked, l.xdsNodeID)
+			urc := fc.constructUsableRouteConfiguration(*rcu.data, l.getOrCreateServerFilterLocked)
+			urc.nodeID = l.xdsNodeID
+			fc.usableRouteConfiguration.Store(urc)
 		}
 	}
 	l.mu.Unlock()
@@ -231,15 +235,21 @@ func (l *listenerWrapper) handleRDSUpdate(routeName string, rcu rdsWatcherUpdate
 func (l *listenerWrapper) instantiateFilterChainRoutingConfigurationsLocked() {
 	for _, fc := range l.activeFilterChainManager.filterChains {
 		if fc.inlineRouteConfig != nil {
-			fc.updateUsableRouteConfiguration(fc.inlineRouteConfig, nil, l.getOrCreateServerFilterLocked, l.xdsNodeID)
+			urc := fc.constructUsableRouteConfiguration(*fc.inlineRouteConfig, l.getOrCreateServerFilterLocked)
+			urc.nodeID = l.xdsNodeID
+			fc.usableRouteConfiguration.Store(urc) // Can't race with an RPC coming in but no harm making atomic.
 			continue
 		} // Inline configuration constructed once here, will remain for lifetime of filter chain.
 		rcu := l.rdsHandler.updates[fc.routeConfigName]
 		if rcu.err != nil && rcu.data == nil {
-			fc.updateUsableRouteConfiguration(nil, rcu.err, l.getOrCreateServerFilterLocked, l.xdsNodeID)
+			urc := &usableRouteConfiguration{err: rcu.err}
+			urc.nodeID = l.xdsNodeID
+			fc.usableRouteConfiguration.Store(urc)
 			continue
 		}
-		fc.updateUsableRouteConfiguration(rcu.data, nil, l.getOrCreateServerFilterLocked, l.xdsNodeID)
+		urc := fc.constructUsableRouteConfiguration(*rcu.data, l.getOrCreateServerFilterLocked)
+		urc.nodeID = l.xdsNodeID
+		fc.usableRouteConfiguration.Store(urc) // Can't race with an RPC coming in but no harm making atomic.
 	}
 }
 

@@ -5,7 +5,6 @@
 package ssa
 
 import (
-	"fmt"
 	"go/types"
 
 	"golang.org/x/tools/go/types/typeutil"
@@ -57,24 +56,17 @@ type subster struct {
 	// TODO(taking): consider adding Pos
 }
 
-// Returns a subster that replaces rtparams[i] with rtargs[i] and tparams[i] with targs[i].
-// Uses ctxt as a cache. rtargs and targs should not contain any types in rtparams or tparams.
+// Returns a subster that replaces tparams[i] with targs[i]. Uses ctxt as a cache.
+// targs should not contain any types in tparams.
 // fn is the generic function for which we are substituting.
-func makeSubster(ctxt *types.Context, fn *types.Func, rtparams *types.TypeParamList, rtargs []types.Type, tparams *types.TypeParamList, targs []types.Type) *subster {
-	got := len(rtargs) + len(targs)
-	want := rtparams.Len() + tparams.Len()
-	if got != want {
-		panic(fmt.Sprintf("makeSubster argument count must match: got %d; want %d", got, want))
-	}
+func makeSubster(ctxt *types.Context, fn *types.Func, tparams *types.TypeParamList, targs []types.Type) *subster {
+	assert(tparams.Len() == len(targs), "makeSubster argument count must match")
 
 	subst := &subster{
-		replacements: make(map[*types.TypeParam]types.Type, want),
+		replacements: make(map[*types.TypeParam]types.Type, tparams.Len()),
 		cache:        make(map[types.Type]types.Type),
 		origin:       fn.Origin(),
 		ctxt:         ctxt,
-	}
-	for i := 0; i < rtparams.Len(); i++ {
-		subst.replacements[rtparams.At(i)] = rtargs[i]
 	}
 	for i := 0; i < tparams.Len(); i++ {
 		subst.replacements[tparams.At(i)] = targs[i]

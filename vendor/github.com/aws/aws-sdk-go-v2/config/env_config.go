@@ -87,8 +87,6 @@ const (
 	awsResponseChecksumValidation = "AWS_RESPONSE_CHECKSUM_VALIDATION"
 
 	awsAuthSchemePreferenceEnv = "AWS_AUTH_SCHEME_PREFERENCE"
-
-	awsRestrictFilePermissionsEnv = "AWS_RESTRICT_FILE_PERMISSIONS"
 )
 
 var (
@@ -311,10 +309,6 @@ type EnvConfig struct {
 
 	// Priority list of preferred auth scheme names (e.g. sigv4a).
 	AuthSchemePreference []string
-
-	// Controls whether the SDK restricts file permissions on credential
-	// cache files it creates.
-	RestrictFilePermissions aws.RestrictFilePermissions
 }
 
 // loadEnvConfig reads configuration values from the OS's environment variables.
@@ -427,10 +421,6 @@ func NewEnvConfig() (EnvConfig, error) {
 	}
 
 	cfg.AuthSchemePreference = toAuthSchemePreferenceList(os.Getenv(awsAuthSchemePreferenceEnv))
-
-	if err := setRestrictFilePermissionsFromEnvVal(&cfg.RestrictFilePermissions, []string{awsRestrictFilePermissionsEnv}); err != nil {
-		return cfg, err
-	}
 
 	return cfg, nil
 }
@@ -939,28 +929,4 @@ func (c EnvConfig) getAuthSchemePreference() ([]string, bool) {
 		return c.AuthSchemePreference, true
 	}
 	return nil, false
-}
-
-func (c EnvConfig) getRestrictFilePermissions(context.Context) (aws.RestrictFilePermissions, bool, error) {
-	return c.RestrictFilePermissions, len(c.RestrictFilePermissions) > 0, nil
-}
-
-func setRestrictFilePermissionsFromEnvVal(m *aws.RestrictFilePermissions, keys []string) error {
-	for _, k := range keys {
-		value := os.Getenv(k)
-		if len(value) == 0 {
-			continue
-		}
-
-		switch strings.ToLower(value) {
-		case "user_read_write":
-			*m = aws.RestrictFilePermissionsUserReadWrite
-		case "unrestricted":
-			*m = aws.RestrictFilePermissionsUnrestricted
-		default:
-			return fmt.Errorf("invalid value for environment variable, %s=%s, must be user_read_write/unrestricted", k, value)
-		}
-		break
-	}
-	return nil
 }
