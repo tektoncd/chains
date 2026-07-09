@@ -45,6 +45,21 @@ updates:
                 - '*'
       cooldown:
         default-days: 7
+    - package-ecosystem: docker
+      directory: /release
+      schedule:
+        interval: weekly
+      labels:
+        - ok-to-test
+        - dependencies
+        - release-note-none
+        - kind/misc
+      groups:
+        all:
+            patterns:
+                - '*'
+      cooldown:
+        default-days: 7
     - package-ecosystem: gomod
       directory: /
       target-branch: release-v0.27.x
@@ -94,6 +109,27 @@ updates:
                 - '*'
       cooldown:
         default-days: 7
+    - package-ecosystem: docker
+      directory: /release
+      target-branch: release-v0.27.x
+      schedule:
+        interval: weekly
+      labels:
+        - ok-to-test
+        - dependencies
+        - release-note-none
+        - kind/misc
+      ignore:
+        - dependency-name: '*'
+          update-types:
+            - version-update:semver-major
+            - version-update:semver-minor
+      groups:
+        all:
+            patterns:
+                - '*'
+      cooldown:
+        default-days: 7
     - package-ecosystem: gomod
       directory: /
       target-branch: release-v0.26.x
@@ -124,6 +160,27 @@ updates:
         semver-patch-days: 3
     - package-ecosystem: github-actions
       directory: /
+      target-branch: release-v0.26.x
+      schedule:
+        interval: weekly
+      labels:
+        - ok-to-test
+        - dependencies
+        - release-note-none
+        - kind/misc
+      ignore:
+        - dependency-name: '*'
+          update-types:
+            - version-update:semver-major
+            - version-update:semver-minor
+      groups:
+        all:
+            patterns:
+                - '*'
+      cooldown:
+        default-days: 7
+    - package-ecosystem: docker
+      directory: /release
       target-branch: release-v0.26.x
       schedule:
         interval: weekly
@@ -173,6 +230,27 @@ updates:
         semver-patch-days: 3
     - package-ecosystem: github-actions
       directory: /
+      target-branch: release-v0.25.x
+      schedule:
+        interval: weekly
+      labels:
+        - ok-to-test
+        - dependencies
+        - release-note-none
+        - kind/misc
+      ignore:
+        - dependency-name: '*'
+          update-types:
+            - version-update:semver-major
+            - version-update:semver-minor
+      groups:
+        all:
+            patterns:
+                - '*'
+      cooldown:
+        default-days: 7
+    - package-ecosystem: docker
+      directory: /release
       target-branch: release-v0.25.x
       schedule:
         interval: weekly
@@ -222,6 +300,27 @@ updates:
         semver-patch-days: 3
     - package-ecosystem: github-actions
       directory: /
+      target-branch: release-v0.20.x
+      schedule:
+        interval: weekly
+      labels:
+        - ok-to-test
+        - dependencies
+        - release-note-none
+        - kind/misc
+      ignore:
+        - dependency-name: '*'
+          update-types:
+            - version-update:semver-major
+            - version-update:semver-minor
+      groups:
+        all:
+            patterns:
+                - '*'
+      cooldown:
+        default-days: 7
+    - package-ecosystem: docker
+      directory: /release
       target-branch: release-v0.20.x
       schedule:
         interval: weekly
