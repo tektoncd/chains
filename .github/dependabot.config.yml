@@ -63,3 +63,18 @@ ecosystems:
           - "*"
     cooldown:
       default-days: 7
+  - package-ecosystem: docker
+    directory: /release
+    schedule:
+      interval: weekly
+    labels:
+      - ok-to-test
+      - dependencies
+      - release-note-none
+      - kind/misc
+    groups:
+      all:
+        patterns:
+          - "*"
+    cooldown:
+      default-days: 7
