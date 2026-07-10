@@ -180,6 +180,9 @@ func x509Signer(ctx context.Context, privateKey []byte) (*Signer, error) {
 	logger.Info("Found x509 key...")
 
 	p, _ := pem.Decode(privateKey)
+	if p == nil {
+		return nil, fmt.Errorf("failed to decode PEM block from x509 private key")
+	}
 	if p.Type != "PRIVATE KEY" {
 		return nil, fmt.Errorf("expected private key, found object of type %s", p.Type)
 	}
@@ -187,7 +190,11 @@ func x509Signer(ctx context.Context, privateKey []byte) (*Signer, error) {
 	if err != nil {
 		return nil, err
 	}
-	signer, err := signature.LoadECDSASignerVerifier(pk.(*ecdsa.PrivateKey), crypto.SHA256)
+	ecdsaKey, ok := pk.(*ecdsa.PrivateKey)
+	if !ok {
+		return nil, fmt.Errorf("unsupported private key type %T, only ECDSA keys are supported", pk)
+	}
+	signer, err := signature.LoadECDSASignerVerifier(ecdsaKey, crypto.SHA256)
 	if err != nil {
 		return nil, err
 	}

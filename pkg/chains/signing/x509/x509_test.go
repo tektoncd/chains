@@ -223,3 +223,38 @@ func TestSigner_SignED25519(t *testing.T) {
 		t.Error("invalid signature")
 	}
 }
+
+func TestNewSignerMalformedX509Key(t *testing.T) {
+	ctx := logtesting.TestContextWithLogger(t)
+	d := t.TempDir()
+	p := filepath.Join(d, "x509.pem")
+	if err := os.WriteFile(p, []byte("this is not a PEM block"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := NewSigner(ctx, d, config.Config{})
+	if err == nil {
+		t.Fatal("expected an error for a key file without a PEM block, got nil")
+	}
+	if !strings.Contains(err.Error(), "failed to decode PEM block") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestNewSignerUnsupportedX509KeyType(t *testing.T) {
+	ctx := logtesting.TestContextWithLogger(t)
+	d := t.TempDir()
+	p := filepath.Join(d, "x509.pem")
+	// ed25519 keys are a valid PKCS8 key but not supported by the x509 signer.
+	if err := os.WriteFile(p, []byte(ed25519Priv), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := NewSigner(ctx, d, config.Config{})
+	if err == nil {
+		t.Fatal("expected an error for an unsupported key type, got nil")
+	}
+	if !strings.Contains(err.Error(), "unsupported private key type") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
