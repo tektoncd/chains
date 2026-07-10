@@ -6,7 +6,6 @@ approvers:
 - enarha
 - infernus01
 - jkhelil
-- lcarva
 - PuneetPunamiya
 - vdemeester
 - wlynch
@@ -18,7 +17,6 @@ reviewers:
 - enarha
 - infernus01
 - jkhelil
-- lcarva
 - ngelman1
 - PuneetPunamiya
 - vdemeester
@@ -34,3 +32,4 @@ emeritus_approvers:
 - chuangw6
 - chitrangpatel
 - priyawadhwa
+- lcarva
