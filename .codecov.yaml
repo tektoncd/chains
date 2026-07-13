@@ -1,0 +1,20 @@
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 5%
+    patch:
+      default: false
+
+ignore:
+  - "**/zz_generated*.go"
+  - "vendor/**"
+  - "test/**"
+  - "config/**"
+  - "docs/**"
+  - "hack/**"
+  - "cmd/**"
+  - "examples/**"
+  - "images/**"
+  - "release/**"

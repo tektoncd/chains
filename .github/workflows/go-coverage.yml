@@ -27,6 +27,7 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       pull-requests: write
+      id-token: write
 
     steps:
       - name: Harden runner
@@ -48,7 +49,7 @@ jobs:
       - name: Generate coverage
         working-directory: ${{ github.workspace }}/src/github.com/tektoncd/chains
         run: |
-          go test -cover -coverprofile=coverage.txt ./... || true
+          go test -coverprofile=coverage.txt -covermode=atomic ./... || true
           echo "Generated coverage profile"
 
       - name: Archive coverage results
@@ -56,6 +57,15 @@ jobs:
         with:
           name: code-coverage
           path: ${{ github.workspace }}/src/github.com/tektoncd/chains/coverage.txt
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v6.0.2
+        continue-on-error: true
+        with:
+          files: ${{ github.workspace }}/src/github.com/tektoncd/chains/coverage.txt
+          flags: unit-tests
+          use_oidc: true
+          fail_ci_if_error: true
 
       - name: Comment on PR
         if: github.event_name == 'pull_request'
