@@ -27,7 +27,7 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
 	"gocloud.dev/docstore"
-	_ "gocloud.dev/docstore/awsdynamodb"
+	_ "gocloud.dev/docstore/awsdynamodb/v2" // register DynamoDB URL opener
 	_ "gocloud.dev/docstore/gcpfirestore"
 	"gocloud.dev/docstore/mongodocstore"
 	_ "gocloud.dev/docstore/mongodocstore"
