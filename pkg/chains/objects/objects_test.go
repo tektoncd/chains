@@ -238,6 +238,56 @@ func TestTaskRun_GetResults(t *testing.T) {
 
 }
 
+func TestTaskRun_GetRemoteStepActions(t *testing.T) {
+	t.Run("returns remote StepActions only", func(t *testing.T) {
+		tr := NewTaskRunObjectV1(&v1.TaskRun{
+			Status: v1.TaskRunStatus{
+				TaskRunStatusFields: v1.TaskRunStatusFields{
+					Steps: []v1.StepState{
+						{
+							Name:    "remote-step",
+							ImageID: "gcr.io/test/image@sha256:abc",
+							Provenance: &v1.Provenance{
+								RefSource: &v1.RefSource{
+									URI:    "git+https://github.com/tektoncd/stepactions",
+									Digest: map[string]string{"sha256": "def456"},
+								},
+							},
+						},
+						{
+							Name:    "local-step",
+							ImageID: "gcr.io/test/local@sha256:789",
+						},
+					},
+				},
+			},
+		})
+		got := tr.GetRemoteStepActions()
+		want := []StepProvenance{
+			{
+				StepName: "remote-step",
+				Provenance: &v1.Provenance{
+					RefSource: &v1.RefSource{
+						URI:    "git+https://github.com/tektoncd/stepactions",
+						Digest: map[string]string{"sha256": "def456"},
+					},
+				},
+			},
+		}
+		if d := cmp.Diff(want, got); d != "" {
+			t.Fatalf("GetRemoteStepActions (-want, +got):\n%s", d)
+		}
+	})
+
+	t.Run("returns empty when no remote StepActions", func(t *testing.T) {
+		tr := NewTaskRunObjectV1(getTaskRun())
+		got := tr.GetRemoteStepActions()
+		if len(got) != 0 {
+			t.Fatalf("expected empty slice, got %v", got)
+		}
+	})
+}
+
 func TestPipelineRun_GetGVK(t *testing.T) {
 	assert.Equal(t, "tekton.dev/v1/PipelineRun", NewPipelineRunObjectV1(getPipelineRun()).GetGVK())
 }

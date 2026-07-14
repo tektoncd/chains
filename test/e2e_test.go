@@ -37,6 +37,7 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	slsa1 "github.com/in-toto/attestation/go/predicates/provenance/v1"
 	intoto "github.com/in-toto/attestation/go/v1"
 	"github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
@@ -996,4 +997,105 @@ func TestDisableOCISigning(t *testing.T) {
 	// 2. TaskRun attestations ARE still generated and pushed to OCI registry
 	// This confirms that disabling OCI signing doesn't affect attestation generation/storage
 	t.Log("OCI signing disabled test completed - taskrun attestation created and stored while OCI image signing was skipped")
+}
+
+func TestRemoteStepActionProvenance(t *testing.T) {
+	ctx := logtesting.TestContextWithLogger(t)
+	c, ns, cleanup := setup(ctx, t, setupOpts{})
+	t.Cleanup(cleanup)
+
+	resetConfig := setConfigMap(ctx, t, c, map[string]string{
+		"artifacts.taskrun.format":  "slsa/v2alpha4",
+		"artifacts.taskrun.signer":  "x509",
+		"artifacts.taskrun.storage": "tekton",
+	})
+	t.Cleanup(resetConfig)
+
+	// Create a TaskRun that references the StepAction via the cluster resolver.
+	tr := objects.NewTaskRunObjectV1(&v1.TaskRun{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "stepaction-provenance-",
+			Namespace:    ns,
+		},
+		Spec: v1.TaskRunSpec{
+			TaskSpec: &v1.TaskSpec{
+				Steps: []v1.Step{{
+					Name: "echo-step",
+					Ref: &v1.Ref{
+						ResolverRef: v1.ResolverRef{
+							Resolver: "git",
+							Params: v1.Params{
+								{Name: "url", Value: *v1.NewStructuredValues("https://github.com/tektoncd/pipeline")},
+								{Name: "revision", Value: *v1.NewStructuredValues("4f4ce2ddc1807f10a7d2396880035529f03cabd1")},
+								{Name: "pathInRepo", Value: *v1.NewStructuredValues("examples/v1/taskruns/stepaction.yaml")},
+							},
+						},
+					},
+				}},
+			},
+		},
+	})
+
+	createdObj := tekton.CreateObject(t, ctx, c.PipelineClient, tr)
+
+	// Wait for the TaskRun to complete.
+	if got := waitForCondition(ctx, t, c.PipelineClient, createdObj, done, time.Minute); got == nil {
+		t.Fatal("TaskRun never completed")
+	}
+
+	// Wait for Chains to sign.
+	signedObj := waitForCondition(ctx, t, c.PipelineClient, createdObj, signed, 2*time.Minute)
+	if signedObj == nil {
+		t.Fatal("TaskRun never signed")
+	}
+
+	// Decode the SLSA attestation from annotations.
+	payloadKey := fmt.Sprintf("chains.tekton.dev/payload-taskrun-%s", signedObj.GetUID())
+	body := signedObj.GetAnnotations()[payloadKey]
+	if body == "" {
+		t.Fatalf("missing payload annotation %s", payloadKey)
+	}
+	bodyBytes, err := base64.StdEncoding.DecodeString(body)
+	if err != nil {
+		t.Fatalf("failed to decode payload: %v", err)
+	}
+
+	var stmt intoto.Statement
+	if err := json.Unmarshal(bodyBytes, &stmt); err != nil {
+		t.Fatalf("failed to unmarshal statement: %v", err)
+	}
+
+	// Extract the SLSA v1 predicate.
+	predicateBytes, err := protojson.Marshal(stmt.Predicate)
+	if err != nil {
+		t.Fatalf("failed to marshal predicate: %v", err)
+	}
+	var pred slsa1.Provenance
+	if err := protojson.Unmarshal(predicateBytes, &pred); err != nil {
+		t.Fatalf("failed to unmarshal predicate: %v", err)
+	}
+
+	// Assert that resolvedDependencies contains a stepAction entry.
+	rds := pred.GetBuildDefinition().GetResolvedDependencies()
+	found := false
+	for _, rd := range rds {
+		if strings.HasPrefix(rd.GetName(), "stepAction/") {
+			found = true
+			t.Logf("Found stepAction resolvedDependency: name=%s uri=%s digest=%v",
+				rd.GetName(), rd.GetUri(), rd.GetDigest())
+			if rd.GetUri() == "" {
+				t.Error("stepAction resolvedDependency has empty URI")
+			}
+			if len(rd.GetDigest()) == 0 {
+				t.Error("stepAction resolvedDependency has empty digest")
+			}
+			break
+		}
+	}
+	if !found {
+		t.Errorf("no stepAction/ entry found in resolvedDependencies; got %d entries:", len(rds))
+		for _, rd := range rds {
+			t.Logf("  name=%q uri=%q digest=%v", rd.GetName(), rd.GetUri(), rd.GetDigest())
+		}
+	}
 }
