@@ -114,7 +114,11 @@ spec:
               mountPath: /etc/signing-secrets
             - name: oidc-info
               mountPath: /var/run/sigstore/cosign
+            - name: sigstore-cache
+              mountPath: /home/nonroot/.sigstore
           env:
+            - name: TUF_ROOT
+              value: /home/nonroot/.sigstore/root
             - name: SYSTEM_NAMESPACE
               valueFrom:
                 fieldRef:
@@ -141,6 +145,10 @@ spec:
         - name: signing-secrets
           secret:
             secretName: signing-secrets
+        - name: sigstore-cache
+          emptyDir:
+            medium: Memory
+            sizeLimit: 50Mi
         - name: oidc-info
           projected:
             sources:

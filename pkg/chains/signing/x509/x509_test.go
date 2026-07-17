@@ -19,6 +19,8 @@ import (
 	"crypto/ed25519"
 	"crypto/sha256"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -144,6 +146,35 @@ func TestCreateSignerFulcioEnabledFilesystemProvider(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+}
+
+// TestInitializeTUFWithWritableCacheDir verifies that initializeTUF() succeeds
+// past the filesystem step when TUF_ROOT points to a writable directory. This
+// exercises the real code path that fails in the Chains distroless container
+// when readOnlyRootFilesystem is true and no writable cache location is
+// provided (see SRVKP-9439). The mock server serves invalid TUF metadata, so
+// we expect a TUF validation error — but NOT a filesystem error.
+func TestInitializeTUFWithWritableCacheDir(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"signed":{"_type":"root","version":1},"signatures":[]}`))
+	}))
+	defer ts.Close()
+
+	writableDir := t.TempDir()
+	t.Setenv("TUF_ROOT", filepath.Join(writableDir, ".sigstore", "root"))
+
+	ctx := logtesting.TestContextWithLogger(t)
+	err := initializeTUF(ctx, ts.URL)
+	if err == nil {
+		return
+	}
+	if strings.Contains(err.Error(), "read-only file system") ||
+		strings.Contains(err.Error(), "permission denied") ||
+		strings.Contains(err.Error(), "creating cached local store") {
+		t.Fatalf("Got filesystem error with writable TUF_ROOT: %v", err)
+	}
+	t.Logf("TUF init got past filesystem step (expected metadata error): %v", err)
 }
 
 func TestSigner_SignECDSA(t *testing.T) {
