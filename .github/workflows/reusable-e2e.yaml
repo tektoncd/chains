@@ -50,7 +50,7 @@ jobs:
     - uses: ko-build/setup-ko@61b4d1d396f5b2e7d6bb6fefdce3dc38d1a13445 # v0.10
 
     - name: Install mirror, kind, knative + sigstore
-      uses: sigstore/scaffolding/actions/setup@8bd68672d418e5bd1b0ee1f2e2981874c3a30967  # v0.7.33
+      uses: sigstore/scaffolding/actions/setup@5444af42e303f5ceb37e077637f953133a4eba7c  # v0.7.37
       with:
         k8s-version: ${{ inputs.k8s-version }}
         version: ${{ env.SIGSTORE_SCAFFOLDING_RELEASE_VERSION }}
