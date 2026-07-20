@@ -19,6 +19,7 @@ import (
 	"context"
 	"crypto"
 	"crypto/x509"
+	"encoding/asn1"
 	"fmt"
 	"io"
 	"net/http"
@@ -172,5 +173,70 @@ func (v TSPVerifier) Verify(ctx context.Context, tsrData, signedData io.Reader) 
 		return time.Time{}, err
 	}
 
+	// RFC 3161 requires the TSA signing certificate to carry the id-kp-timeStamping extended key
+	// usage (and only that EKU). VerifyWithChain does not enforce a specific EKU, so a certificate
+	// issued for another purpose (for example TLS server authentication) under the same trust
+	// anchor would otherwise be accepted as a timestamp signer.
+	signer := p7.GetOnlySigner()
+	if signer == nil {
+		return time.Time{}, fmt.Errorf("timestamp token has no single signing certificate")
+	}
+
+	// RFC 3161 section 2.3 requires the timestamping EKU to be the sole extended key usage, so a
+	// multi-purpose certificate (for example one that also bears ServerAuth) must be rejected.
+	if len(signer.ExtKeyUsage) != 1 ||
+		signer.ExtKeyUsage[0] != x509.ExtKeyUsageTimeStamping ||
+		len(signer.UnknownExtKeyUsage) != 0 {
+		return time.Time{}, fmt.Errorf("timestamp signing certificate must carry the id-kp-timeStamping extended key usage as its only EKU")
+	}
+
+	// RFC 3161 section 2.3 also requires that the extended key usage extension be marked critical.
+	if !ekuExtensionIsCritical(signer) {
+		return time.Time{}, fmt.Errorf("timestamp signing certificate extended key usage extension must be marked critical")
+	}
+
+	// p7.VerifyWithChain validates the chain with ExtKeyUsageAny, so an EKU-constrained intermediate
+	// is not caught by the leaf-only check above. Re-verify the chain explicitly requiring the
+	// timestamping EKU so the constraint is enforced through every certificate in the path.
+	//
+	// Only do this when a trust store was configured: with a nil cert pool p7.VerifyWithChain(nil)
+	// intentionally skips chain validation (signature/hash-only mode), and passing Roots: nil to
+	// signer.Verify would silently fall back to the host system roots, changing that behavior.
+	if v.certChain != nil {
+		intermediates := x509.NewCertPool()
+		for _, cert := range p7.Certificates {
+			if cert.Equal(signer) {
+				continue
+			}
+			intermediates.AddCert(cert)
+		}
+		// Verify the chain at the timestamp's own time, not wall-clock time: a timestamp must remain
+		// verifiable after the TSA certificate expires (that is the purpose of timestamping),
+		// matching p7.VerifyWithChain's use of the signing time.
+		if _, err := signer.Verify(x509.VerifyOptions{
+			Roots:         v.certChain,
+			Intermediates: intermediates,
+			KeyUsages:     []x509.ExtKeyUsage{x509.ExtKeyUsageTimeStamping},
+			CurrentTime:   ts.Time,
+		}); err != nil {
+			return time.Time{}, fmt.Errorf("timestamp certificate chain is not valid for timestamping: %w", err)
+		}
+	}
+
 	return ts.Time, nil
+}
+
+// oidExtensionExtKeyUsage is the ASN.1 object identifier of the X.509 extended key usage extension.
+var oidExtensionExtKeyUsage = asn1.ObjectIdentifier{2, 5, 29, 37}
+
+// ekuExtensionIsCritical reports whether the certificate's extended key usage extension is present
+// and marked critical, as required of a TSA certificate by RFC 3161 section 2.3.
+func ekuExtensionIsCritical(cert *x509.Certificate) bool {
+	for _, ext := range cert.Extensions {
+		if ext.Id.Equal(oidExtensionExtKeyUsage) {
+			return ext.Critical
+		}
+	}
+
+	return false
 }
