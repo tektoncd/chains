@@ -35,7 +35,7 @@ jobs:
     - uses: imjasonh/setup-ko@61b4d1d396f5b2e7d6bb6fefdce3dc38d1a13445  # v0.10
 
     - name: Set up Go
-      uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16  # v6.5.0
+      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
       with:
         cache-dependency-path: "${{ github.workspace }}/src/github.com/tektoncd/chains/go.sum"
         go-version-file: "${{ github.workspace }}/src/github.com/tektoncd/chains/go.mod"
