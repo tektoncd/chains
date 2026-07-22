@@ -17,14 +17,14 @@ jobs:
     name: lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b  # v3.0.2
         with:
           fetch-depth: 0
       - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5  # v6.2.0
         with:
           go-version-file: "go.mod"
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20  # v9.2.0
+        uses: golangci/golangci-lint-action@82606bf257cbaff209d206a39f5134f0cfbfd2ee  # v9.2.1
         with:
           version: v2.7.2
           args: --new-from-merge-base=origin/${{ github.base_ref }} --timeout=10m
