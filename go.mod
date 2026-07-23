@@ -18,7 +18,7 @@ require (
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/secure-systems-lab/go-securesystemslib v0.11.0
-	github.com/sigstore/cosign/v2 v2.6.3
+	github.com/sigstore/cosign/v2 v2.6.4
 	github.com/sigstore/rekor v1.4.3
 	github.com/sigstore/sigstore v1.10.8
 	github.com/sigstore/sigstore/pkg/signature/kms/aws v1.10.8
@@ -36,9 +36,9 @@ require (
 	gocloud.dev/pubsub/kafkapubsub v0.36.0
 	golang.org/x/crypto v0.50.0
 	google.golang.org/grpc v1.79.3
-	google.golang.org/protobuf v1.36.11
+	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
 	k8s.io/api v0.34.9
-	k8s.io/apimachinery v0.34.9
+	k8s.io/apimachinery v0.34.10
 	k8s.io/client-go v0.34.9
 	k8s.io/code-generator v0.26.15
 	knative.dev/pkg v0.0.0-20231023150739-56bfe0dd9626
