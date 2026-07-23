@@ -21,7 +21,7 @@ require (
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/pkg/errors v0.9.1
 	github.com/secure-systems-lab/go-securesystemslib v0.11.0
-	github.com/sigstore/cosign/v2 v2.6.3
+	github.com/sigstore/cosign/v2 v2.6.4
 	github.com/sigstore/rekor v1.4.3
 	github.com/sigstore/sigstore v1.10.8
 	github.com/sigstore/sigstore/pkg/signature/kms/aws v1.10.8
@@ -40,9 +40,9 @@ require (
 	golang.org/x/crypto v0.50.0
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b
 	google.golang.org/grpc v1.80.0
-	google.golang.org/protobuf v1.36.11
+	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
 	k8s.io/api v0.34.9
-	k8s.io/apimachinery v0.34.9
+	k8s.io/apimachinery v0.34.10
 	k8s.io/client-go v0.34.9
 	k8s.io/code-generator v0.32.13
 	knative.dev/pkg v0.0.0-20250415155312-ed3e2158b883
