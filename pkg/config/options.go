@@ -17,7 +17,10 @@ limitations under the License.
 package config
 
 import (
+	"crypto"
+
 	"github.com/sigstore/cosign/v2/pkg/cosign/bundle"
+	"github.com/sigstore/rekor/pkg/generated/models"
 )
 
 // PayloadType specifies the format to store payload in.
@@ -49,9 +52,19 @@ type StorageOpts struct {
 	// https://github.com/sigstore/cosign/blob/main/specs/SIGNATURE_SPEC.md
 	Chain string
 
+	// PublicKey is the public key used to create the signature.
+	// Extracted from the signer and available for storage backends that need it
+	// (e.g. to create a cosign protobuf bundle).
+	PublicKey crypto.PublicKey
+
 	// PayloadFormat is the format to store payload in.
 	PayloadFormat PayloadType
 
 	// RekorBundle is an optional Rekor transparency log bundle for offline verification.
 	RekorBundle *bundle.RekorBundle
+
+	// RekorEntry is the raw Rekor transparency log entry. Storage backends that construct
+	// a Sigstore protobuf bundle (e.g. OCI sigstore-bundle mode) need it to embed the tlog
+	// entry inline; the converted RekorBundle alone does not carry enough data for MakeNewBundle.
+	RekorEntry *models.LogEntryAnon
 }

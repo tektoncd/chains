@@ -52,3 +52,38 @@ func (o *targetRepoOption) applySimpleStorer(s *SimpleStorer) error {
 	s.repo = &o.repo
 	return nil
 }
+
+// WithEncodingFormat configures the payload encoding for OCI artifact storage.
+//
+// Supported values are the OCIEncodingFormat* constants in pkg/config:
+//   - OCIEncodingFormatDSSE             (default) – DSSE envelope, tag-based storage
+//   - OCIEncodingFormatSigstoreBundle             – Sigstore protobuf bundle, OCI 1.1 Referrers API
+//
+//nolint:ireturn // returning interface is the intended pattern here
+func WithEncodingFormat(format string) Option {
+	return &encodingFormatOption{format: format}
+}
+
+type encodingFormatOption struct {
+	format string
+}
+
+func (o *encodingFormatOption) applyAttestationStorer(s *AttestationStorer) error {
+	s.encodingFormat = o.format
+	return nil
+}
+
+func (o *encodingFormatOption) applySimpleStorer(s *SimpleStorer) error {
+	s.encodingFormat = o.format
+	return nil
+}
+
+// referrersRepoOverrideIgnored reports whether a configured repository override
+// would be silently dropped for an OCI 1.1 referrer write. Referrers must be
+// colocated with their subject image (the referrer manifest references the
+// subject by digest within the same repository), so a storage.oci.repository
+// override cannot redirect them to a different repository. The override only
+// applies to the legacy tag-based storage path.
+func referrersRepoOverrideIgnored(override, artifactRepo name.Repository) bool {
+	return override.String() != artifactRepo.String()
+}

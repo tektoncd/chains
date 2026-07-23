@@ -50,6 +50,10 @@ metadata:
 #   artifacts.oci.signer: x509
 #   transparency.enabled: false
 #   transparency.url: https://rekor.sigstore.dev
+# storage.oci.encoding-format controls the on-disk format used by the OCI storage backend.
+#   "dsse"            – (default) DSSE envelope stored as .sig/.att tags (backward-compatible)
+#   "sigstore-bundle" – Sigstore protobuf bundle (v0.3) stored via OCI 1.1 Referrers API
+#   storage.oci.encoding-format: "dsse"
 ---
 apiVersion: apps/v1
 kind: Deployment

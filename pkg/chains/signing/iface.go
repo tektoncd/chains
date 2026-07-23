@@ -14,7 +14,10 @@ limitations under the License.
 package signing
 
 import (
+	"crypto"
+
 	"github.com/sigstore/cosign/v2/pkg/cosign/bundle"
+	"github.com/sigstore/rekor/pkg/generated/models"
 	"github.com/sigstore/sigstore/pkg/signature"
 )
 
@@ -44,4 +47,12 @@ type Bundle struct {
 	Chain []byte
 	// RekorBundle is an optional Rekor transparency log bundle, populated when transparency is enabled.
 	RekorBundle *bundle.RekorBundle
+	// RekorEntry is the raw Rekor transparency log entry, populated when transparency is enabled.
+	// Storage backends that build a Sigstore protobuf bundle (e.g. OCI sigstore-bundle mode) need
+	// the raw entry to embed tlog data inline; the converted RekorBundle alone is insufficient.
+	RekorEntry *models.LogEntryAnon
+	// PublicKey is the public key from the signer.
+	// Available for storage backends that need direct access to the key material
+	// (e.g. to create a cosign protobuf bundle without a certificate).
+	PublicKey crypto.PublicKey
 }
