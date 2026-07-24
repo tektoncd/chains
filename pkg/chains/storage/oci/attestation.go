@@ -152,7 +152,7 @@ func (s *AttestationStorer) storeLegacy(ctx context.Context, req *api.StoreReque
 // format over the OCI 1.1 Referrers API.
 func (s *AttestationStorer) storeWithProtobufBundle(ctx context.Context, req *api.StoreRequest[name.Digest, *intoto.Statement]) (*api.StoreResponse, error) {
 	logger := logging.FromContext(ctx)
-	logger.Infof("Using protobuf bundle format for attestation storage (%s)", req.Artifact.String())
+	logger.Infof("Using sigstore bundle format for attestation storage (%s)", req.Artifact.String())
 
 	predicateType := req.Payload.PredicateType
 	if predicateType == "" {
@@ -224,7 +224,7 @@ func (s *AttestationStorer) storeWithProtobufBundle(ctx context.Context, req *ap
 	if err := ociremote.WriteAttestationNewBundleFormat(req.Artifact, bundleBytes, predicateType, ociremote.WithRemoteOptions(s.remoteOpts...)); err != nil {
 		return nil, errors.Wrap(err, "writing protobuf bundle attestation")
 	}
-	logger.Infof("Successfully uploaded attestation using protobuf bundle format for %s", req.Artifact.String())
+	logger.Infof("Successfully uploaded attestation using sigstore bundle format for %s", req.Artifact.String())
 	return &api.StoreResponse{}, nil
 }
 
