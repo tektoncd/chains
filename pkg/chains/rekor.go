@@ -48,7 +48,7 @@ func (r *rekor) UploadTlog(ctx context.Context, signer signing.Signer, signature
 		return nil, errors.Wrap(err, "public key or cert")
 	}
 	if _, ok := formats.IntotoAttestationSet[config.PayloadType(payloadFormat)]; ok {
-		return cosign.TLogUploadInTotoAttestation(ctx, r.c, signature, pkoc)
+		return cosign.TLogUploadDSSEEnvelope(ctx, r.c, signature, pkoc)
 	}
 
 	h := sha256.New()

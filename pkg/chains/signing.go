@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	intoto "github.com/in-toto/attestation/go/v1"
 	cbundle "github.com/sigstore/cosign/v2/pkg/cosign/bundle"
+	"github.com/sigstore/rekor/pkg/generated/models"
 	"github.com/tektoncd/chains/pkg/artifacts"
 	"github.com/tektoncd/chains/pkg/chains/annotations"
 	"github.com/tektoncd/chains/pkg/chains/formats"
@@ -203,6 +204,7 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 			// On upload failure, storage proceeds but the bundle annotation will be absent —
 			// consumers that rely on the bundle for offline verification will get an attestation without it.
 			var rekorBundle *cbundle.RekorBundle
+			var storageEntry *models.LogEntryAnon
 			if tlogClient != nil {
 				entry, err := tlogClient.UploadTlog(ctx, signer, signature, rawPayload, signer.Cert(), string(payloadFormat))
 				if err != nil {
@@ -218,8 +220,21 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 					} else {
 						logger.Warn("Rekor entry missing verification data, skipping bundle for offline verification")
 					}
+					// Preserve the raw entry so storage backends building a Sigstore protobuf
+					// bundle (OCI sigstore-bundle mode) can embed the tlog entry inline.
+					storageEntry = entry
 					measureMetrics(ctx, metrics.PayloadUploadedCount, o.Recorder)
 				}
+			}
+
+			// Attempt to extract the public key so storage backends that need it
+			// (e.g. protobuf-bundle OCI format) can use it without re-fetching.
+			// This is intentionally non-fatal: for the default legacy format the
+			// key is never used, so a transient KMS error here must not prevent
+			// signatures from being stored.
+			pubKey, pubKeyErr := signer.PublicKey()
+			if pubKeyErr != nil {
+				logger.Warnf("Could not extract public key from signer (will be unavailable to storage backends): %v", pubKeyErr)
 			}
 
 			// Now store those!
@@ -238,8 +253,10 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 					FullKey:       signableType.FullKey(obj),
 					Cert:          signer.Cert(),
 					Chain:         signer.Chain(),
+					PublicKey:     pubKey,
 					PayloadFormat: payloadFormat,
 					RekorBundle:   rekorBundle,
+					RekorEntry:    storageEntry,
 				}
 				if err := b.StorePayload(ctx, tektonObj, rawPayload, string(signature), storageOpts); err != nil {
 					logger.Error(err)

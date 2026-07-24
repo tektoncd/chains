@@ -106,3 +106,34 @@ func TestNewConfigFromMap_KMSAuthOIDC(t *testing.T) {
 		t.Errorf("OIDC.TokenPath = %q, want %q", cfg.Signers.KMS.Auth.OIDC.TokenPath, "/var/run/secrets/tokens/vault-token")
 	}
 }
+
+func TestOCIEncodingFormatDefault(t *testing.T) {
+	cfg, err := NewConfigFromMap(map[string]string{})
+	if err != nil {
+		t.Fatalf("NewConfigFromMap() error: %v", err)
+	}
+	if cfg.Storage.OCI.EncodingFormat != OCIEncodingFormatDSSE {
+		t.Errorf("default EncodingFormat = %q, want %q", cfg.Storage.OCI.EncodingFormat, OCIEncodingFormatDSSE)
+	}
+}
+
+func TestOCIEncodingFormatExplicit(t *testing.T) {
+	for _, format := range []string{OCIEncodingFormatDSSE, OCIEncodingFormatSigstoreBundle} {
+		t.Run(format, func(t *testing.T) {
+			cfg, err := NewConfigFromMap(map[string]string{ociEncodingFormatKey: format})
+			if err != nil {
+				t.Fatalf("NewConfigFromMap() error: %v", err)
+			}
+			if cfg.Storage.OCI.EncodingFormat != format {
+				t.Errorf("EncodingFormat = %q, want %q", cfg.Storage.OCI.EncodingFormat, format)
+			}
+		})
+	}
+}
+
+func TestOCIEncodingFormatInvalid(t *testing.T) {
+	_, err := NewConfigFromMap(map[string]string{ociEncodingFormatKey: "unknown-method"})
+	if err == nil {
+		t.Error("expected error for invalid encoding format, got nil")
+	}
+}
