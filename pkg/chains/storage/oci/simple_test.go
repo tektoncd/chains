@@ -457,3 +457,29 @@ func TestSimpleStorer_Store_SigstoreBundle_Dedup(t *testing.T) {
 		t.Errorf("expected 1 signature referrer after dedup, got %d", got)
 	}
 }
+
+// TestMakeSigBundleBytes_TlogEntries verifies that makeSigBundleBytes embeds
+// tlogEntries when a non-nil RekorEntry is passed, and omits them when nil.
+// This guards the fix for the transparency-log omission bug in the signature
+// bundle path (legacy.go uploadSignature was not forwarding storageOpts.RekorEntry
+// into the Bundle, so req.Bundle.RekorEntry arrived as nil here).
+func TestMakeSigBundleBytes_TlogEntries(t *testing.T) {
+	// nil rekorEntry → tlogEntries must be absent/empty in the serialized bundle.
+	bundleBytes, err := makeSigBundleBytes(nil, nil, []byte("payload"), []byte("sig"), nil)
+	if err != nil {
+		t.Fatalf("makeSigBundleBytes with nil rekorEntry failed: %v", err)
+	}
+	var got map[string]interface{}
+	if err := json.Unmarshal(bundleBytes, &got); err != nil {
+		t.Fatalf("failed to unmarshal bundle JSON: %v", err)
+	}
+	vm, _ := got["verificationMaterial"].(map[string]interface{})
+	if vm != nil {
+		if entries, ok := vm["tlogEntries"]; ok {
+			// tlogEntries key present — must be empty or nil.
+			if arr, ok := entries.([]interface{}); ok && len(arr) > 0 {
+				t.Errorf("expected empty tlogEntries with nil rekorEntry, got %d entries", len(arr))
+			}
+		}
+	}
+}

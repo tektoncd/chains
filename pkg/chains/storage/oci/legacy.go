@@ -176,11 +176,12 @@ func (b *Backend) uploadSignature(ctx context.Context, format simple.SimpleConta
 		Artifact: ref,
 		Payload:  format,
 		Bundle: &signing.Bundle{
-			Content:   rawPayload,
-			Signature: []byte(signature),
-			Cert:      []byte(storageOpts.Cert),
-			Chain:     []byte(storageOpts.Chain),
-			PublicKey: storageOpts.PublicKey,
+			Content:    rawPayload,
+			Signature:  []byte(signature),
+			Cert:       []byte(storageOpts.Cert),
+			Chain:      []byte(storageOpts.Chain),
+			PublicKey:  storageOpts.PublicKey,
+			RekorEntry: storageOpts.RekorEntry,
 		},
 	}); err != nil {
 		return err
