@@ -48,7 +48,7 @@ jobs:
         version: v0.18.1
 
     - name: Install mirror, kind, knative + sigstore
-      uses: sigstore/scaffolding/actions/setup@8bd68672d418e5bd1b0ee1f2e2981874c3a30967 # v0.7.33
+      uses: sigstore/scaffolding/actions/setup@5444af42e303f5ceb37e077637f953133a4eba7c # v0.7.37
       with:
         k8s-version: ${{ inputs.k8s-version }}
         version: ${{ env.SIGSTORE_SCAFFOLDING_RELEASE_VERSION }}
@@ -124,7 +124,7 @@ jobs:
 
     - name: Collect diagnostics
       if: ${{ failure() }}
-      uses: chainguard-dev/actions/kind-diag@f0be69916b439d0fcced2451b23d0f27cd46d545 # v1.6.26
+      uses: chainguard-dev/actions/kind-diag@4d37df0d85a91f619edc34a8803323033cdcb124 # v1.6.27
       with:
         cluster-resources: nodes
         namespace-resources: pods,taskruns,jobs
