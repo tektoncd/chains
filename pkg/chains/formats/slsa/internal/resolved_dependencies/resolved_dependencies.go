@@ -239,6 +239,7 @@ func taskDependencies(ctx context.Context, opts ResolveOptions, tro *objects.Tas
 	}
 
 	mats = material.FromTaskParamsAndResults(ctx, tro)
+	mats = append(mats, material.FromNativeArtifactInputs(ctx, tro)...)
 	// convert materials to resolved dependencies
 	resolvedDependencies = append(resolvedDependencies, ConvertMaterialsToResolvedDependencies(mats, InputResultName)...)
 
