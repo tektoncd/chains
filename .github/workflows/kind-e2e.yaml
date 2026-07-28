@@ -33,8 +33,19 @@ jobs:
     uses: ./.github/workflows/reusable-e2e.yaml
     with:
       k8s-version: ${{ matrix.k8s-version }}
-      pipelines-release: v1.12.0  # Latest version
+      pipelines-release: latest
+  load-lts-versions:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      versions: ${{ steps.read.outputs.versions }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - id: read
+        run: echo "versions=$(cat .github/pipeline-lts.json | jq -c .)" >> $GITHUB_OUTPUT
   pipelines-lts:
+    needs: load-lts-versions
     permissions:
       contents: read
     concurrency:
@@ -43,12 +54,7 @@ jobs:
     strategy:
       fail-fast: false  # Keep running if one leg fails.
       matrix:
-        pipelines-release:
-          # This should follow the list of versions from https://github.com/tektoncd/pipeline/blob/main/releases.md#release
-          # TODO: Ideally, we should get this directly from pipeline repository
-          - v1.3.4   # LTS
-          - v1.6.2   # LTS
-          - v1.9.3   # LTS
+        pipelines-release: ${{ fromJSON(needs.load-lts-versions.outputs.versions) }}
     uses: ./.github/workflows/reusable-e2e.yaml
     with:
       k8s-version: v1.34.x  # intersection of the latest version and scaffolding
