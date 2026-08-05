@@ -100,56 +100,63 @@ deprecation window timers begin from when the release is published.
 
 ## Release
 
+### v0.29 (LTS)
+- **Latest Release**: [v0.29.0][v0-29-0] (2026-08-04) ([docs][v0-29-0-docs], [examples][v0-29-0-examples])
+- **Initial Release**: [v0.29.0][v0-29-0] (2026-08-04)
+- **End of Life**: 2027-08-04
+- **Patch Releases**: [v0.29.0][v0-29-0]
+
+### v0.28 (LTS)
+- **Latest Release**: [v0.28.1][v0-28-1] (2026-07-17) ([docs][v0-28-1-docs], [examples][v0-28-1-examples])
+- **Initial Release**: [v0.28.0][v0-28-0] (2026-07-10)
+- **End of Life**: 2027-07-10
+- **Patch Releases**: [v0.28.0][v0-28-0], [v0.28.1][v0-28-1]
+
 ### v0.27 (LTS)
-- **Latest Release**: v0.27.0 (TBD)
-- **Initial Release**: v0.27.0 (TBD)
+- **Latest Release**: [v0.27.6][v0-27-6] (2026-08-03) ([docs][v0-27-6-docs], [examples][v0-27-6-examples])
+- **Initial Release**: [v0.27.0][v0-27-0] (2026-05-28)
+- **End of Life**: 2027-05-28
+- **Patch Releases**: [v0.27.0][v0-27-0], [v0.27.1][v0-27-1], [v0.27.2][v0-27-2], [v0.27.3][v0-27-3], [v0.27.4][v0-27-4], [v0.27.5][v0-27-5], [v0.27.6][v0-27-6]
 
 ### v0.26 (LTS)
-- **Latest Release**: [v0.26.2][v0-26-2] (2026-02-06)([docs][v0-26-2-docs], [examples][v0-26-2-examples])
+- **Latest Release**: [v0.26.8][v0-26-8] (2026-08-03) ([docs][v0-26-8-docs], [examples][v0-26-8-examples])
 - **Initial Release**: [v0.26.0][v0-26-0] (2025-11-05)
-- **Patch Releases**: [v0.26.0][v0-26-0], [v0.26.1][v0-26-1], [v0.26.2][v0-26-2]
+- **End of Life**: 2026-11-05
+- **Patch Releases**: [v0.26.0][v0-26-0], [v0.26.1][v0-26-1], [v0.26.2][v0-26-2], [v0.26.3][v0-26-3], [v0.26.4][v0-26-4], [v0.26.5][v0-26-5], [v0.26.6][v0-26-6], [v0.26.7][v0-26-7], [v0.26.8][v0-26-8]
 
-[v0-26-0]: https://github.com/tektoncd/chains/releases/tag/v0.26.0
-[v0-26-1]: https://github.com/tektoncd/chains/releases/tag/v0.26.1
-[v0-26-2]: https://github.com/tektoncd/chains/releases/tag/v0.26.2
-[v0-26-2-docs]: https://github.com/tektoncd/chains/tree/v0.26.2/docs
-[v0-26-2-examples]: https://github.com/tektoncd/chains/tree/v0.26.2/examples
-
-### v0.25 (LTS)
-- **Latest Release**: [v0.25.0][v0-25-0] (2025-05-13)
-- **Initial Release**: [v0.25.0][v0-25-0] (2025-05-13)
-
-[v0-25-0]: https://github.com/tektoncd/chains/releases/tag/v0.25.0
-
-### v0.20 (LTS)
-- **Latest Release**: [v0.20.0][v0-20-0] (2023-11-06)
-- **Initial Release**: [v0.20.0][v0-20-0] (2023-11-06)
-
-[v0-20-0]: https://github.com/tektoncd/chains/releases/tag/v0.20.0
-
-## Older Releases
+## End of Life Releases
 
 Older releases are EOL and available on [GitHub][tekton-chains-releases].
 
-### v0.24 (LTS)
-- **Latest Release**: [v0.24.0][v0-24-0] (2025-02-11)
-- **Initial Release**: [v0.24.0][v0-24-0] (2025-02-11)
+### v0.25 (LTS)
+- **Latest Release**: [v0.25.2][v0-25-2] (2026-04-22) ([docs][v0-25-2-docs], [examples][v0-25-2-examples])
+- **Initial Release**: [v0.25.0][v0-25-0] (2025-05-13)
+- **End of Life**: 2026-05-13
+- **Patch Releases**: [v0.25.0][v0-25-0], [v0.25.1][v0-25-1], [v0.25.2][v0-25-2]
 
-[v0-24-0]: https://github.com/tektoncd/chains/releases/tag/v0.24.0
+### v0.24 (LTS)
+- **Latest Release**: [v0.24.0][v0-24-0] (2025-02-11) ([docs][v0-24-0-docs], [examples][v0-24-0-examples])
+- **Initial Release**: [v0.24.0][v0-24-0] (2025-02-11)
+- **End of Life**: 2026-02-11
+- **Patch Releases**: [v0.24.0][v0-24-0]
 
 ### v0.23 (LTS)
-- **Latest Release**: [v0.23.1][v0-23-1] (2025-01-21)
+- **Latest Release**: [v0.23.1][v0-23-1] (2025-01-21) ([docs][v0-23-1-docs], [examples][v0-23-1-examples])
 - **Initial Release**: [v0.23.0][v0-23-0] (2024-11-06)
-
-[v0-23-0]: https://github.com/tektoncd/chains/releases/tag/v0.23.0
-[v0-23-1]: https://github.com/tektoncd/chains/releases/tag/v0.23.1
+- **End of Life**: 2025-11-06
+- **Patch Releases**: [v0.23.0][v0-23-0], [v0.23.1][v0-23-1]
 
 ### v0.22 (LTS)
-- **Latest Release**: [v0.22.3][v0-22-3] (2025-01-20)
+- **Latest Release**: [v0.22.3][v0-22-3] (2025-01-20) ([docs][v0-22-3-docs], [examples][v0-22-3-examples])
 - **Initial Release**: [v0.22.0][v0-22-0] (2024-08-19)
+- **End of Life**: 2025-08-19
+- **Patch Releases**: [v0.22.0][v0-22-0], [v0.22.3][v0-22-3]
 
-[v0-22-0]: https://github.com/tektoncd/chains/releases/tag/v0.22.0
-[v0-22-3]: https://github.com/tektoncd/chains/releases/tag/v0.22.3
+### v0.20 (LTS)
+- **Latest Release**: [v0.20.0][v0-20-0] (2023-11-06) ([docs][v0-20-0-docs], [examples][v0-20-0-examples])
+- **Initial Release**: [v0.20.0][v0-20-0] (2023-11-06)
+- **End of Life**: 2024-11-06
+- **Patch Releases**: [v0.20.0][v0-20-0]
 
 [release-policy]: https://github.com/tektoncd/community/blob/main/releases.md
 [sigstore]: https://sigstore.dev
@@ -160,3 +167,52 @@ Older releases are EOL and available on [GitHub][tekton-chains-releases].
 [tekton-installation]: README.md#installation
 [release-notes-standards]:
   https://github.com/tektoncd/community/blob/main/standards.md#release-notes
+
+[v0-29-0]: https://github.com/tektoncd/chains/releases/tag/v0.29.0
+[v0-28-1]: https://github.com/tektoncd/chains/releases/tag/v0.28.1
+[v0-28-0]: https://github.com/tektoncd/chains/releases/tag/v0.28.0
+[v0-27-6]: https://github.com/tektoncd/chains/releases/tag/v0.27.6
+[v0-27-5]: https://github.com/tektoncd/chains/releases/tag/v0.27.5
+[v0-27-4]: https://github.com/tektoncd/chains/releases/tag/v0.27.4
+[v0-27-3]: https://github.com/tektoncd/chains/releases/tag/v0.27.3
+[v0-27-2]: https://github.com/tektoncd/chains/releases/tag/v0.27.2
+[v0-27-1]: https://github.com/tektoncd/chains/releases/tag/v0.27.1
+[v0-27-0]: https://github.com/tektoncd/chains/releases/tag/v0.27.0
+[v0-26-8]: https://github.com/tektoncd/chains/releases/tag/v0.26.8
+[v0-26-7]: https://github.com/tektoncd/chains/releases/tag/v0.26.7
+[v0-26-6]: https://github.com/tektoncd/chains/releases/tag/v0.26.6
+[v0-26-5]: https://github.com/tektoncd/chains/releases/tag/v0.26.5
+[v0-26-4]: https://github.com/tektoncd/chains/releases/tag/v0.26.4
+[v0-26-3]: https://github.com/tektoncd/chains/releases/tag/v0.26.3
+[v0-26-2]: https://github.com/tektoncd/chains/releases/tag/v0.26.2
+[v0-26-1]: https://github.com/tektoncd/chains/releases/tag/v0.26.1
+[v0-26-0]: https://github.com/tektoncd/chains/releases/tag/v0.26.0
+[v0-25-2]: https://github.com/tektoncd/chains/releases/tag/v0.25.2
+[v0-25-1]: https://github.com/tektoncd/chains/releases/tag/v0.25.1
+[v0-25-0]: https://github.com/tektoncd/chains/releases/tag/v0.25.0
+[v0-24-0]: https://github.com/tektoncd/chains/releases/tag/v0.24.0
+[v0-23-1]: https://github.com/tektoncd/chains/releases/tag/v0.23.1
+[v0-23-0]: https://github.com/tektoncd/chains/releases/tag/v0.23.0
+[v0-22-3]: https://github.com/tektoncd/chains/releases/tag/v0.22.3
+[v0-22-0]: https://github.com/tektoncd/chains/releases/tag/v0.22.0
+[v0-20-0]: https://github.com/tektoncd/chains/releases/tag/v0.20.0
+
+[v0-29-0-docs]: https://github.com/tektoncd/chains/tree/v0.29.0/docs
+[v0-28-1-docs]: https://github.com/tektoncd/chains/tree/v0.28.1/docs
+[v0-27-6-docs]: https://github.com/tektoncd/chains/tree/v0.27.6/docs
+[v0-26-8-docs]: https://github.com/tektoncd/chains/tree/v0.26.8/docs
+[v0-25-2-docs]: https://github.com/tektoncd/chains/tree/v0.25.2/docs
+[v0-24-0-docs]: https://github.com/tektoncd/chains/tree/v0.24.0/docs
+[v0-23-1-docs]: https://github.com/tektoncd/chains/tree/v0.23.1/docs
+[v0-22-3-docs]: https://github.com/tektoncd/chains/tree/v0.22.3/docs
+[v0-20-0-docs]: https://github.com/tektoncd/chains/tree/v0.20.0/docs
+
+[v0-29-0-examples]: https://github.com/tektoncd/chains/tree/v0.29.0/examples
+[v0-28-1-examples]: https://github.com/tektoncd/chains/tree/v0.28.1/examples
+[v0-27-6-examples]: https://github.com/tektoncd/chains/tree/v0.27.6/examples
+[v0-26-8-examples]: https://github.com/tektoncd/chains/tree/v0.26.8/examples
+[v0-25-2-examples]: https://github.com/tektoncd/chains/tree/v0.25.2/examples
+[v0-24-0-examples]: https://github.com/tektoncd/chains/tree/v0.24.0/examples
+[v0-23-1-examples]: https://github.com/tektoncd/chains/tree/v0.23.1/examples
+[v0-22-3-examples]: https://github.com/tektoncd/chains/tree/v0.22.3/examples
+[v0-20-0-examples]: https://github.com/tektoncd/chains/tree/v0.20.0/examples
