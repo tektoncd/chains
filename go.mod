@@ -9,7 +9,7 @@ require (
 	github.com/golangci/golangci-lint v1.64.8
 	github.com/google/addlicense v1.2.0
 	github.com/google/go-cmp v0.7.0
-	github.com/google/go-containerregistry v0.21.8
+	github.com/google/go-containerregistry v0.21.9
 	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20260414223304-7a662782a11f
 	github.com/google/go-licenses v1.6.0
 	github.com/grafeas/grafeas v0.2.3
@@ -21,7 +21,7 @@ require (
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/pkg/errors v0.9.1
 	github.com/secure-systems-lab/go-securesystemslib v0.11.0
-	github.com/sigstore/cosign/v2 v2.6.4
+	github.com/sigstore/cosign/v2 v2.6.5
 	github.com/sigstore/rekor v1.5.3
 	github.com/sigstore/sigstore v1.10.9
 	github.com/sigstore/sigstore/pkg/signature/kms/aws v1.10.9
