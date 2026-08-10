@@ -77,6 +77,8 @@ spec:
       value: ""
     - name: releaseName
       value: ""
+    - name: draft
+      value: "false"
   timeouts:
     pipeline: 3h0m0s
   workspaces:
