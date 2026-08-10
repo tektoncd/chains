@@ -69,8 +69,16 @@ spec:
       description: Previous release tag for changelog generation (e.g. v0.26.0). If empty, auto-detected from git tags.
       default: ""
     - name: releaseName
-      description: Release name (e.g. "Swallow Sparrow"). If empty, uses version tag.
+      description: |
+        Release name (e.g. "Swallow Sparrow"). If empty, the release title
+        is just "Tekton Chains release <versionTag>" with no extra name.
       default: ""
+    - name: draft
+      description: |
+        Whether to create the GitHub release as a draft for manual review.
+        Set to "true" to leave it as an unpublished draft instead of
+        publishing directly.
+      default: "false"
   workspaces:
     - name: workarea
       description: The workspace where the repo will be cloned.
@@ -503,10 +511,12 @@ spec:
               fi
               printf '%s' "${PREVIOUS}" > "$(results.previous-tag.path)"
 
-              # Use provided name or fall back to version
-              if [ -z "${NAME}" ]; then
-                NAME="Release ${VERSION}"
-              fi
+              # Leave release-name empty when none is given. The
+              # create-draft-release task only appends a quoted release
+              # name to the title when one is actually provided; synthesizing
+              # a fallback like "Release ${VERSION}" here would produce a
+              # duplicated, quoted title, e.g.:
+              #   Tekton Chains release v0.28.0 "Release v0.28.0"
               printf '%s' "${NAME}" > "$(results.release-name.path)"
 
     - name: create-draft-release
@@ -524,7 +534,7 @@ spec:
           - name: url
             value: https://github.com/tektoncd/plumbing
           - name: revision
-            value: 7abffd25eb2e578e6698a9ff13470d04906f79e6
+            value: 894710e292fcb6b17276af01a2bc318107eef8a7
           - name: pathInRepo
             value: tekton/resources/release/base/github_release_oci.yaml
       params:
@@ -540,6 +550,8 @@ spec:
           value: $(tasks.prepare-draft-release.results.previous-tag)
         - name: rekor-uuid
           value: $(tasks.wait-for-chains.results.rekor-uuid)
+        - name: draft
+          value: $(params.draft)
         - name: source-subpath
           value: git
         - name: release-subpath
