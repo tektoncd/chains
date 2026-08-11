@@ -83,11 +83,12 @@ func TestSigner_Sign(t *testing.T) {
 	}
 
 	tests := []struct {
-		name     string
-		backends []*mockBackend
-		wantErr  bool
-		object   objects.TektonObject
-		config   *config.Config
+		name       string
+		backends   []*mockBackend
+		wantErr    bool
+		object     objects.TektonObject
+		config     *config.Config
+		secretPath string
 	}{
 		{
 			name: "taskrun single system",
@@ -143,6 +144,16 @@ func TestSigner_Sign(t *testing.T) {
 			object:  pro,
 			config:  pcfg,
 		},
+		{
+			name: "taskrun no signer configured",
+			backends: []*mockBackend{
+				{backendType: "foo"},
+			},
+			wantErr:    true,
+			object:     tro,
+			config:     tcfg,
+			secretPath: "./signing/x509/testdata/does-not-exist",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -152,9 +163,13 @@ func TestSigner_Sign(t *testing.T) {
 
 			ctx = config.ToContext(ctx, tt.config.DeepCopy())
 
+			secretPath := tt.secretPath
+			if secretPath == "" {
+				secretPath = "./signing/x509/testdata/"
+			}
 			ts := &ObjectSigner{
 				Backends:          fakeAllBackends(tt.backends),
-				SecretPath:        "./signing/x509/testdata/",
+				SecretPath:        secretPath,
 				Pipelineclientset: ps,
 			}
 
