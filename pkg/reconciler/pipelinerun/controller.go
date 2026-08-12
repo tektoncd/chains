@@ -57,35 +57,32 @@ func NewNamespacesScopedController(namespaces []string) func(ctx context.Context
 			TaskRunLister:     taskRunInformer.Lister(),
 		}
 
+		watcherStop := make(chan bool)
+		cfgStore := config.NewConfigStore(logger, func(_ string, value interface{}) {
+			select {
+			case watcherStop <- true:
+				logger.Info("sent close event to WatchBackends()...")
+			default:
+				logger.Info("could not send close event to WatchBackends()...")
+			}
+
+			// get updated config
+			cfg := *value.(*config.Config)
+
+			// get all backends for storing provenance
+			backends, err := storage.InitializeBackends(ctx, pipelineClient, kubeClient, cfg)
+			if err != nil {
+				logger.Error(err)
+			}
+			psSigner.Backends = backends
+
+			if err := storage.WatchBackends(ctx, watcherStop, psSigner.Backends, cfg); err != nil {
+				logger.Error(err)
+			}
+		})
+		cfgStore.WatchConfigs(cmw)
+
 		impl := pipelinerunreconciler.NewImpl(ctx, c, func(_ *controller.Impl) controller.Options {
-			watcherStop := make(chan bool)
-
-			cfgStore := config.NewConfigStore(logger, func(_ string, value interface{}) {
-				select {
-				case watcherStop <- true:
-					logger.Info("sent close event to WatchBackends()...")
-				default:
-					logger.Info("could not send close event to WatchBackends()...")
-				}
-
-				// get updated config
-				cfg := *value.(*config.Config)
-
-				// get all backends for storing provenance
-				backends, err := storage.InitializeBackends(ctx, pipelineClient, kubeClient, cfg)
-				if err != nil {
-					logger.Error(err)
-				}
-				psSigner.Backends = backends
-
-				if err := storage.WatchBackends(ctx, watcherStop, psSigner.Backends, cfg); err != nil {
-					logger.Error(err)
-				}
-			})
-
-			// setup watches for the config names provided by client
-			cfgStore.WatchConfigs(cmw)
-
 			return controller.Options{
 				// The chains reconciler shouldn't mutate the pipelinerun's status.
 				SkipStatusUpdates:               true,
@@ -99,14 +96,14 @@ func NewNamespacesScopedController(namespaces []string) func(ctx context.Context
 		c.Tracker = impl.Tracker
 
 		if _, err := pipelineRunInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
-			FilterFunc: reconciler.PipelineRunInformerFilterFunc(namespaces),
+			FilterFunc: reconciler.PipelineRunInformerFilterFunc(namespaces, cfgStore),
 			Handler:    controller.HandleAll(impl.Enqueue),
 		}); err != nil {
 			logger.Errorf("adding event handler for pipelinerun controller's pipelinerun informer encountered error: %v", err)
 		}
 
 		if _, err := taskRunInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
-			FilterFunc: reconciler.TaskRunInformerFilterFuncWithOwnership(namespaces),
+			FilterFunc: reconciler.TaskRunInformerFilterFuncWithOwnership(namespaces, cfgStore),
 			Handler:    controller.HandleAll(impl.EnqueueControllerOf),
 		}); err != nil {
 			logger.Errorf("adding event handler for pipelinerun controller's taskrun informer encountered error: %v", err)

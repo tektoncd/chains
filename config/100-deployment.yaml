@@ -54,6 +54,10 @@ metadata:
 #   "dsse"            – (default) DSSE envelope stored as .sig/.att tags (backward-compatible)
 #   "sigstore-bundle" – Sigstore protobuf bundle (v0.3) stored via OCI 1.1 Referrers API
 #   storage.oci.encoding-format: "dsse"
+# filter.managed-by adds extra spec.managedBy values that Chains will process.
+# "tekton.dev/pipeline" is always accepted and cannot be removed.
+# Use comma-separated values to allow additional controllers.
+#   filter.managed-by: "custom-controller"
 ---
 apiVersion: apps/v1
 kind: Deployment
