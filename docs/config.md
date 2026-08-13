@@ -60,7 +60,7 @@ Supported keys include:
 
 | Key                  | Description                                                 | Supported Values                                                                                                                                | Default |
 | :------------------- | :---------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------- | :------ |
-| `signers.kms.kmsref` | The URI reference to a KMS service to use in `KMS` signers. | Supported schemes: `gcpkms://`, `awskms://`, `azurekms://`, `hashivault://`. See https://docs.sigstore.dev/cosign/kms_support for more details. |         |
+| `signers.kms.kmsref` | The URI reference to a KMS service to use in `KMS` signers. | Supported schemes: `gcpkms://`, `awskms://`, `azurekms://`, `hashivault://`. See https://docs.sigstore.dev/cosign/key_management/overview/ for more details. |         |
 
 ### Storage Configuration
 
