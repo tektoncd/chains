@@ -53,35 +53,33 @@ func NewNamespacesScopedController(namespaces []string) func(ctx context.Context
 			TaskRunSigner:     tsSigner,
 			Pipelineclientset: pipelineClient,
 		}
+
+		watcherStop := make(chan bool)
+		cfgStore := config.NewConfigStore(logger, func(_ string, value interface{}) {
+			select {
+			case watcherStop <- true:
+				logger.Info("sent close event to WatchBackends()...")
+			default:
+				logger.Info("could not send close event to WatchBackends()...")
+			}
+
+			// get updated config
+			cfg := *value.(*config.Config)
+
+			// get all backends for storing provenance
+			backends, err := storage.InitializeBackends(ctx, pipelineClient, kubeClient, cfg)
+			if err != nil {
+				logger.Error(err)
+			}
+			tsSigner.Backends = backends
+
+			if err := storage.WatchBackends(ctx, watcherStop, tsSigner.Backends, cfg); err != nil {
+				logger.Error(err)
+			}
+		})
+		cfgStore.WatchConfigs(cmw)
+
 		impl := taskrunreconciler.NewImpl(ctx, c, func(_ *controller.Impl) controller.Options {
-			watcherStop := make(chan bool)
-
-			cfgStore := config.NewConfigStore(logger, func(_ string, value interface{}) {
-				select {
-				case watcherStop <- true:
-					logger.Info("sent close event to WatchBackends()...")
-				default:
-					logger.Info("could not send close event to WatchBackends()...")
-				}
-
-				// get updated config
-				cfg := *value.(*config.Config)
-
-				// get all backends for storing provenance
-				backends, err := storage.InitializeBackends(ctx, pipelineClient, kubeClient, cfg)
-				if err != nil {
-					logger.Error(err)
-				}
-				tsSigner.Backends = backends
-
-				if err := storage.WatchBackends(ctx, watcherStop, tsSigner.Backends, cfg); err != nil {
-					logger.Error(err)
-				}
-			})
-
-			// setup watches for the config names provided by client
-			cfgStore.WatchConfigs(cmw)
-
 			return controller.Options{
 				// The chains reconciler shouldn't mutate the taskrun's status.
 				SkipStatusUpdates:               true,
@@ -93,7 +91,7 @@ func NewNamespacesScopedController(namespaces []string) func(ctx context.Context
 		})
 
 		if _, err := taskRunInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
-			FilterFunc: reconciler.TaskRunInformerFilterFunc(namespaces),
+			FilterFunc: reconciler.TaskRunInformerFilterFunc(namespaces, cfgStore),
 			Handler:    controller.HandleAll(impl.Enqueue),
 		}); err != nil {
 			logger.Errorf("adding event handler for taskrun controller's taskrun informer encountered error: %v", err)

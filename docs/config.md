@@ -46,6 +46,12 @@ Supported keys include:
 > - `slsa/v2alpha4` corresponds to the slsav1.0 spec. and uses latest [`v1` Tekton Objects](https://tekton.dev/docs/pipelines/pipeline-api/#tekton.dev/v1). It reads type-hinted results from [StepActions](https://tekton.dev/docs/pipelines/pipeline-api/#tekton.dev/v1alpha1.StepAction) when `artifacts.pipelinerun.enable-deep-inspection` is set to `true`. Recommended format for new chains users who want the slsav1.0 spec.
 
 
+### Filter Configuration
+
+| Key                  | Description                                                                                                                                                                                                                                                       | Supported Values                                    | Default                |
+| :------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------- | :--------------------- |
+| `filter.managed-by`  | Comma-separated list of additional `spec.managedBy` values that Chains will process. `tekton.dev/pipeline` is always accepted and cannot be removed. Runs whose `spec.managedBy` is unset or empty are also always accepted. Runs whose `spec.managedBy` does not match any of these values are ignored by Chains. | Any string (e.g. `custom-controller`) | unset  |
+
 ### OCI Configuration
 
 | Key                     | Description                                                                                                                                                                              | Supported Values                           | Default         |

@@ -14,62 +14,79 @@ limitations under the License.
 package reconciler
 
 import (
-	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
-	"knative.dev/pkg/controller"
 	"slices"
+
+	"github.com/tektoncd/chains/pkg/config"
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"knative.dev/pkg/controller"
 )
 
+func isManagedByAllowed(managedBy *string, allowed sets.Set[string]) bool {
+	if managedBy == nil || *managedBy == "" || *managedBy == pipeline.ManagedBy {
+		return true
+	}
+	return allowed.Has(*managedBy)
+}
+
 // PipelineRunInformerFilterFunc returns a filter function
-// for PipelineRuns ensuring PipelineRuns are filtered by list of namespaces membership
-func PipelineRunInformerFilterFunc(namespaces []string) func(obj interface{}) bool {
+// for PipelineRuns ensuring PipelineRuns are filtered by spec.managedBy value
+// and list of namespaces membership
+func PipelineRunInformerFilterFunc(namespaces []string, cfgStore *config.ConfigStore) func(obj interface{}) bool {
 	return func(obj interface{}) bool {
-		// Namespace filter
+		pr, ok := obj.(*v1.PipelineRun)
+		if !ok {
+			return false
+		}
+		if !isManagedByAllowed(pr.Spec.ManagedBy, cfgStore.Load().Filter.ManagedByValues) {
+			return false
+		}
 		if len(namespaces) == 0 {
 			return true
 		}
-		if pr, ok := obj.(*v1.PipelineRun); ok {
-			if slices.Contains(namespaces, pr.Namespace) {
-				return true
-			}
-		}
-		return false
+		return slices.Contains(namespaces, pr.Namespace)
 	}
 }
 
 // TaskRunInformerFilterFunc returns a filter function
-// for TaskRuns ensuring TaskRuns are filtered by list of namespaces membership
-func TaskRunInformerFilterFunc(namespaces []string) func(obj interface{}) bool {
+// for TaskRuns ensuring TaskRuns are filtered by spec.managedBy value
+// and list of namespaces membership
+func TaskRunInformerFilterFunc(namespaces []string, cfgStore *config.ConfigStore) func(obj interface{}) bool {
 	return func(obj interface{}) bool {
-		// Namespace filter
+		tr, ok := obj.(*v1.TaskRun)
+		if !ok {
+			return false
+		}
+		if !isManagedByAllowed(tr.Spec.ManagedBy, cfgStore.Load().Filter.ManagedByValues) {
+			return false
+		}
 		if len(namespaces) == 0 {
 			return true
 		}
-		if tr, ok := obj.(*v1.TaskRun); ok {
-			if slices.Contains(namespaces, tr.Namespace) {
-				return true
-			}
-		}
-		return false
+		return slices.Contains(namespaces, tr.Namespace)
 	}
 }
 
 // TaskRunInformerFilterFuncWithOwnership returns a filter function
-// for TaskRuns ensuring Ownership by a PipelineRun and filtered by list of namespaces membership and
-func TaskRunInformerFilterFuncWithOwnership(namespaces []string) func(obj interface{}) bool {
+// for TaskRuns ensuring Ownership by a PipelineRun and filtered by spec.managedBy value
+// and list of namespaces membership
+func TaskRunInformerFilterFuncWithOwnership(namespaces []string, cfgStore *config.ConfigStore) func(obj interface{}) bool {
 	return func(obj interface{}) bool {
 		// Ownership filter
 		if !controller.FilterController(&v1.PipelineRun{})(obj) {
 			return false
 		}
-		// Namespace filter
+		tr, ok := obj.(*v1.TaskRun)
+		if !ok {
+			return false
+		}
+		if !isManagedByAllowed(tr.Spec.ManagedBy, cfgStore.Load().Filter.ManagedByValues) {
+			return false
+		}
 		if len(namespaces) == 0 {
 			return true
 		}
-		if tr, ok := obj.(*v1.TaskRun); ok {
-			if slices.Contains(namespaces, tr.Namespace) {
-				return true
-			}
-		}
-		return false
+		return slices.Contains(namespaces, tr.Namespace)
 	}
 }

@@ -153,7 +153,8 @@ func TestParse(t *testing.T) {
 				Transparency:    defaultTransparency,
 				BuildDefinition: defaultBuildDefinition,
 			},
-		}, {
+		},
+		{
 			name: "builder configuration",
 			data: map[string]string{
 				builderIDKey: "builder-id-test",
@@ -170,7 +171,8 @@ func TestParse(t *testing.T) {
 				Transparency:    defaultTransparency,
 				BuildDefinition: defaultBuildDefinition,
 			},
-		}, {
+		},
+		{
 			name: "storage configuration",
 			data: map[string]string{
 				grafeasNoteHint: "a test message",
@@ -499,7 +501,8 @@ func TestParse(t *testing.T) {
 				Transparency:    defaultTransparency,
 				BuildDefinition: defaultBuildDefinition,
 			},
-		}, {
+		},
+		{
 			name: "fulcio",
 			data: map[string]string{
 				taskrunSignerKey:              "x509",
@@ -540,7 +543,8 @@ func TestParse(t *testing.T) {
 				Transparency:    defaultTransparency,
 				BuildDefinition: defaultBuildDefinition,
 			},
-		}, {
+		},
+		{
 			name: "rekor - true",
 			data: map[string]string{
 				"transparency.enabled": "true",
@@ -564,7 +568,8 @@ func TestParse(t *testing.T) {
 				},
 				BuildDefinition: defaultBuildDefinition,
 			},
-		}, {
+		},
+		{
 			name: "rekor - manual",
 			data: map[string]string{
 				"transparency.enabled": "manual",
@@ -589,7 +594,27 @@ func TestParse(t *testing.T) {
 				},
 				BuildDefinition: defaultBuildDefinition,
 			},
-		}, {
+		},
+		{
+			name: "filter managed-by with whitespace",
+			data: map[string]string{
+				"filter.managed-by": "tekton.dev/pipeline, my-controller",
+			},
+			taskrunEnabled: true,
+			ociEnbaled:     true,
+			want: Config{
+				Builder:         defaultBuilder,
+				Artifacts:       defaultArtifacts,
+				Signers:         defaultSigners,
+				Storage:         defaultStorage,
+				Transparency:    defaultTransparency,
+				BuildDefinition: defaultBuildDefinition,
+				Filter: FilterConfig{
+					ManagedByValues: sets.New[string]("tekton.dev/pipeline", "my-controller"),
+				},
+			},
+		},
+		{
 			name: "buildDefinition - slsa-tekton",
 			data: map[string]string{
 				"builddefinition.buildtype": "https://tekton.dev/chains/v2/slsa-tekton",
