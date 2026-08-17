@@ -145,6 +145,7 @@ func TestRekor(t *testing.T) {
 		name      string
 		cm        map[string]string
 		getObject func(ns string) objects.TektonObject
+		opts      setupOpts
 	}{
 		{
 			name: "taskrun",
@@ -178,12 +179,28 @@ func TestRekor(t *testing.T) {
 			},
 			getObject: getPipelineRunObject,
 		},
+		{
+			// Covers the x509 signer's ed25519 key path (see #1868): the
+			// signing-secrets x509.pem is an ed25519 key instead of ECDSA.
+			name: "taskrun-ed25519",
+			cm: map[string]string{
+				"artifacts.taskrun.format":  "in-toto",
+				"artifacts.taskrun.signer":  "x509",
+				"artifacts.taskrun.storage": "tekton",
+				"artifacts.oci.format":      "simplesigning",
+				"artifacts.oci.signer":      "x509",
+				"artifacts.oci.storage":     "tekton",
+				"transparency.enabled":      "true",
+			},
+			getObject: getTaskRunObject,
+			opts:      setupOpts{useEd25519Signer: true},
+		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			ctx := logtesting.TestContextWithLogger(t)
-			c, ns, cleanup := setup(ctx, t, setupOpts{})
+			c, ns, cleanup := setup(ctx, t, test.opts)
 			t.Cleanup(cleanup)
 
 			// Setup the right config.
@@ -470,7 +487,11 @@ func TestOCIStorage(t *testing.T) {
 		t.Fatal("object never signed")
 	}
 
-	publicKey, err := cryptoutils.MarshalPublicKeyToPEM(c.secret.x509priv.Public())
+	x509PubKey, err := c.secret.x509priv.PublicKey()
+	if err != nil {
+		t.Error(err)
+	}
+	publicKey, err := cryptoutils.MarshalPublicKeyToPEM(x509PubKey)
 	if err != nil {
 		t.Error(err)
 	}
@@ -537,7 +558,11 @@ func TestMultiBackendStorage(t *testing.T) {
 
 			createdObj := tekton.CreateObject(t, ctx, c.PipelineClient, test.getObject(ns))
 
-			publicKey, err := cryptoutils.MarshalPublicKeyToPEM(c.secret.x509priv.Public())
+			x509PubKey, err := c.secret.x509priv.PublicKey()
+			if err != nil {
+				t.Error(err)
+			}
+			publicKey, err := cryptoutils.MarshalPublicKeyToPEM(x509PubKey)
 			if err != nil {
 				t.Error(err)
 			}

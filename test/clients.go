@@ -29,6 +29,7 @@ import (
 	"context"
 	"crypto"
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/x509"
@@ -86,10 +87,11 @@ func newClients(t *testing.T, configPath, clusterName string) *clients {
 }
 
 type setupOpts struct {
-	useCosignSigner bool
-	registry        bool
-	kanikoTaskImage string
-	ns              string
+	useCosignSigner  bool
+	useEd25519Signer bool
+	registry         bool
+	kanikoTaskImage  string
+	ns               string
 }
 
 func setup(ctx context.Context, t *testing.T, opts setupOpts) (*clients, string, func()) {
@@ -197,7 +199,7 @@ func createRegistry(ctx context.Context, t *testing.T, namespace string, kubeCli
 }
 
 type secret struct {
-	x509priv   *signature.ECDSASignerVerifier
+	x509priv   signature.SignerVerifier
 	cosignPriv signature.SignerVerifier
 }
 
@@ -213,19 +215,37 @@ func setupSecret(ctx context.Context, t *testing.T, c kubernetes.Interface, opts
 	}
 
 	// x509
-	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		t.Fatal(err)
-	}
-	b, err := x509.MarshalPKCS8PrivateKey(priv)
-	if err != nil {
-		t.Fatal(err)
-	}
-	s.StringData["x509.pem"] = string(pem.EncodeToMemory(&pem.Block{Bytes: b, Type: "PRIVATE KEY"}))
+	var x509Priv signature.SignerVerifier
+	if opts.useEd25519Signer {
+		_, priv, err := ed25519.GenerateKey(rand.Reader)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b, err := x509.MarshalPKCS8PrivateKey(priv)
+		if err != nil {
+			t.Fatal(err)
+		}
+		s.StringData["x509.pem"] = string(pem.EncodeToMemory(&pem.Block{Bytes: b, Type: "PRIVATE KEY"}))
 
-	x509Priv, err := signature.LoadECDSASignerVerifier(priv, crypto.SHA256)
-	if err != nil {
-		t.Fatal(err)
+		x509Priv, err = signature.LoadED25519SignerVerifier(priv)
+		if err != nil {
+			t.Fatal(err)
+		}
+	} else {
+		priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b, err := x509.MarshalPKCS8PrivateKey(priv)
+		if err != nil {
+			t.Fatal(err)
+		}
+		s.StringData["x509.pem"] = string(pem.EncodeToMemory(&pem.Block{Bytes: b, Type: "PRIVATE KEY"}))
+
+		x509Priv, err = signature.LoadECDSASignerVerifier(priv, crypto.SHA256)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	// cosign
