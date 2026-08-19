@@ -18,7 +18,10 @@ import (
 
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/stretchr/testify/assert"
+	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestNewRepo(t *testing.T) {
@@ -55,4 +58,24 @@ func TestNewRepo(t *testing.T) {
 			assert.Equal(t, repo.Name(), test.expectedRepoName)
 		}
 	})
+}
+
+// TestK8schainOptions_IgnoresImagePullSecrets guards against regressing to the
+// bug reported in https://github.com/tektoncd/chains/issues/1336: if the
+// ServiceAccount running the TaskRun/PipelineRun has both imagePullSecrets and
+// mounted secrets for the same registry, Chains must not let the read-only
+// imagePullSecret shadow the push-capable mounted secret.
+func TestK8schainOptions_IgnoresImagePullSecrets(t *testing.T) {
+	tr := &v1.TaskRun{
+		ObjectMeta: metav1.ObjectMeta{Name: "my-taskrun", Namespace: "my-namespace"},
+		Spec:       v1.TaskRunSpec{ServiceAccountName: "my-sa"},
+	}
+	obj := objects.NewTaskRunObjectV1(tr)
+
+	opts := k8schainOptions(obj)
+
+	assert.Equal(t, "my-namespace", opts.Namespace)
+	assert.Equal(t, "my-sa", opts.ServiceAccountName)
+	assert.True(t, opts.UseMountSecrets)
+	assert.True(t, opts.IgnorePullSecrets, "chains only pushes artifacts, so imagePullSecrets must be ignored in favor of the ServiceAccount's mounted (push-capable) secrets")
 }

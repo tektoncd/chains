@@ -53,6 +53,20 @@ type Backend struct {
 	getAuthenticator func(ctx context.Context, obj objects.TektonObject, client kubernetes.Interface) (remote.Option, error)
 }
 
+// k8schainOptions builds the options used to resolve registry credentials for
+// the ServiceAccount running obj. IgnorePullSecrets is set because Chains only
+// ever pushes signatures/attestations, never pulls: honoring imagePullSecrets
+// here can pick a read-only credential over a push-capable one from the
+// ServiceAccount's mounted secrets when both target the same registry.
+func k8schainOptions(obj objects.TektonObject) k8schain.Options {
+	return k8schain.Options{
+		Namespace:          obj.GetNamespace(),
+		ServiceAccountName: obj.GetServiceAccountName(),
+		UseMountSecrets:    true,
+		IgnorePullSecrets:  true,
+	}
+}
+
 // NewStorageBackend returns a new OCI StorageBackend that stores signatures in an OCI registry
 func NewStorageBackend(ctx context.Context, client kubernetes.Interface, cfg config.Config) *Backend {
 	return &Backend{
@@ -60,12 +74,7 @@ func NewStorageBackend(ctx context.Context, client kubernetes.Interface, cfg con
 
 		client: client,
 		getAuthenticator: func(ctx context.Context, obj objects.TektonObject, client kubernetes.Interface) (remote.Option, error) {
-			kc, err := k8schain.New(ctx, client,
-				k8schain.Options{
-					Namespace:          obj.GetNamespace(),
-					ServiceAccountName: obj.GetServiceAccountName(),
-					UseMountSecrets:    true,
-				})
+			kc, err := k8schain.New(ctx, client, k8schainOptions(obj))
 			if err != nil {
 				return nil, errors.Wrapf(err, "creating new keychain from serviceaccount %s/%s", obj.GetNamespace(), obj.GetServiceAccountName())
 			}
