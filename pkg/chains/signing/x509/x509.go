@@ -17,6 +17,7 @@ import (
 	"context"
 	"crypto"
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	cx509 "crypto/x509"
 	"encoding/json"
 	"encoding/pem"
@@ -190,11 +191,16 @@ func x509Signer(ctx context.Context, privateKey []byte) (*Signer, error) {
 	if err != nil {
 		return nil, err
 	}
-	ecdsaKey, ok := pk.(*ecdsa.PrivateKey)
-	if !ok {
-		return nil, fmt.Errorf("unsupported private key type %T, only ECDSA keys are supported", pk)
+
+	var signer signature.SignerVerifier
+	switch key := pk.(type) {
+	case *ecdsa.PrivateKey:
+		signer, err = signature.LoadECDSASignerVerifier(key, crypto.SHA256)
+	case ed25519.PrivateKey:
+		signer, err = signature.LoadED25519SignerVerifier(key)
+	default:
+		return nil, fmt.Errorf("unsupported private key type %T, only ECDSA and ed25519 keys are supported", pk)
 	}
-	signer, err := signature.LoadECDSASignerVerifier(ecdsaKey, crypto.SHA256)
 	if err != nil {
 		return nil, err
 	}
