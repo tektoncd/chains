@@ -1099,3 +1099,93 @@ func TestRemoteStepActionProvenance(t *testing.T) {
 		}
 	}
 }
+
+func TestNativeArtifactsProvenance(t *testing.T) {
+	ctx := logtesting.TestContextWithLogger(t)
+	c, ns, cleanup := setup(ctx, t, setupOpts{})
+	t.Cleanup(cleanup)
+
+	resetConfig := setConfigMap(ctx, t, c, map[string]string{
+		"artifacts.taskrun.format":  "slsa/v2alpha4",
+		"artifacts.taskrun.signer":  "x509",
+		"artifacts.taskrun.storage": "tekton",
+		"artifacts.oci.signer":      "x509",
+		"artifacts.oci.storage":     "tekton",
+	})
+	t.Cleanup(resetConfig)
+
+	tr, err := taskRunFromFile("testdata/native-artifacts/taskrun.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tro := objects.NewTaskRunObjectV1(tr)
+	tro.Namespace = ns
+
+	createdTro := tekton.CreateObject(t, ctx, c.PipelineClient, tro)
+
+	if got := waitForCondition(ctx, t, c.PipelineClient, createdTro, done, time.Minute); got == nil {
+		t.Fatal("object never done")
+	}
+
+	signedObj := waitForCondition(ctx, t, c.PipelineClient, createdTro, signed, 2*time.Minute)
+	if signedObj == nil {
+		t.Fatal("object never signed")
+	}
+
+	signedTR := signedObj.GetObject().(*v1.TaskRun)
+
+	payloadKey := fmt.Sprintf("chains.tekton.dev/payload-taskrun-%s", signedObj.GetUID())
+	body := signedObj.GetAnnotations()[payloadKey]
+	bodyBytes, err := base64.StdEncoding.DecodeString(body)
+	if err != nil {
+		t.Fatalf("error decoding payload: %v", err)
+	}
+
+	var statement intoto.Statement
+	if err := json.Unmarshal(bodyBytes, &statement); err != nil {
+		t.Fatalf("error unmarshaling statement: %v", err)
+	}
+
+	t.Logf("Statement subject count: %d", len(statement.Subject))
+	for _, s := range statement.Subject {
+		t.Logf("  Subject: %s %v", s.Name, s.Digest)
+	}
+
+	if len(statement.Subject) == 0 {
+		t.Error("expected at least one subject in the provenance statement")
+	}
+
+	if signedTR.Status.Artifacts != nil {
+		t.Log("Native Tekton Artifacts detected on TaskRun status — verifying provenance includes them")
+
+		for _, output := range signedTR.Status.Artifacts.Outputs {
+			if !output.BuildOutput {
+				continue
+			}
+			for _, val := range output.Values {
+				found := false
+				for _, s := range statement.Subject {
+					if s.Name == val.Uri {
+						found = true
+						break
+					}
+				}
+				if !found {
+					t.Errorf("native build output %q not found in provenance subjects", val.Uri)
+				}
+			}
+		}
+
+		for _, input := range signedTR.Status.Artifacts.Inputs {
+			for _, val := range input.Values {
+				t.Logf("  Native input artifact: %s", val.Uri)
+			}
+		}
+
+		t.Log("Native Tekton Artifacts provenance verification passed")
+	} else {
+		t.Log("No native Tekton Artifacts on TaskRun status (Pipeline may not support TEP-0147) — skipping native artifact checks")
+	}
+
+	verifySignature(ctx, t, c, signedObj)
+}

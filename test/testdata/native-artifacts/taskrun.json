@@ -1,0 +1,31 @@
+{
+  "apiVersion": "tekton.dev/v1",
+  "kind": "TaskRun",
+  "metadata": {
+    "generateName": "native-artifacts-",
+    "annotations": {
+      "chains.tekton.dev/rekor": "true"
+    }
+  },
+  "spec": {
+    "taskSpec": {
+      "results": [
+        {
+          "name": "IMAGE_URL",
+          "type": "string"
+        },
+        {
+          "name": "IMAGE_DIGEST",
+          "type": "string"
+        }
+      ],
+      "steps": [
+        {
+          "name": "build",
+          "image": "bash:latest",
+          "script": "#!/usr/bin/env bash\necho -n \"gcr.io/native/image\" | tee $(results.IMAGE_URL.path)\necho -n \"sha256:586789aa031fafc7d78a5393cdc772e0b55107ea54bb8bcf3f2cdac6c6da51ee\" | tee $(results.IMAGE_DIGEST.path)\n"
+        }
+      ]
+    }
+  }
+}
