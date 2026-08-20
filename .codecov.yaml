@@ -8,13 +8,17 @@ coverage:
       default: false
 
 ignore:
+  # Auto-generated deepcopy code.
   - "**/zz_generated*.go"
-  - "vendor/**"
-  - "test/**"
-  - "config/**"
-  - "docs/**"
-  - "hack/**"
-  - "cmd/**"
-  - "examples/**"
-  - "images/**"
-  - "release/**"
+  - "**/fake/**"
+  # Entry-point binaries.
+  - "cmd"
+  - "vendor"
+  - "test"
+  - "pkg/test/"
+  - "config"
+  - "docs"
+  - "hack"
+  - "examples"
+  - "images"
+  - "release"

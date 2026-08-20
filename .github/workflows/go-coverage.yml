@@ -49,7 +49,11 @@ jobs:
       - name: Generate coverage
         working-directory: ${{ github.workspace }}/src/github.com/tektoncd/chains
         run: |
-          go test -coverprofile=coverage.txt -covermode=atomic ./... || true
+          PACKAGES=$(go list ./... | grep -vE '/cmd(/|$)|/vendor(/|$)|/hack(/|$)|/test(/|$)|/config(/|$)|/docs(/|$)|/examples(/|$)|/images(/|$)|/release(/|$)|/fake(/|$)')
+          COVERPKG=$(echo $PACKAGES | tr ' ' ',')
+          go test -coverprofile=coverage_raw.txt -covermode=atomic -coverpkg="$COVERPKG" $PACKAGES
+          grep -vE 'zz_generated\.deepcopy\.go' coverage_raw.txt > coverage.txt
+          rm -f coverage_raw.txt
           echo "Generated coverage profile"
 
       - name: Archive coverage results
@@ -66,6 +70,7 @@ jobs:
           flags: unit-tests
           use_oidc: true
           fail_ci_if_error: true
+          disable_search: true
 
       - name: Comment on PR
         if: github.event_name == 'pull_request'
