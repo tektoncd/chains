@@ -24,7 +24,7 @@ require (
 	github.com/prometheus/common v0.70.1
 	github.com/secure-systems-lab/go-securesystemslib v0.11.1
 	github.com/sigstore/cosign/v2 v2.6.5
-	github.com/sigstore/protobuf-specs v0.5.1
+	github.com/sigstore/protobuf-specs v0.5.2
 	github.com/sigstore/rekor v1.5.4
 	github.com/sigstore/sigstore v1.10.9
 	github.com/sigstore/sigstore/pkg/signature/kms/aws v1.10.9
