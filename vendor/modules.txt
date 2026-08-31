@@ -67,7 +67,7 @@ cloud.google.com/go/longrunning/internal
 cloud.google.com/go/monitoring/apiv3/v2
 cloud.google.com/go/monitoring/apiv3/v2/monitoringpb
 cloud.google.com/go/monitoring/internal
-# cloud.google.com/go/storage v1.65.0
+# cloud.google.com/go/storage v1.65.1
 ## explicit; go 1.25.0
 cloud.google.com/go/storage
 cloud.google.com/go/storage/experimental
@@ -672,7 +672,7 @@ github.com/digitorus/timestamp
 # github.com/dimchansky/utfbom v1.1.1
 ## explicit
 github.com/dimchansky/utfbom
-# github.com/docker/cli v29.6.2+incompatible
+# github.com/docker/cli v29.7.2+incompatible
 ## explicit
 github.com/docker/cli/cli/config
 github.com/docker/cli/cli/config/configfile
@@ -1205,7 +1205,7 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/go-containerregistry v0.21.9
+# github.com/google/go-containerregistry v0.22.0
 ## explicit; go 1.25.0
 github.com/google/go-containerregistry/internal/and
 github.com/google/go-containerregistry/internal/compression
@@ -1507,7 +1507,7 @@ github.com/kisielk/errcheck/errcheck
 # github.com/kkHAIKE/contextcheck v1.1.6
 ## explicit; go 1.23.0
 github.com/kkHAIKE/contextcheck
-# github.com/klauspost/compress v1.19.1
+# github.com/klauspost/compress v1.19.2
 ## explicit; go 1.24
 github.com/klauspost/compress
 github.com/klauspost/compress/flate
@@ -2620,7 +2620,7 @@ golang.org/x/exp/slices
 # golang.org/x/exp/typeparams v0.0.0-20250210185358-939b2ce775ac
 ## explicit; go 1.18
 golang.org/x/exp/typeparams
-# golang.org/x/mod v0.38.0
+# golang.org/x/mod v0.39.0
 ## explicit; go 1.25.0
 golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/modfile
@@ -2628,7 +2628,7 @@ golang.org/x/mod/module
 golang.org/x/mod/semver
 golang.org/x/mod/sumdb/dirhash
 golang.org/x/mod/sumdb/note
-# golang.org/x/net v0.57.0
+# golang.org/x/net v0.58.0
 ## explicit; go 1.25.0
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
@@ -2699,7 +2699,7 @@ golang.org/x/text/width
 # golang.org/x/time v0.15.0
 ## explicit; go 1.25.0
 golang.org/x/time/rate
-# golang.org/x/tools v0.48.0
+# golang.org/x/tools v0.49.0
 ## explicit; go 1.25.0
 golang.org/x/tools/go/analysis
 golang.org/x/tools/go/analysis/passes/appends
@@ -2778,6 +2778,7 @@ golang.org/x/tools/internal/gopathwalk
 golang.org/x/tools/internal/imports
 golang.org/x/tools/internal/modindex
 golang.org/x/tools/internal/moreiters
+golang.org/x/tools/internal/moremaps
 golang.org/x/tools/internal/packagepath
 golang.org/x/tools/internal/packagesinternal
 golang.org/x/tools/internal/pkgbits
@@ -2839,7 +2840,7 @@ google.golang.org/genproto/googleapis/api/monitoredres
 google.golang.org/genproto/googleapis/rpc/code
 google.golang.org/genproto/googleapis/rpc/errdetails
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.83.1
+# google.golang.org/grpc v1.83.2
 ## explicit; go 1.25.0
 google.golang.org/grpc
 google.golang.org/grpc/attributes
