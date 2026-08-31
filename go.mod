@@ -29,7 +29,7 @@ require (
 	github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.10.9
 	github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.10.9
 	github.com/spiffe/go-spiffe/v2 v2.6.0
-	github.com/stretchr/testify v1.12.0
+	github.com/stretchr/testify v1.12.1
 	github.com/tektoncd/pipeline v1.12.2
 	github.com/tektoncd/plumbing v0.0.0-20250115133002-f515628dffea
 	go.opentelemetry.io/otel v1.44.0
@@ -41,7 +41,7 @@ require (
 	gocloud.dev/pubsub/kafkapubsub v0.43.0
 	golang.org/x/crypto v0.55.0
 	golang.org/x/exp v0.0.0-20260312153236-7ab1446f8b90
-	google.golang.org/grpc v1.82.1
+	google.golang.org/grpc v1.82.2
 	google.golang.org/protobuf v1.36.12
 	k8s.io/api v0.36.4
 	k8s.io/apimachinery v0.36.4
