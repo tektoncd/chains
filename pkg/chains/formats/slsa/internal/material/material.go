@@ -27,6 +27,7 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/artifact"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/slsaconfig"
 	"github.com/tektoncd/chains/pkg/chains/objects"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	"knative.dev/pkg/logging"
 )
 
@@ -240,6 +241,38 @@ func FromStepActionsResults(ctx context.Context, tro *objects.TaskRunObjectV1) (
 	sms := artifacts.RetrieveMaterialsFromStructuredResults(ctx, tro.GetStepResults())
 	mats = artifact.AppendMaterials(mats, sms...)
 	return
+}
+
+// FromNativeArtifactInputs converts native Tekton Artifact inputs (TEP-0147) into provenance materials.
+func FromNativeArtifactInputs(_ context.Context, tro *objects.TaskRunObjectV1) []common.ProvenanceMaterial {
+	var mats []common.ProvenanceMaterial
+
+	addInputs := func(inputs []v1.Artifact) {
+		for _, input := range inputs {
+			for _, val := range input.Values {
+				if val.Uri == "" || len(val.Digest) == 0 {
+					continue
+				}
+				digestSet := common.DigestSet{}
+				for algo, hex := range val.Digest {
+					// Turns {Algorithm("sha256"): "abc123"} To {"sha256": "abc123"}
+					digestSet[string(algo)] = hex
+				}
+				mats = artifact.AppendMaterials(mats, common.ProvenanceMaterial{
+					URI:    val.Uri,
+					Digest: digestSet,
+				})
+			}
+		}
+	}
+	if arts := tro.GetArtifacts(); arts != nil {
+		addInputs(arts.Inputs)
+	} else {
+		for _, step := range tro.GetStepArtifacts() {
+			addInputs(step.Inputs)
+		}
+	}
+	return mats
 }
 
 // FromPipelineParamsAndResults extracts type hinted params and results and adds the url and digest to materials.

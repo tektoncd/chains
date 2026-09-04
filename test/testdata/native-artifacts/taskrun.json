@@ -1,0 +1,36 @@
+{
+  "apiVersion": "tekton.dev/v1",
+  "kind": "TaskRun",
+  "metadata": {
+    "generateName": "native-artifacts-",
+    "annotations": {
+      "chains.tekton.dev/rekor": "true"
+    }
+  },
+  "spec": {
+    "taskSpec": {
+      "results": [
+        {
+          "name": "IMAGE_URL",
+          "type": "string"
+        },
+        {
+          "name": "IMAGE_DIGEST",
+          "type": "string"
+        }
+      ],
+      "steps": [
+        {
+          "name": "build",
+          "image": "bash:latest",
+          "script": "#!/usr/bin/env bash\necho -n \"gcr.io/native/image\" | tee $(results.IMAGE_URL.path)\necho -n \"sha256:586789aa031fafc7d78a5393cdc772e0b55107ea54bb8bcf3f2cdac6c6da51ee\" | tee $(results.IMAGE_DIGEST.path)\n"
+        },
+        {
+          "name": "declare-artifacts",
+          "image": "bash:latest",
+          "script": "#!/usr/bin/env bash\ncat > $(step.artifacts.path) << 'EOF'\n{\"inputs\":[{\"name\":\"source-repo\",\"values\":[{\"uri\":\"git+https://github.com/test/repo.git\",\"digest\":{\"sha256\":\"b35cacccfdb1e24dc497d15571c23e14580b8536e3bd1f65c3ad5a76012e3860\"}}]}],\"outputs\":[{\"name\":\"build-image\",\"values\":[{\"uri\":\"gcr.io/test/native-image\",\"digest\":{\"sha256\":\"d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6\"}}],\"buildOutput\":true},{\"name\":\"sbom-report\",\"values\":[{\"uri\":\"gcr.io/test/sbom\",\"digest\":{\"sha256\":\"a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2\"}}],\"buildOutput\":false}]}\nEOF\n"
+        }
+      ]
+    }
+  }
+}
