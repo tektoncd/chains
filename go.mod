@@ -42,7 +42,7 @@ require (
 	gocloud.dev v0.46.0
 	gocloud.dev/docstore/mongodocstore v0.46.0
 	gocloud.dev/pubsub/kafkapubsub v0.46.0
-	golang.org/x/crypto v0.55.0
+	golang.org/x/crypto v0.56.0
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f
 	google.golang.org/grpc v1.83.2
 	google.golang.org/protobuf v1.36.12
