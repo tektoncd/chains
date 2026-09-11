@@ -158,6 +158,9 @@ spec:
 
       ko resolve \
         --image-label=org.opencontainers.image.source=https://$(params.package) \
+          --image-label=org.opencontainers.image.url=https://$(params.package) \
+          --image-label=org.opencontainers.image.title=chains \
+          --image-label=org.opencontainers.image.description=Tekton\ Chains \
         --platform=$(params.platforms) \
         -t $(params.versionTag) \
         ${KO_EXTRA_ARGS} -f ${PROJECT_ROOT}/config/ > $OUTPUT_RELEASE_DIR/release.yaml
@@ -166,6 +169,9 @@ spec:
       # This is currently the case for `cri-o` (and most likely others)
       ko resolve \
         --image-label=org.opencontainers.image.source=https://$(params.package) \
+          --image-label=org.opencontainers.image.url=https://$(params.package) \
+          --image-label=org.opencontainers.image.title=chains \
+          --image-label=org.opencontainers.image.description=Tekton\ Chains \
         --platform=$(params.platforms) \
         ${KO_EXTRA_ARGS} -f ${PROJECT_ROOT}/config/ > $OUTPUT_RELEASE_DIR/release.notags.yaml
 
