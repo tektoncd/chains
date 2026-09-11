@@ -715,3 +715,153 @@ func createProWithPipelineParamAndTaskResult() *objects.PipelineRunObjectV1 {
 	pro.Status.PipelineSpec.Tasks = []v1.PipelineTask{{Name: pipelineTaskName}}
 	return pro
 }
+
+func TestFromNativeArtifactInputs(t *testing.T) {
+	tests := []struct {
+		name string
+		tro  *objects.TaskRunObjectV1
+		want []common.ProvenanceMaterial
+	}{
+		{
+			name: "no artifacts",
+			tro: objects.NewTaskRunObjectV1(&v1.TaskRun{
+				Status: v1.TaskRunStatus{
+					TaskRunStatusFields: v1.TaskRunStatusFields{},
+				},
+			}),
+			want: nil,
+		},
+		{
+			name: "taskrun-level artifact inputs",
+			tro: objects.NewTaskRunObjectV1(&v1.TaskRun{
+				Status: v1.TaskRunStatus{
+					TaskRunStatusFields: v1.TaskRunStatusFields{
+						Artifacts: &v1.Artifacts{
+							Inputs: []v1.Artifact{
+								{
+									Name: "source",
+									Values: []v1.ArtifactValue{
+										{Uri: "git+https://github.com/org/repo.git", Digest: map[v1.Algorithm]string{"sha1": "abc123def456abc123def456abc123def456abc1"}},
+									},
+								},
+							},
+						},
+					},
+				},
+			}),
+			want: []common.ProvenanceMaterial{
+				{
+					URI:    "git+https://github.com/org/repo.git",
+					Digest: common.DigestSet{"sha1": "abc123def456abc123def456abc123def456abc1"},
+				},
+			},
+		},
+		{
+			name: "step-level artifact inputs",
+			tro: objects.NewTaskRunObjectV1(&v1.TaskRun{
+				Status: v1.TaskRunStatus{
+					TaskRunStatusFields: v1.TaskRunStatusFields{
+						Steps: []v1.StepState{
+							{
+								Name: "clone",
+								Inputs: []v1.TaskRunStepArtifact{
+									{
+										Name: "base-image",
+										Values: []v1.ArtifactValue{
+											{Uri: "registry.redhat.io/ubi9", Digest: map[v1.Algorithm]string{"sha256": "05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5"}},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			}),
+			want: []common.ProvenanceMaterial{
+				{
+					URI:    "registry.redhat.io/ubi9",
+					Digest: common.DigestSet{"sha256": "05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5"},
+				},
+			},
+		},
+		{
+			name: "skips values with empty uri",
+			tro: objects.NewTaskRunObjectV1(&v1.TaskRun{
+				Status: v1.TaskRunStatus{
+					TaskRunStatusFields: v1.TaskRunStatusFields{
+						Artifacts: &v1.Artifacts{
+							Inputs: []v1.Artifact{
+								{
+									Name: "incomplete",
+									Values: []v1.ArtifactValue{
+										{Uri: "", Digest: map[v1.Algorithm]string{"sha256": "abc"}},
+									},
+								},
+							},
+						},
+					},
+				},
+			}),
+			want: nil,
+		},
+		{
+			// When Status.Artifacts is present, only the aggregate is read (Pipelines
+			// merges step artifacts into it). Step inputs must not be double-counted.
+			name: "prefers aggregate when present",
+			tro: objects.NewTaskRunObjectV1(&v1.TaskRun{
+				Status: v1.TaskRunStatus{
+					TaskRunStatusFields: v1.TaskRunStatusFields{
+						Artifacts: &v1.Artifacts{
+							Inputs: []v1.Artifact{
+								{
+									Name: "source",
+									Values: []v1.ArtifactValue{
+										{Uri: "git+https://github.com/org/repo.git", Digest: map[v1.Algorithm]string{"sha1": "abc123def456abc123def456abc123def456abc1"}},
+									},
+								},
+								{
+									Name: "config",
+									Values: []v1.ArtifactValue{
+										{Uri: "https://example.com/config.yaml", Digest: map[v1.Algorithm]string{"sha256": "05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b6"}},
+									},
+								},
+							},
+						},
+						Steps: []v1.StepState{
+							{
+								Name: "fetch",
+								Inputs: []v1.TaskRunStepArtifact{
+									{
+										Name: "config",
+										Values: []v1.ArtifactValue{
+											{Uri: "https://example.com/config.yaml", Digest: map[v1.Algorithm]string{"sha256": "05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b6"}},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			}),
+			want: []common.ProvenanceMaterial{
+				{
+					URI:    "git+https://github.com/org/repo.git",
+					Digest: common.DigestSet{"sha1": "abc123def456abc123def456abc123def456abc1"},
+				},
+				{
+					URI:    "https://example.com/config.yaml",
+					Digest: common.DigestSet{"sha256": "05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b6"},
+				},
+			},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := logtesting.TestContextWithLogger(t)
+			got := FromNativeArtifactInputs(ctx, tc.tro)
+			if diff := cmp.Diff(tc.want, got, compare.MaterialsCompareOption()); diff != "" {
+				t.Errorf("FromNativeArtifactInputs(): -want +got: %s", diff)
+			}
+		})
+	}
+}

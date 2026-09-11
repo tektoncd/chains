@@ -1099,3 +1099,123 @@ func TestRemoteStepActionProvenance(t *testing.T) {
 		}
 	}
 }
+
+func TestNativeArtifactsProvenance(t *testing.T) {
+	ctx := logtesting.TestContextWithLogger(t)
+	c, ns, cleanup := setup(ctx, t, setupOpts{})
+	t.Cleanup(cleanup)
+
+	resetConfig := setConfigMap(ctx, t, c, map[string]string{
+		"artifacts.taskrun.format":  "slsa/v2alpha4",
+		"artifacts.taskrun.signer":  "x509",
+		"artifacts.taskrun.storage": "tekton",
+		"artifacts.oci.signer":      "x509",
+		"artifacts.oci.storage":     "tekton",
+	})
+	t.Cleanup(resetConfig)
+
+	resetPipelinesConfig := setupPipelinesFeatureFlags(ctx, t, c, map[string]string{
+		"enable-artifacts": "true",
+	})
+	t.Cleanup(resetPipelinesConfig)
+
+	tr, err := taskRunFromFile("testdata/native-artifacts/taskrun.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tro := objects.NewTaskRunObjectV1(tr)
+	tro.Namespace = ns
+
+	createdTro := tekton.CreateObject(t, ctx, c.PipelineClient, tro)
+
+	if got := waitForCondition(ctx, t, c.PipelineClient, createdTro, done, time.Minute); got == nil {
+		t.Fatal("object never done")
+	}
+
+	signedObj := waitForCondition(ctx, t, c.PipelineClient, createdTro, signed, 2*time.Minute)
+	if signedObj == nil {
+		t.Fatal("object never signed")
+	}
+
+	payloadKey := fmt.Sprintf("chains.tekton.dev/payload-taskrun-%s", signedObj.GetUID())
+	body := signedObj.GetAnnotations()[payloadKey]
+	bodyBytes, err := base64.StdEncoding.DecodeString(body)
+	if err != nil {
+		t.Fatalf("error decoding payload: %v", err)
+	}
+
+	var statement intoto.Statement
+	if err := json.Unmarshal(bodyBytes, &statement); err != nil {
+		t.Fatalf("error unmarshaling statement: %v", err)
+	}
+
+	t.Logf("Statement subject count: %d", len(statement.Subject))
+	for _, s := range statement.Subject {
+		t.Logf("  Subject: %s %v", s.Name, s.Digest)
+	}
+
+	if len(statement.Subject) == 0 {
+		t.Error("expected at least one subject in the provenance statement")
+	}
+
+	// Verify legacy type-hinted subject is present
+	legacyDigest := "586789aa031fafc7d78a5393cdc772e0b55107ea54bb8bcf3f2cdac6c6da51ee"
+	foundLegacy := false
+	for _, s := range statement.Subject {
+		if s.Digest["sha256"] == legacyDigest {
+			foundLegacy = true
+			break
+		}
+	}
+	if !foundLegacy {
+		t.Errorf("legacy type-hinted subject sha256:%s not found in subjects", legacyDigest)
+	}
+	// Verify native build output appears as subject
+	nativeSubjectDigest := "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"
+	foundNativeSubject := false
+	for _, s := range statement.Subject {
+		if s.Digest["sha256"] == nativeSubjectDigest {
+			foundNativeSubject = true
+			break
+		}
+	}
+	if !foundNativeSubject {
+		t.Errorf("native build output sha256:%s not found in subjects", nativeSubjectDigest)
+	}
+	// Unmarshal predicate to check resolvedDependencies and byProducts
+	predicateBytes, err := protojson.Marshal(statement.Predicate)
+	if err != nil {
+		t.Fatalf("failed to marshal predicate: %v", err)
+	}
+	var pred slsa1.Provenance
+	if err := protojson.Unmarshal(predicateBytes, &pred); err != nil {
+		t.Fatalf("failed to unmarshal predicate: %v", err)
+	}
+	// Verify native input appears in resolvedDependencies
+	wantInputURI := "git+https://github.com/test/repo.git"
+	wantInputDigest := "b35cacccfdb1e24dc497d15571c23e14580b8536e3bd1f65c3ad5a76012e3860"
+	foundInput := false
+	for _, rd := range pred.GetBuildDefinition().GetResolvedDependencies() {
+		if rd.GetUri() == wantInputURI && rd.GetDigest()["sha256"] == wantInputDigest {
+			foundInput = true
+			break
+		}
+	}
+	if !foundInput {
+		t.Errorf("native input %s@sha256:%s not found in resolvedDependencies", wantInputURI, wantInputDigest)
+	}
+	// Verify non-build output appears in byProducts
+	wantByProductURI := "gcr.io/test/sbom"
+	wantByProductDigest := "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2"
+	foundByProduct := false
+	for _, bp := range pred.GetRunDetails().GetByproducts() {
+		if bp.GetName() == wantByProductURI && bp.GetDigest()["sha256"] == wantByProductDigest {
+			foundByProduct = true
+			break
+		}
+	}
+	if !foundByProduct {
+		t.Errorf("native non-build output %s@sha256:%s not found in byProducts", wantByProductURI, wantByProductDigest)
+	}
+	verifySignature(ctx, t, c, signedObj)
+}

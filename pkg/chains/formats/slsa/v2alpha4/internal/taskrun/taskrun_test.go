@@ -202,6 +202,187 @@ func getStruct(t *testing.T, data map[string]any) *structpb.Struct {
 	return protoStruct
 }
 
+func TestSubjectsFromNativeArtifacts(t *testing.T) {
+	tests := []struct {
+		name string
+		tro  *objects.TaskRunObjectV1
+		want []*intoto.ResourceDescriptor
+	}{
+		{
+			name: "no artifacts",
+			tro: objects.NewTaskRunObjectV1(&v1.TaskRun{
+				Status: v1.TaskRunStatus{
+					TaskRunStatusFields: v1.TaskRunStatusFields{},
+				},
+			}),
+			want: nil,
+		},
+		{
+			name: "taskrun-level build output becomes subject",
+			tro: objects.NewTaskRunObjectV1(&v1.TaskRun{
+				Status: v1.TaskRunStatus{
+					TaskRunStatusFields: v1.TaskRunStatusFields{
+						Artifacts: &v1.Artifacts{
+							Outputs: []v1.Artifact{
+								{
+									Name:        "built-image",
+									BuildOutput: true,
+									Values: []v1.ArtifactValue{
+										{Uri: "gcr.io/test/image", Digest: map[v1.Algorithm]string{"sha256": "d31cc8328054de2bd93735f9cbf0ccfb6e0ee8f4c4225da7d8f8cb3900eaf466"}},
+									},
+								},
+							},
+						},
+					},
+				},
+			}),
+			want: []*intoto.ResourceDescriptor{
+				{
+					Name:   "gcr.io/test/image",
+					Digest: common.DigestSet{"sha256": "d31cc8328054de2bd93735f9cbf0ccfb6e0ee8f4c4225da7d8f8cb3900eaf466"},
+				},
+			},
+		},
+		{
+			name: "non-build output is excluded from subjects",
+			tro: objects.NewTaskRunObjectV1(&v1.TaskRun{
+				Status: v1.TaskRunStatus{
+					TaskRunStatusFields: v1.TaskRunStatusFields{
+						Artifacts: &v1.Artifacts{
+							Outputs: []v1.Artifact{
+								{
+									Name:        "cache",
+									BuildOutput: false,
+									Values: []v1.ArtifactValue{
+										{Uri: "gcr.io/test/cache", Digest: map[v1.Algorithm]string{"sha256": "d31cc8328054de2bd93735f9cbf0ccfb6e0ee8f4c4225da7d8f8cb3900eaf466"}},
+									},
+								},
+							},
+						},
+					},
+				},
+			}),
+			want: nil,
+		},
+		{
+			name: "step-level build output becomes subject",
+			tro: objects.NewTaskRunObjectV1(&v1.TaskRun{
+				Status: v1.TaskRunStatus{
+					TaskRunStatusFields: v1.TaskRunStatusFields{
+						Steps: []v1.StepState{
+							{
+								Name: "build",
+								Outputs: []v1.TaskRunStepArtifact{
+									{
+										Name:        "step-image",
+										BuildOutput: true,
+										Values: []v1.ArtifactValue{
+											{Uri: "gcr.io/test/step-image", Digest: map[v1.Algorithm]string{"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"}},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			}),
+			want: []*intoto.ResourceDescriptor{
+				{
+					Name:   "gcr.io/test/step-image",
+					Digest: common.DigestSet{"sha256": "827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7"},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := subjectsFromNativeArtifacts(tt.tro)
+			if d := cmp.Diff(tt.want, got, cmp.Options{protocmp.Transform()}); d != "" {
+				t.Errorf("subjectsFromNativeArtifacts() (-want, +got):\n%s", d)
+			}
+		})
+	}
+}
+
+func TestByProductsFromNativeArtifacts(t *testing.T) {
+	tests := []struct {
+		name string
+		tro  *objects.TaskRunObjectV1
+		want []*intoto.ResourceDescriptor
+	}{
+		{
+			name: "no artifacts",
+			tro: objects.NewTaskRunObjectV1(&v1.TaskRun{
+				Status: v1.TaskRunStatus{
+					TaskRunStatusFields: v1.TaskRunStatusFields{},
+				},
+			}),
+			want: nil,
+		},
+		{
+			name: "step non-build output becomes byproduct",
+			tro: objects.NewTaskRunObjectV1(&v1.TaskRun{
+				Status: v1.TaskRunStatus{
+					TaskRunStatusFields: v1.TaskRunStatusFields{
+						Steps: []v1.StepState{
+							{
+								Name: "build",
+								Outputs: []v1.TaskRunStepArtifact{
+									{
+										Name:        "cache-layer",
+										BuildOutput: false,
+										Values: []v1.ArtifactValue{
+											{Uri: "gcr.io/test/cache", Digest: map[v1.Algorithm]string{"sha256": "d31cc8328054de2bd93735f9cbf0ccfb6e0ee8f4c4225da7d8f8cb3900eaf466"}},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			}),
+			want: []*intoto.ResourceDescriptor{
+				{
+					Name:   "gcr.io/test/cache",
+					Digest: common.DigestSet{"sha256": "d31cc8328054de2bd93735f9cbf0ccfb6e0ee8f4c4225da7d8f8cb3900eaf466"},
+				},
+			},
+		},
+		{
+			name: "build output is excluded from byproducts",
+			tro: objects.NewTaskRunObjectV1(&v1.TaskRun{
+				Status: v1.TaskRunStatus{
+					TaskRunStatusFields: v1.TaskRunStatusFields{
+						Steps: []v1.StepState{
+							{
+								Name: "build",
+								Outputs: []v1.TaskRunStepArtifact{
+									{
+										Name:        "built-image",
+										BuildOutput: true,
+										Values: []v1.ArtifactValue{
+											{Uri: "gcr.io/test/image", Digest: map[v1.Algorithm]string{"sha256": "d31cc8328054de2bd93735f9cbf0ccfb6e0ee8f4c4225da7d8f8cb3900eaf466"}},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			}),
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := byProductsFromNativeArtifacts(tt.tro)
+			if d := cmp.Diff(tt.want, got, cmp.Options{protocmp.Transform()}); d != "" {
+				t.Errorf("byProductsFromNativeArtifacts() (-want, +got):\n%s", d)
+			}
+		})
+	}
+}
+
 func getPredicateStruct(t *testing.T, slsaPredicate *slsa.Provenance) *structpb.Struct {
 	t.Helper()
 	predicateJSON, err := protojson.Marshal(slsaPredicate)

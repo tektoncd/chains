@@ -17,6 +17,7 @@ import (
 	"context"
 
 	intoto "github.com/in-toto/attestation/go/v1"
+	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/artifact"
 	builddefinition "github.com/tektoncd/chains/pkg/chains/formats/slsa/internal/build_definition"
@@ -66,8 +67,43 @@ func ByProducts(tro *objects.TaskRunObjectV1) ([]*intoto.ResourceDescriptor, err
 		return nil, err
 	}
 	byProd = append(byProd, res...)
+	byProd = append(byProd, byProductsFromNativeArtifacts(tro)...)
 
 	return byProd, nil
+}
+
+func byProductsFromNativeArtifacts(tro *objects.TaskRunObjectV1) []*intoto.ResourceDescriptor {
+	var byProds []*intoto.ResourceDescriptor
+
+	addNonBuildOutputs := func(outputs []v1.Artifact) {
+		for _, output := range outputs {
+			if output.BuildOutput {
+				continue
+			}
+			for _, val := range output.Values {
+				if val.Uri == "" || len(val.Digest) == 0 {
+					continue
+				}
+				digestSet := common.DigestSet{}
+				for algo, hex := range val.Digest {
+					digestSet[string(algo)] = hex
+				}
+				byProds = append(byProds, &intoto.ResourceDescriptor{
+					Name:   val.Uri,
+					Digest: digestSet,
+				})
+			}
+		}
+	}
+
+	if arts := tro.GetArtifacts(); arts != nil {
+		addNonBuildOutputs(arts.Outputs)
+	} else {
+		for _, step := range tro.GetStepArtifacts() {
+			addNonBuildOutputs(step.Outputs)
+		}
+	}
+	return byProds
 }
 
 // SubjectDigests returns the subjects detected in the given TaskRun. It takes into account taskrun and step results.
@@ -81,6 +117,7 @@ func SubjectDigests(ctx context.Context, tro *objects.TaskRunObjectV1) []*intoto
 
 	taskSubjects := extract.SubjectsFromBuildArtifact(ctx, tro.GetResults())
 	subjects = artifact.AppendSubjects(subjects, taskSubjects...)
+	subjects = artifact.AppendSubjects(subjects, subjectsFromNativeArtifacts(tro)...)
 
 	return subjects
 }
@@ -93,4 +130,39 @@ func getObjectResults(tresults []v1.TaskRunResult) (res []objects.Result) {
 		})
 	}
 	return
+}
+
+// subjectsFromNativeArtifacts add native artifact outputs (where BuildOutput=true) as subjects
+func subjectsFromNativeArtifacts(tro *objects.TaskRunObjectV1) []*intoto.ResourceDescriptor {
+	var subjects []*intoto.ResourceDescriptor
+
+	addOutputSubjects := func(outputs []v1.Artifact) {
+		for _, output := range outputs {
+			if !output.BuildOutput {
+				continue
+			}
+			for _, val := range output.Values {
+				if val.Uri == "" || len(val.Digest) == 0 {
+					continue
+				}
+				digestSet := common.DigestSet{}
+				for algo, hex := range val.Digest {
+					digestSet[string(algo)] = hex
+				}
+				subjects = artifact.AppendSubjects(subjects, &intoto.ResourceDescriptor{
+					Name:   val.Uri,
+					Digest: digestSet,
+				})
+			}
+		}
+	}
+
+	if arts := tro.GetArtifacts(); arts != nil {
+		addOutputSubjects(arts.Outputs)
+	} else {
+		for _, step := range tro.GetStepArtifacts() {
+			addOutputSubjects(step.Outputs)
+		}
+	}
+	return subjects
 }
