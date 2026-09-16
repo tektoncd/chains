@@ -44,7 +44,11 @@ ecosystems:
           - version-update:semver-major
           - version-update:semver-minor
     groups:
-      all:
+      sigstore:
+        patterns:
+          - github.com/sigstore/sigstore
+          - github.com/sigstore/sigstore/*
+      ungrouped:
         patterns:
           - "*"
     cooldown:
