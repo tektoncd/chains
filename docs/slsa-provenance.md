@@ -417,6 +417,61 @@ spec:
 
 Chains Will read `first-ARTIFACT_OUTPUTS` and `second-IMAGE_URL/second-IMAGE_DIGEST` from the StepAction and classify them as a `subject`.
 
+## Native Tekton Artifacts API
+This is a native, structured way to declare build inputs and outputs using the
+[Tekton Artifacts API (TEP-0147)](https://github.com/tektoncd/community/blob/main/teps/0147-tekton-artifacts-phase1.md).
+This is an alternative to type hinting that provides richer, more explicit
+artifact declarations.
+### Prerequisites
+The Artifacts API is gated behind a feature flag in Tekton Pipelines: "enable-artifacts"
+### How it works:
+Instead of writing to specially named results, steps write a structured JSON file to $(step.artifacts.path). The Tekton Pipelines controller reads this file and populates status.artifacts and status.steps[].inputs/outputs on the TaskRun.
+
+Chains then maps these artifacts into the SLSA provenance. 
+Example TaskRun: 
+
+```yaml
+apiVersion: tekton.dev/v1
+kind: TaskRun
+metadata:
+  name: build-with-artifacts
+spec:
+  taskSpec:
+    steps:
+      - name: build-and-push
+        image: gcr.io/kaniko-project/executor
+        script: |
+          #!/usr/bin/env bash
+          # Build and push the image
+          buildah push myimage quay.io/myorg/myapp --digestfile /tmp/digest.txt
+          DIGEST=$(cat /tmp/digest.txt)
+
+          # Declare artifacts
+          cat > $(step.artifacts.path) << EOF
+          {
+            "inputs": [
+              {
+                "name": "source-code",
+                "values": [{
+                  "uri": "git+https://github.com/myorg/myrepo.git",
+                  "digest": {"sha256": "7f2f...."}
+                }]
+              }
+            ],
+            "outputs": [
+              {
+                "name": "container-image",
+                "values": [{
+                  "uri": "quay.io/myorg/myapp",
+                  "digest": {"sha256": "${DIGEST}"}
+                }],
+                "buildOutput": true
+              }
+            ]
+          }
+          EOF
+```
+If a TaskRun uses both type hinting and native artifacts, Chains will include artifacts from both sources. Duplicates are removed automatically.
 
 ## Besides inputs/outputs
 

@@ -394,6 +394,80 @@ func TestPipelineRunIsRemote(t *testing.T) {
 	assert.Equal(t, true, pro.IsRemote())
 }
 
+func TestTaskRun_GetArtifacts(t *testing.T) {
+	t.Run("returns nil when no artifacts", func(t *testing.T) {
+		tr := NewTaskRunObjectV1(getTaskRun())
+		assert.Nil(t, tr.GetArtifacts())
+	})
+
+	t.Run("returns artifacts when present", func(t *testing.T) {
+		tr := NewTaskRunObjectV1(getTaskRun())
+		tr.Status.Artifacts = &v1.Artifacts{
+			Inputs: []v1.Artifact{
+				{
+					Name:   "source",
+					Values: []v1.ArtifactValue{{Uri: "git+https://github.com/org/repo", Digest: map[v1.Algorithm]string{"sha1": "abc123"}}},
+				},
+			},
+			Outputs: []v1.Artifact{
+				{
+					Name:        "image",
+					BuildOutput: true,
+					Values:      []v1.ArtifactValue{{Uri: "gcr.io/test/image", Digest: map[v1.Algorithm]string{"sha256": "def456"}}},
+				},
+			},
+		}
+		got := tr.GetArtifacts()
+		assert.NotNil(t, got)
+		assert.Len(t, got.Inputs, 1)
+		assert.Equal(t, "source", got.Inputs[0].Name)
+		assert.Len(t, got.Outputs, 1)
+		assert.Equal(t, "image", got.Outputs[0].Name)
+		assert.True(t, got.Outputs[0].BuildOutput)
+	})
+}
+
+func TestTaskRun_GetStepArtifacts(t *testing.T) {
+	t.Run("returns nil when steps have no artifacts", func(t *testing.T) {
+		tr := NewTaskRunObjectV1(getTaskRun())
+		got := tr.GetStepArtifacts()
+		assert.Nil(t, got)
+	})
+
+	t.Run("returns step artifacts when present", func(t *testing.T) {
+		tr := NewTaskRunObjectV1(getTaskRun())
+		tr.Status.Steps = []v1.StepState{
+			{
+				Name: "build",
+				Inputs: []v1.TaskRunStepArtifact{
+					{Name: "base-image", Values: []v1.ArtifactValue{{Uri: "registry.redhat.io/ubi9", Digest: map[v1.Algorithm]string{"sha256": "aaa111"}}}},
+				},
+				Outputs: []v1.TaskRunStepArtifact{
+					{Name: "built-image", BuildOutput: true, Values: []v1.ArtifactValue{{Uri: "gcr.io/test/app", Digest: map[v1.Algorithm]string{"sha256": "bbb222"}}}},
+				},
+			},
+			{
+				Name: "no-artifacts",
+			},
+		}
+		got := tr.GetStepArtifacts()
+		assert.Len(t, got, 1)
+		assert.Equal(t, "build", got[0].StepName)
+		assert.Len(t, got[0].Inputs, 1)
+		assert.Len(t, got[0].Outputs, 1)
+	})
+}
+
+func TestPipelineRun_GetArtifacts(t *testing.T) {
+	pro := NewPipelineRunObjectV1(getPipelineRun())
+	assert.Nil(t, pro.GetArtifacts())
+}
+
+func TestPipelineRun_GetStepArtifacts(t *testing.T) {
+	pro := NewPipelineRunObjectV1(getPipelineRun())
+	assert.Nil(t, pro.GetStepArtifacts())
+}
+
 func TestTaskRunIsRemote(t *testing.T) {
 	tro := NewTaskRunObjectV1(getTaskRun())
 	tro.Spec.TaskRef = &v1.TaskRef{
