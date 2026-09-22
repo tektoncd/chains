@@ -17,9 +17,12 @@ limitations under the License.
 package test
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/tektoncd/chains/pkg/chains"
@@ -27,6 +30,7 @@ import (
 	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 )
 
 const taskName = "kaniko-task"
@@ -110,6 +114,12 @@ func kanikoTask(t *testing.T, namespace, destinationImage string) *v1.Task {
 					// Need this to push the image to the insecure registry
 					"--insecure",
 				},
+				// kaniko v1.6.0 writes to the root-owned /kaniko dir, so it must run
+				// as root. runAsUser: 0 forces admission onto the privileged SCC
+				// (granted by assignSCC) instead of restricted-v2.
+				SecurityContext: &corev1.SecurityContext{
+					RunAsUser: ptr.To(int64(0)),
+				},
 				VolumeMounts: []corev1.VolumeMount{{
 					Name:      "dockerfile",
 					MountPath: "/dockerfile",
@@ -133,16 +143,37 @@ func kanikoTask(t *testing.T, namespace, destinationImage string) *v1.Task {
 }
 
 func assignSCC(namespace string) error {
-	// Construct the `oc` command with the necessary arguments
-	cmd := exec.Command("oc", "adm", "policy", "add-scc-to-user", "anyuid", "-z", "default", "-n", namespace)
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	defer cancel()
 
-	// Execute the command and capture the output
+	// Grant the privileged SCC to the default SA so the kaniko pod runs as root.
+	// anyuid is not enough: Tekton injects seccomp annotations that anyuid
+	// forbids, so it's dropped for restricted-v2 (which rejects UID 0).
+	// #nosec G204 -- namespace is a test-controlled value, not external input
+	cmd := exec.CommandContext(ctx, "oc", "adm", "policy", "add-scc-to-user", "privileged", "-z", "default", "-n", namespace)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to assign SCC: %w, output: %s", err, output)
 	}
 
-	return nil
+	// The grant can be a silent no-op, so poll until it takes effect and fail
+	// loudly otherwise. SCC is cluster-scoped but the grant is a namespaced
+	// RoleBinding, so the can-i check must be scoped with -n.
+	subject := fmt.Sprintf("system:serviceaccount:%s:default", namespace)
+	var lastOutput string
+	for {
+		// #nosec G204 -- namespace is a test-controlled value, not external input
+		checkCmd := exec.CommandContext(ctx, "kubectl", "auth", "can-i", "use", "scc/privileged", "--as", subject, "-n", namespace)
+		checkOut, _ := checkCmd.CombinedOutput()
+		lastOutput = strings.TrimSpace(string(checkOut))
+		if lastOutput == "yes" {
+			return nil
+		}
+		if ctx.Err() != nil {
+			return fmt.Errorf("privileged SCC grant for %s never took effect: %q", subject, lastOutput)
+		}
+		time.Sleep(2 * time.Second)
+	}
 }
 
 func verifyKanikoTaskRun(namespace, destinationImage, publicKey string) objects.TektonObject {

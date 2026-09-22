@@ -41,8 +41,15 @@ jobs:
         go-version-file: "${{ github.workspace }}/src/github.com/tektoncd/chains/go.mod"
 
     - name: setup microshift
+      env:
+        # Pin minc (not `latest`): it bakes in the OKD-SCOS image, so an
+        # unpinned download can silently change SCC admission and break this job.
+        # MINC_SHA256 locks the exact binary. Bump both deliberately.
+        MINC_VERSION: v0.2.0
+        MINC_SHA256: d9089a8e2c69d287455846a013915799be610eb899ec12183475507b3250d7a8
       run: |
-          curl -L -o minc  https://github.com/minc-org/minc/releases/latest/download/minc_linux_amd64
+          curl -L -o minc  https://github.com/minc-org/minc/releases/download/${MINC_VERSION}/minc_linux_amd64
+          echo "${MINC_SHA256}  minc" | sha256sum --check --strict
           chmod +x minc
           ./minc create --log-level debug
 
