@@ -84,6 +84,8 @@ type TektonObject interface {
 	IsRemote() bool
 	GetStartTime() *time.Time
 	GetCompletitionTime() *time.Time
+	GetArtifacts() *v1.Artifacts
+	GetStepArtifacts() []StepArtifacts
 }
 
 func NewTektonObject(i interface{}) (TektonObject, error) {
@@ -262,6 +264,34 @@ func (tro *TaskRunObjectV1) GetCompletitionTime() *time.Time {
 	return utc
 }
 
+// StepArtifacts holds the native Tekton Artifacts (TEP-0147) declared by a single step.
+type StepArtifacts struct {
+	StepName string
+	Inputs   []v1.TaskRunStepArtifact
+	Outputs  []v1.TaskRunStepArtifact
+}
+
+// GetArtifacts returns the task-level native artifacts from the TaskRun status.
+func (tro *TaskRunObjectV1) GetArtifacts() *v1.Artifacts {
+	return tro.Status.Artifacts
+}
+
+// GetStepArtifacts returns per-step native artifacts from the TaskRun status.
+func (tro *TaskRunObjectV1) GetStepArtifacts() []StepArtifacts {
+	var stepArts []StepArtifacts
+	for _, step := range tro.Status.Steps {
+		if len(step.Inputs) == 0 && len(step.Outputs) == 0 {
+			continue
+		}
+		stepArts = append(stepArts, StepArtifacts{
+			StepName: step.Name,
+			Inputs:   step.Inputs,
+			Outputs:  step.Outputs,
+		})
+	}
+	return stepArts
+}
+
 // PipelineRunObjectV1 extends v1.PipelineRun with additional functions.
 type PipelineRunObjectV1 struct {
 	// The base PipelineRun
@@ -436,4 +466,14 @@ func (pro *PipelineRunObjectV1) GetExecutedTasks() (tro []*TaskRunObjectV1) {
 	}
 
 	return
+}
+
+// GetArtifacts returns nil; PipelineRun-level native artifacts are not yet supported.
+func (pro *PipelineRunObjectV1) GetArtifacts() *v1.Artifacts {
+	return nil
+}
+
+// GetStepArtifacts returns nil; PipelineRun-level native artifacts are not yet supported.
+func (pro *PipelineRunObjectV1) GetStepArtifacts() []StepArtifacts {
+	return nil
 }
