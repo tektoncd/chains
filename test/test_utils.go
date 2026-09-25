@@ -240,7 +240,9 @@ func updateConfigMap(ctx context.Context, t *testing.T, c *clients, data map[str
 
 func printDebugging(t *testing.T, obj objects.TektonObject) {
 	t.Helper()
-	kind := obj.GetObjectKind().GroupVersionKind().Kind
+	// TypeMeta.Kind is empty on fetched objects; derive it from the concrete
+	// type so failure logs aren't silently skipped.
+	kind := obj.GetKindName()
 
 	// Validate and sanitize inputs to prevent potential command injection
 	if !isValidKubernetesKind(kind) {
