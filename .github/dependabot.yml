@@ -26,13 +26,18 @@ updates:
             - version-update:semver-major
             - version-update:semver-minor
       groups:
+        kube:
+            patterns:
+                - k8s.io/*
+        opentelemetry:
+            patterns:
+                - go.opentelemetry.io/*
+                - go.opentelemetry.io/contrib/*
+                - knative.dev/pkg
         sigstore:
             patterns:
                 - github.com/sigstore/sigstore
                 - github.com/sigstore/sigstore/*
-        ungrouped:
-            patterns:
-                - '*'
       cooldown:
         default-days: 7
         semver-major-days: 30
@@ -92,13 +97,18 @@ updates:
             - version-update:semver-major
             - version-update:semver-minor
       groups:
+        kube:
+            patterns:
+                - k8s.io/*
+        opentelemetry:
+            patterns:
+                - go.opentelemetry.io/*
+                - go.opentelemetry.io/contrib/*
+                - knative.dev/pkg
         sigstore:
             patterns:
                 - github.com/sigstore/sigstore
                 - github.com/sigstore/sigstore/*
-        ungrouped:
-            patterns:
-                - '*'
       cooldown:
         default-days: 7
         semver-major-days: 30
@@ -170,13 +180,18 @@ updates:
             - version-update:semver-major
             - version-update:semver-minor
       groups:
+        kube:
+            patterns:
+                - k8s.io/*
+        opentelemetry:
+            patterns:
+                - go.opentelemetry.io/*
+                - go.opentelemetry.io/contrib/*
+                - knative.dev/pkg
         sigstore:
             patterns:
                 - github.com/sigstore/sigstore
                 - github.com/sigstore/sigstore/*
-        ungrouped:
-            patterns:
-                - '*'
       cooldown:
         default-days: 7
         semver-major-days: 30
@@ -248,13 +263,18 @@ updates:
             - version-update:semver-major
             - version-update:semver-minor
       groups:
+        kube:
+            patterns:
+                - k8s.io/*
+        opentelemetry:
+            patterns:
+                - go.opentelemetry.io/*
+                - go.opentelemetry.io/contrib/*
+                - knative.dev/pkg
         sigstore:
             patterns:
                 - github.com/sigstore/sigstore
                 - github.com/sigstore/sigstore/*
-        ungrouped:
-            patterns:
-                - '*'
       cooldown:
         default-days: 7
         semver-major-days: 30
@@ -326,13 +346,18 @@ updates:
             - version-update:semver-major
             - version-update:semver-minor
       groups:
+        kube:
+            patterns:
+                - k8s.io/*
+        opentelemetry:
+            patterns:
+                - go.opentelemetry.io/*
+                - go.opentelemetry.io/contrib/*
+                - knative.dev/pkg
         sigstore:
             patterns:
                 - github.com/sigstore/sigstore
                 - github.com/sigstore/sigstore/*
-        ungrouped:
-            patterns:
-                - '*'
       cooldown:
         default-days: 7
         semver-major-days: 30
