@@ -3,7 +3,7 @@ module github.com/tektoncd/chains
 go 1.25.12
 
 require (
-	cloud.google.com/go/compute/metadata v0.9.0
+	cloud.google.com/go/compute/metadata v0.9.1
 	cloud.google.com/go/storage v1.57.2
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/golangci/golangci-lint v1.64.8
@@ -42,7 +42,7 @@ require (
 	google.golang.org/grpc v1.82.2
 	google.golang.org/protobuf v1.36.12
 	k8s.io/api v0.34.11
-	k8s.io/apimachinery v0.34.11
+	k8s.io/apimachinery v0.34.12
 	k8s.io/client-go v0.34.11
 	k8s.io/code-generator v0.33.13
 	knative.dev/pkg v0.0.0-20250415155312-ed3e2158b883
