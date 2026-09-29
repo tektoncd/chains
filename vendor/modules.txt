@@ -1243,7 +1243,7 @@ github.com/google/go-containerregistry/pkg/v1/types
 # github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20260414223304-7a662782a11f
 ## explicit; go 1.25.0
 github.com/google/go-containerregistry/pkg/authn/k8schain
-# github.com/google/go-containerregistry/pkg/authn/kubernetes v0.0.0-20260602200943-e4a78951c3eb
+# github.com/google/go-containerregistry/pkg/authn/kubernetes v0.0.0-20260602200943-e4a78951c3eb => github.com/conforma/go-containerregistry/pkg/authn/kubernetes v0.0.0-20260702142841-f9eefe19c7b2
 ## explicit; go 1.26.0
 github.com/google/go-containerregistry/pkg/authn/kubernetes
 # github.com/google/go-github/v73 v73.0.0
@@ -3912,3 +3912,4 @@ sigs.k8s.io/structured-merge-diff/v6/value
 sigs.k8s.io/yaml
 # github.com/alibabacloud-go/cr-20160607 => github.com/vdemeester/cr-20160607 v1.0.1
 # github.com/golang/glog => github.com/jdolitsky/glog v0.0.0-20220729172235-78744e90d087
+# github.com/google/go-containerregistry/pkg/authn/kubernetes => github.com/conforma/go-containerregistry/pkg/authn/kubernetes v0.0.0-20260702142841-f9eefe19c7b2
