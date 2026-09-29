@@ -500,3 +500,5 @@ replace (
 	github.com/alibabacloud-go/cr-20160607 => github.com/vdemeester/cr-20160607 v1.0.1
 	github.com/golang/glog => github.com/jdolitsky/glog v0.0.0-20220729172235-78744e90d087
 )
+
+replace github.com/google/go-containerregistry/pkg/authn/kubernetes => github.com/conforma/go-containerregistry/pkg/authn/kubernetes v0.0.0-20260702142841-f9eefe19c7b2
