@@ -116,7 +116,7 @@ func TestGenerateAttestation(t *testing.T) {
 				{
 					Uri:    "git+https://github.com/catalog",
 					Digest: common.DigestSet{"sha1": "x123"},
-					Name:   "pipelineTask",
+					Name:   "pipelineTask/git-clone",
 				},
 				{
 					Uri:    "oci://gcr.io/test1/test1",
@@ -125,7 +125,7 @@ func TestGenerateAttestation(t *testing.T) {
 				{
 					Uri:    "git+https://github.com/test",
 					Digest: common.DigestSet{"sha1": "ab123"},
-					Name:   "pipelineTask",
+					Name:   "pipelineTask/build",
 				},
 				{
 					Uri:    "oci://gcr.io/test2/test2",

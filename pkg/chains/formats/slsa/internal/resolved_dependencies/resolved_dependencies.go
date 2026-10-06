@@ -99,7 +99,8 @@ func RemoveDuplicateResolvedDependencies(resolvedDependencies []*intoto.Resource
 			// the resolved dependencies, we dont want to skip it if another resolved dependency from the same
 			// uri+digest pair was already included before.
 			if resolvedDependency.Name != TaskConfigName && resolvedDependency.Name != PipelineConfigName &&
-				!strings.HasPrefix(resolvedDependency.Name, StepActionConfigName+"/") {
+				!strings.HasPrefix(resolvedDependency.Name, StepActionConfigName+"/") &&
+				!strings.HasPrefix(resolvedDependency.Name, PipelineTaskConfigName+"/") {
 				continue
 			}
 		}
@@ -118,7 +119,7 @@ func AddTektonTaskDescriptor(tr *objects.TaskRunObjectV1) (*intoto.ResourceDescr
 		return nil, err
 	}
 
-	rd.Name = PipelineTaskConfigName
+	rd.Name = fmt.Sprintf("%s/%s", PipelineTaskConfigName, tr.TaskIdentifier())
 	rd.Content = storedTr
 	if tr.Status.Provenance != nil && tr.Status.Provenance.RefSource != nil {
 		rd.Uri = tr.Status.Provenance.RefSource.URI
@@ -133,7 +134,7 @@ func AddTektonTaskDescriptor(tr *objects.TaskRunObjectV1) (*intoto.ResourceDescr
 func AddSLSATaskDescriptor(tr *objects.TaskRunObjectV1) (*intoto.ResourceDescriptor, error) {
 	if tr.Status.Provenance != nil && tr.Status.Provenance.RefSource != nil {
 		return &intoto.ResourceDescriptor{
-			Name:   PipelineTaskConfigName,
+			Name:   fmt.Sprintf("%s/%s", PipelineTaskConfigName, tr.TaskIdentifier()),
 			Uri:    tr.Status.Provenance.RefSource.URI,
 			Digest: tr.Status.Provenance.RefSource.Digest,
 		}, nil
