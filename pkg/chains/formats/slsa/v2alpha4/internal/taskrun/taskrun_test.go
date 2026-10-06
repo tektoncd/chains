@@ -138,12 +138,12 @@ func TestTaskRunGenerateAttestation(t *testing.T) {
 			},
 			Byproducts: []*intoto.ResourceDescriptor{
 				{
-					Name:      "stepResults/taskrun-build/step1_result1",
+					Name:      "stepResults/build/step1/step1_result1",
 					MediaType: "application/json",
 					Content:   []uint8(`"result-value"`),
 				},
 				{
-					Name:      "stepResults/taskrun-build/step1_result1-ARTIFACT_OUTPUTS",
+					Name:      "stepResults/build/step2/step1_result1-ARTIFACT_OUTPUTS",
 					MediaType: "application/json",
 					Content:   []uint8(`{"digest":"sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7","uri":"gcr.io/my/image/fromstep2"}`),
 				},
