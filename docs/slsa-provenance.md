@@ -321,9 +321,13 @@ spec:
 
 ## `v2alpha4` formatter
 
+Starting with version `v2alpha4`, pipeline task resolvedDependencies use `pipelineTask/{pipelineTaskName}` instead of `pipelineTask`. The name comes from the `tekton.dev/pipelineTask` label, falling back to the TaskRun name when that label is absent.
+
 Starting with version `v2alpha4`, the type-hinted object results value now can include a new boolean flag called `isBuildArtifact`. When set to `true`, this flag indicates the output artifact should be considered as `subject` in the executed TaskRun/PipelineRun.
 
 The `isBuildArtifact` can be set in results whose type-hint uses the `*ARTIFACT_OUTPUTS` format. Results using the `IMAGES` and `*IMAGE_URL` / `*IMAGE_DIGEST` type-hint format will still be considered as `subject` automatically; all other results will be classified as `byProduct`
+
+Starting with version `v2alpha4`, byProduct names for step results include the step name and use the `tekton.dev/pipelineTask` label instead of the Kubernetes-generated TaskRun name: `stepResults/{pipelineTaskName}/{stepName}/{resultName}`.
 
 For instance, in the following TaskRun:
 

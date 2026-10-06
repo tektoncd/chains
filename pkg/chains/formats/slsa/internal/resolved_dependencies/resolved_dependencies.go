@@ -55,6 +55,9 @@ type AddTaskDescriptorContent func(*objects.TaskRunObjectV1) (*intoto.ResourceDe
 type ResolveOptions struct {
 	// Indicates if StepActions type-hinted results should be read to resolve dependecies.
 	WithStepActionsResults bool
+	// UseQualifiedTaskNames controls whether resolved dependency names for pipeline tasks
+	// include the task identifier (e.g. "pipelineTask/my-task" instead of "pipelineTask").
+	UseQualifiedTaskNames bool
 }
 
 // ConvertMaterialsToResolvedDependencies converts a SLSAv0.2 Material to a resolved dependency
@@ -80,14 +83,17 @@ func RemoveDuplicateResolvedDependencies(resolvedDependencies []*intoto.Resource
 	// make map to store seen resolved dependencies
 	seen := map[string]bool{}
 	for _, resolvedDependency := range resolvedDependencies {
-		// Since resolvedDependencies contain names, we want to ignore those while checking for duplicates.
-		// Therefore, make a copy of the resolved dependency that only contains the uri and digest fields.
+		// Ignore names for existing dependency types, but keep qualified pipeline task names
+		// so distinct tasks using the same resource remain in the provenance.
 		rDep := intoto.ResourceDescriptor{}
 		rDep.Uri = resolvedDependency.Uri
 		rDep.Digest = resolvedDependency.Digest
-		// pipelinTasks store content with the slsa-tekton buildType
+		// Pipeline tasks store content with the slsa-tekton buildType.
 		rDep.Content = resolvedDependency.Content
-		// This allows us to ignore dependencies that have the same uri and digest.
+		if strings.HasPrefix(resolvedDependency.Name, PipelineTaskConfigName+"/") {
+			rDep.Name = resolvedDependency.Name
+		}
+		// This allows us to ignore dependencies with the same identifying fields.
 		rd, err := protojson.Marshal(&rDep)
 		if err != nil {
 			return nil, err
@@ -167,6 +173,13 @@ func fromPipelineTask(logger *zap.SugaredLogger, pro *objects.PipelineRunObjectV
 					continue
 				}
 				if rd != nil {
+					if opts.UseQualifiedTaskNames && rd.Name == PipelineTaskConfigName {
+						name := tr.TaskIdentifier()
+						if len(taskRuns) > 1 {
+							name = fmt.Sprintf("%s/%s", name, tr.GetName())
+						}
+						rd.Name = fmt.Sprintf("%s/%s", PipelineTaskConfigName, name)
+					}
 					resolvedDependencies = append(resolvedDependencies, rd)
 				}
 

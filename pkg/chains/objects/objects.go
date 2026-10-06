@@ -52,9 +52,10 @@ type Object interface {
 // Result is a generic key value store containing the results
 // of Tekton operations. (eg. PipelineRun and TaskRun results)
 type Result struct {
-	Name  string
-	Type  v1.ResultsType
-	Value v1.ParamValue
+	Name     string
+	Type     v1.ResultsType
+	Value    v1.ParamValue
+	StepName string
 }
 
 // StepProvenance associates a step name with its remote StepAction provenanance
@@ -170,8 +171,9 @@ func (tro *TaskRunObjectV1) GetStepResults() []Result {
 	for _, s := range tro.Status.Steps {
 		for _, r := range s.Results {
 			res = append(res, Result{
-				Name:  r.Name,
-				Value: r.Value,
+				Name:     r.Name,
+				Value:    r.Value,
+				StepName: s.Name,
 			})
 		}
 	}
@@ -436,4 +438,12 @@ func (pro *PipelineRunObjectV1) GetExecutedTasks() (tro []*TaskRunObjectV1) {
 	}
 
 	return
+}
+
+// TaskIdentifier returns the pipeline task name label if present, falling back to the TaskRun's Kubernetes name.
+func (tro *TaskRunObjectV1) TaskIdentifier() string {
+	if label, ok := tro.Labels[PipelineTaskLabel]; ok {
+		return label
+	}
+	return tro.GetName()
 }

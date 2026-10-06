@@ -15,6 +15,7 @@ package pipelinerun
 
 import (
 	"context"
+	"fmt"
 
 	intoto "github.com/in-toto/attestation/go/v1"
 	"github.com/tektoncd/chains/pkg/chains/formats/slsa/extract"
@@ -41,7 +42,7 @@ func GenerateAttestation(ctx context.Context, pro *objects.PipelineRunObjectV1, 
 		return nil, err
 	}
 
-	opts := resolveddependencies.ResolveOptions{WithStepActionsResults: true}
+	opts := resolveddependencies.ResolveOptions{WithStepActionsResults: true, UseQualifiedTaskNames: true}
 	bd, err := builddefinition.GetPipelineRunBuildDefinition(ctx, pro, slsaconfig, opts)
 	if err != nil {
 		return nil, err
@@ -63,8 +64,13 @@ func byproducts(pro *objects.PipelineRunObjectV1, slsaconfig *slsaconfig.SlsaCon
 		return byProd, nil
 	}
 
+	trCounts := taskRunCountByPipelineTask(pro)
 	for _, tro := range pro.GetExecutedTasks() {
-		taskProds, err := taskrun.ByProducts(tro)
+		taskName := tro.TaskIdentifier()
+		if trCounts[taskName] > 1 {
+			taskName = fmt.Sprintf("%s/%s", taskName, tro.GetName())
+		}
+		taskProds, err := taskrun.ByProductsWithTaskName(tro, taskName)
 		if err != nil {
 			return nil, err
 		}
@@ -72,6 +78,31 @@ func byproducts(pro *objects.PipelineRunObjectV1, slsaconfig *slsaconfig.SlsaCon
 	}
 
 	return byProd, nil
+}
+
+// taskRunCountByPipelineTask returns a map of pipelineTask name to the number of
+// TaskRuns associated with it. Used to detect matrix fan-out.
+func taskRunCountByPipelineTask(pro *objects.PipelineRunObjectV1) map[string]int {
+	counts := map[string]int{}
+	pSpec := pro.Status.PipelineSpec
+	if pSpec == nil {
+		return counts
+	}
+	tasks := pSpec.Tasks
+	tasks = append(tasks, pSpec.Finally...)
+	for _, task := range tasks {
+		taskRuns := pro.GetTaskRunsFromTask(task.Name)
+		count := 0
+		for _, tr := range taskRuns {
+			if tr != nil && tr.Status.CompletionTime != nil {
+				count++
+			}
+		}
+		if count > 0 {
+			counts[task.Name] = count
+		}
+	}
+	return counts
 }
 
 // SubjectDigests calculates the subjects associated with the given PipelineRun.

@@ -251,6 +251,60 @@ func TestRemoveDuplicates(t *testing.T) {
 	}
 }
 
+func TestRemoveDuplicatesQualifiedPipelineTasks(t *testing.T) {
+	dependency := func(name, content string) *intoto.ResourceDescriptor {
+		var data []byte
+		if content != "" {
+			data = []byte(content)
+		}
+		return &intoto.ResourceDescriptor{
+			Name:    name,
+			Uri:     "git+https://example.com/task",
+			Digest:  common.DigestSet{"sha256": "abc123"},
+			Content: data,
+		}
+	}
+
+	tests := []struct {
+		name string
+		rds  []*intoto.ResourceDescriptor
+		want []*intoto.ResourceDescriptor
+	}{
+		{
+			name: "identical qualified tasks collapse",
+			rds:  []*intoto.ResourceDescriptor{dependency("pipelineTask/build", ""), dependency("pipelineTask/build", "")},
+			want: []*intoto.ResourceDescriptor{dependency("pipelineTask/build", "")},
+		},
+		{
+			name: "different task names remain distinct",
+			rds:  []*intoto.ResourceDescriptor{dependency("pipelineTask/build", ""), dependency("pipelineTask/test", "")},
+			want: []*intoto.ResourceDescriptor{dependency("pipelineTask/build", ""), dependency("pipelineTask/test", "")},
+		},
+		{
+			name: "different task content remains distinct",
+			rds:  []*intoto.ResourceDescriptor{dependency("pipelineTask/build", "first"), dependency("pipelineTask/build", "second")},
+			want: []*intoto.ResourceDescriptor{dependency("pipelineTask/build", "first"), dependency("pipelineTask/build", "second")},
+		},
+		{
+			name: "legacy pipeline task names still collapse",
+			rds:  []*intoto.ResourceDescriptor{dependency("pipelineTask", ""), dependency("pipelineTask", "")},
+			want: []*intoto.ResourceDescriptor{dependency("pipelineTask", "")},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := RemoveDuplicateResolvedDependencies(tc.rds)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if diff := cmp.Diff(tc.want, got, protocmp.Transform()); diff != "" {
+				t.Errorf("RemoveDuplicateResolvedDependencies() mismatch (-want +got): %s", diff)
+			}
+		})
+	}
+}
+
 func createPro(path string) *objects.PipelineRunObjectV1 {
 	var err error
 	pr, err := objectloader.PipelineRunV1FromFile(path)
