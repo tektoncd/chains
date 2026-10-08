@@ -110,6 +110,11 @@ func (r *Reconciler) FinalizeKind(ctx context.Context, pr *v1.PipelineRun) (resu
 	// Get TaskRun names depending on whether embeddedstatus feature is set or not
 	var trs []string
 	for _, cr := range pr.Status.ChildReferences {
+		// CustomRuns are not signed as TaskRuns. PipelineRun completion already gates them.
+		// Preserve the TaskRun lookup for legacy child references with an empty Kind.
+		if cr.Kind == "CustomRun" {
+			continue
+		}
 		trs = append(trs, cr.Name)
 	}
 
