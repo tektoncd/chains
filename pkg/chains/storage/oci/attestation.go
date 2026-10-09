@@ -200,7 +200,7 @@ func (s *AttestationStorer) storeWithProtobufBundle(ctx context.Context, req *ap
 		logger.Debugf("Could not list referrers for dedup check, will attempt write: %v", listErr)
 	} else {
 		for _, desc := range idx.Manifests {
-			refRef, nameErr := name.NewDigest(req.Artifact.Repository.Name() + "@" + desc.Digest.String())
+			refRef, nameErr := name.NewDigest(req.Artifact.Repository.Name()+"@"+desc.Digest.String(), insecureNameOpts(req.Artifact)...)
 			if nameErr != nil {
 				continue
 			}
@@ -221,7 +221,7 @@ func (s *AttestationStorer) storeWithProtobufBundle(ctx context.Context, req *ap
 		}
 	}
 
-	if err := ociremote.WriteAttestationNewBundleFormat(req.Artifact, bundleBytes, predicateType, ociremote.WithRemoteOptions(s.remoteOpts...)); err != nil {
+	if err := ociremote.WriteAttestationNewBundleFormat(req.Artifact, bundleBytes, predicateType, bundleReferrerOpts(req.Artifact, s.remoteOpts)...); err != nil {
 		return nil, errors.Wrap(err, "writing protobuf bundle attestation")
 	}
 	logger.Infof("Successfully uploaded attestation using sigstore bundle format for %s", req.Artifact.String())

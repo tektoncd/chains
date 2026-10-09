@@ -85,18 +85,46 @@ The encoding and storage layout are intentionally coupled into a single knob.
 `dsse` always uses tag-based storage; `sigstore-bundle` always uses the OCI 1.1
 Referrers API. There is no mix-and-match.
 
-Image **signatures** and attestations are both stored as Sigstore protobuf
-bundle referrers in `sigstore-bundle` mode. Both signatures and attestations use
-a `DsseEnvelope` bundle: for signatures the DSSE envelope wraps a
-SimpleSigning payload (matching what `cosign sign` produces in v3.x), while for
-attestations it wraps the in-toto statement. Using `DsseEnvelope` for signatures
-is required because `WriteAttestationNewBundleFormat` always sets the
-`dev.sigstore.bundle.content: dsse-envelope` annotation — a `MessageSignature`
-bundle would make that annotation inconsistent and cause `cosign verify` to
-fail. Both carry the
-`dev.sigstore.bundle.predicateType` annotation to identify their content:
-`"https://sigstore.dev/cosign/sign/v1"` for signatures and the in-toto
-predicate type (e.g. `"https://slsa.dev/provenance/v0.2"`) for attestations.
+In `sigstore-bundle` mode, image **signatures** and **attestations** are both
+stored as Sigstore protobuf bundle referrers, but they use **different bundle
+content types** because they are different kinds of artifact:
+
+| Artifact | Bundle `content` | `dev.sigstore.bundle.content` | Rekor entry (transparency) |
+|---|---|---|---|
+| Image signature | `MessageSignature` (payload digest + raw signature) | `message-signature` | `hashedrekord` |
+| Attestation | `DsseEnvelope` (wraps the in-toto statement) | `dsse-envelope` | `dsse_v001` / `intoto_v002` |
+
+This pairing is **not** arbitrary — a Sigstore bundle verifier (cosign v3,
+`sigstore-go`) inspects the bundle `content` and requires the matching Rekor
+entry type. A `MessageSignature` bundle must be backed by a `hashedrekord`
+entry; a `DsseEnvelope` bundle must be backed by a `dsse`/`intoto` entry. If the
+two do not match, verification fails.
+
+Chains signs the OCI `simplesigning` payload directly (the signature is over the
+raw payload, not a DSSE Pre-Authentication Encoding) and records it in Rekor as a
+`hashedrekord` entry. The only bundle shape consistent with that is
+`MessageSignature`. Attestations are different: they are wrapped in a DSSE
+envelope and recorded as `dsse`/`intoto` entries, so they use a `DsseEnvelope`
+bundle.
+
+Both referrers also carry a `dev.sigstore.bundle.predicateType` annotation to
+identify their content: `"https://sigstore.dev/cosign/sign/v1"` for signatures
+and the in-toto predicate type (e.g. `"https://slsa.dev/provenance/v0.2"`) for
+attestations.
+
+> [!NOTE]
+> **Historical note (fixed).** Earlier `sigstore-bundle` builds wrote image
+> signatures as a `DsseEnvelope` bundle (reusing cosign's
+> `WriteAttestationNewBundleFormat`, which hardcodes
+> `dev.sigstore.bundle.content: dsse-envelope`). Combined with the
+> `hashedrekord` Rekor entry Chains creates for `simplesigning`, this produced
+> signatures that could not be verified when transparency was enabled —
+> `cosign verify` / `sigstore-go` failed with *"transparency log rekor v1 entry
+> is not a dsse_v001 or intoto_v002 entry"*
+> ([issue #2036](https://github.com/tektoncd/chains/issues/2036)). Signatures are
+> now written as `MessageSignature` bundles, which match the `hashedrekord`
+> entry and verify correctly. No configuration change is required.
+
 
 ## Configuring the encoding format
 
@@ -239,8 +267,10 @@ These are interoperability notes, not bugs in Chains.
    stored as `application/vnd.dev.sigstore.bundle.v0.3+json` referrers.
    Use the `dev.sigstore.bundle.predicateType` annotation to distinguish them:
    `"https://sigstore.dev/cosign/sign/v1"` for signatures and the in-toto
-   predicate type for attestations. `cosign verify` and `cosign verify-attestation`
-   do this automatically.
+   predicate type for attestations. They also differ by
+   `dev.sigstore.bundle.content`: `message-signature` for signatures and
+   `dsse-envelope` for attestations. `cosign verify` and
+   `cosign verify-attestation` do this automatically.
 
 5. **Kyverno ClusterPolicy users must migrate to ImageValidatingPolicy.**
    `ClusterPolicy` discovers signatures via the `.sig` tag, which no longer

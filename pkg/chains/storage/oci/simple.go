@@ -21,10 +21,13 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/pem"
+	"time"
 
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
+	ggcrstatic "github.com/google/go-containerregistry/pkg/v1/static"
+	ggcrtypes "github.com/google/go-containerregistry/pkg/v1/types"
 	"github.com/pkg/errors"
 	cbundle "github.com/sigstore/cosign/v2/pkg/cosign/bundle"
 	"github.com/sigstore/cosign/v2/pkg/oci"
@@ -33,14 +36,42 @@ import (
 	"github.com/sigstore/cosign/v2/pkg/oci/static"
 	"github.com/sigstore/cosign/v2/pkg/types"
 	protobundle "github.com/sigstore/protobuf-specs/gen/pb-go/bundle/v1"
-	protodsse "github.com/sigstore/protobuf-specs/gen/pb-go/dsse"
+	protocommon "github.com/sigstore/protobuf-specs/gen/pb-go/common/v1"
 	"github.com/sigstore/rekor/pkg/generated/models"
+	sgbundle "github.com/sigstore/sigstore-go/pkg/bundle"
 	"github.com/tektoncd/chains/pkg/chains/formats/simple"
 	"github.com/tektoncd/chains/pkg/chains/storage/api"
 	"github.com/tektoncd/chains/pkg/config"
 	"google.golang.org/protobuf/encoding/protojson"
 	"knative.dev/pkg/logging"
 )
+
+// signatureBundleContentType is the dev.sigstore.bundle.content annotation value
+// for an image signature referrer.
+const signatureBundleContentType = "message-signature"
+
+// insecureNameOpts returns name.Insecure when the artifact's registry speaks
+// plain HTTP. cosign's WriteReferrer re-parses the reference without the caller's
+// name options, so it defaults to HTTPS unless name.Insecure is propagated
+// explicitly; the remote transport's InsecureSkipVerify only relaxes TLS
+// verification and cannot downgrade the scheme.
+func insecureNameOpts(artifact name.Digest) []name.Option {
+	if artifact.Scheme() == "http" {
+		return []name.Option{name.Insecure}
+	}
+	return nil
+}
+
+// bundleReferrerOpts builds the ociremote options for writing a referrer bundle,
+// adding name.Insecure for plain-HTTP registries so the referrer manifest is
+// written over the correct scheme.
+func bundleReferrerOpts(artifact name.Digest, remoteOpts []remote.Option) []ociremote.Option {
+	opts := []ociremote.Option{ociremote.WithRemoteOptions(remoteOpts...)}
+	if nameOpts := insecureNameOpts(artifact); nameOpts != nil {
+		opts = append(opts, ociremote.WithNameOptions(nameOpts...))
+	}
+	return opts
+}
 
 // SimpleStorer stores SimpleSigning payloads in OCI registries.
 type SimpleStorer struct {
@@ -89,12 +120,8 @@ func (s *SimpleStorer) Store(ctx context.Context, req *api.StoreRequest[name.Dig
 	return s.storeLegacy(ctx, req, se, repo)
 }
 
-// storeReferrers writes the signature via the OCI 1.1 Referrers API using the
-// Sigstore protobuf-bundle format. When the registry has no native Referrers
-// API, cosign/go-containerregistry transparently uses the OCI referrers tag
-// schema; either way no .sig tags are created. The signature bundle carries
-// CosignSignPredicateType so `cosign verify` can distinguish it from SLSA
-// attestation bundles stored by the same API.
+// storeReferrers writes the signature via the OCI 1.1 Referrers API as a
+// Sigstore protobuf bundle, so no legacy .sig tags are created.
 func (s *SimpleStorer) storeReferrers(ctx context.Context, req *api.StoreRequest[name.Digest, simple.SimpleContainerImage], repo name.Repository) (*api.StoreResponse, error) {
 	logger := logging.FromContext(ctx).With("image", req.Artifact.String())
 
@@ -149,13 +176,8 @@ func (s *SimpleStorer) storeLegacy(ctx context.Context, req *api.StoreRequest[na
 }
 
 // storeWithSigstoreBundle uploads the image signature as a Sigstore protobuf
-// bundle (v0.3) referrer. The bundle uses a DsseEnvelope wrapping the
-// SimpleSigning payload — the same format cosign 3.x `cosign sign` produces.
-// WriteAttestationNewBundleFormat hardcodes the "dev.sigstore.bundle.content":
-// "dsse-envelope" annotation, so the bundle content must be a DsseEnvelope for
-// cosign verify to accept it. The predicateType annotation is set to
-// CosignSignPredicateType so cosign can distinguish signature bundles from SLSA
-// attestation bundles stored alongside them.
+// bundle (v0.3) referrer, deduplicating against any identical bundle already
+// present.
 func (s *SimpleStorer) storeWithSigstoreBundle(ctx context.Context, req *api.StoreRequest[name.Digest, simple.SimpleContainerImage]) (*api.StoreResponse, error) {
 	logger := logging.FromContext(ctx).With("image", req.Artifact.String())
 	logger.Info("Using sigstore bundle format for signature storage")
@@ -165,26 +187,17 @@ func (s *SimpleStorer) storeWithSigstoreBundle(ctx context.Context, req *api.Sto
 		return nil, errors.Wrap(err, "creating signature bundle")
 	}
 
-	// Dedup scan: O(referrers × layers) serial registry calls.
-	// Acceptable for typical bundle counts (1–3 per artifact); the scan
-	// short-circuits on the first digest match. Optimize to parallel
-	// fetches if referrer counts grow large in practice.
-	//
-	// Dedup: skip if an identical bundle layer already exists as a referrer.
-	// static.NewLayer (used by WriteAttestationNewBundleFormat) stores bytes
-	// uncompressed, so sha256(bundleBytes) == the stored layer's Digest.
+	// The bundle layer is uncompressed, so sha256(bundleBytes) is the stored
+	// layer digest and can be matched directly for dedup.
 	bundleHash := sha256.Sum256(bundleBytes)
 	newLayerDigest := v1.Hash{Algorithm: "sha256", Hex: hex.EncodeToString(bundleHash[:])}
-	// Use empty artifactType filter to list ALL referrers; the mock registry (and some real
-	// registries) derive the descriptor's ArtifactType from config.MediaType rather than
-	// the manifest's top-level artifactType field, so filtering by bundleArtifactType would
-	// return 0 results even when an identical bundle already exists. Dedup is based on the
-	// layer content digest, so fetching all referrers is safe and correct.
+	// Empty artifactType filter: some registries derive it from the config media
+	// type, so a typed filter can miss existing bundles. Dedup is by layer digest.
 	if idx, listErr := ociremote.Referrers(req.Artifact, "", ociremote.WithRemoteOptions(s.remoteOpts...)); listErr != nil {
 		logger.Debugf("Could not list referrers for dedup check, will attempt write: %v", listErr)
 	} else {
 		for _, desc := range idx.Manifests {
-			refRef, nameErr := name.NewDigest(req.Artifact.Repository.Name() + "@" + desc.Digest.String())
+			refRef, nameErr := name.NewDigest(req.Artifact.Repository.Name()+"@"+desc.Digest.String(), insecureNameOpts(req.Artifact)...)
 			if nameErr != nil {
 				continue
 			}
@@ -205,24 +218,36 @@ func (s *SimpleStorer) storeWithSigstoreBundle(ctx context.Context, req *api.Sto
 		}
 	}
 
-	if err := ociremote.WriteAttestationNewBundleFormat(req.Artifact, bundleBytes, types.CosignSignPredicateType, ociremote.WithRemoteOptions(s.remoteOpts...)); err != nil {
+	if err := writeSignatureBundleReferrer(req.Artifact, bundleBytes, bundleReferrerOpts(req.Artifact, s.remoteOpts)...); err != nil {
 		return nil, errors.Wrap(err, "writing signature bundle referrer")
 	}
 	logger.Info("Successfully uploaded signature using sigstore bundle format")
 	return &api.StoreResponse{}, nil
 }
 
-// makeSigBundleBytes constructs a Sigstore protobuf bundle (v0.3) JSON for an
-// OCI image signature. The format exactly matches cosign 3.x `cosign sign`:
-// the bundle content is a DsseEnvelope with payloadType set to
-// SimpleSigningMediaType. WriteAttestationNewBundleFormat hardcodes the
-// "dev.sigstore.bundle.content": "dsse-envelope" annotation, so the bundle
-// content MUST be a DsseEnvelope — using MessageSignature here would make the
-// annotation inconsistent and cause cosign verify to fail.
-//
-// We build the bundle directly (rather than calling MakeNewBundle) to avoid a
-// nil-pubkey crash in the test path: MakeNewBundle calls x509.MarshalPKIXPublicKey
-// unconditionally when no cert is provided, which panics with a nil key.
+// writeSignatureBundleReferrer publishes a Sigstore protobuf bundle image
+// signature as an OCI 1.1 referrer, annotated as a message-signature so it is
+// distinguishable from SLSA attestation bundles.
+func writeSignatureBundleReferrer(d name.Digest, bundleBytes []byte, opts ...ociremote.Option) error {
+	bundleMediaType, err := sgbundle.MediaTypeString("0.3")
+	if err != nil {
+		return errors.Wrap(err, "generating bundle media type string")
+	}
+	layer := ggcrstatic.NewLayer(bundleBytes, ggcrtypes.MediaType(bundleMediaType))
+	annotations := map[string]string{
+		"org.opencontainers.image.created":  time.Now().UTC().Format(time.RFC3339),
+		"dev.sigstore.bundle.content":       signatureBundleContentType,
+		"dev.sigstore.bundle.predicateType": types.CosignSignPredicateType,
+	}
+	return ociremote.WriteReferrer(d, bundleMediaType, []v1.Layer{layer}, annotations, opts...)
+}
+
+// makeSigBundleBytes builds the Sigstore protobuf bundle JSON for an OCI image
+// signature. The content is a MessageSignature (raw signature plus sha256 of the
+// payload) to match the hashedrekord tlog entry Chains creates for
+// simplesigning; a DsseEnvelope would demand a dsse/intoto entry that does not
+// exist. The bundle is built directly because MakeNewBundle expects a DSSE
+// envelope and panics on a nil key in the keyless path.
 func makeSigBundleBytes(pubKey interface{}, certPEM []byte, payload []byte, rawSig []byte, rekorEntry *models.LogEntryAnon) ([]byte, error) {
 	var hint string
 	var rawCert []byte
@@ -249,11 +274,14 @@ func makeSigBundleBytes(pubKey interface{}, certPEM []byte, payload []byte, rawS
 		return nil, errors.Wrap(err, "creating protobuf bundle")
 	}
 
-	bundle.Content = &protobundle.Bundle_DsseEnvelope{
-		DsseEnvelope: &protodsse.Envelope{
-			Payload:     payload,
-			PayloadType: types.SimpleSigningMediaType,
-			Signatures:  []*protodsse.Signature{{Sig: rawSig}},
+	payloadHash := sha256.Sum256(payload)
+	bundle.Content = &protobundle.Bundle_MessageSignature{
+		MessageSignature: &protocommon.MessageSignature{
+			MessageDigest: &protocommon.HashOutput{
+				Algorithm: protocommon.HashAlgorithm_SHA2_256,
+				Digest:    payloadHash[:],
+			},
+			Signature: rawSig,
 		},
 	}
 
