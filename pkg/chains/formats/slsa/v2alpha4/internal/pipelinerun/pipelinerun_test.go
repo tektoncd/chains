@@ -291,15 +291,15 @@ func TestGenerateAttestation(t *testing.T) {
 					Content:   []uint8(`"pkg:deb/debian/curl@7.50.3-1"`),
 					MediaType: JSONMediaType,
 				}, {
-					Name:      "stepResults/git-clone/step1_result1-ARTIFACT_INPUTS",
+					Name:      "stepResults/git-clone/step1/step1_result1-ARTIFACT_INPUTS",
 					Content:   []uint8(`{"digest":"sha1:7f2f46e1b97df36b2b82d1b1d87c81b8b3d21601","uri":"https://github.com/tektoncd/pipeline"}`),
 					MediaType: JSONMediaType,
 				}, {
-					Name:      "stepResults/taskrun-build/step1_result1",
+					Name:      "stepResults/build/step1/step1_result1",
 					Content:   []uint8(`"result-value"`),
 					MediaType: JSONMediaType,
 				}, {
-					Name:      "stepResults/taskrun-build/step1_result1-ARTIFACT_OUTPUTS",
+					Name:      "stepResults/build/step2/step1_result1-ARTIFACT_OUTPUTS",
 					Content:   []uint8(`{"digest":"sha256:827521c857fdcd4374f4da5442fbae2edb01e7fbae285c3ec15673d4c1daecb7","uri":"gcr.io/my/image/fromstep2"}`),
 					MediaType: JSONMediaType,
 				},
@@ -434,11 +434,11 @@ func TestGenerateAttestation(t *testing.T) {
 					Content:   []uint8(`"pkg:deb/debian/curl@7.50.3-1"`),
 					MediaType: JSONMediaType,
 				}, {
-					Name:      "stepResults/git-clone/step1_result1-ARTIFACT_INPUTS",
+					Name:      "stepResults/git-clone/step1/step1_result1-ARTIFACT_INPUTS",
 					Content:   []uint8(`{"digest":"sha1:7f2f46e1b97df36b2b82d1b1d87c81b8b3d21601","uri":"https://github.com/tektoncd/pipeline"}`),
 					MediaType: JSONMediaType,
 				}, {
-					Name:      "stepResults/taskrun-build/step1_result1",
+					Name:      "stepResults/build/step1/step1_result1",
 					Content:   []uint8(`"result-value"`),
 					MediaType: JSONMediaType,
 				},
