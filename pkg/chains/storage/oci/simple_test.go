@@ -15,6 +15,12 @@
 package oci
 
 import (
+	"bytes"
+	"crypto"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"net/http/httptest"
@@ -29,10 +35,14 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/types"
 	ociremote "github.com/sigstore/cosign/v2/pkg/oci/remote"
 	cosigntypes "github.com/sigstore/cosign/v2/pkg/types"
+	protobundle "github.com/sigstore/protobuf-specs/gen/pb-go/bundle/v1"
+	protocommon "github.com/sigstore/protobuf-specs/gen/pb-go/common/v1"
+	sigstoresignature "github.com/sigstore/sigstore/pkg/signature"
 	"github.com/tektoncd/chains/pkg/chains/formats/simple"
 	"github.com/tektoncd/chains/pkg/chains/signing"
 	"github.com/tektoncd/chains/pkg/chains/storage/api"
 	"github.com/tektoncd/chains/pkg/config"
+	"google.golang.org/protobuf/encoding/protojson"
 	logtesting "knative.dev/pkg/logging/testing"
 )
 
@@ -238,10 +248,9 @@ func TestSimpleStorer_Store_DistinctNotDeduped(t *testing.T) {
 	}
 }
 
-// TestSimpleStorer_Store_SigstoreBundle verifies that the sigstore-bundle encoding
-// path writes a Sigstore protobuf bundle referrer: artifactType set to
-// bundleArtifactType, dev.sigstore.bundle.predicateType annotation set to
-// CosignSignPredicateType, and subject pointing back at the image.
+// TestSimpleStorer_Store_SigstoreBundle verifies that the sigstore-bundle path
+// writes a protobuf bundle referrer with the expected annotations and a subject
+// pointing back at the image.
 func TestSimpleStorer_Store_SigstoreBundle(t *testing.T) {
 	s := httptest.NewServer(registry.New(registry.WithReferrersSupport(true)))
 	defer s.Close()
@@ -291,10 +300,8 @@ func TestSimpleStorer_Store_SigstoreBundle(t *testing.T) {
 		}
 	}
 
-	// Discover the signature via the OCI 1.1 Referrers API.
-	// Note: use empty filter because the mock registry derives ArtifactType from
-	// config.MediaType ("application/vnd.oci.empty.v1+json") rather than the manifest's
-	// top-level artifactType field; real OCI 1.1 registries handle this correctly.
+	// Discover the signature via the OCI 1.1 Referrers API. Empty filter: the mock
+	// registry derives ArtifactType from config.MediaType, not the manifest field.
 	idx, err := ociremote.Referrers(ref, "")
 	if err != nil {
 		t.Fatalf("failed to list referrers: %v", err)
@@ -321,6 +328,11 @@ func TestSimpleStorer_Store_SigstoreBundle(t *testing.T) {
 	if got := m.Annotations["dev.sigstore.bundle.predicateType"]; got != cosigntypes.CosignSignPredicateType {
 		t.Errorf("dev.sigstore.bundle.predicateType = %q, want %q", got, cosigntypes.CosignSignPredicateType)
 	}
+	// Image signatures are MessageSignature bundles, so the content annotation
+	// must be "message-signature".
+	if got := m.Annotations["dev.sigstore.bundle.content"]; got != "message-signature" {
+		t.Errorf("dev.sigstore.bundle.content = %q, want %q", got, "message-signature")
+	}
 	if m.Subject == nil {
 		t.Fatalf("referrer manifest has nil subject, want subject pointing at the image")
 	}
@@ -333,10 +345,9 @@ func TestSimpleStorer_Store_SigstoreBundle(t *testing.T) {
 }
 
 // TestSimpleStorer_Store_SigstoreBundle_RepoOverrideIgnored verifies that a
-// storage.oci.repository override is not honoured in sigstore-bundle mode: the
-// signature referrer is written alongside the subject image (its own repository),
-// not the override repository, because OCI 1.1 referrers must be colocated with
-// their subject. This guards the documented behaviour raised in PR review.
+// storage.oci.repository override is ignored in sigstore-bundle mode: the
+// referrer is written alongside the subject image, not the override repository,
+// because OCI 1.1 referrers must be colocated with their subject.
 func TestSimpleStorer_Store_SigstoreBundle_RepoOverrideIgnored(t *testing.T) {
 	s := httptest.NewServer(registry.New(registry.WithReferrersSupport(true)))
 	defer s.Close()
@@ -382,7 +393,6 @@ func TestSimpleStorer_Store_SigstoreBundle_RepoOverrideIgnored(t *testing.T) {
 	}
 
 	// The referrer must be discoverable against the artifact's own repository.
-	// Note: use empty filter — same reasoning as TestSimpleStorer_Store_SigstoreBundle.
 	idx, err := ociremote.Referrers(ref, "")
 	if err != nil {
 		t.Fatalf("failed to list referrers at artifact repo: %v", err)
@@ -448,7 +458,6 @@ func TestSimpleStorer_Store_SigstoreBundle_Dedup(t *testing.T) {
 	}
 
 	// Exactly one referrer must exist — no duplicates.
-	// Note: use empty filter — same reasoning as TestSimpleStorer_Store_SigstoreBundle.
 	idx, err := ociremote.Referrers(ref, "")
 	if err != nil {
 		t.Fatalf("failed to list referrers: %v", err)
@@ -460,9 +469,6 @@ func TestSimpleStorer_Store_SigstoreBundle_Dedup(t *testing.T) {
 
 // TestMakeSigBundleBytes_TlogEntries verifies that makeSigBundleBytes embeds
 // tlogEntries when a non-nil RekorEntry is passed, and omits them when nil.
-// This guards the fix for the transparency-log omission bug in the signature
-// bundle path (legacy.go uploadSignature was not forwarding storageOpts.RekorEntry
-// into the Bundle, so req.Bundle.RekorEntry arrived as nil here).
 func TestMakeSigBundleBytes_TlogEntries(t *testing.T) {
 	// nil rekorEntry → tlogEntries must be absent/empty in the serialized bundle.
 	bundleBytes, err := makeSigBundleBytes(nil, nil, []byte("payload"), []byte("sig"), nil)
@@ -482,4 +488,106 @@ func TestMakeSigBundleBytes_TlogEntries(t *testing.T) {
 			}
 		}
 	}
+}
+
+// TestMakeSigBundleBytes_MessageSignatureContent verifies that the signature
+// bundle produced for a simplesigning payload is a MessageSignature bundle, not
+// a DsseEnvelope. A DsseEnvelope would require a dsse/intoto Rekor entry, but
+// Chains creates a hashedrekord entry for simplesigning.
+func TestMakeSigBundleBytes_MessageSignatureContent(t *testing.T) {
+	payload := []byte("payload")
+	rawSig := []byte("sig")
+
+	bundleBytes, err := makeSigBundleBytes(nil, nil, payload, rawSig, nil)
+	if err != nil {
+		t.Fatalf("makeSigBundleBytes failed: %v", err)
+	}
+
+	var bundle protobundle.Bundle
+	if err := protojson.Unmarshal(bundleBytes, &bundle); err != nil {
+		t.Fatalf("failed to unmarshal protobuf bundle: %v", err)
+	}
+
+	// The content must be a MessageSignature, never a DsseEnvelope.
+	if bundle.GetDsseEnvelope() != nil {
+		t.Fatalf("bundle content is a DsseEnvelope; want MessageSignature")
+	}
+	msg := bundle.GetMessageSignature()
+	if msg == nil {
+		t.Fatalf("bundle content is not a MessageSignature")
+	}
+
+	// The raw signature bytes must round-trip unchanged.
+	if string(msg.GetSignature()) != string(rawSig) {
+		t.Errorf("MessageSignature.Signature = %q, want %q", msg.GetSignature(), rawSig)
+	}
+
+	// The message digest must be sha256(payload), the value the hashedrekord
+	// Rekor entry commits to.
+	wantDigest := sha256.Sum256(payload)
+	if got := msg.GetMessageDigest(); got == nil {
+		t.Fatalf("MessageSignature.MessageDigest is nil")
+	} else {
+		if got.GetAlgorithm() != protocommon.HashAlgorithm_SHA2_256 {
+			t.Errorf("MessageDigest.Algorithm = %v, want SHA2_256", got.GetAlgorithm())
+		}
+		if !bytes.Equal(got.GetDigest(), wantDigest[:]) {
+			t.Errorf("MessageDigest.Digest = %x, want %x", got.GetDigest(), wantDigest[:])
+		}
+	}
+}
+
+// TestMakeSigBundleBytes_SignatureVerifies cryptographically verifies the
+// signature in the generated bundle against the signed payload. Chains signs the
+// raw simplesigning payload (ECDSA over SHA256), so the MessageSignature must
+// verify against that payload. The negative case confirms it does NOT verify
+// against the DSSE PAE, which a DsseEnvelope bundle would require.
+func TestMakeSigBundleBytes_SignatureVerifies(t *testing.T) {
+	privKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatalf("failed to generate test key: %v", err)
+	}
+	sv, err := sigstoresignature.LoadECDSASignerVerifier(privKey, crypto.SHA256)
+	if err != nil {
+		t.Fatalf("failed to load signer/verifier: %v", err)
+	}
+
+	payload := []byte(`{"critical":{"identity":{"docker-reference":"example/image"}}}`)
+	rawSig, err := sv.SignMessage(bytes.NewReader(payload))
+	if err != nil {
+		t.Fatalf("failed to sign payload: %v", err)
+	}
+
+	bundleBytes, err := makeSigBundleBytes(privKey.Public(), nil, payload, rawSig, nil)
+	if err != nil {
+		t.Fatalf("makeSigBundleBytes failed: %v", err)
+	}
+
+	var bundle protobundle.Bundle
+	if err := protojson.Unmarshal(bundleBytes, &bundle); err != nil {
+		t.Fatalf("failed to unmarshal protobuf bundle: %v", err)
+	}
+	msg := bundle.GetMessageSignature()
+	if msg == nil {
+		t.Fatalf("bundle content is not a MessageSignature")
+	}
+
+	// The signature carried in the bundle must verify against the raw payload.
+	if err := sv.VerifySignature(bytes.NewReader(msg.GetSignature()), bytes.NewReader(payload)); err != nil {
+		t.Fatalf("bundle signature failed to verify against the signed payload: %v", err)
+	}
+
+	// Negative control: the signature must NOT verify against the DSSE PAE of the
+	// payload. If it did, a DsseEnvelope bundle would be acceptable; it is not.
+	pae := dssePAE("application/vnd.in-toto+json", payload)
+	if err := sv.VerifySignature(bytes.NewReader(msg.GetSignature()), bytes.NewReader(pae)); err == nil {
+		t.Error("signature unexpectedly verified against the DSSE PAE; a MessageSignature must be over the raw payload, not the PAE")
+	}
+}
+
+// dssePAE builds the DSSE Pre-Authentication Encoding for a payload, the bytes a
+// DsseEnvelope signature would be computed over.
+func dssePAE(payloadType string, payload []byte) []byte {
+	return []byte(fmt.Sprintf("DSSEv1 %d %s %d %s",
+		len(payloadType), payloadType, len(payload), payload))
 }

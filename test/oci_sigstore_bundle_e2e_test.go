@@ -82,10 +82,8 @@ func TestOCIStorageSigstoreBundle_TaskRun(t *testing.T) {
 		t.Fatal("kaniko TaskRun was never signed by Chains")
 	}
 
-	// Verify that no legacy .sig or .att tags were written to the OCI image
-	// repository. In sigstore-bundle mode, signatures and attestations must be
-	// stored as referrer manifests discoverable via the OCI referrers API, not
-	// as digest-derived tags (e.g. sha256-<digest>.sig / sha256-<digest>.att).
+	// Verify that no legacy .sig or .att tags were written. In sigstore-bundle
+	// mode, signatures and attestations must be stored as referrers, not tags.
 	verifyTro := verifyNoLegacyTagsTaskRun(ns, image)
 	createdVerify := tekton.CreateObject(t, ctx, c.PipelineClient, verifyTro)
 	if got := waitForCondition(ctx, t, c.PipelineClient, createdVerify, successful, time.Minute); got == nil {
@@ -147,12 +145,71 @@ func TestOCIStorageSigstoreBundle_PipelineRun(t *testing.T) {
 	}
 }
 
+// TestOCIStorageSigstoreBundle_Transparency_TaskRun verifies that with
+// transparency enabled, the signature bundle Chains writes is consistent: its
+// content is a MessageSignature and it carries a tlog entry. Chains uploads a
+// hashedrekord entry for simplesigning, which only pairs with a MessageSignature
+// bundle; a DsseEnvelope would be unverifiable. Exercised against the configured
+// public Rekor.
+func TestOCIStorageSigstoreBundle_Transparency_TaskRun(t *testing.T) {
+	ctx := logtesting.TestContextWithLogger(t)
+	c, ns, cleanup := setup(ctx, t, setupOpts{registry: true})
+	t.Cleanup(cleanup)
+
+	resetConfig := setConfigMap(ctx, t, c, map[string]string{
+		"artifacts.oci.format":            "simplesigning",
+		"artifacts.oci.storage":           "oci",
+		"artifacts.oci.signer":            "x509",
+		"artifacts.taskrun.format":        "slsa/v1",
+		"artifacts.taskrun.signer":        "x509",
+		"artifacts.taskrun.storage":       "oci",
+		"storage.oci.repository.insecure": "true",
+		"storage.oci.encoding-format":     "sigstore-bundle",
+		"transparency.enabled":            "true", //nolint:goconst
+	})
+	t.Cleanup(resetConfig)
+	time.Sleep(3 * time.Second) // https://github.com/tektoncd/chains/issues/664
+
+	imageName := "chains-test-referrers-transparency"
+	image := fmt.Sprintf("%s/%s", c.internalRegistry, imageName)
+
+	if os.Getenv("OPENSHIFT") == localhost {
+		if err := assignSCC(ns); err != nil {
+			t.Fatalf("error creating scc: %s", err)
+		}
+	}
+
+	task := kanikoTask(t, ns, image)
+	if _, err := c.PipelineClient.TektonV1().Tasks(ns).Create(ctx, task, metav1.CreateOptions{}); err != nil {
+		t.Fatalf("error creating kaniko task: %s", err)
+	}
+
+	createdTro := tekton.CreateObject(t, ctx, c.PipelineClient, kanikoTaskRun(ns))
+
+	// Wait for the image build to complete.
+	if got := waitForCondition(ctx, t, c.PipelineClient, createdTro, done, 2*time.Minute); got == nil {
+		t.Fatal("kaniko TaskRun never finished")
+	}
+
+	// Wait for Chains to sign the image and upload to the transparency log.
+	obj := waitForCondition(ctx, t, c.PipelineClient, createdTro, signed, 2*time.Minute)
+	if obj == nil {
+		t.Fatal("kaniko TaskRun was never signed by Chains")
+	}
+
+	// Assert the signature bundle is a message-signature with a non-empty tlog
+	// entry. Run in-cluster so the internal registry is reachable.
+	verifyTro := verifyBundleConsistencyTaskRun(ns, image)
+	createdVerify := tekton.CreateObject(t, ctx, c.PipelineClient, verifyTro)
+	if got := waitForCondition(ctx, t, c.PipelineClient, createdVerify, successful, 2*time.Minute); got == nil {
+		t.Error("bundle-consistency check TaskRun never succeeded; signature bundle may be a DsseEnvelope or missing its tlog entry")
+	}
+}
+
 // verifyNoLegacyTagsTaskRun returns a TaskRun that fails if any legacy .sig or
-// .att tags exist in the given OCI image repository. This confirms that Chains
-// stored signatures and attestations as OCI referrers rather than as tags.
-//
-// The check is performed from inside the cluster so that the internal registry
-// (accessible only from within the cluster network) is reachable.
+// .att tags exist in the given OCI image repository, confirming Chains stored
+// signatures and attestations as OCI referrers. Runs in-cluster so the internal
+// registry is reachable.
 func verifyNoLegacyTagsTaskRun(ns, image string) *objects.TaskRunObjectV1 {
 	// Split "host:port/repo/name" into registry host and repository path.
 	parts := strings.SplitN(image, "/", 2)
@@ -162,9 +219,8 @@ func verifyNoLegacyTagsTaskRun(ns, image string) *objects.TaskRunObjectV1 {
 	registryHost := parts[0]
 	imageRepo := parts[1]
 
-	// Query the registry's v2 tags/list API and assert that no tags ending in
-	// .sig or .att are present. Such tags are the hallmark of legacy cosign
-	// tag-based storage; they must NOT appear in sigstore-bundle mode.
+	// Fail if the registry has any tags ending in .sig or .att (legacy cosign
+	// tag-based storage), which must not appear in sigstore-bundle mode.
 	script := fmt.Sprintf(`#!/bin/sh
 set -e
 # Fetch the tag list; exit immediately if wget fails so a registry error
@@ -190,6 +246,105 @@ echo "PASS: no legacy signature or attestation tags found"
 			TaskSpec: &v1.TaskSpec{
 				Steps: []v1.Step{{
 					Name:   "check-no-legacy-tags",
+					Image:  "alpine:3.19",
+					Script: script,
+				}},
+			},
+		},
+	})
+}
+
+// verifyBundleConsistencyTaskRun returns a TaskRun that asserts the signature
+// bundle stored as an OCI referrer is a MessageSignature
+// (dev.sigstore.bundle.content == "message-signature") and carries a non-empty
+// tlog entry. Runs in-cluster so the internal registry is reachable.
+func verifyBundleConsistencyTaskRun(ns, image string) *objects.TaskRunObjectV1 {
+	// Split "host:port/repo/name" into registry host and repository path.
+	parts := strings.SplitN(image, "/", 2)
+	if len(parts) != 2 {
+		panic(fmt.Sprintf("verifyBundleConsistencyTaskRun: image %q has no '/' separator", image))
+	}
+	registryHost := parts[0]
+	imageRepo := parts[1]
+
+	// Resolve the image digest, list its referrers, locate the message-signature
+	// bundle, pull the bundle blob, and assert it carries a tlog entry.
+	script := fmt.Sprintf(`#!/bin/sh
+set -e
+apk add --no-cache curl jq >/dev/null
+
+REG=%s
+REPO=%s
+ACCEPT='application/vnd.oci.image.index.v1+json,application/vnd.oci.image.manifest.v1+json,application/vnd.docker.distribution.manifest.v2+json,application/vnd.docker.distribution.manifest.list.v2+json'
+
+# Resolve the digest of the built image (pushed to the "latest" tag).
+DIGEST=$(curl -sfI -H "Accept: ${ACCEPT}" "http://${REG}/v2/${REPO}/manifests/latest" \
+  | tr -d '\r' | awk -F': ' 'tolower($1)=="docker-content-digest"{print $2}')
+if [ -z "${DIGEST}" ]; then
+  echo "FAIL: could not resolve image digest for ${REPO}:latest"
+  exit 1
+fi
+echo "Image digest: ${DIGEST}"
+
+# List referrers of the image and select the signature bundle by its content annotation.
+IDX=$(curl -sf -H "Accept: application/vnd.oci.image.index.v1+json" \
+  "http://${REG}/v2/${REPO}/referrers/${DIGEST}")
+echo "Referrers: ${IDX}"
+
+CONTENT=$(printf '%%s' "${IDX}" \
+  | jq -r '[.manifests[].annotations["dev.sigstore.bundle.content"]] | map(select(. != null)) | .[0] // ""')
+if [ "${CONTENT}" != "message-signature" ]; then
+  echo "FAIL: signature bundle content is \"${CONTENT}\"; want \"message-signature\""
+  exit 1
+fi
+
+BUNDLE_MANIFEST=$(printf '%%s' "${IDX}" \
+  | jq -r '.manifests[] | select(.annotations["dev.sigstore.bundle.content"]=="message-signature") | .digest' \
+  | head -1)
+if [ -z "${BUNDLE_MANIFEST}" ]; then
+  echo "FAIL: no message-signature bundle referrer found"
+  exit 1
+fi
+
+# Fetch the bundle manifest, read its single layer, and pull the bundle blob.
+MANIFEST=$(curl -sf -H "Accept: application/vnd.oci.image.manifest.v1+json" \
+  "http://${REG}/v2/${REPO}/manifests/${BUNDLE_MANIFEST}")
+LAYER=$(printf '%%s' "${MANIFEST}" | jq -r '.layers[0].digest')
+if [ -z "${LAYER}" ] || [ "${LAYER}" = "null" ]; then
+  echo "FAIL: bundle manifest has no layer"
+  exit 1
+fi
+BUNDLE=$(curl -sf "http://${REG}/v2/${REPO}/blobs/${LAYER}")
+
+# The bundle must carry at least one transparency-log entry.
+TLOG_COUNT=$(printf '%%s' "${BUNDLE}" | jq '(.verificationMaterial.tlogEntries // []) | length')
+if [ "${TLOG_COUNT}" -lt 1 ]; then
+  echo "FAIL: signature bundle has no tlog entries; transparency upload missing"
+  exit 1
+fi
+
+# The bundle content itself must be a messageSignature, not a dsseEnvelope.
+if printf '%%s' "${BUNDLE}" | jq -e '.dsseEnvelope != null' >/dev/null; then
+  echo "FAIL: signature bundle is a dsseEnvelope; want messageSignature"
+  exit 1
+fi
+if printf '%%s' "${BUNDLE}" | jq -e '.messageSignature == null' >/dev/null; then
+  echo "FAIL: signature bundle has no messageSignature content"
+  exit 1
+fi
+
+echo "PASS: message-signature bundle with ${TLOG_COUNT} tlog entrie(s)"
+`, registryHost, imageRepo)
+
+	return objects.NewTaskRunObjectV1(&v1.TaskRun{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "verify-bundle-consistency-",
+			Namespace:    ns,
+		},
+		Spec: v1.TaskRunSpec{
+			TaskSpec: &v1.TaskSpec{
+				Steps: []v1.Step{{
+					Name:   "check-bundle-consistency",
 					Image:  "alpine:3.19",
 					Script: script,
 				}},
