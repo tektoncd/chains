@@ -25,9 +25,9 @@ boilerplate="$(git rev-parse --show-toplevel)/hack/boilerplate/boilerplate.go.tx
 go install k8s.io/code-generator/cmd/deepcopy-gen
 
 ${GOPATH}/bin/deepcopy-gen \
-  -O zz_generated.deepcopy \
+  --output-file zz_generated.deepcopy.go \
   --go-header-file "${boilerplate}" \
-  -i github.com/tektoncd/chains/pkg/config
+  github.com/tektoncd/chains/pkg/config
 
 # Make sure our dependencies are up-to-date
 ${REPO_ROOT_DIR}/hack/update-deps.sh

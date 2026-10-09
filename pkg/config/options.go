@@ -28,7 +28,9 @@ import (
 // - For Tekton artifacts, Chains supports `tekton` and `in-toto` format. https://slsa.dev/provenance/v0.2
 type PayloadType string
 
-// StorageOpts contains additional information required when storing signatures
+// StorageOpts contains additional information required when storing signatures.
+// Not a ConfigMap-backed type; fields like crypto.PublicKey are not deepcopy-safe.
+// +k8s:deepcopy-gen=false
 type StorageOpts struct {
 	// FullKey stands for the identifier of an artifact.
 	// - For OCI artifact, it is the full representation in the format of `<NAME>@sha256:<DIGEST>`.
