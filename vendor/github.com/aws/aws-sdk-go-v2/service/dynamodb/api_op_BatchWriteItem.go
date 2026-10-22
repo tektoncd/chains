@@ -5,11 +5,9 @@ package dynamodb
 import (
 	"context"
 	"fmt"
-	awsmiddleware "github.com/aws/aws-sdk-go-v2/aws/middleware"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	internalEndpointDiscovery "github.com/aws/aws-sdk-go-v2/service/internal/endpoint-discovery"
 	"github.com/aws/smithy-go/middleware"
-	smithyhttp "github.com/aws/smithy-go/transport/http"
 )
 
 // The BatchWriteItem operation puts or deletes multiple items in one or more
@@ -33,12 +31,12 @@ import (
 // iteration would check for unprocessed items and submit a new BatchWriteItem
 // request with those unprocessed items until all items have been processed.
 //
-// For tables and indexes with provisioned capacity, if none of the items can be
-// processed due to insufficient provisioned throughput on all of the tables in the
-// request, then BatchWriteItem returns a ProvisionedThroughputExceededException .
-// For all tables and indexes, if none of the items can be processed due to other
-// throttling scenarios (such as exceeding partition level limits), then
-// BatchWriteItem returns a ThrottlingException .
+// If BatchWriteItem cannot process any items due to throttling (for example,
+// insufficient provisioned throughput on the tables in the request, or
+// partition-level or account-level limits), it returns a
+// ProvisionedThroughputExceededException or a ThrottlingException . Both indicate
+// that the request was throttled; check the ThrottlingReason field in the
+// returned exception for details.
 //
 // If DynamoDB returns any unprocessed items, you should retry the batch operation
 // on those items. However, we strongly recommend that you use an exponential
@@ -192,6 +190,9 @@ type BatchWriteItemOutput struct {
 	//   - TableName - The table that consumed the provisioned throughput.
 	//
 	//   - CapacityUnits - The total number of capacity units consumed.
+	//
+	// If the table has vector indexes, each element also includes a VectorIndexes
+	// field with VectorWriteRequestBytes consumed for each affected vector index.
 	ConsumedCapacity []types.ConsumedCapacity
 
 	// A list of tables that were processed by BatchWriteItem and, for each table,
@@ -252,9 +253,6 @@ type BatchWriteItemOutput struct {
 }
 
 func (c *Client) addOperationBatchWriteItemMiddlewares(stack *middleware.Stack, options Options) (err error) {
-	if err := stack.Serialize.Add(&setOperationInputMiddleware{}, middleware.After); err != nil {
-		return err
-	}
 	err = stack.Serialize.Add(&awsAwsjson10_serializeOpBatchWriteItem{}, middleware.After)
 	if err != nil {
 		return err
@@ -263,59 +261,17 @@ func (c *Client) addOperationBatchWriteItemMiddlewares(stack *middleware.Stack, 
 	if err != nil {
 		return err
 	}
-	if err := addProtocolFinalizerMiddlewares(stack, options, "BatchWriteItem"); err != nil {
-		return fmt.Errorf("add protocol finalizers: %v", err)
-	}
 
-	if err = addlegacyEndpointContextSetter(stack, options); err != nil {
-		return err
-	}
-	if err = addSetLoggerMiddleware(stack, options); err != nil {
-		return err
-	}
-	if err = addClientRequestID(stack); err != nil {
-		return err
-	}
-	if err = addComputeContentLength(stack); err != nil {
-		return err
-	}
 	if err = addResolveEndpointMiddleware(stack, options); err != nil {
 		return err
 	}
 	if err = addComputePayloadSHA256(stack); err != nil {
 		return err
 	}
-	if err = addRetry(stack, options); err != nil {
-		return err
-	}
-	if err = addRawResponseToMetadata(stack); err != nil {
-		return err
-	}
-	if err = addRecordResponseTiming(stack); err != nil {
-		return err
-	}
-	if err = addSpanRetryLoop(stack, options); err != nil {
-		return err
-	}
-	if err = addClientUserAgent(stack, options); err != nil {
-		return err
-	}
-	if err = smithyhttp.AddErrorCloseResponseBodyMiddleware(stack); err != nil {
-		return err
-	}
-	if err = smithyhttp.AddCloseResponseBodyMiddleware(stack); err != nil {
+	if err = addRecordResponseTiming(stack, options); err != nil {
 		return err
 	}
 	if err = addOpBatchWriteItemDiscoverEndpointMiddleware(stack, options, c); err != nil {
-		return err
-	}
-	if err = addSetLegacyContextSigningOptionsMiddleware(stack); err != nil {
-		return err
-	}
-	if err = addTimeOffsetBuild(stack, c); err != nil {
-		return err
-	}
-	if err = addUserAgentRetryMode(stack, options); err != nil {
 		return err
 	}
 	if err = addUserAgentAccountIDEndpointMode(stack, options); err != nil {
@@ -325,12 +281,6 @@ func (c *Client) addOperationBatchWriteItemMiddlewares(stack *middleware.Stack, 
 		return err
 	}
 	if err = addOpBatchWriteItemValidationMiddleware(stack); err != nil {
-		return err
-	}
-	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opBatchWriteItem(options.Region), middleware.Before); err != nil {
-		return err
-	}
-	if err = addRecursionDetection(stack); err != nil {
 		return err
 	}
 	if err = addRequestIDRetrieverMiddleware(stack); err != nil {
@@ -349,12 +299,6 @@ func (c *Client) addOperationBatchWriteItemMiddlewares(stack *middleware.Stack, 
 		return err
 	}
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeRetryLoop(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAttempt(stack, options); err != nil {
 		return err
 	}
 	if err = addInterceptors(stack, options); err != nil {
@@ -404,12 +348,4 @@ func (c *Client) fetchOpBatchWriteItemDiscoverEndpoint(ctx context.Context, regi
 
 	go c.handleEndpointDiscoveryFromService(ctx, discoveryOperationInput, region, key, opt)
 	return internalEndpointDiscovery.WeightedAddress{}, nil
-}
-
-func newServiceMetadataMiddleware_opBatchWriteItem(region string) *awsmiddleware.RegisterServiceMetadata {
-	return &awsmiddleware.RegisterServiceMetadata{
-		Region:        region,
-		ServiceID:     ServiceID,
-		OperationName: "BatchWriteItem",
-	}
 }
