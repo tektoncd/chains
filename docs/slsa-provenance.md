@@ -325,6 +325,8 @@ Starting with version `v2alpha4`, the type-hinted object results value now can i
 
 The `isBuildArtifact` can be set in results whose type-hint uses the `*ARTIFACT_OUTPUTS` format. Results using the `IMAGES` and `*IMAGE_URL` / `*IMAGE_DIGEST` type-hint format will still be considered as `subject` automatically; all other results will be classified as `byProduct`
 
+Starting with version `v2alpha4`, byProduct names for step results include the step name and use the `tekton.dev/pipelineTask` label instead of the Kubernetes-generated TaskRun name: `stepResults/{pipelineTaskName}/{stepName}/{resultName}`.
+
 For instance, in the following TaskRun:
 
 ```yaml
