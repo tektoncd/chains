@@ -585,7 +585,7 @@ type mapOfDocs = map[any]storedDoc
 
 // Read a map from the filename if is is not empty and the file exists.
 // Otherwise return an empty (not nil) map.
-func loadDocs(filename string) (mapOfDocs, error) {
+func loadDocs(filename string) (m mapOfDocs, err error) {
 	if filename == "" {
 		return mapOfDocs{}, nil
 	}
@@ -597,10 +597,13 @@ func loadDocs(filename string) (mapOfDocs, error) {
 		// If the file doesn't exist, return an empty map without error.
 		return mapOfDocs{}, nil
 	}
-	defer f.Close()
-	var m mapOfDocs
+	defer func() {
+		if e := f.Close(); e != nil && err == nil {
+			err = e
+		}
+	}()
 	if err := gob.NewDecoder(f).Decode(&m); err != nil {
-		return nil, fmt.Errorf("failed to decode from %q: %v", filename, err)
+		return nil, fmt.Errorf("failed to decode from %q: %w", filename, err)
 	}
 	return m, nil
 }
@@ -616,7 +619,7 @@ func saveDocs(filename string, m mapOfDocs) error {
 	}
 	if err := gob.NewEncoder(f).Encode(m); err != nil {
 		_ = f.Close()
-		return fmt.Errorf("failed to encode to %q: %v", filename, err)
+		return fmt.Errorf("failed to encode to %q: %w", filename, err)
 	}
 	return f.Close()
 }
