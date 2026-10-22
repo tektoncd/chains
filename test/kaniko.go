@@ -143,33 +143,38 @@ func kanikoTask(t *testing.T, namespace, destinationImage string) *v1.Task {
 }
 
 func assignSCC(namespace string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	grantCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	// Grant the privileged SCC to the default SA so the kaniko pod runs as root.
 	// anyuid is not enough: Tekton injects seccomp annotations that anyuid
 	// forbids, so it's dropped for restricted-v2 (which rejects UID 0).
 	// #nosec G204 -- namespace is a test-controlled value, not external input
-	cmd := exec.CommandContext(ctx, "oc", "adm", "policy", "add-scc-to-user", "privileged", "-z", "default", "-n", namespace)
+	cmd := exec.CommandContext(grantCtx, "oc", "adm", "policy", "add-scc-to-user", "privileged", "-z", "default", "-n", namespace)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to assign SCC: %w, output: %s", err, output)
 	}
 
-	// The grant can be a silent no-op, so poll until it takes effect and fail
-	// loudly otherwise. SCC is cluster-scoped but the grant is a namespaced
-	// RoleBinding, so the can-i check must be scoped with -n.
+	// Poll until the grant is visible, failing loudly otherwise. Use `oc` (not
+	// `kubectl`): the `use` verb on an SCC is an OpenShift authorization check
+	// that the oc client resolves natively, whereas kubectl does not and never
+	// reports "yes". Each attempt gets its own context so a deadline hit does not
+	// kill the in-flight check and mask its output.
 	subject := fmt.Sprintf("system:serviceaccount:%s:default", namespace)
+	deadline := time.Now().Add(90 * time.Second)
 	var lastOutput string
 	for {
+		checkCtx, checkCancel := context.WithTimeout(context.Background(), 10*time.Second)
 		// #nosec G204 -- namespace is a test-controlled value, not external input
-		checkCmd := exec.CommandContext(ctx, "kubectl", "auth", "can-i", "use", "scc/privileged", "--as", subject, "-n", namespace)
+		checkCmd := exec.CommandContext(checkCtx, "oc", "auth", "can-i", "use", "scc/privileged", "--as", subject, "-n", namespace)
 		checkOut, _ := checkCmd.CombinedOutput()
+		checkCancel()
 		lastOutput = strings.TrimSpace(string(checkOut))
 		if lastOutput == "yes" {
 			return nil
 		}
-		if ctx.Err() != nil {
+		if time.Now().After(deadline) {
 			return fmt.Errorf("privileged SCC grant for %s never took effect: %q", subject, lastOutput)
 		}
 		time.Sleep(2 * time.Second)
