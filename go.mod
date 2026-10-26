@@ -209,7 +209,7 @@ require (
 	github.com/fzipp/gocyclo v0.6.0 // indirect
 	github.com/gaganhr94/docker-credential-acr v1.0.2 // indirect
 	github.com/ghostiam/protogetter v0.3.9 // indirect
-	github.com/go-chi/chi/v5 v5.3.1 // indirect
+	github.com/go-chi/chi/v5 v5.4.0 // indirect
 	github.com/go-critic/go-critic v0.12.0 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.5 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
