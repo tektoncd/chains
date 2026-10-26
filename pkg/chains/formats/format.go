@@ -35,6 +35,9 @@ const (
 	PayloadTypeSlsav1        config.PayloadType = "slsa/v1"
 	PayloadTypeSlsav2alpha3  config.PayloadType = "slsa/v2alpha3"
 	PayloadTypeSlsav2alpha4  config.PayloadType = "slsa/v2alpha4"
+	// PayloadTypeCosignSignV1 is the in-toto Statement signed by `cosign sign` v3 in
+	// bundle mode. It is only used for OCI images with the sigstore-bundle encoding.
+	PayloadTypeCosignSignV1 config.PayloadType = "cosign-sign/v1"
 )
 
 var (
@@ -43,6 +46,7 @@ var (
 		PayloadTypeSlsav1:       {},
 		PayloadTypeSlsav2alpha3: {},
 		PayloadTypeSlsav2alpha4: {},
+		PayloadTypeCosignSignV1: {},
 	}
 	payloaderMap = map[config.PayloadType]PayloaderInit{}
 )

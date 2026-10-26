@@ -22,7 +22,9 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
+	"github.com/tektoncd/chains/pkg/chains/formats"
 	"github.com/tektoncd/chains/pkg/chains/objects"
+	"github.com/tektoncd/chains/pkg/config"
 	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logtesting "knative.dev/pkg/logging/testing"
@@ -42,6 +44,30 @@ const (
 )
 
 var ignore = []cmp.Option{cmpopts.IgnoreUnexported(name.Registry{}, name.Repository{}, name.Digest{})}
+
+func TestOCIArtifact_PayloadFormat(t *testing.T) {
+	tests := []struct {
+		name           string
+		encodingFormat string
+		ociFormat      config.PayloadType
+		want           config.PayloadType
+	}{
+		{name: "dsse uses configured format", encodingFormat: config.OCIEncodingFormatDSSE, ociFormat: formats.PayloadTypeSimpleSigning, want: formats.PayloadTypeSimpleSigning},
+		{name: "empty encoding uses configured format", encodingFormat: "", ociFormat: formats.PayloadTypeSimpleSigning, want: formats.PayloadTypeSimpleSigning},
+		{name: "sigstore-bundle uses cosign-sign/v1", encodingFormat: config.OCIEncodingFormatSigstoreBundle, ociFormat: formats.PayloadTypeSimpleSigning, want: formats.PayloadTypeCosignSignV1},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := config.Config{
+				Artifacts: config.ArtifactConfigs{OCI: config.Artifact{Format: string(tt.ociFormat)}},
+				Storage:   config.StorageConfigs{OCI: config.OCIStorageConfig{EncodingFormat: tt.encodingFormat}},
+			}
+			if got := (&OCIArtifact{}).PayloadFormat(cfg); got != tt.want {
+				t.Errorf("PayloadFormat() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
 
 func TestOCIArtifact_ExtractObjects(t *testing.T) {
 	tests := []struct {
