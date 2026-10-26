@@ -35,6 +35,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"path/filepath"
 	"testing"
@@ -88,8 +89,10 @@ func newClients(t *testing.T, configPath, clusterName string) *clients {
 type setupOpts struct {
 	useCosignSigner bool
 	registry        bool
-	kanikoTaskImage string
-	ns              string
+	// registryByClusterIP addresses the registry by its Service ClusterIP instead of its DNS name.
+	registryByClusterIP bool
+	kanikoTaskImage     string
+	ns                  string
 }
 
 func setup(ctx context.Context, t *testing.T, opts setupOpts) (*clients, string, func()) {
@@ -105,6 +108,9 @@ func setup(ctx context.Context, t *testing.T, opts setupOpts) (*clients, string,
 	c.secret = setupSecret(ctx, t, c.KubeClient, opts)
 	if opts.registry {
 		c.internalRegistry = createRegistry(ctx, t, namespace, c.KubeClient)
+		if opts.registryByClusterIP {
+			c.internalRegistry = registryClusterIPAddr(ctx, t, namespace, c.KubeClient)
+		}
 	}
 
 	if opts.kanikoTaskImage != "" {
@@ -194,6 +200,22 @@ func createRegistry(ctx context.Context, t *testing.T, namespace string, kubeCli
 	}
 
 	return fmt.Sprintf("%s.%s.svc.cluster.local:5000", service.Name, service.Namespace)
+}
+
+// registryClusterIPAddr returns host:port of the registry Service using its ClusterIP.
+// go-containerregistry treats private IPs as plain HTTP, while cosign's referrer manifest
+// write re-parses the reference without name.Insecure and would use HTTPS for a DNS name.
+func registryClusterIPAddr(ctx context.Context, t *testing.T, namespace string, kubeClient kubernetes.Interface) string {
+	t.Helper()
+	svc, err := kubeClient.CoreV1().Services(namespace).Get(ctx, "registry", metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("Failed to get registry service: %s", err)
+	}
+	ip := net.ParseIP(svc.Spec.ClusterIP)
+	if ip == nil || ip.To4() == nil || !ip.IsPrivate() {
+		t.Fatalf("registry ClusterIP %q is not a private IPv4 address; the registry would be reached over HTTPS", svc.Spec.ClusterIP)
+	}
+	return fmt.Sprintf("%s:5000", svc.Spec.ClusterIP)
 }
 
 type secret struct {
