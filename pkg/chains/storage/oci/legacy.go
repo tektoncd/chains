@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/tektoncd/chains/pkg/chains/formats"
 	"github.com/tektoncd/chains/pkg/chains/objects"
@@ -44,6 +45,11 @@ import (
 )
 
 const StorageBackendOCI = "oci"
+
+// noValidSecretErr is the error text the go-containerregistry keychain returns
+// when a ServiceAccount's secrets are present but none yield usable registry
+// credentials. Matched to trigger the ambient-credential fallback (SRVKP-9199).
+const noValidSecretErr = "could not find a valid secret"
 
 // Backend implements a storage backend for OCI artifacts.
 // Deprecated: Use SimpleStorer and AttestationStorer instead.
@@ -76,6 +82,20 @@ func NewStorageBackend(ctx context.Context, client kubernetes.Interface, cfg con
 		getAuthenticator: func(ctx context.Context, obj objects.TektonObject, client kubernetes.Interface) (remote.Option, error) {
 			kc, err := k8schain.New(ctx, client, k8schainOptions(obj))
 			if err != nil {
+				// The ServiceAccount's mounted secrets contain no usable registry
+				// credentials (e.g. only opaque/token secrets, or every docker-config
+				// secret is malformed). Rather than block signing (SRVKP-9199), fall
+				// back to the ambient/cloud credential providers, matching how an empty
+				// keychain resolved before. Any real push failure still surfaces later.
+				if strings.Contains(err.Error(), noValidSecretErr) {
+					logger := logging.FromContext(ctx)
+					logger.Warnf("no usable registry credentials in serviceaccount %s/%s (%v); falling back to ambient credentials", obj.GetNamespace(), obj.GetServiceAccountName(), err)
+					kc, err = k8schain.NewNoClient(ctx)
+					if err != nil {
+						return nil, errors.Wrapf(err, "creating fallback ambient keychain for serviceaccount %s/%s", obj.GetNamespace(), obj.GetServiceAccountName())
+					}
+					return remote.WithAuthFromKeychain(kc), nil
+				}
 				return nil, errors.Wrapf(err, "creating new keychain from serviceaccount %s/%s", obj.GetNamespace(), obj.GetServiceAccountName())
 			}
 			return remote.WithAuthFromKeychain(kc), nil
