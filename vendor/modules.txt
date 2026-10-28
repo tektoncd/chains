@@ -1621,7 +1621,7 @@ github.com/modern-go/concurrent
 # github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee
 ## explicit; go 1.12
 github.com/modern-go/reflect2
-# github.com/montanaflynn/stats v0.8.2
+# github.com/montanaflynn/stats v0.12.5
 ## explicit; go 1.13
 github.com/montanaflynn/stats
 # github.com/moricho/tparallel v0.3.2
@@ -2587,8 +2587,8 @@ gocloud.dev/pubsub
 gocloud.dev/pubsub/batcher
 gocloud.dev/pubsub/driver
 gocloud.dev/pubsub/mempubsub
-# gocloud.dev/docstore/mongodocstore v0.46.0
-## explicit; go 1.25.0
+# gocloud.dev/docstore/mongodocstore v0.47.0
+## explicit; go 1.26.0
 gocloud.dev/docstore/mongodocstore
 # gocloud.dev/pubsub/kafkapubsub v0.47.0
 ## explicit; go 1.26.0
