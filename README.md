@@ -73,6 +73,7 @@ tekton-chains-controller-c4f7c57c4-nrjb2   1/1     Running     0          160m
 To finish setting up Chains, please complete the following steps:
 
 - [Add authentication to the Chains controller](docs/authentication.md)
+- [Understand the trust model Chains relies on](docs/trust-model.md)
 - [Generate a cryptographic key and configure Chains to use it for signing](docs/signing.md)
 - [Set up any additional configuration](docs/config.md)
 
