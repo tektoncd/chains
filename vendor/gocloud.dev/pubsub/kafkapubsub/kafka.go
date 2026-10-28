@@ -117,7 +117,7 @@ func (o *defaultOpener) defaultOpener() (*URLOpener, error) {
 func (o *defaultOpener) OpenTopicURL(ctx context.Context, u *url.URL) (*pubsub.Topic, error) {
 	opener, err := o.defaultOpener()
 	if err != nil {
-		return nil, fmt.Errorf("open topic %v: %v", u, err)
+		return nil, fmt.Errorf("open topic %v: %w", u, err)
 	}
 	return opener.OpenTopicURL(ctx, u)
 }
@@ -125,7 +125,7 @@ func (o *defaultOpener) OpenTopicURL(ctx context.Context, u *url.URL) (*pubsub.T
 func (o *defaultOpener) OpenSubscriptionURL(ctx context.Context, u *url.URL) (*pubsub.Subscription, error) {
 	opener, err := o.defaultOpener()
 	if err != nil {
-		return nil, fmt.Errorf("open subscription %v: %v", u, err)
+		return nil, fmt.Errorf("open subscription %v: %w", u, err)
 	}
 	return opener.OpenSubscriptionURL(ctx, u)
 }
@@ -349,9 +349,9 @@ func errorCode(err error) gcerrors.ErrorCode {
 		return errorCode(pes[0])
 	}
 	if pe, ok := err.(*sarama.ProducerError); ok {
-		return errorCode(pe.Err)
+		return errorCode(pe.Unwrap())
 	}
-	if err == sarama.ErrUnknownTopicOrPartition {
+	if errors.Is(err, sarama.ErrUnknownTopicOrPartition) {
 		return gcerrors.NotFound
 	}
 	return gcerrors.Unknown
@@ -671,47 +671,8 @@ func (*subscription) ErrorCode(err error) gcerrors.ErrorCode {
 }
 
 func errorAs(err error, i any) bool {
-	switch terr := err.(type) {
-	case sarama.ConsumerError:
-		if p, ok := i.(*sarama.ConsumerError); ok {
-			*p = terr
-			return true
-		}
-	case sarama.ConsumerErrors:
-		if p, ok := i.(*sarama.ConsumerErrors); ok {
-			*p = terr
-			return true
-		}
-	case sarama.ProducerError:
-		if p, ok := i.(*sarama.ProducerError); ok {
-			*p = terr
-			return true
-		}
-	case sarama.ProducerErrors:
-		if p, ok := i.(*sarama.ProducerErrors); ok {
-			*p = terr
-			return true
-		}
-	case sarama.ConfigurationError:
-		if p, ok := i.(*sarama.ConfigurationError); ok {
-			*p = terr
-			return true
-		}
-	case sarama.PacketDecodingError:
-		if p, ok := i.(*sarama.PacketDecodingError); ok {
-			*p = terr
-			return true
-		}
-	case sarama.PacketEncodingError:
-		if p, ok := i.(*sarama.PacketEncodingError); ok {
-			*p = terr
-			return true
-		}
-	case sarama.KError:
-		if p, ok := i.(*sarama.KError); ok {
-			*p = terr
-			return true
-		}
+	if i == nil || reflect.ValueOf(i).Kind() != reflect.Pointer {
+		return false
 	}
-	return false
+	return errors.As(err, i)
 }
