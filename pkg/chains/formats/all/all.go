@@ -15,6 +15,7 @@
 package all
 
 import (
+	_ "github.com/tektoncd/chains/pkg/chains/formats/cosignsign" // registers the cosign-sign/v1 payloader
 	_ "github.com/tektoncd/chains/pkg/chains/formats/simple"
 	_ "github.com/tektoncd/chains/pkg/chains/formats/slsa/v1"
 	_ "github.com/tektoncd/chains/pkg/chains/formats/slsa/v2alpha3"

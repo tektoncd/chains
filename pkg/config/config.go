@@ -387,7 +387,33 @@ func NewConfigFromMap(data map[string]string) (*Config, error) {
 		return nil, fmt.Errorf("failed to parse data: %w", err)
 	}
 
+	if err := validateOCIBundleStorage(cfg); err != nil {
+		return nil, err
+	}
+
 	return cfg, nil
+}
+
+// validateOCIBundleStorage rejects OCI artifact storage backends other than
+// "oci" in sigstore-bundle mode. In that mode the image signature is a
+// cosign/sign/v1 in-toto Statement, which the other backends do not support.
+func validateOCIBundleStorage(cfg *Config) error {
+	if cfg.Storage.OCI.EncodingFormat != OCIEncodingFormatSigstoreBundle || !cfg.Artifacts.OCI.Enabled() {
+		return nil
+	}
+	backends := sets.List[string](cfg.Artifacts.OCI.StorageBackend)
+	var unsupported []string
+	for _, b := range backends {
+		if b != "oci" {
+			unsupported = append(unsupported, b)
+		}
+	}
+	if len(unsupported) > 0 {
+		return fmt.Errorf("%s=%q is not supported with %s=%q: unsupported backend(s) %v, only \"oci\" is allowed "+
+			"because image signatures are stored as cosign/sign/v1 in-toto statements",
+			ociStorageKey, strings.Join(backends, ","), ociEncodingFormatKey, OCIEncodingFormatSigstoreBundle, unsupported)
+	}
+	return nil
 }
 
 // NewConfigFromConfigMap creates a Config from the supplied ConfigMap

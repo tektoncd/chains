@@ -86,17 +86,25 @@ The encoding and storage layout are intentionally coupled into a single knob.
 Referrers API. There is no mix-and-match.
 
 Image **signatures** and attestations are both stored as Sigstore protobuf
-bundle referrers in `sigstore-bundle` mode. Both signatures and attestations use
-a `DsseEnvelope` bundle: for signatures the DSSE envelope wraps a
-SimpleSigning payload (matching what `cosign sign` produces in v3.x), while for
-attestations it wraps the in-toto statement. Using `DsseEnvelope` for signatures
-is required because `WriteAttestationNewBundleFormat` always sets the
-`dev.sigstore.bundle.content: dsse-envelope` annotation — a `MessageSignature`
-bundle would make that annotation inconsistent and cause `cosign verify` to
-fail. Both carry the
-`dev.sigstore.bundle.predicateType` annotation to identify their content:
+bundle referrers in `sigstore-bundle` mode, and both use a `DsseEnvelope`
+bundle. In this mode the image signature is an in-toto `cosign/sign/v1`
+Statement signed as DSSE, matching `cosign sign` v3:
+
+- `subject`: the image repository and its `sha256` digest
+- `predicateType`: `https://sigstore.dev/cosign/sign/v1`
+- `predicate`: `{}`
+
+Chains also records it in Rekor (when transparency is enabled) as a `dsse`
+entry. Attestations wrap the in-toto statement of the provenance. Both carry the
+`dev.sigstore.bundle.content: dsse-envelope` and
+`dev.sigstore.bundle.predicateType` annotations to identify their content:
 `"https://sigstore.dev/cosign/sign/v1"` for signatures and the in-toto
 predicate type (e.g. `"https://slsa.dev/provenance/v0.2"`) for attestations.
+
+The encoding decides the image-signature payload: `dsse` always signs a
+SimpleSigning payload, and `sigstore-bundle` always signs the `cosign/sign/v1`
+Statement. `artifacts.oci.format` is not used to select the payload in
+`sigstore-bundle` mode.
 
 ## Configuring the encoding format
 
@@ -117,6 +125,13 @@ data:
 |---|---|---|
 | `dsse` (default) | DSSE JSON envelope | `.sig` / `.att` tags |
 | `sigstore-bundle` | Sigstore protobuf bundle | OCI 1.1 Referrers API (with automatic fallback to referrers tag schema on older registries) |
+
+> [!IMPORTANT]
+> `sigstore-bundle` requires `artifacts.oci.storage` to be `oci` only. If it
+> includes another backend (for example `grafeas`, `docdb`, `gcs`, `pubsub` or
+> `archivista`), Chains rejects the configuration when it loads it. Those
+> backends expect a SimpleSigning payload for OCI images, while `sigstore-bundle`
+> mode signs a `cosign/sign/v1` Statement.
 
 > [!NOTE]
 > This flag only takes effect when the OCI storage backend is in use — that is,
@@ -151,11 +166,14 @@ cosign verify-attestation \
 ```
 
 > [!NOTE]
-> In `sigstore-bundle` mode, `cosign verify --key` returns **both** the
-> signature bundle and the SLSA attestation bundle. Check the `"type"` field in
-> each result to distinguish them:
+> In `sigstore-bundle` mode, `cosign verify --key` lists each bundle that
+> verifies. Check the `"type"` field in each result to see which ones did:
 > - `"https://sigstore.dev/cosign/sign/v1"` → image signature
 > - `"https://slsa.dev/provenance/v0.2"` → SLSA provenance attestation
+>
+> Exit code 0 alone does not prove the image signature verified: the command
+> succeeds if any bundle verifies, so a valid attestation can hide a broken
+> signature. Confirm that an entry with the `cosign/sign/v1` type is present.
 
 > [!IMPORTANT]
 > Starting with **cosign v2.0**, and continuing through the v3.x series,
