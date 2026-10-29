@@ -56,6 +56,34 @@ func GetResultsWithoutBuildArtifacts(objName string, results []objects.Result, r
 	return byProd, nil
 }
 
+// GetStepResultsWithoutBuildArtifacts returns step results that are not build artifacts,
+// using the step name from each Result to produce a 3-segment byProduct name.
+func GetStepResultsWithoutBuildArtifacts(taskName string, results []objects.Result, resultTypePrefix string) ([]*slsa.ResourceDescriptor, error) {
+	byProd := []*slsa.ResourceDescriptor{}
+	for _, r := range results {
+		if isBuildArtifact, err := artifacts.IsBuildArtifact(r); err != nil || isBuildArtifact {
+			continue
+		}
+
+		if isOCIImage(r.Name) {
+			continue
+		}
+
+		content, err := json.Marshal(r.Value)
+		if err != nil {
+			return nil, err
+		}
+
+		byProd = append(byProd, &slsa.ResourceDescriptor{
+			Name:      fmt.Sprintf(resultTypePrefix, taskName, r.StepName, r.Name),
+			Content:   content,
+			MediaType: "application/json",
+		})
+	}
+
+	return byProd, nil
+}
+
 func isOCIImage(resName string) bool {
 	for _, suffix := range imageResultsNamesSuffixs {
 		if strings.HasSuffix(resName, suffix) {

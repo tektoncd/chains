@@ -642,12 +642,12 @@ func TestPipelineRun(t *testing.T) {
 			taskDescriptor: AddSLSATaskDescriptor,
 			want: []*intoto.ResourceDescriptor{
 				{Name: "pipeline", Uri: "git+https://github.com/test", Digest: common.DigestSet{"sha1": "28b123"}},
-				{Name: "pipelineTask", Uri: "git+https://github.com/catalog", Digest: common.DigestSet{"sha1": "x123"}},
+				{Name: "pipelineTask/git-clone", Uri: "git+https://github.com/catalog", Digest: common.DigestSet{"sha1": "x123"}},
 				{
 					Uri:    "oci://gcr.io/test1/test1",
 					Digest: common.DigestSet{"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"},
 				},
-				{Name: "pipelineTask", Uri: "git+https://github.com/test", Digest: common.DigestSet{"sha1": "ab123"}},
+				{Name: "pipelineTask/build", Uri: "git+https://github.com/test", Digest: common.DigestSet{"sha1": "ab123"}},
 				{
 					Uri:    "oci://gcr.io/test2/test2",
 					Digest: common.DigestSet{"sha256": "4d6dd704ef58cb214dd826519929e92a978a57cdee43693006139c0080fd6fac"},
@@ -665,12 +665,12 @@ func TestPipelineRun(t *testing.T) {
 			taskDescriptor: AddTektonTaskDescriptor,
 			want: []*intoto.ResourceDescriptor{
 				{Name: "pipeline", Uri: "git+https://github.com/test", Digest: common.DigestSet{"sha1": "28b123"}},
-				{Name: "pipelineTask", Uri: "git+https://github.com/catalog", Digest: common.DigestSet{"sha1": "x123"}, Content: taskRuns["git-clone"]},
+				{Name: "pipelineTask/git-clone", Uri: "git+https://github.com/catalog", Digest: common.DigestSet{"sha1": "x123"}, Content: taskRuns["git-clone"]},
 				{
 					Uri:    "oci://gcr.io/test1/test1",
 					Digest: common.DigestSet{"sha256": "d4b63d3e24d6eef04a6dc0795cf8a73470688803d97c52cffa3c8d4efd3397b6"},
 				},
-				{Name: "pipelineTask", Uri: "git+https://github.com/test", Digest: common.DigestSet{"sha1": "ab123"}, Content: taskRuns["taskrun-build"]},
+				{Name: "pipelineTask/build", Uri: "git+https://github.com/test", Digest: common.DigestSet{"sha1": "ab123"}, Content: taskRuns["taskrun-build"]},
 				{
 					Uri:    "oci://gcr.io/test2/test2",
 					Digest: common.DigestSet{"sha256": "4d6dd704ef58cb214dd826519929e92a978a57cdee43693006139c0080fd6fac"},
