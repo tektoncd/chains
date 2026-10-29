@@ -35,11 +35,10 @@ cel.dev/expr
 # cloud.google.com/go v0.123.0
 ## explicit; go 1.24.0
 cloud.google.com/go
-cloud.google.com/go/internal
 cloud.google.com/go/internal/optional
 cloud.google.com/go/internal/trace
 cloud.google.com/go/internal/version
-# cloud.google.com/go/auth v0.24.1-0.20261001053825-dbc26066f70a
+# cloud.google.com/go/auth v0.24.1
 ## explicit; go 1.26.0
 cloud.google.com/go/auth
 cloud.google.com/go/auth/credentials
@@ -92,8 +91,8 @@ cloud.google.com/go/longrunning/internal
 cloud.google.com/go/monitoring/apiv3/v2
 cloud.google.com/go/monitoring/apiv3/v2/monitoringpb
 cloud.google.com/go/monitoring/internal
-# cloud.google.com/go/storage v1.68.0
-## explicit; go 1.25.0
+# cloud.google.com/go/storage v1.70.0
+## explicit; go 1.26.0
 cloud.google.com/go/storage
 cloud.google.com/go/storage/experimental
 cloud.google.com/go/storage/internal
@@ -1307,7 +1306,7 @@ github.com/google/uuid
 # github.com/google/wire v0.7.0
 ## explicit; go 1.19
 github.com/google/wire
-# github.com/googleapis/enterprise-certificate-proxy v0.3.22
+# github.com/googleapis/enterprise-certificate-proxy v0.3.23
 ## explicit; go 1.25.0
 github.com/googleapis/enterprise-certificate-proxy/client
 github.com/googleapis/enterprise-certificate-proxy/client/util
@@ -2635,7 +2634,7 @@ golang.org/x/exp/slices
 # golang.org/x/exp/typeparams v0.0.0-20250210185358-939b2ce775ac
 ## explicit; go 1.18
 golang.org/x/exp/typeparams
-# golang.org/x/mod v0.41.0
+# golang.org/x/mod v0.42.0
 ## explicit; go 1.26.0
 golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/modfile
@@ -2811,7 +2810,7 @@ golang.org/x/xerrors/internal
 # gomodules.xyz/jsonpatch/v2 v2.5.0
 ## explicit; go 1.20
 gomodules.xyz/jsonpatch/v2
-# google.golang.org/api v0.301.0
+# google.golang.org/api v0.307.0
 ## explicit; go 1.26.0
 google.golang.org/api/googleapi
 google.golang.org/api/googleapi/transport
@@ -2850,7 +2849,7 @@ google.golang.org/genproto/googleapis/api/httpbody
 google.golang.org/genproto/googleapis/api/label
 google.golang.org/genproto/googleapis/api/metric
 google.golang.org/genproto/googleapis/api/monitoredres
-# google.golang.org/genproto/googleapis/rpc v0.0.0-20260928230214-8a89bd6388cc
+# google.golang.org/genproto/googleapis/rpc v0.0.0-20261019180522-ce908d29299b
 ## explicit; go 1.26.0
 google.golang.org/genproto/googleapis/rpc/code
 google.golang.org/genproto/googleapis/rpc/errdetails
