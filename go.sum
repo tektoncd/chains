@@ -872,8 +872,8 @@ github.com/jedisct1/go-minisign v0.0.0-20230811132847-661be99b8267 h1:TMtDYDHKYY
 github.com/jedisct1/go-minisign v0.0.0-20230811132847-661be99b8267/go.mod h1:h1nSAbGFqGVzn6Jyl1R/iCcBUHN4g+gW1u9CoBTrb9E=
 github.com/jellydator/ttlcache/v3 v3.4.1 h1:bOdXmXiycyK6E6Qjyuj5vl+/vU3SCOoDs8a86NbHjAQ=
 github.com/jellydator/ttlcache/v3 v3.4.1/go.mod h1:j7LO12PNghFg5+0v9budMAT4rDK4JY969jb9vOdOBBk=
-github.com/jenkins-x/go-scm v1.16.3 h1:W0clSwQajkCrhaD7xYjHrLdn9ixHOh6hbfJIlHBV3YA=
-github.com/jenkins-x/go-scm v1.16.3/go.mod h1:twMXaFq8u+VoCDkkYr3hSvIzUbeY0iS2bhz/ITGDoy8=
+github.com/jenkins-x/go-scm v1.17.1 h1:z9g6oSa9EmwjpCr5TCkOYhzRyZ9sWiAcHnw4enK71lU=
+github.com/jenkins-x/go-scm v1.17.1/go.mod h1:DcST+SZCV5wiszUKVIRzLkEjCEaAeS3dJjINxcEj8hk=
 github.com/jessevdk/go-flags v1.4.0/go.mod h1:4FA24M0QyGHXBuZZK/XkWh8h0e1EYbRYJSGM75WSRxI=
 github.com/jgautheron/goconst v1.7.1 h1:VpdAG7Ca7yvvJk5n8dMwQhfEZJh95kl/Hl9S1OI5Jkk=
 github.com/jgautheron/goconst v1.7.1/go.mod h1:aAosetZ5zaeC/2EfMeRswtxUFBpe2Hr7HzkgX4fanO4=
@@ -1214,8 +1214,8 @@ github.com/syndtr/goleveldb v1.0.1-0.20220721030215-126854af5e6d h1:vfofYNRScrDd
 github.com/syndtr/goleveldb v1.0.1-0.20220721030215-126854af5e6d/go.mod h1:RRCYJbIwD5jmqPI9XoAFR0OcDxqUctll6zUj/+B4S48=
 github.com/tdakkota/asciicheck v0.4.1 h1:bm0tbcmi0jezRA2b5kg4ozmMuGAFotKI3RZfrhfovg8=
 github.com/tdakkota/asciicheck v0.4.1/go.mod h1:0k7M3rCfRXb0Z6bwgvkEIMleKH3kXNz9UqJ9Xuqopr8=
-github.com/tektoncd/pipeline v1.17.1 h1:DCesnRkDJjApmP0p8yFUTfkjTHEsS2872dEfurtMeAY=
-github.com/tektoncd/pipeline v1.17.1/go.mod h1:cXHxeiZzF9HWzw6vzwYH44GJjQDq3fr3l97H3ojWBP4=
+github.com/tektoncd/pipeline v1.18.0 h1:guGm2fIgI0GGzmbliy/Cqr5eMQAH6JXqMlMxKsOJq6Q=
+github.com/tektoncd/pipeline v1.18.0/go.mod h1:BTmaC68LcXHKAWtR6ldBdye94AEVguQ7Ml6DEZvBUFQ=
 github.com/tektoncd/plumbing v0.0.0-20250115133002-f515628dffea h1:z7uBS+485zM5dFs/ixc708MgIO8eCWPCRCreUQC/pzI=
 github.com/tektoncd/plumbing v0.0.0-20250115133002-f515628dffea/go.mod h1:Ks1fp1nPnhJxxT810eOkq2skeIiDuYjq3cIgpS5Gxk4=
 github.com/tenntenn/modver v1.0.1 h1:2klLppGhDgzJrScMpkj9Ujy3rXPUspSjAcev9tSEBgA=
