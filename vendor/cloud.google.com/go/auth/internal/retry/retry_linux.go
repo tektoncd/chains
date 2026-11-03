@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2026 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,13 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package firestore
+//go:build linux
+// +build linux
 
-// SetGoogleClientInfo sets the name and version of the application in
-// the `x-goog-api-client` header passed on each request. Also passes any
-// provided key-value pairs. Intended for use by Google-written clients.
-//
-// Internal use only.
-func (c *Client) SetGoogleClientInfo(keyval ...string) {
-	c.setGoogleClientInfo(keyval...)
+package retry
+
+import (
+	"errors"
+	"syscall"
+)
+
+func init() {
+	// Initialize syscallRetryable to return true on transient socket-level
+	// errors. These errors are specific to Linux.
+	syscallRetryable = func(err error) bool {
+		return errors.Is(err, syscall.ECONNRESET) || errors.Is(err, syscall.ECONNREFUSED)
+	}
 }
