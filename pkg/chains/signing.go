@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/go-multierror"
 	intoto "github.com/in-toto/attestation/go/v1"
@@ -36,7 +37,9 @@ import (
 	versioned "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	"golang.org/x/exp/maps"
 	"google.golang.org/protobuf/encoding/protojson"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/kubernetes"
 	"knative.dev/pkg/logging"
 )
 
@@ -51,8 +54,34 @@ type ObjectSigner struct {
 	Backends          map[string]storage.Backend
 	SecretPath        string
 	Pipelineclientset versioned.Interface
+	KubeClient        kubernetes.Interface
+	Recorder          metrics.Recorder
+}
 
-	Recorder metrics.Recorder
+func (o *ObjectSigner) getPipelinesVersion(
+	ctx context.Context,
+	namespace string,
+) (string, error) {
+	if o.KubeClient == nil {
+		return "", fmt.Errorf("kubernetes client is not configured")
+	}
+	if namespace == "" {
+		return "", fmt.Errorf("pipelines namespace is not configured")
+	}
+
+	cm, err := o.KubeClient.CoreV1().
+		ConfigMaps(namespace).
+		Get(ctx, "pipelines-info", metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("reading %s/pipelines-info: %w", namespace, err)
+	}
+
+	version := strings.TrimSpace(cm.Data["version"])
+	if version == "" {
+		return "", fmt.Errorf("%s/pipelines-info has no version", namespace)
+	}
+
+	return version, nil
 }
 
 func allSigners(ctx context.Context, sp string, cfg config.Config) map[string]signing.Signer {
@@ -129,11 +158,20 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 
 	var merr *multierror.Error
 	extraAnnotations := map[string]string{}
+	pipelinesVersionResolved := false
 	for _, signableType := range signableTypes {
 		if !signableType.Enabled(cfg) {
 			continue
 		}
 		payloadFormat := signableType.PayloadFormat(cfg)
+		if !pipelinesVersionResolved && payloadFormat == formats.PayloadTypeSlsav2alpha4 {
+			pipelinesVersionResolved = true
+			version, err := o.getPipelinesVersion(ctx, cfg.Builder.PipelinesNamespace)
+			if err != nil {
+				logger.Warnf("Omitting Pipelines builder dependency: %v", err)
+			}
+			ctx = formats.WithPipelinesVersion(ctx, version)
+		}
 		// Find the right payload format and format the object
 		payloader, err := formats.GetPayloader(payloadFormat, cfg)
 		if err != nil {

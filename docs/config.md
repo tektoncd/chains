@@ -141,6 +141,7 @@ You can read more about Grafeas notes and occurrences [here](https://github.com/
 | Key                         | Description                                    | Supported Values                                                                | Default                             |
 | :-------------------------- | :--------------------------------------------- | :------------------------------------------------------------------------------ | :---------------------------------- |
 | `builder.id`                | The builder ID to set for in-toto attestations |                                                                                 | `https://tekton.dev/chains/v2`      |
+| `builder.pipelines-namespace` | Namespace containing the Pipelines `pipelines-info` ConfigMap used for `slsa/v2alpha4` builder dependencies | Valid Kubernetes namespace name | `tekton-pipelines` |
 | `builddefinition.buildtype` | The buildType for in-toto attestations         | `https://tekton.dev/chains/v2/slsa`, `https://tekton.dev/chains/v2/slsa-tekton` | `https://tekton.dev/chains/v2/slsa` |
 
 > NOTE:

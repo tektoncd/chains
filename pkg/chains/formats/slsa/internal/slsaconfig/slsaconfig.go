@@ -22,4 +22,8 @@ type SlsaConfig struct {
 	DeepInspectionEnabled bool
 	// The buildType for the build definition
 	BuildType string
+	// PipelinesVersion identifies the installed Tekton Pipelines release.
+	PipelinesVersion string
+	// IncludeBuilderMetadata enables builder versions and dependencies for v2alpha4.
+	IncludeBuilderMetadata bool
 }

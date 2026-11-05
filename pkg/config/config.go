@@ -24,6 +24,7 @@ import (
 	"github.com/sigstore/sigstore/pkg/tuf"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/validation"
 	cm "knative.dev/pkg/configmap"
 )
 
@@ -77,6 +78,8 @@ type SignerConfigs struct {
 
 type BuilderConfig struct {
 	ID string
+	// PipelinesNamespace contains the pipelines-info ConfigMap used for provenance.
+	PipelinesNamespace string
 }
 
 type BuildDefinitionConfig struct {
@@ -233,7 +236,8 @@ const (
 	x509SignerTUFMirrorURL      = "signers.x509.tuf.mirror.url"
 
 	// Builder config
-	builderIDKey = "builder.id"
+	builderIDKey                 = "builder.id"
+	builderPipelinesNamespaceKey = "builder.pipelines-namespace"
 
 	transparencyEnabledKey = "transparency.enabled"
 	transparencyURLKey     = "transparency.url"
@@ -299,7 +303,8 @@ func defaultConfig() *Config {
 			},
 		},
 		Builder: BuilderConfig{
-			ID: "https://tekton.dev/chains/v2",
+			ID:                 "https://tekton.dev/chains/v2",
+			PipelinesNamespace: "tekton-pipelines",
 		},
 		BuildDefinition: BuildDefinitionConfig{
 			BuildType: "https://tekton.dev/chains/v2/slsa",
@@ -377,6 +382,7 @@ func NewConfigFromMap(data map[string]string) (*Config, error) {
 
 		// Build config
 		asString(builderIDKey, &cfg.Builder.ID),
+		asString(builderPipelinesNamespaceKey, &cfg.Builder.PipelinesNamespace),
 
 		// Build type
 		asString(buildTypeKey, &cfg.BuildDefinition.BuildType, "https://tekton.dev/chains/v2/slsa", "https://tekton.dev/chains/v2/slsa-tekton"),
@@ -385,6 +391,9 @@ func NewConfigFromMap(data map[string]string) (*Config, error) {
 		asStringSet(filterManagedByKey, &cfg.Filter.ManagedByValues, nil),
 	); err != nil {
 		return nil, fmt.Errorf("failed to parse data: %w", err)
+	}
+	if errs := validation.IsDNS1123Label(cfg.Builder.PipelinesNamespace); len(errs) != 0 {
+		return nil, fmt.Errorf("invalid %s: %s", builderPipelinesNamespaceKey, strings.Join(errs, ", "))
 	}
 
 	return cfg, nil

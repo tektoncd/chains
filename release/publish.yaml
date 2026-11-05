@@ -115,6 +115,8 @@ spec:
       value: $(params.imageRegistry)/$(params.imageRegistryPath)
     - name: GOFLAGS
       value: "-mod=vendor"
+    - name: CHAINS_VERSION
+      value: "$(params.versionTag)"
     script: |
       #!/usr/bin/env sh
       set -ex
