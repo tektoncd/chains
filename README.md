@@ -13,6 +13,7 @@ cascade:
 # Tekton Chains
 
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/6408/badge)](https://bestpractices.coreinfrastructure.org/projects/6408)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Ftektoncd%2Fchains.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Ftektoncd%2Fchains?ref=badge_shield)
 
 Supply Chain Security in Tekton Pipelines
 
@@ -120,3 +121,7 @@ To learn more about Chains:
   [here](https://github.com/tektoncd/community/blob/main/working-groups.md#chains)
 
 [cosign]: https://github.com/sigstore/cosign
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Ftektoncd%2Fchains.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Ftektoncd%2Fchains?ref=badge_large)
