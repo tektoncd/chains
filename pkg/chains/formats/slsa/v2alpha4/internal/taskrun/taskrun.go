@@ -30,7 +30,7 @@ import (
 
 const (
 	taskRunResults     = "taskRunResults/%s/%s"
-	taskRunStepResults = "stepResults/%s/%s"
+	taskRunStepResults = "stepResults/%s/%s/%s" // 3 segments" stepResults/{taskIdentifier}/{stepName}/{resultName}
 )
 
 // GenerateAttestation returns the provenance for the given taskrun in SALSA 1.0 format.
@@ -51,17 +51,23 @@ func GenerateAttestation(ctx context.Context, tro *objects.TaskRunObjectV1, slsa
 	return provenance.GetSLSA1Statement(tro, sub, &bd, bp, slsaConfig)
 }
 
-// ByProducts returns the results categorized as byproduct from the given TaskRun.
 func ByProducts(tro *objects.TaskRunObjectV1) ([]*intoto.ResourceDescriptor, error) {
+	return ByProductsWithTaskName(tro, tro.TaskIdentifier())
+}
+
+// ByProductsWithTaskName is like ByProducts but uses the given taskName instead
+// of TaskIdentifier(). This is needed for matrix fan-out where multiple TaskRuns
+// share the same pipelineTask label and need a disambiguated name.
+func ByProductsWithTaskName(tro *objects.TaskRunObjectV1, taskName string) ([]*intoto.ResourceDescriptor, error) {
 	byProd := []*intoto.ResourceDescriptor{}
 
-	res, err := results.GetResultsWithoutBuildArtifacts(tro.GetName(), tro.GetResults(), taskRunResults)
+	res, err := results.GetResultsWithoutBuildArtifacts(taskName, tro.GetResults(), taskRunResults)
 	if err != nil {
 		return nil, err
 	}
 	byProd = append(byProd, res...)
 
-	res, err = results.GetResultsWithoutBuildArtifacts(tro.GetName(), tro.GetStepResults(), taskRunStepResults)
+	res, err = results.GetStepResultsWithoutBuildArtifacts(taskName, tro.GetStepResults(), taskRunStepResults)
 	if err != nil {
 		return nil, err
 	}
