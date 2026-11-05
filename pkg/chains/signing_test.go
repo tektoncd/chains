@@ -773,6 +773,103 @@ func TestObjectSigner_Sign_OCIDisabled(t *testing.T) {
 	}
 }
 
+func TestSigner_OCIPayloadFormatFollowsEncoding(t *testing.T) {
+	const imageDigest = "sha256:05f95b26ed10668b7183c1e2da98610e91372fa9f510046d4ce5812addad86b5"
+
+	tests := []struct {
+		name           string
+		encodingFormat string
+		wantFormat     config.PayloadType
+		wantWrapped    bool
+	}{
+		{name: "dsse stays simplesigning", encodingFormat: config.OCIEncodingFormatDSSE, wantFormat: "simplesigning", wantWrapped: false},
+		{name: "sigstore-bundle signs cosign-sign/v1 as DSSE", encodingFormat: config.OCIEncodingFormatSigstoreBundle, wantFormat: "cosign-sign/v1", wantWrapped: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rekor := &formatCapturingRekor{}
+			cleanup := setupMocks(rekor)
+			defer cleanup()
+			backend := &mockBackend{backendType: "mock"}
+
+			ctx, _ := rtesting.SetupFakeContext(t)
+			ps := fakepipelineclient.Get(ctx)
+			cfg := &config.Config{
+				Artifacts: config.ArtifactConfigs{
+					OCI:      config.Artifact{Format: "simplesigning", StorageBackend: sets.New[string]("mock"), Signer: "x509"},
+					TaskRuns: config.Artifact{StorageBackend: sets.New[string]("")},
+				},
+				Storage:      config.StorageConfigs{OCI: config.OCIStorageConfig{EncodingFormat: tt.encodingFormat}},
+				Transparency: config.TransparencyConfig{Enabled: true},
+			}
+			ctx = config.ToContext(ctx, cfg)
+
+			obj := objects.NewTaskRunObjectV1(&v1.TaskRun{
+				ObjectMeta: metav1.ObjectMeta{Name: "foo"},
+				Status: v1.TaskRunStatus{
+					TaskRunStatusFields: v1.TaskRunStatusFields{
+						Results: []v1.TaskRunResult{
+							{Name: "IMAGE_URL", Value: *v1.NewStructuredValues("gcr.io/foo/bar")},
+							{Name: "IMAGE_DIGEST", Value: *v1.NewStructuredValues(imageDigest)},
+						},
+					},
+				},
+			})
+			tekton.CreateObject(t, ctx, ps, obj)
+
+			os := &ObjectSigner{
+				Backends:          fakeAllBackends([]*mockBackend{backend}),
+				SecretPath:        "./signing/x509/testdata/",
+				Pipelineclientset: ps,
+			}
+			if err := os.Sign(ctx, obj); err != nil {
+				t.Fatalf("Sign() error = %v", err)
+			}
+
+			if backend.storedOpts.PayloadFormat != tt.wantFormat {
+				t.Errorf("StorageOpts.PayloadFormat = %q, want %q", backend.storedOpts.PayloadFormat, tt.wantFormat)
+			}
+			if rekor.payloadFormat != string(tt.wantFormat) {
+				t.Errorf("tlog payloadFormat = %q, want %q", rekor.payloadFormat, tt.wantFormat)
+			}
+
+			var envelope struct {
+				PayloadType string `json:"payloadType"`
+			}
+			isEnvelope := json.Unmarshal(rekor.signature, &envelope) == nil && envelope.PayloadType != ""
+			if isEnvelope != tt.wantWrapped {
+				t.Errorf("signature is a DSSE envelope = %v, want %v", isEnvelope, tt.wantWrapped)
+			}
+			if tt.wantWrapped {
+				if envelope.PayloadType != "application/vnd.in-toto+json" {
+					t.Errorf("payloadType = %q, want application/vnd.in-toto+json", envelope.PayloadType)
+				}
+				var stmt struct {
+					PredicateType string `json:"predicateType"`
+				}
+				if err := json.Unmarshal(backend.storedPayload, &stmt); err != nil {
+					t.Fatalf("stored payload is not an in-toto statement: %v", err)
+				}
+				if stmt.PredicateType != "https://sigstore.dev/cosign/sign/v1" {
+					t.Errorf("predicateType = %q, want https://sigstore.dev/cosign/sign/v1", stmt.PredicateType)
+				}
+			}
+		})
+	}
+}
+
+type formatCapturingRekor struct {
+	mockRekor
+	signature     []byte
+	payloadFormat string
+}
+
+func (r *formatCapturingRekor) UploadTlog(ctx context.Context, signer signing.Signer, signature, rawPayload []byte, cert, payloadFormat string) (*models.LogEntryAnon, error) {
+	r.signature = signature
+	r.payloadFormat = payloadFormat
+	return r.mockRekor.UploadTlog(ctx, signer, signature, rawPayload, cert, payloadFormat)
+}
+
 func setupMocks(rekor rekorClient) func() {
 	oldRekor := getRekor
 	getRekor = func(_ string) (rekorClient, error) {

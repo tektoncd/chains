@@ -24,6 +24,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	"github.com/opencontainers/go-digest"
+	"github.com/tektoncd/chains/pkg/chains/formats"
 	"github.com/tektoncd/chains/pkg/chains/objects"
 	"github.com/tektoncd/chains/pkg/config"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -404,7 +405,12 @@ func (oa *OCIArtifact) StorageBackend(cfg config.Config) sets.Set[string] {
 	return cfg.Artifacts.OCI.StorageBackend
 }
 
+// PayloadFormat returns cosign-sign/v1 in sigstore-bundle mode, where the image
+// signature must be a DSSE in-toto Statement like `cosign sign` v3 produces.
 func (oa *OCIArtifact) PayloadFormat(cfg config.Config) config.PayloadType {
+	if cfg.Storage.OCI.EncodingFormat == config.OCIEncodingFormatSigstoreBundle {
+		return formats.PayloadTypeCosignSignV1
+	}
 	return config.PayloadType(cfg.Artifacts.OCI.Format)
 }
 

@@ -17,6 +17,7 @@ limitations under the License.
 package config
 
 import (
+	"strings"
 	"testing"
 
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -126,6 +127,73 @@ func TestOCIEncodingFormatExplicit(t *testing.T) {
 			}
 			if cfg.Storage.OCI.EncodingFormat != format {
 				t.Errorf("EncodingFormat = %q, want %q", cfg.Storage.OCI.EncodingFormat, format)
+			}
+		})
+	}
+}
+
+const ociAndGrafeas = "oci,grafeas"
+
+func TestOCISigstoreBundleStorageBackends(t *testing.T) {
+	tests := []struct {
+		name    string
+		data    map[string]string
+		wantErr string
+	}{
+		{
+			name: "sigstore-bundle with default storage is accepted",
+			data: map[string]string{ociEncodingFormatKey: OCIEncodingFormatSigstoreBundle},
+		},
+		{
+			name: "sigstore-bundle with oci only is accepted",
+			data: map[string]string{ociEncodingFormatKey: OCIEncodingFormatSigstoreBundle, ociStorageKey: "oci"},
+		},
+		{
+			name:    "sigstore-bundle with oci,grafeas is rejected",
+			data:    map[string]string{ociEncodingFormatKey: OCIEncodingFormatSigstoreBundle, ociStorageKey: ociAndGrafeas},
+			wantErr: "only \"oci\" is allowed",
+		},
+		{
+			name:    "sigstore-bundle with oci,gcs is rejected",
+			data:    map[string]string{ociEncodingFormatKey: OCIEncodingFormatSigstoreBundle, ociStorageKey: "oci, gcs"},
+			wantErr: "only \"oci\" is allowed",
+		},
+		{
+			name:    "sigstore-bundle with tekton only is rejected",
+			data:    map[string]string{ociEncodingFormatKey: OCIEncodingFormatSigstoreBundle, ociStorageKey: "tekton"},
+			wantErr: "unsupported backend(s) [tekton]",
+		},
+		{
+			name: "sigstore-bundle with OCI artifacts disabled by empty storage is accepted",
+			data: map[string]string{ociEncodingFormatKey: OCIEncodingFormatSigstoreBundle, ociStorageKey: ""},
+		},
+		{
+			name: "sigstore-bundle with OCI signer none is accepted",
+			data: map[string]string{ociEncodingFormatKey: OCIEncodingFormatSigstoreBundle, ociStorageKey: ociAndGrafeas, ociSignerKey: "none"},
+		},
+		{
+			name: "dsse with multiple backends is unaffected",
+			data: map[string]string{ociEncodingFormatKey: OCIEncodingFormatDSSE, ociStorageKey: "oci,grafeas,gcs,docdb"},
+		},
+		{
+			name: "default encoding with multiple backends is unaffected",
+			data: map[string]string{ociStorageKey: ociAndGrafeas},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := NewConfigFromMap(tt.data)
+			if tt.wantErr == "" {
+				if err != nil {
+					t.Fatalf("NewConfigFromMap() unexpected error: %v", err)
+				}
+				return
+			}
+			if err == nil {
+				t.Fatal("NewConfigFromMap() expected an error, got nil")
+			}
+			if !strings.Contains(err.Error(), tt.wantErr) {
+				t.Errorf("error %q does not contain %q", err, tt.wantErr)
 			}
 		})
 	}
