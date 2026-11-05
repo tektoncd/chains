@@ -20,6 +20,8 @@ import (
 	"github.com/tektoncd/chains/pkg/config"
 )
 
+type pipelinesVersionKey struct{}
+
 // Payloader is an interface to generate a chains Payload from a TaskRun
 type Payloader interface {
 	CreatePayload(ctx context.Context, obj interface{}) (interface{}, error)
@@ -64,4 +66,15 @@ func GetPayloader(key config.PayloadType, cfg config.Config) (Payloader, error) 
 		return nil, fmt.Errorf("payloader %q not found", key)
 	}
 	return fn(cfg)
+}
+
+// WithPipelinesVersion adds the installed Pipelines version to the payload context.
+func WithPipelinesVersion(ctx context.Context, version string) context.Context {
+	return context.WithValue(ctx, pipelinesVersionKey{}, version)
+}
+
+// PipelinesVersionFromContext returns the installed Pipelines version, if known.
+func PipelinesVersionFromContext(ctx context.Context) string {
+	version, _ := ctx.Value(pipelinesVersionKey{}).(string)
+	return version
 }

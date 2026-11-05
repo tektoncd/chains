@@ -47,9 +47,10 @@ type Slsa struct {
 func NewFormatter(cfg config.Config) (formats.Payloader, error) { //nolint:ireturn
 	return &Slsa{
 		slsaConfig: &slsaconfig.SlsaConfig{
-			BuilderID:             cfg.Builder.ID,
-			DeepInspectionEnabled: cfg.Artifacts.PipelineRuns.DeepInspectionEnabled,
-			BuildType:             cfg.BuildDefinition.BuildType,
+			BuilderID:              cfg.Builder.ID,
+			DeepInspectionEnabled:  cfg.Artifacts.PipelineRuns.DeepInspectionEnabled,
+			BuildType:              cfg.BuildDefinition.BuildType,
+			IncludeBuilderMetadata: true,
 		},
 	}, nil
 }
@@ -61,11 +62,13 @@ func (s *Slsa) Wrap() bool {
 
 // CreatePayload returns the payload for the given object using the v2alpha4 formatter logic.
 func (s *Slsa) CreatePayload(ctx context.Context, obj interface{}) (interface{}, error) {
+	cfg := *s.slsaConfig
+	cfg.PipelinesVersion = formats.PipelinesVersionFromContext(ctx)
 	switch v := obj.(type) {
 	case *objects.TaskRunObjectV1:
-		return taskrun.GenerateAttestation(ctx, v, s.slsaConfig)
+		return taskrun.GenerateAttestation(ctx, v, &cfg)
 	case *objects.PipelineRunObjectV1:
-		return pipelinerun.GenerateAttestation(ctx, v, s.slsaConfig)
+		return pipelinerun.GenerateAttestation(ctx, v, &cfg)
 	default:
 		return nil, fmt.Errorf("intoto does not support type: %s", v)
 	}

@@ -163,7 +163,7 @@ func TestParse(t *testing.T) {
 			ociEnbaled:     true,
 			want: Config{
 				Builder: BuilderConfig{
-					"builder-id-test",
+					ID: "builder-id-test",
 				},
 				Artifacts:       defaultArtifacts,
 				Signers:         defaultSigners,
