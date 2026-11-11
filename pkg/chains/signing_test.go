@@ -30,6 +30,7 @@ import (
 	"github.com/tektoncd/chains/pkg/chains/signing"
 	"github.com/tektoncd/chains/pkg/chains/storage"
 	"github.com/tektoncd/chains/pkg/config"
+	"github.com/tektoncd/chains/pkg/metrics"
 	"github.com/tektoncd/chains/pkg/test/tekton"
 	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	fakepipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client/fake"
@@ -207,6 +208,102 @@ func TestSigner_Sign(t *testing.T) {
 
 		})
 	}
+}
+
+// TestSigner_Sign_NoSignerRecordsError checks that a missing signer (no key
+// material, unreachable KMS, ...) is counted in the signing failure metrics,
+// and that the object is not marked as signed but scheduled for a retry.
+func TestSigner_Sign_NoSignerRecordsError(t *testing.T) {
+	tro := objects.NewTaskRunObjectV1(&v1.TaskRun{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "foo",
+		},
+	})
+
+	pro := objects.NewPipelineRunObjectV1(&v1.PipelineRun{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "foo",
+		},
+	})
+
+	tests := []struct {
+		name   string
+		object objects.TektonObject
+		config *config.Config
+	}{
+		{
+			name:   "taskrun",
+			object: tro,
+			config: &config.Config{
+				Artifacts: config.ArtifactConfigs{
+					TaskRuns: config.Artifact{
+						Format:         "in-toto",
+						StorageBackend: sets.New[string]("mock"),
+						Signer:         "x509",
+					},
+				},
+			},
+		},
+		{
+			name:   "pipelinerun",
+			object: pro,
+			config: &config.Config{
+				Artifacts: config.ArtifactConfigs{
+					PipelineRuns: config.Artifact{
+						Format:         "in-toto",
+						StorageBackend: sets.New[string]("mock"),
+						Signer:         "x509",
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, _ := rtesting.SetupFakeContext(t)
+			ps := fakepipelineclient.Get(ctx)
+			ctx = config.ToContext(ctx, tt.config.DeepCopy())
+
+			recorder := &fakeRecorder{}
+			ts := &ObjectSigner{
+				Backends:          fakeAllBackends([]*mockBackend{{backendType: "mock"}}),
+				SecretPath:        "./signing/x509/testdata/does-not-exist",
+				Pipelineclientset: ps,
+				Recorder:          recorder,
+			}
+
+			tekton.CreateObject(t, ctx, ps, tt.object)
+
+			if err := ts.Sign(ctx, tt.object); err == nil {
+				t.Fatal("Signer.Sign() expected an error, got nil")
+			}
+
+			updated, err := tekton.GetObject(t, ctx, ps, tt.object)
+			if err != nil {
+				t.Fatalf("error fetching fake object: %v", err)
+			}
+			if annotations.Reconciled(ctx, ps, updated) {
+				t.Error("object was marked as signed or failed, want a retry")
+			}
+			if got := updated.GetAnnotations()[annotations.RetryAnnotation]; got != "0" {
+				t.Errorf("retry annotation = %q, want %q", got, "0")
+			}
+			want := []metrics.MetricErrorType{metrics.SignerUnavailableError}
+			if diff := cmp.Diff(want, recorder.errors); diff != "" {
+				t.Errorf("recorded error metrics (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+type fakeRecorder struct {
+	errors []metrics.MetricErrorType
+}
+
+func (r *fakeRecorder) RecordCountMetrics(context.Context, metrics.Metric) {}
+
+func (r *fakeRecorder) RecordErrorMetric(_ context.Context, errType metrics.MetricErrorType) {
+	r.errors = append(r.errors, errType)
 }
 
 func TestSigner_Transparency(t *testing.T) {
