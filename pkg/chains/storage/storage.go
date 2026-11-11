@@ -33,6 +33,11 @@ import (
 	"knative.dev/pkg/logging"
 )
 
+const (
+	resultDerivedDSSERegistryWarning   = "OCI storage with DSSE is using result-derived repositories for storage. Set storage.oci.repository to control the DSSE upload destination. Chains may still contact the result-derived source artifact registry; in multi-tenant deployments, use network egress controls to restrict controller outbound access."
+	resultDerivedBundleRegistryWarning = "OCI storage with sigstore-bundle uses the result-derived artifact repository; storage.oci.repository does not override the destination in this mode. In multi-tenant deployments, use network egress controls to restrict controller outbound access."
+)
+
 // Backend is an interface to store a chains Payload
 type Backend interface {
 	StorePayload(ctx context.Context, obj objects.TektonObject, rawPayload []byte, signature string, opts config.StorageOpts) error
@@ -60,6 +65,13 @@ func InitializeBackends(ctx context.Context, ps versioned.Interface, kc kubernet
 		configuredBackends = append(configuredBackends, sets.List[string](cfg.Artifacts.PipelineRuns.StorageBackend)...)
 	}
 	logger.Infof("configured backends from config: %v", configuredBackends)
+	if sets.New[string](configuredBackends...).Has(oci.StorageBackendOCI) {
+		if cfg.Storage.OCI.EncodingFormat == config.OCIEncodingFormatSigstoreBundle {
+			logger.Warn(resultDerivedBundleRegistryWarning)
+		} else if cfg.Storage.OCI.Repository == "" {
+			logger.Warn(resultDerivedDSSERegistryWarning)
+		}
+	}
 
 	// Now only initialize and return the configured ones.
 	backends := map[string]Backend{}
