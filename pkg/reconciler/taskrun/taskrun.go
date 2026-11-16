@@ -28,6 +28,7 @@ import (
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/logging"
 	pkgreconciler "knative.dev/pkg/reconciler"
@@ -44,6 +45,9 @@ const (
 type Reconciler struct {
 	TaskRunSigner     signing.Signer
 	Pipelineclientset versioned.Interface
+	// KubeClientSet is used to look up the Pod of a TaskRun for the
+	// security.verify-pod-binding check. The check is skipped when it is nil.
+	KubeClientSet kubernetes.Interface
 }
 
 // Check that our Reconciler implements taskrunreconciler.Interface and taskrunreconciler.Finalizer
@@ -100,6 +104,10 @@ func (r *Reconciler) FinalizeKind(ctx context.Context, tr *v1.TaskRun) (result p
 	if annotations.Reconciled(ctx, r.Pipelineclientset, obj) {
 		logging.FromContext(ctx).Infof("taskrun %s/%s has been reconciled", tr.Namespace, tr.Name)
 		return nil
+	}
+
+	if ok, err := r.verifyPodBinding(ctx, tr, obj); err != nil || !ok {
+		return err
 	}
 
 	if err := r.TaskRunSigner.Sign(ctx, obj); err != nil {

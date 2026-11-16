@@ -128,6 +128,10 @@ var defaultTransparency = TransparencyConfig{
 	URL: "https://rekor.sigstore.dev",
 }
 
+var defaultSecurity = SecurityConfig{
+	VerifyPodBinding: VerifyPodBindingWarn,
+}
+
 var defaultBuildDefinition = BuildDefinitionConfig{
 	BuildType: "https://tekton.dev/chains/v2/slsa",
 }
@@ -146,6 +150,7 @@ func TestParse(t *testing.T) {
 			taskrunEnabled: true,
 			ociEnbaled:     true,
 			want: Config{
+				Security:        defaultSecurity,
 				Builder:         defaultBuilder,
 				Artifacts:       defaultArtifacts,
 				Signers:         defaultSigners,
@@ -162,6 +167,7 @@ func TestParse(t *testing.T) {
 			taskrunEnabled: true,
 			ociEnbaled:     true,
 			want: Config{
+				Security: defaultSecurity,
 				Builder: BuilderConfig{
 					"builder-id-test",
 				},
@@ -180,6 +186,7 @@ func TestParse(t *testing.T) {
 			taskrunEnabled: true,
 			ociEnbaled:     true,
 			want: Config{
+				Security:  defaultSecurity,
 				Builder:   defaultBuilder,
 				Artifacts: defaultArtifacts,
 				Signers:   defaultSigners,
@@ -201,7 +208,8 @@ func TestParse(t *testing.T) {
 			taskrunEnabled: true,
 			ociEnbaled:     true,
 			want: Config{
-				Builder: defaultBuilder,
+				Security: defaultSecurity,
+				Builder:  defaultBuilder,
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
 						Format:         "in-toto",
@@ -232,7 +240,8 @@ func TestParse(t *testing.T) {
 			taskrunEnabled: true,
 			ociEnbaled:     true,
 			want: Config{
-				Builder: defaultBuilder,
+				Security: defaultSecurity,
+				Builder:  defaultBuilder,
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
 						Format:         "in-toto",
@@ -263,7 +272,8 @@ func TestParse(t *testing.T) {
 			taskrunEnabled: false,
 			ociEnbaled:     true,
 			want: Config{
-				Builder: defaultBuilder,
+				Security: defaultSecurity,
+				Builder:  defaultBuilder,
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
 						Format:         "in-toto",
@@ -294,7 +304,8 @@ func TestParse(t *testing.T) {
 			taskrunEnabled: true,
 			ociEnbaled:     true,
 			want: Config{
-				Builder: defaultBuilder,
+				Security: defaultSecurity,
+				Builder:  defaultBuilder,
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
 						Format:         "in-toto",
@@ -325,7 +336,8 @@ func TestParse(t *testing.T) {
 			taskrunEnabled: true,
 			ociEnbaled:     false,
 			want: Config{
-				Builder: defaultBuilder,
+				Security: defaultSecurity,
+				Builder:  defaultBuilder,
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
 						Format:         "in-toto",
@@ -359,7 +371,8 @@ func TestParse(t *testing.T) {
 			taskrunEnabled: true,
 			ociEnbaled:     false,
 			want: Config{
-				Builder: defaultBuilder,
+				Security: defaultSecurity,
+				Builder:  defaultBuilder,
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
 						Format:         "in-toto",
@@ -393,7 +406,8 @@ func TestParse(t *testing.T) {
 			taskrunEnabled: false,
 			ociEnbaled:     true,
 			want: Config{
-				Builder: defaultBuilder,
+				Security: defaultSecurity,
+				Builder:  defaultBuilder,
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
 						Format:         "in-toto",
@@ -424,7 +438,8 @@ func TestParse(t *testing.T) {
 			taskrunEnabled: true,
 			ociEnbaled:     true,
 			want: Config{
-				Builder: defaultBuilder,
+				Security: defaultSecurity,
+				Builder:  defaultBuilder,
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
 						Format:         "in-toto",
@@ -455,6 +470,7 @@ func TestParse(t *testing.T) {
 			taskrunEnabled: true,
 			ociEnbaled:     true,
 			want: Config{
+				Security:  defaultSecurity,
 				Builder:   defaultBuilder,
 				Artifacts: defaultArtifacts,
 				Signers:   defaultSigners,
@@ -477,7 +493,8 @@ func TestParse(t *testing.T) {
 			taskrunEnabled: true,
 			ociEnbaled:     true,
 			want: Config{
-				Builder: defaultBuilder,
+				Security: defaultSecurity,
+				Builder:  defaultBuilder,
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
 						Format:         "in-toto",
@@ -512,7 +529,8 @@ func TestParse(t *testing.T) {
 			taskrunEnabled: true,
 			ociEnbaled:     true,
 			want: Config{
-				Builder: defaultBuilder,
+				Security: defaultSecurity,
+				Builder:  defaultBuilder,
 				Artifacts: ArtifactConfigs{
 					TaskRuns: Artifact{
 						Format:         "in-toto",
@@ -552,6 +570,7 @@ func TestParse(t *testing.T) {
 			taskrunEnabled: true,
 			ociEnbaled:     true,
 			want: Config{
+				Security:  defaultSecurity,
 				Builder:   defaultBuilder,
 				Artifacts: defaultArtifacts,
 				Signers: SignerConfigs{
@@ -577,6 +596,7 @@ func TestParse(t *testing.T) {
 			taskrunEnabled: true,
 			ociEnbaled:     true,
 			want: Config{
+				Security:  defaultSecurity,
 				Builder:   defaultBuilder,
 				Artifacts: defaultArtifacts,
 				Signers: SignerConfigs{
@@ -603,6 +623,7 @@ func TestParse(t *testing.T) {
 			taskrunEnabled: true,
 			ociEnbaled:     true,
 			want: Config{
+				Security:        defaultSecurity,
 				Builder:         defaultBuilder,
 				Artifacts:       defaultArtifacts,
 				Signers:         defaultSigners,
@@ -615,6 +636,25 @@ func TestParse(t *testing.T) {
 			},
 		},
 		{
+			name: "verify pod binding - block",
+			data: map[string]string{
+				"security.verify-pod-binding": "block",
+			},
+			taskrunEnabled: true,
+			ociEnbaled:     true,
+			want: Config{
+				Security: SecurityConfig{
+					VerifyPodBinding: VerifyPodBindingBlock,
+				},
+				Builder:         defaultBuilder,
+				Artifacts:       defaultArtifacts,
+				Signers:         defaultSigners,
+				Storage:         defaultStorage,
+				Transparency:    defaultTransparency,
+				BuildDefinition: defaultBuildDefinition,
+			},
+		},
+		{
 			name: "buildDefinition - slsa-tekton",
 			data: map[string]string{
 				"builddefinition.buildtype": "https://tekton.dev/chains/v2/slsa-tekton",
@@ -622,6 +662,7 @@ func TestParse(t *testing.T) {
 			taskrunEnabled: true,
 			ociEnbaled:     true,
 			want: Config{
+				Security:     defaultSecurity,
 				Builder:      defaultBuilder,
 				Artifacts:    defaultArtifacts,
 				Signers:      defaultSigners,

@@ -52,6 +52,20 @@ Supported keys include:
 | :------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------- | :--------------------- |
 | `filter.managed-by`  | Comma-separated list of additional `spec.managedBy` values that Chains will process. `tekton.dev/pipeline` is always accepted and cannot be removed. Runs whose `spec.managedBy` is unset or empty are also always accepted. Runs whose `spec.managedBy` does not match any of these values are ignored by Chains. | Any string (e.g. `custom-controller`) | unset  |
 
+### Security Configuration
+
+| Key                           | Description                                                                                                                                                                 | Supported Values         | Default |
+| :---------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------- | :------ |
+| `security.verify-pod-binding` | Before signing a TaskRun, check that the Pod named in its status exists and is controlled by that TaskRun. See below for what each value does. | `off`, `warn`, `block` | `warn`  |
+
+The Pod binding check is a defense-in-depth measure against a TaskRun status that was written by something other than the Tekton Pipelines controller, for example when write access to `taskruns/status` is granted more widely than intended. It costs one `GET` on the Pod per TaskRun.
+
+- With `warn`, a TaskRun whose Pod is missing or not controlled by it is still signed, and Chains logs the problem and sets the `chains.tekton.dev/execution-verified: "false"` annotation on it. Policy engines can use the annotation to decide whether to trust the provenance.
+- With `block`, a missing Pod is handled like `warn`, because Pods are often cleaned up before Chains processes the TaskRun. A Pod that exists but is not controlled by the TaskRun is not signed: the TaskRun is annotated with `chains.tekton.dev/signed: "failed"` and `chains.tekton.dev/execution-verified: "false"`.
+- With `off`, the check is skipped.
+
+PipelineRuns are not checked, since they don't run in a Pod of their own.
+
 ### OCI Configuration
 
 | Key                     | Description                                                                                                                                                                              | Supported Values                           | Default         |
