@@ -36,8 +36,21 @@ import (
 	versioned "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	"golang.org/x/exp/maps"
 	"google.golang.org/protobuf/encoding/protojson"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"knative.dev/pkg/controller"
 	"knative.dev/pkg/logging"
+)
+
+const (
+	// SigningRetryingReason is the event reason when signing failed and Chains will try again
+	SigningRetryingReason = "SigningRetrying"
+	// SigningFailedReason is the event reason when signing failed and no retries are left
+	SigningFailedReason = "SigningFailed"
+
+	// maxEventMessageLength keeps the event message within what the API server accepts
+	maxEventMessageLength = 1024
 )
 
 type Signer interface {
@@ -273,6 +286,7 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 
 		}
 		if merr.ErrorOrNil() != nil {
+			recordSigningFailure(ctx, tektonObj, merr)
 			if retryErr := annotations.HandleRetry(ctx, tektonObj, o.Pipelineclientset, extraAnnotations); retryErr != nil {
 				logger.Warnf("error handling retry: %v", retryErr)
 				merr = multierror.Append(merr, retryErr)
@@ -287,6 +301,31 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 	}
 	measureMetrics(ctx, metrics.MarkedAsSignedCount, o.Recorder)
 	return nil
+}
+
+// recordSigningFailure emits a Warning event on the run with the reason signing
+// failed, so users can see it with kubectl describe without access to the
+// controller logs.
+func recordSigningFailure(ctx context.Context, obj objects.TektonObject, err error) {
+	recorder := controller.GetEventRecorder(ctx)
+	if recorder == nil {
+		return
+	}
+	runtimeObj, ok := obj.GetObject().(runtime.Object)
+	if !ok {
+		return
+	}
+
+	reason := SigningFailedReason
+	message := fmt.Sprintf("Chains failed to sign %s and gave up: %v", obj.GetGVK(), err)
+	if annotations.RetryAvailable(obj) {
+		reason = SigningRetryingReason
+		message = fmt.Sprintf("Chains failed to sign %s and will retry: %v", obj.GetGVK(), err)
+	}
+	if len(message) > maxEventMessageLength {
+		message = message[:maxEventMessageLength-3] + "..."
+	}
+	recorder.Event(runtimeObj, corev1.EventTypeWarning, reason, message)
 }
 
 func measureMetrics(ctx context.Context, metrictype metrics.Metric, mtr metrics.Recorder) {
