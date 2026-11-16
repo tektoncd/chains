@@ -33,6 +33,9 @@ import (
 	rtesting "knative.dev/pkg/reconciler/testing"
 )
 
+// verifiedFalse is the annotation value written when the pod binding check fails.
+const verifiedFalse = "false"
+
 func TestReconciler_VerifyPodBinding(t *testing.T) {
 	const (
 		ns      = "default"
@@ -85,34 +88,34 @@ func TestReconciler_VerifyPodBinding(t *testing.T) {
 			name:         "warn with a missing pod",
 			mode:         config.VerifyPodBindingWarn,
 			wantSigned:   true,
-			wantVerified: "false",
+			wantVerified: verifiedFalse,
 		},
 		{
 			name:         "warn with a foreign pod",
 			mode:         config.VerifyPodBindingWarn,
 			pods:         []runtime.Object{otherPod},
 			wantSigned:   true,
-			wantVerified: "false",
+			wantVerified: verifiedFalse,
 		},
 		{
 			name:         "warn with an unowned pod",
 			mode:         config.VerifyPodBindingWarn,
 			pods:         []runtime.Object{pod(nil)},
 			wantSigned:   true,
-			wantVerified: "false",
+			wantVerified: verifiedFalse,
 		},
 		{
 			name:         "block still signs when the pod is gone",
 			mode:         config.VerifyPodBindingBlock,
 			wantSigned:   true,
-			wantVerified: "false",
+			wantVerified: verifiedFalse,
 		},
 		{
 			name:         "block refuses a foreign pod",
 			mode:         config.VerifyPodBindingBlock,
 			pods:         []runtime.Object{otherPod},
 			wantSigned:   false,
-			wantVerified: "false",
+			wantVerified: verifiedFalse,
 			wantChains:   "failed",
 		},
 	}
