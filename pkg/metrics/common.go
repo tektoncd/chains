@@ -36,6 +36,9 @@ const (
 	SigningError         MetricErrorType = "signing"
 	StorageError         MetricErrorType = "storage"
 	TlogError            MetricErrorType = "tlog"
+	// SignerUnavailableError is recorded when no signer could be configured for the
+	// signable type (missing key material, unreachable KMS, ...).
+	SignerUnavailableError MetricErrorType = "signer_unavailable"
 )
 
 // ErrorTypeAttrKey is the OpenTelemetry attribute key used to label error metrics by type.
