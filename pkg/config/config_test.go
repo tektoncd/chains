@@ -23,6 +23,16 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
+func TestPipelinesNamespaceValidation(t *testing.T) {
+	for _, namespace := range []string{"", "invalid/name", "UPPERCASE"} {
+		t.Run(namespace, func(t *testing.T) {
+			if _, err := NewConfigFromMap(map[string]string{builderPipelinesNamespaceKey: namespace}); err == nil {
+				t.Errorf("expected invalid namespace %q to be rejected", namespace)
+			}
+		})
+	}
+}
+
 func TestArtifact_Enabled(t *testing.T) {
 	tests := []struct {
 		name           string

@@ -46,6 +46,7 @@ func NewNamespacesScopedController(namespaces []string) func(ctx context.Context
 		tsSigner := &chains.ObjectSigner{
 			SecretPath:        SecretPath,
 			Pipelineclientset: pipelineClient,
+			KubeClient:        kubeClient,
 			Recorder:          taskrunmetrics.Get(ctx),
 		}
 

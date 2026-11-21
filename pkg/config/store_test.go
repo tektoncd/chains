@@ -93,7 +93,8 @@ var defaultSigners = SignerConfigs{
 }
 
 var defaultBuilder = BuilderConfig{
-	ID: "https://tekton.dev/chains/v2",
+	ID:                 "https://tekton.dev/chains/v2",
+	PipelinesNamespace: "tekton-pipelines",
 }
 
 var defaultArtifacts = ArtifactConfigs{
@@ -157,13 +158,15 @@ func TestParse(t *testing.T) {
 		{
 			name: "builder configuration",
 			data: map[string]string{
-				builderIDKey: "builder-id-test",
+				builderIDKey:                 "builder-id-test",
+				builderPipelinesNamespaceKey: "custom-pipelines",
 			},
 			taskrunEnabled: true,
 			ociEnbaled:     true,
 			want: Config{
 				Builder: BuilderConfig{
-					"builder-id-test",
+					ID:                 "builder-id-test",
+					PipelinesNamespace: "custom-pipelines",
 				},
 				Artifacts:       defaultArtifacts,
 				Signers:         defaultSigners,
