@@ -10,6 +10,36 @@
 
 
 
+
+
+
+<a name="v0.13.0"></a>
+## [v0.13.0] - 2026-10-06
+### Fix
+- Preserve finite interpolation in Percentile ([#139](https://github.com/montanaflynn/stats/issues/139))
+- Return 0 for invalid Ncr input and return math.MaxInt on overflow ([#140](https://github.com/montanaflynn/stats/issues/140))
+- Compute NormMoment with a float64 to avoid factorial overflow ([#141](https://github.com/montanaflynn/stats/issues/141))
+
+### CI
+- Pin actions to SHAs, restrict token, and test minimum Go version ([#143](https://github.com/montanaflynn/stats/issues/143))
+- Update checkout, setup-go, and codecov to current major versions ([#138](https://github.com/montanaflynn/stats/issues/138))
+
+### Chore
+- Bump minimum Go version to 1.17 ([#142](https://github.com/montanaflynn/stats/issues/142))
+
+
+<a name="v0.12.7"></a>
+## [v0.12.7] - 2026-09-19
+### Fix
+- Return ErrZero from PopulationSkewness for zero-variance input ([#137](https://github.com/montanaflynn/stats/issues/137))
+
+
+<a name="v0.12.6"></a>
+## [v0.12.6] - 2026-09-09
+### Fix
+- Return an error from Quartile and callers for single-element input ([#135](https://github.com/montanaflynn/stats/issues/135))
+
+
 <a name="v0.12.5"></a>
 ## [v0.12.5] - 2026-08-28
 ### Fix
@@ -622,7 +652,10 @@
 - Merge pull request [#4](https://github.com/montanaflynn/stats/issues/4) from saromanov/sample
 
 
-[Unreleased]: https://github.com/montanaflynn/stats/compare/v0.12.5...HEAD
+[Unreleased]: https://github.com/montanaflynn/stats/compare/v0.13.0...HEAD
+[v0.13.0]: https://github.com/montanaflynn/stats/compare/v0.12.7...v0.13.0
+[v0.12.7]: https://github.com/montanaflynn/stats/compare/v0.12.6...v0.12.7
+[v0.12.6]: https://github.com/montanaflynn/stats/compare/v0.12.5...v0.12.6
 [v0.12.5]: https://github.com/montanaflynn/stats/compare/v0.12.4...v0.12.5
 [v0.12.4]: https://github.com/montanaflynn/stats/compare/v0.12.3...v0.12.4
 [v0.12.3]: https://github.com/montanaflynn/stats/compare/v0.12.2...v0.12.3
