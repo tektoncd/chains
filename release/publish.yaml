@@ -89,7 +89,7 @@ spec:
   steps:
 
   - name: container-registry-auth
-    image: cgr.dev/chainguard/crane:latest-dev@sha256:d1bbd601191b0dcfe623bd8c8ea86171133b58d0d72347451abf1d01372c70dd
+    image: cgr.dev/chainguard/crane:latest-dev@sha256:fce994694cb2b78ee1b1f2e018ec8e5725bf5f8690f3b78f996b8bd88b6604c8
     script: |
       #!/bin/sh
       set -ex
@@ -109,7 +109,7 @@ spec:
 
 
   - name: run-ko
-    image: ghcr.io/tektoncd/plumbing/ko@sha256:c8c2dd1bff054ba793c16473bde0829e6bee4d4eb4b088f2847dbba1c9db9270
+    image: ghcr.io/tektoncd/plumbing/ko@sha256:fa1d952d50a812f203ac1650d37d35f807d268e9fc719b07f97f080451300235
     env:
     - name: KO_DOCKER_REPO
       value: $(params.imageRegistry)/$(params.imageRegistryPath)
@@ -173,7 +173,7 @@ spec:
       sed -i -e 's/\(pipeline.tekton.dev\/release\): "devel"/\1: "$(params.versionTag)"/g' -e 's/\(app.kubernetes.io\/version\): "devel"/\1: "$(params.versionTag)"/g' -e 's/\(version\): "devel"/\1: "$(params.versionTag)"/g' ${OUTPUT_RELEASE_DIR}/release.yaml
       sed -i -e 's/\(pipeline.tekton.dev\/release\): "devel"/\1: "$(params.versionTag)"/g' -e 's/\(app.kubernetes.io\/version\): "devel"/\1: "$(params.versionTag)"/g' -e 's/\(version\): "devel"/\1: "$(params.versionTag)"/g' ${OUTPUT_RELEASE_DIR}/release.notags.yaml
   - name: koparse
-    image: ghcr.io/tektoncd/plumbing/koparse@sha256:0665f0eb7ffbc56d0530418b5c4da78864d9f9eb0cda7003d99e88cf10a5e510
+    image: ghcr.io/tektoncd/plumbing/koparse@sha256:c716825642ed788a6db95679c15f3aaf5dc9e1c825a1e9015e06ecef8d6f36d3
     script: |
       set -ex
 
@@ -207,7 +207,7 @@ spec:
         ${PRESERVE_IMPORT_PATH} > /workspace/built_images
 
   - name: tag-images
-    image: cgr.dev/chainguard/crane:latest-dev@sha256:d1bbd601191b0dcfe623bd8c8ea86171133b58d0d72347451abf1d01372c70dd
+    image: cgr.dev/chainguard/crane:latest-dev@sha256:fce994694cb2b78ee1b1f2e018ec8e5725bf5f8690f3b78f996b8bd88b6604c8
     script: |
       #!/bin/sh
       set -ex
