@@ -35,12 +35,21 @@ type Config struct {
 	Transparency    TransparencyConfig
 	BuildDefinition BuildDefinitionConfig
 	Filter          FilterConfig
+	Security        SecurityConfig
 }
 
 // FilterConfig holds configuration for filtering which runs
 // Chains should process.
 type FilterConfig struct {
 	ManagedByValues sets.Set[string]
+}
+
+// SecurityConfig holds the safety checks Chains runs before signing.
+type SecurityConfig struct {
+	// VerifyPodBinding controls whether Chains checks that the Pod named in a
+	// TaskRun's status exists and is controlled by that TaskRun before signing.
+	// One of "off", "warn" or "block". An empty value behaves like "off".
+	VerifyPodBinding string
 }
 
 // ArtifactConfigs contains the configuration for how to sign/store/format the signatures for each artifact type
@@ -244,6 +253,9 @@ const (
 	// Filter
 	filterManagedByKey = "filter.managed-by"
 
+	// Security
+	verifyPodBindingKey = "security.verify-pod-binding"
+
 	ChainsConfig = "chains-config"
 
 	// OCIEncodingFormatDSSE is the default encoding: DSSE envelope stored under .sig/.att tags.
@@ -251,6 +263,16 @@ const (
 	// OCIEncodingFormatSigstoreBundle uses the Sigstore protobuf-bundle format stored
 	// via the OCI 1.1 Referrers API, reducing tag proliferation.
 	OCIEncodingFormatSigstoreBundle = "sigstore-bundle"
+
+	// VerifyPodBindingOff skips the Pod binding check.
+	VerifyPodBindingOff = "off"
+	// VerifyPodBindingWarn logs and annotates runs whose Pod is missing or not
+	// controlled by the TaskRun, and signs them anyway.
+	VerifyPodBindingWarn = "warn"
+	// VerifyPodBindingBlock behaves like VerifyPodBindingWarn for a missing Pod,
+	// but marks the TaskRun as failed instead of signing it when the Pod exists
+	// and is not controlled by the TaskRun.
+	VerifyPodBindingBlock = "block"
 )
 
 func (artifact *Artifact) Enabled() bool {
@@ -303,6 +325,9 @@ func defaultConfig() *Config {
 		},
 		BuildDefinition: BuildDefinitionConfig{
 			BuildType: "https://tekton.dev/chains/v2/slsa",
+		},
+		Security: SecurityConfig{
+			VerifyPodBinding: VerifyPodBindingWarn,
 		},
 	}
 }
@@ -383,6 +408,9 @@ func NewConfigFromMap(data map[string]string) (*Config, error) {
 
 		// Filter
 		asStringSet(filterManagedByKey, &cfg.Filter.ManagedByValues, nil),
+
+		// Security
+		asString(verifyPodBindingKey, &cfg.Security.VerifyPodBinding, VerifyPodBindingOff, VerifyPodBindingWarn, VerifyPodBindingBlock),
 	); err != nil {
 		return nil, fmt.Errorf("failed to parse data: %w", err)
 	}

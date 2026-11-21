@@ -52,6 +52,7 @@ func NewNamespacesScopedController(namespaces []string) func(ctx context.Context
 		c := &Reconciler{
 			TaskRunSigner:     tsSigner,
 			Pipelineclientset: pipelineClient,
+			KubeClientSet:     kubeClient,
 		}
 
 		watcherStop := make(chan bool)
