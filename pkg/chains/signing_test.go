@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -35,6 +36,8 @@ import (
 	fakepipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/tools/record"
+	"knative.dev/pkg/controller"
 	rtesting "knative.dev/pkg/reconciler/testing"
 
 	_ "github.com/tektoncd/chains/pkg/chains/formats/all"
@@ -945,4 +948,110 @@ func (r *mockRekorNilVerification) UploadTlog(_ context.Context, _ signing.Signe
 		Body:           "dGVzdC1ib2R5",
 		Verification:   nil,
 	}, nil
+}
+
+func TestSigner_SignRecordsFailureEvent(t *testing.T) {
+	tro := objects.NewTaskRunObjectV1(&v1.TaskRun{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: "default",
+		},
+	})
+	cfg := &config.Config{
+		Artifacts: config.ArtifactConfigs{
+			TaskRuns: config.Artifact{
+				Format:         "in-toto",
+				StorageBackend: sets.New[string]("mock"),
+				Signer:         "x509",
+			},
+		},
+	}
+
+	ctx, _ := rtesting.SetupFakeContext(t)
+	ps := fakepipelineclient.Get(ctx)
+	ctx = config.ToContext(ctx, cfg)
+	recorder := record.NewFakeRecorder(10)
+	ctx = controller.WithEventRecorder(ctx, recorder)
+
+	ts := &ObjectSigner{
+		Backends:          fakeAllBackends([]*mockBackend{{backendType: "mock", shouldErr: true}}),
+		SecretPath:        "./signing/x509/testdata/",
+		Pipelineclientset: ps,
+	}
+	tekton.CreateObject(t, ctx, ps, tro)
+
+	if err := ts.Sign(ctx, tro); err == nil {
+		t.Fatal("Signer.Sign() expected an error")
+	}
+
+	select {
+	case event := <-recorder.Events:
+		if !strings.HasPrefix(event, "Warning "+SigningRetryingReason+" ") {
+			t.Errorf("unexpected event %q", event)
+		}
+		if !strings.Contains(event, "mock error storing") {
+			t.Errorf("event %q does not carry the storage error", event)
+		}
+	default:
+		t.Fatal("expected a Warning event for the failed signing")
+	}
+}
+
+func TestRecordSigningFailure(t *testing.T) {
+	tests := []struct {
+		name       string
+		retries    string
+		err        error
+		wantPrefix string
+		wantMaxLen bool
+	}{
+		{
+			name:       "retries left",
+			err:        errors.New("no signer x509 configured"),
+			wantPrefix: "Warning " + SigningRetryingReason + " Chains failed to sign",
+		},
+		{
+			name:       "no retries left",
+			retries:    fmt.Sprint(annotations.MaxRetries),
+			err:        errors.New("no signer x509 configured"),
+			wantPrefix: "Warning " + SigningFailedReason + " Chains failed to sign",
+		},
+		{
+			name:       "long message is cut",
+			err:        errors.New(strings.Repeat("x", 2*maxEventMessageLength)),
+			wantPrefix: "Warning " + SigningRetryingReason + " ",
+			wantMaxLen: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tr := &v1.TaskRun{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
+			if tt.retries != "" {
+				tr.Annotations = map[string]string{annotations.RetryAnnotation: tt.retries}
+			}
+			recorder := record.NewFakeRecorder(1)
+			ctx := controller.WithEventRecorder(context.Background(), recorder)
+
+			recordSigningFailure(ctx, objects.NewTaskRunObjectV1(tr), tt.err)
+
+			event := <-recorder.Events
+			if !strings.HasPrefix(event, tt.wantPrefix) {
+				t.Errorf("event = %q, want prefix %q", event, tt.wantPrefix)
+			}
+			if !strings.Contains(event, "no signer") && !tt.wantMaxLen {
+				t.Errorf("event %q does not carry the error", event)
+			}
+			prefix := "Warning " + SigningRetryingReason + " "
+			if tt.wantMaxLen && len(event)-len(prefix) > maxEventMessageLength {
+				t.Errorf("event message is %d bytes, want at most %d", len(event)-len(prefix), maxEventMessageLength)
+			}
+		})
+	}
+}
+
+func TestRecordSigningFailureWithoutRecorder(t *testing.T) {
+	// no recorder in the context, e.g. when Sign is called outside a reconciler
+	tro := objects.NewTaskRunObjectV1(&v1.TaskRun{ObjectMeta: metav1.ObjectMeta{Name: "foo"}})
+	recordSigningFailure(context.Background(), tro, errors.New("boom"))
 }

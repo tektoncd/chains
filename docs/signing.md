@@ -92,3 +92,16 @@ Simply delete the secret and then recreate as described above:
 ```shell
 kubectl delete secret signing-secrets -n tekton-chains
 ```
+
+### Why did signing fail?
+
+When Chains can't sign a run it emits a `Warning` event on the TaskRun or
+PipelineRun with the error. The reason is `SigningRetrying` while Chains still
+has retries left and `SigningFailed` once it gives up and sets
+`chains.tekton.dev/signed: failed`. You can see the events without access to
+the Chains controller logs:
+
+```shell
+kubectl describe taskrun <name>
+kubectl get events --field-selector involvedObject.name=<name>,reason=SigningFailed
+```
