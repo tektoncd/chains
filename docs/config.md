@@ -46,6 +46,12 @@ Supported keys include:
 > - `slsa/v2alpha4` corresponds to the slsav1.0 spec. and uses latest [`v1` Tekton Objects](https://tekton.dev/docs/pipelines/pipeline-api/#tekton.dev/v1). It reads type-hinted results from [StepActions](https://tekton.dev/docs/pipelines/pipeline-api/#tekton.dev/v1alpha1.StepAction) when `artifacts.pipelinerun.enable-deep-inspection` is set to `true`. Recommended format for new chains users who want the slsav1.0 spec.
 
 
+PipelineRuns containing `CustomRun` children can be signed after the PipelineRun
+completes and its ordinary TaskRuns have been reconciled by Chains. CustomRuns
+are not looked up or signed as TaskRuns. Chains does not generate separate
+CustomRun signatures or CustomRun-specific provenance such as approval records
+or custom controller execution details.
+
 ### Filter Configuration
 
 | Key                  | Description                                                                                                                                                                                                                                                       | Supported Values                                    | Default                |
