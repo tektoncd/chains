@@ -173,6 +173,7 @@ func (o *ObjectSigner) Sign(ctx context.Context, tektonObj objects.TektonObject)
 			signer, ok := signers[signerType]
 			if !ok {
 				logger.Warnf("No signer %s configured for %s", signerType, signableType.Type())
+				o.recordError(ctx, signableType, metrics.SignerUnavailableError)
 				merr = multierror.Append(merr, fmt.Errorf("no signer %s configured for %s", signerType, signableType.Type()))
 				break
 			}

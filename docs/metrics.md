@@ -27,6 +27,17 @@ The following chains metrics are also available at `tekton-chains-metrics` servi
 | `watcher_taskrun_marked_signed_total`         | Counter | Total number of objects marked as signed for taskruns     |
 | `watcher_taskrun_signing_failures_total`      | Counter | Total number of TaskRun signing failures                  |
 
+The `*_signing_failures_total` counters carry an `error_type` label:
+
+| `error_type`         | Failure                                                                    |
+|----------------------|----------------------------------------------------------------------------|
+| `payload_creation`   | the payload could not be created                                           |
+| `marshal_payload`    | the payload could not be serialized                                        |
+| `signer_unavailable` | no signer could be configured (missing key material, unreachable KMS, ...) |
+| `signing`            | the signer failed to sign the payload                                      |
+| `tlog`               | the signature could not be uploaded to the transparency log                |
+| `storage`            | the signature or payload could not be stored                               |
+
 To access the chains metrics, use the following commands:
 ```shell
 kubectl port-forward -n tekton-chains service/tekton-chains-metrics 9090
