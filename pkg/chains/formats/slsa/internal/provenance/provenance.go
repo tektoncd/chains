@@ -24,6 +24,9 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+// chainsVersion is set by the release build using linker flags.
+var chainsVersion string
+
 // GetSLSA1Statement returns a predicate in SLSA v1.0 format using the given data.
 func GetSLSA1Statement(obj objects.TektonObject, sub []*intoto.ResourceDescriptor, bd *slsa.BuildDefinition, bp []*intoto.ResourceDescriptor, slsaConfig *slsaconfig.SlsaConfig) (intoto.Statement, error) {
 	predicate := slsa.Provenance{
@@ -35,6 +38,22 @@ func GetSLSA1Statement(obj objects.TektonObject, sub []*intoto.ResourceDescripto
 			Metadata:   metadata.GetBuildMetadata(obj),
 			Byproducts: bp,
 		},
+	}
+
+	if slsaConfig.IncludeBuilderMetadata && chainsVersion != "" {
+		predicate.RunDetails.Builder.Version = map[string]string{
+			"tekton-chains": chainsVersion,
+		}
+	}
+
+	if slsaConfig.IncludeBuilderMetadata && slsaConfig.PipelinesVersion != "" {
+		predicate.RunDetails.Builder.BuilderDependencies = []*intoto.ResourceDescriptor{
+			{
+				Name: "tekton-pipelines",
+				Uri: "https://github.com/tektoncd/pipeline/releases/tag/" +
+					slsaConfig.PipelinesVersion,
+			},
+		}
 	}
 
 	predicateStruct, err := getProtoStruct(&predicate)

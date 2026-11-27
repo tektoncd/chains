@@ -245,6 +245,33 @@ func runInTotoFormatterTests(ctx context.Context, t *testing.T, ns string, c *cl
 				expected := expectedProvenanceSLSA1(ctx, t, path, completed, test.outputLocation, ns, c)
 
 				expPredicateStruct := expected.Predicate
+				if test.outputLocation == "slsa/v2alpha4" {
+					pipelinesInfo, err := c.KubeClient.CoreV1().
+						ConfigMaps("tekton-pipelines").
+						Get(ctx, "pipelines-info", metav1.GetOptions{})
+					if err != nil {
+						t.Fatalf("reading Pipelines version for expected provenance: %v", err)
+					}
+
+					version := strings.TrimSpace(pipelinesInfo.Data["version"])
+					if version == "" {
+						t.Fatal("pipelines-info has no version for expected provenance")
+					}
+
+					dependencies, err := structpb.NewValue([]any{
+						map[string]any{
+							"name": "tekton-pipelines",
+							"uri":  "https://github.com/tektoncd/pipeline/releases/tag/" + version,
+						},
+					})
+					if err != nil {
+						t.Fatalf("creating expected builder dependencies: %v", err)
+					}
+
+					builder := expPredicateStruct.GetFields()["runDetails"].
+						GetStructValue().GetFields()["builder"].GetStructValue()
+					builder.Fields["builderDependencies"] = dependencies
+				}
 				expected.Predicate = nil
 
 				gotPredicateStruct := gotProvenance.Predicate
