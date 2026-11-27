@@ -17,8 +17,12 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"crypto/ed25519"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha256"
+	cx509 "crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -218,7 +222,6 @@ func TestSigner_SignECDSA(t *testing.T) {
 }
 
 func TestSigner_SignED25519(t *testing.T) {
-	t.Skip("skip test until ed25519 signing is implemented")
 	ctx := logtesting.TestContextWithLogger(t)
 	d := t.TempDir()
 	p := filepath.Join(d, "x509.pem")
@@ -276,12 +279,21 @@ func TestNewSignerUnsupportedX509KeyType(t *testing.T) {
 	ctx := logtesting.TestContextWithLogger(t)
 	d := t.TempDir()
 	p := filepath.Join(d, "x509.pem")
-	// ed25519 keys are a valid PKCS8 key but not supported by the x509 signer.
-	if err := os.WriteFile(p, []byte(ed25519Priv), 0644); err != nil {
+	// RSA keys are a valid PKCS8 key but not supported by the x509 signer.
+	rsaKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatal(err)
+	}
+	der, err := cx509.MarshalPKCS8PrivateKey(rsaKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rsaPriv := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: der})
+	if err := os.WriteFile(p, rsaPriv, 0644); err != nil {
 		t.Fatal(err)
 	}
 
-	_, err := NewSigner(ctx, d, config.Config{})
+	_, err = NewSigner(ctx, d, config.Config{})
 	if err == nil {
 		t.Fatal("expected an error for an unsupported key type, got nil")
 	}
