@@ -43,7 +43,7 @@ jobs:
         persist-credentials: false
 
     - name: Set up Go
-      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+      uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5  # v7.1.0
       with:
         go-version-file: "go.mod"
 
@@ -126,7 +126,7 @@ jobs:
 
     - name: Collect diagnostics
       if: ${{ failure() }}
-      uses: chainguard-dev/actions/kind-diag@a25ce483d875a46f4c837e85e32e0fda602693f5  # v1.8.1
+      uses: chainguard-dev/actions/kind-diag@d496b2ab65497cac13d77ccd5038b8aae7e8c43b  # v1.8.2
       with:
         cluster-resources: nodes
         namespace-resources: pods,taskruns,jobs
